@@ -228,7 +228,8 @@
 
             @* Menu Paramètres avec sous-menu *@
             @{
-                bool parametreActif = controller == "Utilisateur" || controller == "Parametre";
+                bool parametreActif = controller == "Utilisateur" || controller == "Motif"
+                    || controller == "ModePaiement" || controller == "Tenant";
             }
             <a class="nav-link @(parametreActif ? "active" : "")"
                onclick="toggleSubmenu()" id="parametreMenu">
@@ -245,6 +246,10 @@
                 <a class="nav-link @(controller == "Motif" ? "active" : "")" href="/Motif/Index">
                     <i class="fas fa-file-invoice"></i>
                     Motifs
+                </a>
+                <a class="nav-link @(controller == "ModePaiement" ? "active" : "")" href="/ModePaiement/Index">
+                    <i class="fas fa-money-check-dollar"></i>
+                    Modes de paiement
                 </a>
                 @if (isSuperAdmin)
                 {

@@ -94,6 +94,7 @@ namespace EasytransitCaisse.Controllers
 
             client.Email = model.Email ?? ""; // 🔥 évite NULL
             client.Type = model.Type;
+            client.CompteGeneral = model.CompteGeneral;
             client.NomContact = model.NomContact;
             client.FonctionContact = model.FonctionContact;
             client.TelephoneContact = model.TelephoneContact;

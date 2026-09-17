@@ -124,6 +124,7 @@ namespace EasytransitCaisse.Controllers
             existing.CashierDefault = caisse.CashierDefault;
             existing.CustomerDefaultCode = caisse.CustomerDefaultCode;
             existing.JournalDefaultCode = caisse.JournalDefaultCode;
+            existing.CompteComptable = caisse.CompteComptable;
 
             _context.SaveChanges();
 

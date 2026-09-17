@@ -102,6 +102,19 @@
 
             </a>
 
+            <a class="btn btn-outline-success"
+               asp-action="ExportSage"
+               asp-route-dateDebut="@Model.DateDebut?.ToString("yyyy-MM-dd")"
+               asp-route-dateFin="@Model.DateFin?.ToString("yyyy-MM-dd")"
+               asp-route-caisseId="@Model.CaisseId"
+               asp-route-typeOperation="@Model.TypeOperation">
+
+                <i class="fa fa-file-excel"></i>
+
+                Exporter vers Sage (Excel)
+
+            </a>
+
         </div>
 
         <table class="table table-bordered table-hover">
@@ -118,7 +131,7 @@
 
                 <th>Libellé</th>
 
-                <th>Client</th>
+                <th>Tiers</th>
 
                 <th>Caissier</th>
 

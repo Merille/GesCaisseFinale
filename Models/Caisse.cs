@@ -19,6 +19,10 @@ namespace EasytransitCaisse.Models
 
         public string? JournalDefaultCode { get; set; }= "J0001";
 
+        // Compte comptable de la caisse elle-même (ex: 571000), utilisé comme
+        // contrepartie caisse lors de l'export des écritures vers Sage.
+        public string? CompteComptable { get; set; }
+
         public int TenantId { get; set; }
     }
 }

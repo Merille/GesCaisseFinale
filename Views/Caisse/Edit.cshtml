@@ -15,7 +15,7 @@
 
             <form method="post">
 
-                <input type="hidden" name="SysID" value="@Model.ID" />
+                <input type="hidden" name="ID" value="@Model.ID" />
 
                 <div class="row">
 
@@ -32,6 +32,12 @@
                     <div class="col-md-6 mb-3">
                         <label>StCode</label>
                         <input name="StCode" value="@Model.StCode" class="form-control" />
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label>Compte comptable (caisse)</label>
+                        <input name="CompteComptable" value="@Model.CompteComptable" class="form-control"
+                               placeholder="Ex: 571000" />
                     </div>
 
                     <div class="col-md-6 mb-3">

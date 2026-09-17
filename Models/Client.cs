@@ -16,6 +16,11 @@ namespace EasytransitCaisse.Models
         public string? Email { get; set; }
         public string? Type { get; set; }
 
+        // Compte général comptable de ce tiers (ex: 411000), utilisé comme
+        // contrepartie lors de l'export des écritures vers Sage quand le
+        // motif de l'opération n'en précise pas.
+        public string? CompteGeneral { get; set; }
+
         // Interlocuteur principal
         public string? NomContact { get; set; }
         public string? FonctionContact { get; set; }

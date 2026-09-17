@@ -4,6 +4,7 @@ using EasytransitCaisse.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace EasytransitCaisse.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260820153515_CompteComptableCaisse")]
+    partial class CompteComptableCaisse
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -75,9 +78,6 @@ namespace EasytransitCaisse.Migrations
 
                     b.Property<string>("CodeClient")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("CompteGeneral")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Email")
@@ -236,28 +236,6 @@ namespace EasytransitCaisse.Migrations
                     b.HasIndex("FactureId");
 
                     b.ToTable("LignesFactures");
-                });
-
-            modelBuilder.Entity("EasytransitCaisse.Models.ModePaiement", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<bool>("Actif")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Libelle")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("TenantId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("ModesPaiement");
                 });
 
             modelBuilder.Entity("EasytransitCaisse.Models.Motif", b =>

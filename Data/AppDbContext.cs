@@ -41,6 +41,9 @@ namespace EasytransitCaisse.Data
             modelBuilder.Entity<Motif>()
                 .HasQueryFilter(e => _currentTenantId == 0 || e.TenantId == _currentTenantId);
 
+            modelBuilder.Entity<ModePaiement>()
+                .HasQueryFilter(e => _currentTenantId == 0 || e.TenantId == _currentTenantId);
+
             modelBuilder.Entity<JourneeCaisse>()
                 .HasQueryFilter(e => _currentTenantId == 0 || e.TenantId == _currentTenantId);
 
@@ -96,5 +99,7 @@ namespace EasytransitCaisse.Data
         public DbSet<LigneFacture> LignesFactures { get; set; }
 
         public DbSet<Motif> Motifs { get; set; }
+
+        public DbSet<ModePaiement> ModesPaiement { get; set; }
     }
 }
