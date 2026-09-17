@@ -29,9 +29,26 @@
 
 <hr />
 
-<h2>Opérations de Caisse</h2>
+<h2>Opérations de Caisse — Journée @Model.NumeroJournee</h2>
 
 <table border="1" width="100%" cellpadding="5">
+
+    <tr>
+        <th>Solde Initial</th>
+        <th>Encaissements</th>
+        <th>Décaissements</th>
+        <th>Solde Actuel</th>
+    </tr>
+    <tr>
+        <td>@Model.SoldeInitial.ToString("N0")</td>
+        <td>@Model.TotalEncaisse.ToString("N0")</td>
+        <td>@Model.TotalDecaisse.ToString("N0")</td>
+        <td>@Model.SoldeActuel.ToString("N0")</td>
+    </tr>
+
+</table>
+
+<table border="1" width="100%" cellpadding="5" style="margin-top:20px;">
 
     <tr>
         <th>Date</th>

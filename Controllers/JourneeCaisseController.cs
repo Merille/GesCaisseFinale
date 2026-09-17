@@ -361,15 +361,34 @@ namespace EasytransitCaisse.Controllers
 
         public IActionResult PrintOperations(int journeeId)
         {
+            var journee = _context.JourneesCaisses
+                .FirstOrDefault(x => x.Id == journeeId);
+
+            if (journee == null)
+                return NotFound();
+
             var ops = _context.OperationsCaisses
                 .Include(x => x.ModePaiement)
                 .Where(x => x.JourneeCaisseId == journeeId)
                 .ToList();
 
+            var totalEncaisse = ops
+                .Where(o => o.TypeOperation == "Encaissement")
+                .Sum(o => o.Montant);
+
+            var totalDecaisse = ops
+                .Where(o => o.TypeOperation == "Décaissement")
+                .Sum(o => o.Montant);
+
             // NB: Rotativa.ViewAsPdf ne propage pas le ViewBag du contrôleur vers la
             // vue rendue en PDF — les totaux doivent voyager dans le modèle lui-même.
             var model = new PrintOperationsVM
             {
+                NumeroJournee = journee.NumeroJournee,
+                SoldeInitial = journee.SoldeInitial,
+                TotalEncaisse = totalEncaisse,
+                TotalDecaisse = totalDecaisse,
+                SoldeActuel = journee.SoldeInitial + totalEncaisse - totalDecaisse,
                 Operations = ops,
                 TotauxParModePaiement = GetTotauxParModePaiement(journeeId)
             };
