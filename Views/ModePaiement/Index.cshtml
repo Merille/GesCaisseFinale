@@ -22,6 +22,7 @@
             <table id="modesPaiementTable" class="table table-hover align-middle mb-0">
                 <thead class="table-dark">
                     <tr>
+                        <th>Code</th>
                         <th>Libellé</th>
                         <th>Statut</th>
                         <th width="180">Actions</th>
@@ -31,6 +32,7 @@
                     @foreach (var m in Model)
                     {
                         <tr>
+                            <td>@m.Code</td>
                             <td>@m.Libelle</td>
                             <td>
                                 @if (m.Actif)
@@ -45,7 +47,7 @@
                             <td>
                                 <div class="d-flex gap-1">
                                     <button class="btn btn-warning btn-sm"
-                                            onclick="ouvrirEdit(@m.Id, '@m.Libelle', @(m.Actif ? "true" : "false"))">
+                                            onclick="ouvrirEdit(@m.Id, '@m.Code', '@m.Libelle', @(m.Actif ? "true" : "false"))">
                                         Modifier
                                     </button>
                                     <form asp-action="Delete" asp-route-id="@m.Id" method="post" class="d-inline"
@@ -76,6 +78,10 @@
             <form method="post" asp-action="Create" asp-controller="ModePaiement">
                 @Html.AntiForgeryToken()
                 <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Code</label>
+                        <input name="Code" class="form-control" placeholder="Ex: ESP" />
+                    </div>
                     <div class="mb-3">
                         <label class="form-label">Libellé</label>
                         <input name="Libelle" class="form-control" placeholder="Ex: Espèces" />
@@ -109,6 +115,10 @@
                 <input type="hidden" id="editId" name="Id" />
                 <div class="modal-body">
                     <div class="mb-3">
+                        <label class="form-label">Code</label>
+                        <input id="editCode" name="Code" class="form-control" />
+                    </div>
+                    <div class="mb-3">
                         <label class="form-label">Libellé</label>
                         <input id="editLibelle" name="Libelle" class="form-control" />
                     </div>
@@ -130,8 +140,9 @@
 
 @section Scripts {
     <script>
-        function ouvrirEdit(id, libelle, actif) {
+        function ouvrirEdit(id, code, libelle, actif) {
             document.getElementById('editId').value = id;
+            document.getElementById('editCode').value = code;
             document.getElementById('editLibelle').value = libelle;
             document.getElementById('editActif').checked = actif;
 
@@ -147,7 +158,7 @@
                 lengthMenu: [10, 25, 50, 100],
                 order: [[0, 'asc']],
                 columnDefs: [
-                    { orderable: false, targets: 2 }
+                    { orderable: false, targets: 3 }
                 ],
                 dom: '<"d-flex justify-content-between align-items-center mb-3"lf>rtip'
             });

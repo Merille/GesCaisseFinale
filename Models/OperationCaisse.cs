@@ -20,6 +20,7 @@ namespace EasytransitCaisse.Models
 
         public int? ClientId { get; set; }
         public int? MotifId { get; set; }
+        public int? ModePaiementId { get; set; }
 
         public int UtilisateurId { get; set; }
 
@@ -34,6 +35,8 @@ namespace EasytransitCaisse.Models
 
         public virtual JourneeCaisse JourneeCaisse { get; set; }
         public virtual Motif Motif { get; set; }
+
+        public virtual ModePaiement ModePaiement { get; set; }
 
         public virtual Client Client { get; set; }
 

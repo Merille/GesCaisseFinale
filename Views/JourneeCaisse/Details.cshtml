@@ -117,6 +117,39 @@
         </div>
 
     </div>
+
+    <div class="card shadow-lg mt-4">
+
+        <div class="card-header bg-dark text-white">
+            Totaux par mode de paiement
+        </div>
+
+        <div class="card-body p-0">
+            <table class="table table-bordered mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Mode de paiement</th>
+                        <th class="text-end">Encaissements</th>
+                        <th class="text-end">Décaissements</th>
+                        <th class="text-end">Net</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var t in ViewBag.TotauxParModePaiement)
+                    {
+                        <tr>
+                            <td>@t.Libelle</td>
+                            <td class="text-end text-success">@t.Encaisse.ToString("N0")</td>
+                            <td class="text-end text-danger">@t.Decaisse.ToString("N0")</td>
+                            <td class="text-end fw-bold">@t.Net.ToString("N0")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+
     <div class="card shadow-lg mt-4">
         @if (Model.Statut == "Cloturee")
         {
@@ -243,6 +276,7 @@
                         <th>Date</th>
                         <th>Motif</th>
                         <th>Description</th>
+                        <th>Mode de paiement</th>
                         <th>Montant</th>
                         <th>Type</th>
                         <th>Statut</th>
@@ -270,6 +304,10 @@
 
                             <td>
                                 @op.Libelle
+                            </td>
+
+                            <td>
+                                @op.ModePaiementLibelle
                             </td>
 
                             <td>
@@ -397,6 +435,17 @@
                                        placeholder="Description de l'opération" />
                             </div>
 
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Mode de paiement</label>
+                                <select name="modePaiementId" class="form-select">
+                                    <option value="">-- Choisir un mode de paiement --</option>
+                                    @foreach (var mp in ViewBag.ModesPaiement)
+                                    {
+                                        <option value="@mp.Id">@mp.Libelle</option>
+                                    }
+                                </select>
+                            </div>
+
                         </div>
 
                         <div class="card mt-2">
@@ -515,6 +564,17 @@
                                 <label class="form-label">Description</label>
                                 <input name="libelle" class="form-control"
                                        placeholder="Description de l'opération" />
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Mode de paiement</label>
+                                <select name="modePaiementId" class="form-select">
+                                    <option value="">-- Choisir un mode de paiement --</option>
+                                    @foreach (var mp in ViewBag.ModesPaiement)
+                                    {
+                                        <option value="@mp.Id">@mp.Libelle</option>
+                                    }
+                                </select>
                             </div>
 
                         </div>
@@ -685,7 +745,7 @@
                 lengthMenu: [10, 25, 50, 100],
                 order: [[0, 'desc']], // tri par date décroissante
                 columnDefs: [
-                    { orderable: false, targets: 4 } // colonne Type non triable
+                    { orderable: false, targets: 5 } // colonne Type non triable
                 ],
                 dom: '<"d-flex justify-content-between align-items-center mb-3"lf>rtip'
             });

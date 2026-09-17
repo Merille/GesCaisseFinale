@@ -1,4 +1,4 @@
-﻿@model List<EasytransitCaisse.Models.OperationCaisse>
+﻿@model EasytransitCaisse.Models.ViewModels.PrintOperationsVM
     @{
     Layout = "_PdfLayout";
 }
@@ -38,17 +38,42 @@
         <th>Type</th>
         @* <th>Motif</th> *@
         <th>Libellé</th>
+        <th>Mode de paiement</th>
         <th>Montant</th>
     </tr>
 
-    @foreach (var o in Model)
+    @foreach (var o in Model.Operations)
     {
         <tr>
             <td>@o.DateOperation.ToString("dd/MM/yyyy HH:mm")</td>
             <td>@o.TypeOperation</td>
             @* <td>@o.MotifLibelle</td> *@
             <td>@o.Libelle</td>
+            <td>@(o.ModePaiement?.Libelle ?? "-")</td>
             <td>@o.Montant</td>
+        </tr>
+    }
+
+</table>
+
+<h2 style="margin-top:30px;">Totaux par mode de paiement</h2>
+
+<table border="1" width="100%" cellpadding="5">
+
+    <tr>
+        <th>Mode de paiement</th>
+        <th>Encaissements</th>
+        <th>Décaissements</th>
+        <th>Net</th>
+    </tr>
+
+    @foreach (var t in Model.TotauxParModePaiement)
+    {
+        <tr>
+            <td>@t.Libelle</td>
+            <td>@t.Encaisse.ToString("N0")</td>
+            <td>@t.Decaisse.ToString("N0")</td>
+            <td>@t.Net.ToString("N0")</td>
         </tr>
     }
 

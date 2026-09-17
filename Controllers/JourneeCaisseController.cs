@@ -1,7 +1,9 @@
 ﻿using EasytransitCaisse.Data;
 using EasytransitCaisse.Models;
+using EasytransitCaisse.Models.ViewModels;
 using EasytransitCaisse.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Rotativa.AspNetCore;
 using System.Security.Claims;
 
@@ -14,6 +16,32 @@ namespace EasytransitCaisse.Controllers
         public JourneeCaisseController(AppDbContext context)
         {
             _context = context;
+        }
+
+        // Totaux encaissés/décaissés par mode de paiement pour une journée
+        // (utilisé à l'écran et sur le PDF imprimé).
+        private List<TotalModePaiementVM> GetTotauxParModePaiement(int journeeId)
+        {
+            var operations = _context.OperationsCaisses
+                .Where(x => x.JourneeCaisseId == journeeId)
+                .Select(x => new { x.TypeOperation, x.Montant, x.ModePaiementId })
+                .ToList();
+
+            var libelles = _context.ModesPaiement
+                .ToDictionary(m => m.Id, m => m.Libelle ?? "-");
+
+            return operations
+                .GroupBy(x => x.ModePaiementId)
+                .Select(g => new TotalModePaiementVM
+                {
+                    Libelle = g.Key.HasValue && libelles.TryGetValue(g.Key.Value, out var lib)
+                        ? lib
+                        : "Non renseigné",
+                    Encaisse = g.Where(o => o.TypeOperation == "Encaissement").Sum(o => o.Montant),
+                    Decaisse = g.Where(o => o.TypeOperation == "Décaissement").Sum(o => o.Montant)
+                })
+                .OrderBy(t => t.Libelle)
+                .ToList();
         }
 
         public IActionResult Details(int id)
@@ -51,8 +79,15 @@ namespace EasytransitCaisse.Controllers
                 .OrderBy(m => m.LibelleMotif)
                 .ToList();
 
+            ViewBag.ModesPaiement = _context.ModesPaiement
+                .Where(m => m.Actif)
+                .OrderBy(m => m.Libelle)
+                .ToList();
+
             ViewBag.PeutValider = bool.TryParse(
                 User.FindFirst(AppClaimTypes.PeutValiderOperations)?.Value, out var pv) && pv;
+
+            ViewBag.TotauxParModePaiement = GetTotauxParModePaiement(id);
 
             ViewBag.Operations = _context.OperationsCaisses
                 .Where(x => x.JourneeCaisseId == id)
@@ -71,6 +106,12 @@ namespace EasytransitCaisse.Controllers
                         .Where(m => m.ID == x.MotifId)
                         .Select(m => m.LibelleMotif)
                         .FirstOrDefault()
+                    : "-",
+                            ModePaiementLibelle = x.ModePaiementId != null
+                    ? _context.ModesPaiement
+                        .Where(m => m.Id == x.ModePaiementId)
+                        .Select(m => m.Libelle)
+                        .FirstOrDefault()
                     : "-"
                         })
                 .ToList();
@@ -85,6 +126,7 @@ namespace EasytransitCaisse.Controllers
         string libelle,
         int? motifId,
         int? clientId,
+        int? modePaiementId,
         bool estJustifie,
         string statutValidation,
         string? valideur,
@@ -106,6 +148,7 @@ namespace EasytransitCaisse.Controllers
                 Libelle = libelle,
                 ClientId = clientId,
                 MotifId = motifId,
+                ModePaiementId = modePaiementId,
                 UtilisateurId = utilisateurId,
                 EstJustifie = estJustifie,
                 StatutValidation = peutValider && !string.IsNullOrWhiteSpace(statutValidation)
@@ -272,10 +315,10 @@ namespace EasytransitCaisse.Controllers
                 .Where(x => x.CaisseId == caisseId)
                 .ToList();
 
-            var model = journees.Select(j => new
+            var lignes = journees.Select(j => new JourneeLigneVM
             {
-                j.DateJournee,
-                j.SoldeInitial,
+                DateJournee = j.DateJournee,
+                SoldeInitial = j.SoldeInitial,
 
                 Encaisse = _context.OperationsCaisses
                     .Where(o => o.JourneeCaisseId == j.Id &&
@@ -299,10 +342,16 @@ namespace EasytransitCaisse.Controllers
                                     o.TypeOperation == "Décaissement")
                         .Sum(o => (decimal?)o.Montant) ?? 0),
 
-                j.Statut
+                Statut = j.Statut
             }).ToList();
 
-            ViewBag.CaisseName = caisse.ChkDescription + " - " + caisse.ChkCode;
+            // NB: Rotativa.ViewAsPdf ne propage pas le ViewBag du contrôleur vers la
+            // vue rendue en PDF — le nom de la caisse doit voyager dans le modèle.
+            var model = new PrintJourneesVM
+            {
+                CaisseName = caisse.ChkDescription + " - " + caisse.ChkCode,
+                Journees = lignes
+            };
 
             return new ViewAsPdf("PrintJournees", model)
             {
@@ -313,10 +362,19 @@ namespace EasytransitCaisse.Controllers
         public IActionResult PrintOperations(int journeeId)
         {
             var ops = _context.OperationsCaisses
+                .Include(x => x.ModePaiement)
                 .Where(x => x.JourneeCaisseId == journeeId)
                 .ToList();
 
-            return new ViewAsPdf("PrintOperations", ops)
+            // NB: Rotativa.ViewAsPdf ne propage pas le ViewBag du contrôleur vers la
+            // vue rendue en PDF — les totaux doivent voyager dans le modèle lui-même.
+            var model = new PrintOperationsVM
+            {
+                Operations = ops,
+                TotauxParModePaiement = GetTotauxParModePaiement(journeeId)
+            };
+
+            return new ViewAsPdf("PrintOperations", model)
             {
                 FileName = "Operations_Caisse.pdf"
             };

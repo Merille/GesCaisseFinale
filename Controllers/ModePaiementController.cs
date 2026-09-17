@@ -36,6 +36,7 @@ namespace EasytransitCaisse.Controllers
             if (existing == null)
                 return NotFound();
 
+            existing.Code = mode.Code;
             existing.Libelle = mode.Libelle;
             existing.Actif = mode.Actif;
 

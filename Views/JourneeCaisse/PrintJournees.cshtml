@@ -1,4 +1,4 @@
-﻿@model dynamic
+﻿@model EasytransitCaisse.Models.ViewModels.PrintJourneesVM
 
 @{
     Layout = "_PdfLayout";
@@ -32,7 +32,7 @@
 <hr />
 <!-- TITRE CAISSE -->
 <h2 style="text-align:center;">
-    CAISSE : @ViewBag.CaisseName
+    CAISSE : @Model.CaisseName
 </h2>
 
 <br />
@@ -52,7 +52,7 @@
 
     <tbody>
 
-    @foreach(var j in Model)
+    @foreach(var j in Model.Journees)
     {
         <tr>
             <td>@j.DateJournee.ToString("dd/MM/yyyy")</td>

@@ -6,6 +6,8 @@ namespace EasytransitCaisse.Models
     {
         public int Id { get; set; }
 
+        public string? Code { get; set; }
+
         public string? Libelle { get; set; }
 
         public bool Actif { get; set; } = true;
