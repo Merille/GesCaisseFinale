@@ -66,4 +66,22 @@
 
     </tbody>
 
+    @{
+        var totalSoldeInitial = Model.Journees.Sum(j => j.SoldeInitial);
+        var totalEncaisse = Model.Journees.Sum(j => j.Encaisse);
+        var totalDecaisse = Model.Journees.Sum(j => j.Decaisse);
+        var soldeActuel = totalSoldeInitial + totalEncaisse - totalDecaisse;
+    }
+
+    <tfoot>
+        <tr style="font-weight:bold; background:#eee;">
+            <td>Totaux</td>
+            <td>@totalSoldeInitial.ToString("N0")</td>
+            <td>@totalEncaisse.ToString("N0")</td>
+            <td>@totalDecaisse.ToString("N0")</td>
+            <td>@soldeActuel.ToString("N0")</td>
+            <td></td>
+        </tr>
+    </tfoot>
+
 </table>
