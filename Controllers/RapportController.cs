@@ -95,10 +95,12 @@ namespace EasytransitCaisse.Controllers
             };
 
             model.TotalEntrees = model.Operations
+                .NonRejetees()
                 .Where(x => x.TypeOperation == "Encaissement")
                 .Sum(x => x.Montant);
 
             model.TotalSorties = model.Operations
+                .NonRejetees()
                 .Where(x => x.TypeOperation == "Décaissement")
                 .Sum(x => x.Montant);
 
@@ -147,10 +149,12 @@ namespace EasytransitCaisse.Controllers
             };
 
             model.TotalEntrees = model.Operations
+                .NonRejetees()
                 .Where(x => x.TypeOperation == "Encaissement")
                 .Sum(x => x.Montant);
 
             model.TotalSorties = model.Operations
+                .NonRejetees()
                 .Where(x => x.TypeOperation == "Décaissement")
                 .Sum(x => x.Montant);
 
@@ -187,7 +191,7 @@ namespace EasytransitCaisse.Controllers
                 .Include(x => x.JourneeCaisse).ThenInclude(j => j.Caisse)
                 .Include(x => x.Motif)
                 .Include(x => x.Client)
-                .AsQueryable();
+                .NonRejetees();
 
             if (dateDebut.HasValue)
                 query = query.Where(x => x.DateOperation >= dateDebut.Value);

@@ -165,12 +165,14 @@ namespace EasytransitCaisse.Controllers
             foreach (var journee in journees)
             {
                 decimal encaisse = _context.OperationsCaisses
+                    .NonRejetees()
                     .Where(x =>
                         x.JourneeCaisseId == journee.Id &&
                         x.TypeOperation == "Encaissement")
                     .Sum(x => (decimal?)x.Montant) ?? 0;
 
                 decimal decaisse = _context.OperationsCaisses
+                    .NonRejetees()
                     .Where(x =>
                         x.JourneeCaisseId == journee.Id &&
                         x.TypeOperation == "Décaissement")

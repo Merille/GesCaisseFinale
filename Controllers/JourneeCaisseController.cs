@@ -23,6 +23,7 @@ namespace EasytransitCaisse.Controllers
         private List<TotalModePaiementVM> GetTotauxParModePaiement(int journeeId)
         {
             var operations = _context.OperationsCaisses
+                .NonRejetees()
                 .Where(x => x.JourneeCaisseId == journeeId)
                 .Select(x => new { x.TypeOperation, x.Montant, x.ModePaiementId })
                 .ToList();
@@ -54,12 +55,14 @@ namespace EasytransitCaisse.Controllers
                 return NotFound();
 
             var encaisse = _context.OperationsCaisses
+                .NonRejetees()
                 .Where(x =>
                     x.JourneeCaisseId == id &&
                     x.TypeOperation == "Encaissement")
                 .Sum(x => (decimal?)x.Montant) ?? 0;
 
             var decaisse = _context.OperationsCaisses
+                .NonRejetees()
                 .Where(x =>
                     x.JourneeCaisseId == id &&
                     x.TypeOperation == "Décaissement")
@@ -232,10 +235,12 @@ namespace EasytransitCaisse.Controllers
                 return derniere.SoldeFinal;
 
             var encaisse = _context.OperationsCaisses
+                .NonRejetees()
                 .Where(x => x.JourneeCaisseId == derniere.Id && x.TypeOperation == "Encaissement")
                 .Sum(x => (decimal?)x.Montant) ?? 0;
 
             var decaisse = _context.OperationsCaisses
+                .NonRejetees()
                 .Where(x => x.JourneeCaisseId == derniere.Id && x.TypeOperation == "Décaissement")
                 .Sum(x => (decimal?)x.Montant) ?? 0;
 
@@ -393,11 +398,13 @@ namespace EasytransitCaisse.Controllers
                 SoldeInitial = j.SoldeInitial,
 
                 Encaisse = _context.OperationsCaisses
+                    .NonRejetees()
                     .Where(o => o.JourneeCaisseId == j.Id &&
                                 o.TypeOperation == "Encaissement")
                     .Sum(o => (decimal?)o.Montant) ?? 0,
 
                 Decaisse = _context.OperationsCaisses
+                    .NonRejetees()
                     .Where(o => o.JourneeCaisseId == j.Id &&
                                 o.TypeOperation == "Décaissement")
                     .Sum(o => (decimal?)o.Montant) ?? 0,
@@ -405,11 +412,13 @@ namespace EasytransitCaisse.Controllers
                 Solde =
                     j.SoldeInitial +
                     (_context.OperationsCaisses
+                        .NonRejetees()
                         .Where(o => o.JourneeCaisseId == j.Id &&
                                     o.TypeOperation == "Encaissement")
                         .Sum(o => (decimal?)o.Montant) ?? 0)
                     -
                     (_context.OperationsCaisses
+                        .NonRejetees()
                         .Where(o => o.JourneeCaisseId == j.Id &&
                                     o.TypeOperation == "Décaissement")
                         .Sum(o => (decimal?)o.Montant) ?? 0),
@@ -445,10 +454,12 @@ namespace EasytransitCaisse.Controllers
                 .ToList();
 
             var totalEncaisse = ops
+                .NonRejetees()
                 .Where(o => o.TypeOperation == "Encaissement")
                 .Sum(o => o.Montant);
 
             var totalDecaisse = ops
+                .NonRejetees()
                 .Where(o => o.TypeOperation == "Décaissement")
                 .Sum(o => o.Montant);
 
