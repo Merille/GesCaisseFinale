@@ -36,33 +36,7 @@
     var fluxSorties = Model.Flux.Select(f => f.Sorties);
 }
 
-<style>
-    .db-card { background: #fff; border: 1px solid #e3e8f1; border-radius: 16px; }
-    .db-card h2 { font-size: 17px; font-weight: 700; margin: 0; }
-    .db-label { font-size: 12px; font-weight: 600; color: #56627a; letter-spacing: .5px; text-transform: uppercase; }
-    .db-num { font-variant-numeric: tabular-nums; }
-    .db-in { color: #0f7a4a; }
-    .db-out { color: #c2410c; }
-    .db-periodes { background: #eef2f8; border-radius: 10px; padding: 3px; display: inline-flex; gap: 2px; }
-    .db-periodes a { padding: 7px 14px; border-radius: 8px; font-size: 14px; font-weight: 600; color: #56627a; text-decoration: none; }
-    .db-periodes a.active { background: #fff; color: #0a2f78; box-shadow: 0 1px 3px rgba(15,27,51,.15); }
-    .db-solde { background: #0a2f78; color: #fff; border-radius: 16px; }
-    .db-solde .db-label, .db-solde .db-muted { color: #c9d5f0; }
-    .db-solde-split > div + div { border-left: 1px solid #2c549f; }
-    .db-sign { width: 28px; height: 28px; border-radius: 8px; color: #fff; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; }
-    .db-todo { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 16px; }
-    .db-todo a { background: #fff; border: 1px solid #fed7aa; border-radius: 12px; color: #0f1b33; text-decoration: none; }
-    .db-todo a:hover { border-color: #c2410c; }
-    .db-todo .db-count { font-size: 24px; font-weight: 800; color: #c2410c; min-width: 28px; }
-    .db-badge { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 20px; white-space: nowrap; }
-    .db-badge-ok { background: #dcf3e6; color: #0b5e39; }
-    .db-badge-wait { background: #fff1e0; color: #9a3412; }
-    .db-badge-ko { background: #fde2e2; color: #991b1b; }
-    .db-badge-off { background: #eef1f6; color: #56627a; }
-    .db-bar { height: 8px; border-radius: 4px; background: #eef1f6; }
-    .db-bar > div { height: 8px; border-radius: 4px; background: #0046c7; }
-    .db-table th { font-size: 12px; font-weight: 600; color: #56627a; }
-</style>
+<link rel="stylesheet" href="~/css/dashboard.css" asp-append-version="true" />
 
 <div class="container-fluid d-flex flex-column gap-4">
 
