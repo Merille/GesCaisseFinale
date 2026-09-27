@@ -30,6 +30,21 @@
                         <input name="Nom" value="@Model.Nom" class="form-control" />
                     </div>
 
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Mode d'accès</label>
+                        <select name="ModeAcces" class="form-select">
+                            <option value="Licence" selected="@(Model.ModeAcces == "Licence")">Licence</option>
+                            <option value="Abonnement" selected="@(Model.ModeAcces == "Abonnement")">Abonnement</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Date d'expiration</label>
+                        <input type="date" name="DateExpiration" class="form-control"
+                               value="@Model.DateExpiration?.ToString("yyyy-MM-dd")" />
+                        <div class="form-text">Vide = illimitée (licence perpétuelle).</div>
+                    </div>
+
                     <div class="col-md-6 mb-3 form-check mt-4">
                         <input type="checkbox" name="Actif" value="true" class="form-check-input" checked="@Model.Actif" />
                         <input type="hidden" name="Actif" value="false" />

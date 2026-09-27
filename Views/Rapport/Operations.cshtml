@@ -115,6 +115,32 @@
 
             </a>
 
+            <a class="btn btn-outline-secondary"
+               asp-action="ExportSageCsv"
+               asp-route-dateDebut="@Model.DateDebut?.ToString("yyyy-MM-dd")"
+               asp-route-dateFin="@Model.DateFin?.ToString("yyyy-MM-dd")"
+               asp-route-caisseId="@Model.CaisseId"
+               asp-route-typeOperation="@Model.TypeOperation">
+
+                <i class="fa fa-file-csv"></i>
+
+                Exporter vers Sage (CSV)
+
+            </a>
+
+            <a class="btn btn-outline-dark"
+               asp-action="ExportSageTxt"
+               asp-route-dateDebut="@Model.DateDebut?.ToString("yyyy-MM-dd")"
+               asp-route-dateFin="@Model.DateFin?.ToString("yyyy-MM-dd")"
+               asp-route-caisseId="@Model.CaisseId"
+               asp-route-typeOperation="@Model.TypeOperation">
+
+                <i class="fa fa-file-alt"></i>
+
+                Exporter vers Sage (TXT)
+
+            </a>
+
         </div>
 
         <table class="table table-bordered table-hover">

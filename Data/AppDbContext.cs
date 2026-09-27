@@ -55,6 +55,9 @@ namespace EasytransitCaisse.Data
 
             modelBuilder.Entity<LigneFacture>()
                 .HasQueryFilter(e => _currentTenantId == 0 || e.TenantId == _currentTenantId);
+
+            modelBuilder.Entity<ComptageCloture>()
+                .HasQueryFilter(e => _currentTenantId == 0 || e.TenantId == _currentTenantId);
         }
 
         public override int SaveChanges(bool acceptAllChangesOnSuccess)
@@ -101,5 +104,7 @@ namespace EasytransitCaisse.Data
         public DbSet<Motif> Motifs { get; set; }
 
         public DbSet<ModePaiement> ModesPaiement { get; set; }
+
+        public DbSet<ComptageCloture> ComptagesCloture { get; set; }
     }
 }

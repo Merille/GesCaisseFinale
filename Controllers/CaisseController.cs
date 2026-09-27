@@ -1,5 +1,6 @@
 ﻿using EasytransitCaisse.Data;
 using EasytransitCaisse.Models;
+using EasytransitCaisse.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Rotativa.AspNetCore;
@@ -196,7 +197,7 @@ namespace EasytransitCaisse.Controllers
         [HttpPost]
         public IActionResult OuvrirJournee(
             int caisseId,
-            decimal soldeInitial)
+            string soldeInitial)
                 {
                     var dejaOuverte = _context.JourneesCaisses
                         .Any(j => j.CaisseId == caisseId
@@ -213,7 +214,7 @@ namespace EasytransitCaisse.Controllers
                         CaisseId = caisseId,
                         NumeroJournee = $"JC-{DateTime.Now:yyyyMMddHHmmss}",
                         DateOuverture = DateTime.Now,
-                        SoldeInitial = soldeInitial,
+                        SoldeInitial = MontantHelper.Parse(soldeInitial),
                         Statut = "Ouverte"
                     };
 
@@ -229,7 +230,7 @@ namespace EasytransitCaisse.Controllers
         public IActionResult AjouterOperation(
     int journeeId,
     string typeOperation,
-    decimal montant,
+    string montant,
     string libelle,
     int? clientId)
         {
@@ -253,7 +254,7 @@ namespace EasytransitCaisse.Controllers
                 JourneeCaisseId = journeeId,
                 DateOperation = DateTime.Now,
                 TypeOperation = typeOperation,
-                Montant = montant,
+                Montant = MontantHelper.Parse(montant),
                 Libelle = libelle,
                 ClientId = clientId,
                 UtilisateurId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!)

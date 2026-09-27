@@ -27,6 +27,20 @@
                         <input name="Nom" class="form-control" placeholder="Ex: Acme SARL" />
                     </div>
 
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Mode d'accès</label>
+                        <select name="ModeAcces" class="form-select">
+                            <option value="Licence">Licence</option>
+                            <option value="Abonnement">Abonnement</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Date d'expiration</label>
+                        <input type="date" name="DateExpiration" class="form-control" />
+                        <div class="form-text">Vide = illimitée (licence perpétuelle).</div>
+                    </div>
+
                 </div>
 
                 <div class="text-end">

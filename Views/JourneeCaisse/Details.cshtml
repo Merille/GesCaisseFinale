@@ -17,14 +17,9 @@
 
             @if (Model.Statut == "Ouverte")
             {
-                <form method="post"
-                      asp-action="Cloturer"
-                      style="display:inline;">
-                    <input type="hidden" name="id" value="@Model.Id" />
-                    <button class="btn btn-warning">
-                        Clôturer
-                    </button>
-                </form>
+                <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#modalCloture">
+                    Clôturer
+                </button>
             }
 
             <form method="post"
@@ -117,6 +112,63 @@
         </div>
 
     </div>
+
+    @if (Model.Statut == "Cloturee")
+    {
+        <div class="card shadow-lg mt-4">
+
+            <div class="card-header bg-secondary text-white">
+                Résultat de la clôture
+            </div>
+
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <strong>Solde final compté :</strong> @Model.SoldeFinal.ToString("N0")
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Écart (compté - théorique) :</strong>
+                        <span class="@(Model.EcartCloture == 0 ? "text-success" : "text-danger fw-bold")">
+                            @(Model.EcartCloture ?? 0).ToString("N0")
+                        </span>
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Clôturée le :</strong> @Model.DateFermeture?.ToString("dd/MM/yyyy HH:mm")
+                    </div>
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(Model.NoteCloture))
+                {
+                    <p><strong>Note :</strong> @Model.NoteCloture</p>
+                }
+
+                <table class="table table-sm table-bordered mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Mode de paiement</th>
+                            <th class="text-end">Théorique</th>
+                            <th class="text-end">Compté</th>
+                            <th class="text-end">Écart</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var c in ViewBag.ComptagesCloture)
+                        {
+                            <tr>
+                                <td>@(c.ModePaiement?.Libelle ?? "Non renseigné")</td>
+                                <td class="text-end">@c.MontantTheorique.ToString("N0")</td>
+                                <td class="text-end">@c.MontantCompte.ToString("N0")</td>
+                                <td class="text-end @(c.Ecart == 0 ? "text-success" : "text-danger")">
+                                    @c.Ecart.ToString("N0")
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+    }
 
     <div class="card shadow-lg mt-4">
 
@@ -217,7 +269,7 @@
 
                             <input name="montant"
                                    type="number"
-                                   step="0.01"
+                                   step="1"
                                    class="form-control" />
                         </div>
 
@@ -414,8 +466,8 @@
 
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Montant</label>
-                                <input name="montant" type="number" step="0.01"
-                                       class="form-control" placeholder="0.00" />
+                                <input name="montant" type="number" step="1"
+                                       class="form-control" placeholder="0" />
                             </div>
 
                             <div class="col-md-6 mb-3">
@@ -545,8 +597,8 @@
 
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Montant</label>
-                                <input name="montant" type="number" step="0.01"
-                                       class="form-control" placeholder="0.00" />
+                                <input name="montant" type="number" step="1"
+                                       class="form-control" placeholder="0" />
                             </div>
 
                             <div class="col-md-6 mb-3">
@@ -715,6 +767,89 @@
             </div>
         </div>
     }
+
+    @if (Model.Statut == "Ouverte")
+    {
+        <!-- MODAL CLÔTURE : contrôle physique / théorique par mode de paiement -->
+        <div class="modal fade" id="modalCloture" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header bg-warning">
+                        <h5 class="modal-title">Fermeture de la journée @Model.NumeroJournee</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+
+                    <form method="post" asp-action="Cloturer" id="formCloture">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@Model.Id" />
+
+                        <div class="modal-body">
+
+                            <p class="text-muted">
+                                Solde initial : <strong>@Model.SoldeInitial.ToString("N0")</strong>
+                                (déjà inclus dans le solde théorique, non recompté ici)
+                            </p>
+
+                            <table class="table table-bordered" id="tableCloture">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Mode de paiement</th>
+                                        <th class="text-end">Théorique</th>
+                                        <th class="text-end" style="width:160px;">Compté</th>
+                                        <th class="text-end">Écart</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @{ int i = 0; }
+                                    @foreach (var t in ViewBag.TotauxParModePaiement)
+                                    {
+                                        <tr>
+                                            <td>
+                                                @t.Libelle
+                                                <input type="hidden" name="comptages[@i].ModePaiementId" value="@t.ModePaiementId" />
+                                            </td>
+                                            <td class="text-end theorique" data-theorique="@t.Net.ToString(System.Globalization.CultureInfo.InvariantCulture)">
+                                                @t.Net.ToString("N0")
+                                            </td>
+                                            <td>
+                                                <input type="number" step="1" class="form-control text-end input-compte"
+                                                       name="comptages[@i].MontantCompte"
+                                                       value="@t.Net.ToString("0", System.Globalization.CultureInfo.InvariantCulture)" />
+                                            </td>
+                                            <td class="text-end ecart">0</td>
+                                        </tr>
+                                        i++;
+                                    }
+                                </tbody>
+                                <tfoot>
+                                    <tr class="fw-bold">
+                                        <td>Total</td>
+                                        <td class="text-end" id="totalTheorique">0</td>
+                                        <td class="text-end" id="totalCompte">0</td>
+                                        <td class="text-end" id="totalEcart">0</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+
+                            <div class="mb-0">
+                                <label class="form-label">Note de clôture</label>
+                                <textarea name="noteCloture" class="form-control" rows="2"></textarea>
+                            </div>
+
+                        </div>
+
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                                Annuler
+                            </button>
+                            <button type="submit" class="btn btn-warning">Clôturer la journée</button>
+                        </div>
+
+                    </form>
+                </div>
+            </div>
+        </div>
+    }
 </div>
 
 
@@ -734,6 +869,44 @@
             document.getElementById(radioId).checked = true;
 
             new bootstrap.Modal(document.getElementById('modalEditValidation')).show();
+        }
+
+        function formatMontant(n) {
+            return n.toLocaleString('fr-FR', { maximumFractionDigits: 0 });
+        }
+
+        function recalculerCloture() {
+            var totalTheorique = 0, totalCompte = 0;
+
+            document.querySelectorAll('#tableCloture tbody tr').forEach(function (tr) {
+                var theorique = parseFloat(tr.querySelector('.theorique').dataset.theorique) || 0;
+                var compte = parseFloat(tr.querySelector('.input-compte').value) || 0;
+                var ecart = compte - theorique;
+
+                tr.querySelector('.ecart').textContent = formatMontant(ecart);
+                tr.querySelector('.ecart').className = 'text-end ecart ' + (ecart === 0 ? 'text-success' : 'text-danger');
+
+                totalTheorique += theorique;
+                totalCompte += compte;
+            });
+
+            document.getElementById('totalTheorique').textContent = formatMontant(totalTheorique);
+            document.getElementById('totalCompte').textContent = formatMontant(totalCompte);
+
+            var totalEcart = document.getElementById('totalEcart');
+            var ecartGlobal = totalCompte - totalTheorique;
+            totalEcart.textContent = formatMontant(ecartGlobal);
+            totalEcart.className = 'text-end ' + (ecartGlobal === 0 ? 'text-success' : 'text-danger');
+        }
+
+        var modalCloture = document.getElementById('modalCloture');
+        if (modalCloture) {
+            modalCloture.addEventListener('shown.bs.modal', recalculerCloture);
+            modalCloture.addEventListener('input', function (e) {
+                if (e.target.classList.contains('input-compte')) {
+                    recalculerCloture();
+                }
+            });
         }
 
         $(document).ready(function() {

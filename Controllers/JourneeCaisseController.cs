@@ -34,6 +34,7 @@ namespace EasytransitCaisse.Controllers
                 .GroupBy(x => x.ModePaiementId)
                 .Select(g => new TotalModePaiementVM
                 {
+                    ModePaiementId = g.Key,
                     Libelle = g.Key.HasValue && libelles.TryGetValue(g.Key.Value, out var lib)
                         ? lib
                         : "Non renseigné",
@@ -89,6 +90,11 @@ namespace EasytransitCaisse.Controllers
 
             ViewBag.TotauxParModePaiement = GetTotauxParModePaiement(id);
 
+            ViewBag.ComptagesCloture = _context.ComptagesCloture
+                .Include(c => c.ModePaiement)
+                .Where(c => c.JourneeCaisseId == id)
+                .ToList();
+
             ViewBag.Operations = _context.OperationsCaisses
                 .Where(x => x.JourneeCaisseId == id)
                 .OrderByDescending(x => x.DateOperation)
@@ -122,7 +128,7 @@ namespace EasytransitCaisse.Controllers
         public IActionResult AjouterOperation(
         int journeeId,
         string typeOperation,
-        decimal montant,
+        string montant,
         string libelle,
         int? motifId,
         int? clientId,
@@ -133,6 +139,7 @@ namespace EasytransitCaisse.Controllers
         string? observation)
         {
             var utilisateurId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var montantMontant = MontantHelper.Parse(montant);
 
             // Droit vérifié côté serveur (pas seulement désactivé côté formulaire) :
             // sans le droit, le statut posté est ignoré et reste "En attente".
@@ -144,7 +151,7 @@ namespace EasytransitCaisse.Controllers
                 JourneeCaisseId = journeeId,
                 DateOperation = DateTime.Now,
                 TypeOperation = typeOperation,
-                Montant = montant,
+                Montant = montantMontant,
                 Libelle = libelle,
                 ClientId = clientId,
                 MotifId = motifId,
@@ -206,9 +213,39 @@ namespace EasytransitCaisse.Controllers
             return RedirectToAction("Details", new { id = journeeId });
         }
 
+        // Solde actuel de la dernière journée de cette caisse (clôturée ou non),
+        // proposé comme solde initial par défaut à l'ouverture de la suivante.
+        private decimal GetSoldeInitialSuggere(int caisseId)
+        {
+            var derniere = _context.JourneesCaisses
+                .Where(x => x.CaisseId == caisseId)
+                .OrderByDescending(x => x.DateJournee)
+                .ThenByDescending(x => x.Id)
+                .FirstOrDefault();
+
+            if (derniere == null)
+                return 0;
+
+            // Journée clôturée : on repart du montant physiquement compté (plus
+            // fiable que le théorique), déjà stocké dans SoldeFinal à la clôture.
+            if (derniere.Statut == "Cloturee")
+                return derniere.SoldeFinal;
+
+            var encaisse = _context.OperationsCaisses
+                .Where(x => x.JourneeCaisseId == derniere.Id && x.TypeOperation == "Encaissement")
+                .Sum(x => (decimal?)x.Montant) ?? 0;
+
+            var decaisse = _context.OperationsCaisses
+                .Where(x => x.JourneeCaisseId == derniere.Id && x.TypeOperation == "Décaissement")
+                .Sum(x => (decimal?)x.Montant) ?? 0;
+
+            return derniere.SoldeInitial + encaisse - decaisse;
+        }
+
         public IActionResult Create(int id)
         {
             ViewBag.CaisseId = id;
+            ViewBag.SoldeInitialSuggere = GetSoldeInitialSuggere(id);
 
             return View();
         }
@@ -217,8 +254,10 @@ namespace EasytransitCaisse.Controllers
         public IActionResult Create(
     int caisseId,
     DateTime dateJournee,
-    decimal soldeInitial)
+    string soldeInitial)
         {
+            var soldeInitialMontant = MontantHelper.Parse(soldeInitial);
+
             var caisse = _context.Caisses
                 .FirstOrDefault(x => x.ID == caisseId);
 
@@ -237,6 +276,7 @@ namespace EasytransitCaisse.Controllers
                     "Cette journée existe déjà.";
 
                 ViewBag.CaisseId = caisseId;
+                ViewBag.SoldeInitialSuggere = GetSoldeInitialSuggere(caisseId);
 
                 return View();
             }
@@ -246,7 +286,7 @@ namespace EasytransitCaisse.Controllers
                 CaisseId = caisseId,
                 DateJournee = dateJournee,
                 DateOuverture = DateTime.Now,
-                SoldeInitial = soldeInitial,
+                SoldeInitial = soldeInitialMontant,
                 Statut = "Ouverte",
 
                 // 🔥 ICI le numéro propre
@@ -259,8 +299,12 @@ namespace EasytransitCaisse.Controllers
             return RedirectToAction("Details", new { id = journee.Id });
         }
 
+        // Contrôle physique/théorique par mode de paiement avant clôture (comme
+        // la fermeture de caisse d'un POS) : compare ce qui a été compté à ce
+        // que les opérations de la journée donnent en théorie.
         [HttpPost]
-        public IActionResult Cloturer(int id)
+        [ValidateAntiForgeryToken]
+        public IActionResult Cloturer(int id, List<ComptageInputVM>? comptages, string? noteCloture)
         {
             var journee = _context.JourneesCaisses
                 .FirstOrDefault(x => x.Id == id);
@@ -268,8 +312,36 @@ namespace EasytransitCaisse.Controllers
             if (journee == null)
                 return NotFound();
 
+            if (journee.Statut == "Cloturee")
+                return RedirectToAction("Details", new { id });
+
+            var theoriques = GetTotauxParModePaiement(id);
+
+            decimal totalCompte = 0;
+            decimal totalTheorique = 0;
+
+            foreach (var c in comptages ?? new List<ComptageInputVM>())
+            {
+                var theorique = theoriques
+                    .FirstOrDefault(t => t.ModePaiementId == c.ModePaiementId)?.Net ?? 0;
+
+                _context.ComptagesCloture.Add(new ComptageCloture
+                {
+                    JourneeCaisseId = id,
+                    ModePaiementId = c.ModePaiementId,
+                    MontantTheorique = theorique,
+                    MontantCompte = c.MontantCompteDecimal
+                });
+
+                totalCompte += c.MontantCompteDecimal;
+                totalTheorique += theorique;
+            }
+
             journee.Statut = "Cloturee";
             journee.DateFermeture = DateTime.Now;
+            journee.SoldeFinal = journee.SoldeInitial + totalCompte;
+            journee.EcartCloture = totalCompte - totalTheorique;
+            journee.NoteCloture = noteCloture;
 
             _context.SaveChanges();
 

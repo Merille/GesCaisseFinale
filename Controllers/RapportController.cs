@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using Rotativa.AspNetCore;
+using System.Globalization;
+using System.Text;
 
 
 
@@ -162,12 +164,24 @@ namespace EasytransitCaisse.Controllers
             return View(model);
         }
 
-        // Export des écritures (encaissements/décaissements) au format Sage 100
-        // Comptabilité : 2 lignes par mouvement (débit/crédit).
-        public IActionResult ExportSage(DateTime? dateDebut,
-                                         DateTime? dateFin,
-                                         int? caisseId,
-                                         string? typeOperation)
+        // Une ligne d'écriture comptable (débit ou crédit), commune aux trois
+        // formats d'export Sage (Excel, CSV, texte).
+        private class LigneEcritureVM
+        {
+            public string? CodeCaisse { get; set; }
+            public DateTime DateEcriture { get; set; }
+            public string? CompteGeneral { get; set; }
+            public string? CompteTiers { get; set; }
+            public string Libelle { get; set; } = "";
+            public decimal Debit { get; set; }
+            public decimal Credit { get; set; }
+            public string NumeroPiece { get; set; } = "";
+        }
+
+        // Construit les écritures (2 lignes par mouvement : débit/crédit) pour
+        // l'export Sage, quel que soit le format de fichier de sortie.
+        private (List<LigneEcritureVM> Lignes, List<string> Anomalies) GetLignesEcrituresSage(
+            DateTime? dateDebut, DateTime? dateFin, int? caisseId, string? typeOperation)
         {
             var query = _context.OperationsCaisses
                 .Include(x => x.JourneeCaisse).ThenInclude(j => j.Caisse)
@@ -189,26 +203,7 @@ namespace EasytransitCaisse.Controllers
 
             var operations = query.OrderBy(x => x.DateOperation).ToList();
 
-            using var workbook = new XLWorkbook();
-            var sheet = workbook.Worksheets.Add("Ecritures");
-
-            string[] entetes =
-            {
-                "CodeCaisse", "DateEcriture", "CompteGeneral", "CompteTiers",
-                "Libelle", "Debit", "Credit", "NumeroPiece"
-            };
-
-            for (int c = 0; c < entetes.Length; c++)
-            {
-                sheet.Cell(1, c + 1).Value = entetes[c];
-            }
-
-            var headerRow = sheet.Range(1, 1, 1, entetes.Length);
-            headerRow.Style.Font.Bold = true;
-            headerRow.Style.Fill.BackgroundColor = XLColor.DarkBlue;
-            headerRow.Style.Font.FontColor = XLColor.White;
-
-            int ligne = 2;
+            var lignes = new List<LigneEcritureVM>();
             var anomalies = new List<string>();
 
             foreach (var op in operations)
@@ -234,18 +229,79 @@ namespace EasytransitCaisse.Controllers
                 bool estEncaissement = op.TypeOperation == "Encaissement";
 
                 // Ligne côté caisse
-                EcrireLigne(sheet, ligne++, caisse.ChkCode, op.DateOperation,
-                    compteCaisse, null, libelle,
-                    debit: estEncaissement ? op.Montant : 0,
-                    credit: estEncaissement ? 0 : op.Montant,
-                    numeroPiece);
+                lignes.Add(new LigneEcritureVM
+                {
+                    CodeCaisse = caisse.ChkCode,
+                    DateEcriture = op.DateOperation,
+                    CompteGeneral = compteCaisse,
+                    CompteTiers = null,
+                    Libelle = libelle,
+                    Debit = estEncaissement ? op.Montant : 0,
+                    Credit = estEncaissement ? 0 : op.Montant,
+                    NumeroPiece = numeroPiece
+                });
 
                 // Ligne côté contrepartie (motif / tiers)
-                EcrireLigne(sheet, ligne++, caisse.ChkCode, op.DateOperation,
-                    compteContrepartie, compteTiers, libelle,
-                    debit: estEncaissement ? 0 : op.Montant,
-                    credit: estEncaissement ? op.Montant : 0,
-                    numeroPiece);
+                lignes.Add(new LigneEcritureVM
+                {
+                    CodeCaisse = caisse.ChkCode,
+                    DateEcriture = op.DateOperation,
+                    CompteGeneral = compteContrepartie,
+                    CompteTiers = compteTiers,
+                    Libelle = libelle,
+                    Debit = estEncaissement ? 0 : op.Montant,
+                    Credit = estEncaissement ? op.Montant : 0,
+                    NumeroPiece = numeroPiece
+                });
+            }
+
+            return (lignes, anomalies);
+        }
+
+        // Export des écritures (encaissements/décaissements) au format Sage 100
+        // Comptabilité : 2 lignes par mouvement (débit/crédit), fichier Excel.
+        public IActionResult ExportSage(DateTime? dateDebut,
+                                         DateTime? dateFin,
+                                         int? caisseId,
+                                         string? typeOperation)
+        {
+            var (lignes, anomalies) = GetLignesEcrituresSage(dateDebut, dateFin, caisseId, typeOperation);
+
+            using var workbook = new XLWorkbook();
+            var sheet = workbook.Worksheets.Add("Ecritures");
+
+            string[] entetes =
+            {
+                "CodeCaisse", "DateEcriture", "CompteGeneral", "CompteTiers",
+                "Libelle", "Debit", "Credit", "NumeroPiece"
+            };
+
+            for (int c = 0; c < entetes.Length; c++)
+            {
+                sheet.Cell(1, c + 1).Value = entetes[c];
+            }
+
+            var headerRow = sheet.Range(1, 1, 1, entetes.Length);
+            headerRow.Style.Font.Bold = true;
+            headerRow.Style.Fill.BackgroundColor = XLColor.DarkBlue;
+            headerRow.Style.Font.FontColor = XLColor.White;
+
+            for (int i = 0; i < lignes.Count; i++)
+            {
+                var l = lignes[i];
+                int r = i + 2;
+                sheet.Cell(r, 1).Value = l.CodeCaisse;
+                // Texte brut "jjmmaa" (ex: 050825) — format cellule forcé en texte
+                // AVANT d'assigner la valeur, sinon Excel interpréterait la chaîne
+                // numérique comme un nombre et supprimerait le zéro de tête.
+                sheet.Cell(r, 2).Style.NumberFormat.Format = "@";
+                sheet.Cell(r, 2).Value = l.DateEcriture.ToString("ddMMyy");
+                sheet.Cell(r, 3).Value = l.CompteGeneral;
+                sheet.Cell(r, 4).Value = l.CompteTiers;
+                sheet.Cell(r, 5).Value = l.Libelle;
+                sheet.Cell(r, 6).Value = l.Debit;
+                sheet.Cell(r, 7).Value = l.Credit;
+                sheet.Cell(r, 8).Value = l.NumeroPiece;
             }
 
             sheet.Columns().AdjustToContents();
@@ -274,23 +330,83 @@ namespace EasytransitCaisse.Controllers
                 fileName);
         }
 
-        private static void EcrireLigne(
-            IXLWorksheet sheet, int ligne,
-            string? codeCaisse, DateTime dateEcriture,
-            string? compteGeneral, string? compteTiers,
-            string libelle, decimal debit, decimal credit,
-            string numeroPiece)
+        // Même export, au format CSV (point-virgule, avec en-têtes) : plus
+        // simple à importer directement dans Sage qu'un classeur Excel.
+        public IActionResult ExportSageCsv(DateTime? dateDebut,
+                                            DateTime? dateFin,
+                                            int? caisseId,
+                                            string? typeOperation)
         {
-            sheet.Cell(ligne, 1).Value = codeCaisse;
-            sheet.Cell(ligne, 2).Value = dateEcriture.Date;
-            sheet.Cell(ligne, 2).Style.DateFormat.Format = "dd/MM/yyyy";
-            sheet.Cell(ligne, 3).Value = compteGeneral;
-            sheet.Cell(ligne, 4).Value = compteTiers;
-            sheet.Cell(ligne, 5).Value = libelle;
-            sheet.Cell(ligne, 6).Value = debit;
-            sheet.Cell(ligne, 7).Value = credit;
-            sheet.Cell(ligne, 8).Value = numeroPiece;
+            var (lignes, _) = GetLignesEcrituresSage(dateDebut, dateFin, caisseId, typeOperation);
+
+            var sb = new StringBuilder();
+            sb.AppendLine(string.Join(";",
+                "CodeCaisse", "DateEcriture", "CompteGeneral", "CompteTiers",
+                "Libelle", "Debit", "Credit", "NumeroPiece"));
+
+            foreach (var l in lignes)
+            {
+                sb.AppendLine(string.Join(";",
+                    ChampCsv(l.CodeCaisse),
+                    l.DateEcriture.ToString("ddMMyy"),
+                    ChampCsv(l.CompteGeneral),
+                    ChampCsv(l.CompteTiers),
+                    ChampCsv(l.Libelle),
+                    l.Debit.ToString("0.00", CultureInfo.InvariantCulture),
+                    l.Credit.ToString("0.00", CultureInfo.InvariantCulture),
+                    ChampCsv(l.NumeroPiece)));
+            }
+
+            var bytes = AvecBom(sb.ToString());
+            var fileName = $"Export_Sage_{DateTime.Now:yyyyMMdd_HHmm}.csv";
+            return File(bytes, "text/csv", fileName);
         }
+
+        // Même export, au format texte brut (point-virgule, sans en-têtes) :
+        // format d'import "standard" attendu par certaines versions de Sage.
+        public IActionResult ExportSageTxt(DateTime? dateDebut,
+                                            DateTime? dateFin,
+                                            int? caisseId,
+                                            string? typeOperation)
+        {
+            var (lignes, _) = GetLignesEcrituresSage(dateDebut, dateFin, caisseId, typeOperation);
+
+            var sb = new StringBuilder();
+
+            foreach (var l in lignes)
+            {
+                sb.AppendLine(string.Join(";",
+                    ChampTxt(l.CodeCaisse),
+                    l.DateEcriture.ToString("dd/MM/yyyy"),
+                    ChampTxt(l.CompteGeneral),
+                    ChampTxt(l.CompteTiers),
+                    ChampTxt(l.Libelle),
+                    l.Debit.ToString("0.00", CultureInfo.InvariantCulture),
+                    l.Credit.ToString("0.00", CultureInfo.InvariantCulture),
+                    ChampTxt(l.NumeroPiece)));
+            }
+
+            var bytes = AvecBom(sb.ToString());
+            var fileName = $"Export_Sage_{DateTime.Now:yyyyMMdd_HHmm}.txt";
+            return File(bytes, "text/plain", fileName);
+        }
+
+        // Échappement CSV standard : entoure de guillemets si le champ contient
+        // le séparateur, un guillemet ou un retour à la ligne.
+        private static string ChampCsv(string? valeur)
+        {
+            valeur ??= "";
+            if (valeur.Contains(';') || valeur.Contains('"') || valeur.Contains('\n'))
+                return "\"" + valeur.Replace("\"", "\"\"") + "\"";
+            return valeur;
+        }
+
+        // Le format texte brut ne supporte pas l'échappement par guillemets :
+        // on neutralise simplement le séparateur s'il apparaît dans le champ.
+        private static string ChampTxt(string? valeur) => (valeur ?? "").Replace(";", ",");
+
+        private static byte[] AvecBom(string contenu) =>
+            Encoding.UTF8.GetPreamble().Concat(Encoding.UTF8.GetBytes(contenu)).ToArray();
         #endregion
 
         #region RAPPORT JOURNEES

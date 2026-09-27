@@ -1,6 +1,7 @@
 ﻿using EasytransitCaisse.Data;
 using EasytransitCaisse.Models;
 using EasytransitCaisse.Models.ViewModels;
+using EasytransitCaisse.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -65,9 +66,12 @@ namespace EasytransitCaisse.Controllers
         public IActionResult AjouterLigne(
     int factureId,
     string designation,
-    decimal quantite,
-    decimal prixUnitaire)
+    string quantite,
+    string prixUnitaire)
         {
+            var quantiteMontant = MontantHelper.Parse(quantite);
+            var prixUnitaireMontant = MontantHelper.Parse(prixUnitaire);
+
             using var transaction = _context.Database.BeginTransaction();
 
             try
@@ -76,9 +80,9 @@ namespace EasytransitCaisse.Controllers
                 {
                     FactureId = factureId,
                     Designation = designation,
-                    Quantite = quantite,
-                    PrixUnitaire = prixUnitaire,
-                    TotalLigne = quantite * prixUnitaire
+                    Quantite = quantiteMontant,
+                    PrixUnitaire = prixUnitaireMontant,
+                    TotalLigne = quantiteMontant * prixUnitaireMontant
                 };
 
                 _context.LignesFactures.Add(ligne);

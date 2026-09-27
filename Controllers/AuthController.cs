@@ -84,5 +84,13 @@ namespace EasytransitCaisse.Controllers
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
             return RedirectToAction("Login");
         }
+
+        // Page affichée à la place de toute action dès que la société de
+        // l'utilisateur connecté est inactive ou que sa licence/son abonnement
+        // a expiré (voir TenantStatusFilter).
+        public IActionResult SocieteSuspendue()
+        {
+            return View();
+        }
     }
 }

@@ -1,5 +1,8 @@
 ﻿@using Microsoft.AspNetCore.Mvc.Rendering
+@using EasytransitCaisse.Data
 @using EasytransitCaisse.Services
+@inject AppDbContext DbContext
+@inject ITenantProvider TenantProvider
 
 @{
     var controller = ViewContext.RouteData.Values["controller"]?.ToString();
@@ -7,6 +10,19 @@
     var isSuperAdmin = User.HasClaim(AppClaimTypes.Profil, "SuperAdmin");
     var nomUtilisateur = User.Identity?.Name;
     var nomSociete = User.FindFirst(AppClaimTypes.TenantName)?.Value;
+
+    // Sociétés disponibles pour le sélecteur du SuperAdmin, et nom de celle
+    // actuellement consultée (le cas échéant) pour l'affichage.
+    List<Tenant> societesDisponibles = new();
+    string? societeConsultee = null;
+
+    if (isSuperAdmin)
+    {
+        societesDisponibles = DbContext.Tenants.OrderBy(t => t.Nom).ToList();
+        societeConsultee = TenantProvider.TenantId != 0
+            ? societesDisponibles.FirstOrDefault(t => t.Id == TenantProvider.TenantId)?.Nom
+            : null;
+    }
 }
 
 <!DOCTYPE html>
@@ -192,9 +208,27 @@
             }
             else if (isSuperAdmin)
             {
-                <div class="societe-connectee">Toutes les sociétés</div>
+                <div class="societe-connectee">@(societeConsultee ?? "Toutes les sociétés")</div>
             }
         </div>
+
+        @if (isSuperAdmin)
+        {
+            <div class="px-3 mb-3">
+                <form method="post" asp-controller="Tenant" asp-action="Consulter">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="returnUrl" value="@(Context.Request.Path)@(Context.Request.QueryString)" />
+                    <select name="tenantId" class="form-select form-select-sm"
+                            onchange="this.form.submit()" title="Consulter les données d'une société">
+                        <option value="">-- Toutes les sociétés --</option>
+                        @foreach (var s in societesDisponibles)
+                        {
+                            <option value="@s.Id" selected="@(s.Id == TenantProvider.TenantId)">@s.Nom</option>
+                        }
+                    </select>
+                </form>
+            </div>
+        }
 
         <div class="menu-title">Menu Principal</div>
 
@@ -287,6 +321,10 @@
                     @if (!string.IsNullOrEmpty(nomSociete))
                     {
                         <text> — @nomSociete</text>
+                    }
+                    else if (isSuperAdmin && societeConsultee != null)
+                    {
+                        <text> — Consultation : @societeConsultee</text>
                     }
                 </span>
             </div>

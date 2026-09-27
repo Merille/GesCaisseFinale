@@ -35,16 +35,39 @@
 
     <tr>
         <th>Solde Initial</th>
-        <th>Encaissements</th>
-        <th>Décaissements</th>
-        <th>Solde Actuel</th>
+        <th style="text-align:right;">Encaissements</th>
+        <th style="text-align:right;">Décaissements</th>
+        <th style="text-align:right;">Solde Actuel</th>
     </tr>
     <tr>
-        <td>@Model.SoldeInitial.ToString("N0")</td>
-        <td>@Model.TotalEncaisse.ToString("N0")</td>
-        <td>@Model.TotalDecaisse.ToString("N0")</td>
-        <td>@Model.SoldeActuel.ToString("N0")</td>
+        <td style="text-align:right;">@Model.SoldeInitial.ToString("N0")</td>
+        <td style="text-align:right;">@Model.TotalEncaisse.ToString("N0")</td>
+        <td style="text-align:right;">@Model.TotalDecaisse.ToString("N0")</td>
+        <td style="text-align:right;">@Model.SoldeActuel.ToString("N0")</td>
     </tr>
+
+</table>
+
+<h2 style="margin-top:30px;">Totaux par mode de paiement</h2>
+
+<table border="1" width="100%" cellpadding="5">
+
+    <tr>
+        <th>Mode de paiement</th>
+        <th style="text-align:right;">Encaissements</th>
+        <th style="text-align:right;">Décaissements</th>
+        <th style="text-align:right;">Net</th>
+    </tr>
+
+    @foreach (var t in Model.TotauxParModePaiement)
+    {
+        <tr>
+            <td>@t.Libelle</td>
+            <td style="text-align:right;">@t.Encaisse.ToString("N0")</td>
+            <td style="text-align:right;">@t.Decaisse.ToString("N0")</td>
+            <td style="text-align:right;">@t.Net.ToString("N0")</td>
+        </tr>
+    }
 
 </table>
 
@@ -56,7 +79,7 @@
         @* <th>Motif</th> *@
         <th>Libellé</th>
         <th>Mode de paiement</th>
-        <th>Montant</th>
+        <th style="text-align:right;">Montant</th>
     </tr>
 
     @foreach (var o in Model.Operations)
@@ -67,30 +90,7 @@
             @* <td>@o.MotifLibelle</td> *@
             <td>@o.Libelle</td>
             <td>@(o.ModePaiement?.Libelle ?? "-")</td>
-            <td>@o.Montant</td>
-        </tr>
-    }
-
-</table>
-
-<h2 style="margin-top:30px;">Totaux par mode de paiement</h2>
-
-<table border="1" width="100%" cellpadding="5">
-
-    <tr>
-        <th>Mode de paiement</th>
-        <th>Encaissements</th>
-        <th>Décaissements</th>
-        <th>Net</th>
-    </tr>
-
-    @foreach (var t in Model.TotauxParModePaiement)
-    {
-        <tr>
-            <td>@t.Libelle</td>
-            <td>@t.Encaisse.ToString("N0")</td>
-            <td>@t.Decaisse.ToString("N0")</td>
-            <td>@t.Net.ToString("N0")</td>
+            <td style="text-align:right;">@o.Montant.ToString("N0")</td>
         </tr>
     }
 

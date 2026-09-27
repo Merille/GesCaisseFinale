@@ -157,6 +157,7 @@ namespace EasytransitCaisse.Controllers
             sheet.Cell(1, 8).Value = "Type";
             sheet.Cell(1, 9).Value = "FonctionContact";
             sheet.Cell(1, 10).Value = "TelephoneContact";
+            sheet.Cell(1, 11).Value = "CompteGeneral";
 
             // Style en-têtes
             var headerRow = sheet.Range("A1:D1");
@@ -178,6 +179,7 @@ namespace EasytransitCaisse.Controllers
                 sheet.Cell(i + 2, 8).Value = c.Type;
                 sheet.Cell(i + 2, 9).Value = c.FonctionContact;
                 sheet.Cell(i + 2, 10).Value = c.TelephoneContact;
+                sheet.Cell(i + 2, 11).Value = c.CompteGeneral;
             }
 
             // Ajuster largeur des colonnes automatiquement
@@ -241,6 +243,7 @@ namespace EasytransitCaisse.Controllers
                         Type = row.Cell(8).GetString() ?? "",
                         FonctionContact = row.Cell(9).GetString() ?? "",
                         TelephoneContact = row.Cell(10).GetString() ?? "",
+                        CompteGeneral = row.Cell(11).GetString() ?? "",
                     };
 
                     // Validation basique

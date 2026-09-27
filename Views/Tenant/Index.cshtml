@@ -19,9 +19,11 @@
                 <tr>
                     <th>Code</th>
                     <th>Nom</th>
+                    <th>Mode d'accès</th>
+                    <th>Expiration</th>
                     <th>Statut</th>
                     <th>Créée le</th>
-                    <th width="120">Actions</th>
+                    <th width="260">Actions</th>
                 </tr>
             </thead>
 
@@ -31,21 +33,41 @@
                     <tr>
                         <td>@t.Code</td>
                         <td>@t.Nom</td>
+                        <td>@t.ModeAcces</td>
                         <td>
-                            @if (t.Actif)
+                            @(t.DateExpiration?.ToString("dd/MM/yyyy") ?? "Illimitée")
+                        </td>
+                        <td>
+                            @if (t.EstBloque)
                             {
-                                <span class="badge bg-success">Active</span>
+                                <span class="badge bg-danger">
+                                    @(!t.Actif ? "Inactive" : "Expirée")
+                                </span>
                             }
                             else
                             {
-                                <span class="badge bg-secondary">Inactive</span>
+                                <span class="badge bg-success">Active</span>
                             }
                         </td>
                         <td>@t.DateCreation.ToString("dd/MM/yyyy")</td>
                         <td>
-                            <a href="/Tenant/Edit/@t.Id" class="btn btn-warning btn-sm">
-                                Modifier
-                            </a>
+                            <div class="d-flex gap-1">
+                                <a href="/Tenant/Edit/@t.Id" class="btn btn-warning btn-sm">
+                                    Modifier
+                                </a>
+                                <form asp-action="Prolonger" method="post" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@t.Id" />
+                                    <input type="hidden" name="mois" value="1" />
+                                    <button type="submit" class="btn btn-outline-primary btn-sm">+1 mois</button>
+                                </form>
+                                <form asp-action="Prolonger" method="post" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@t.Id" />
+                                    <input type="hidden" name="mois" value="12" />
+                                    <button type="submit" class="btn btn-outline-primary btn-sm">+1 an</button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
                 }

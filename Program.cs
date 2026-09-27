@@ -29,10 +29,13 @@ builder.Services.AddAuthorization(options =>
 });
 
 // MVC — connexion obligatoire par défaut sur tous les contrôleurs
-// (AuthController est marqué [AllowAnonymous])
+// (AuthController est marqué [AllowAnonymous]), et blocage immédiat des
+// sociétés inactives/expirées (licence ou abonnement), y compris en session
+// déjà ouverte.
 builder.Services.AddControllersWithViews(options =>
 {
     options.Filters.Add(new AuthorizeFilter());
+    options.Filters.Add<TenantStatusFilter>();
 });
 
 // Connexion SQL Server

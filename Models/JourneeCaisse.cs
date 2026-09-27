@@ -21,7 +21,14 @@ namespace EasytransitCaisse.Models
 
         public decimal SoldeInitial { get; set; }
 
+        // Total physiquement compté à la clôture (SoldeInitial + comptages par
+        // mode de paiement) — sert de solde initial suggéré à la journée suivante.
         public decimal SoldeFinal { get; set; }
+
+        // Écart entre le compté et le théorique à la clôture (compté - théorique).
+        public decimal? EcartCloture { get; set; }
+
+        public string? NoteCloture { get; set; }
 
         public string Statut { get; set; }= "Ouverte";
 
