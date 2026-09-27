@@ -311,7 +311,14 @@
                             </td>
 
                             <td>
-                                @op.Montant.ToString("N0")
+                                @if (op.StatutValidation == "Rejeté")
+                        {
+                            <s class="text-muted" title="Opération rejetée : exclue des totaux">@op.Montant.ToString("N0")</s> <small class="text-muted">(rejetée)</small>
+                        }
+                        else
+                        {
+                            @op.Montant.ToString("N0")
+                        }
                             </td>
 
                             <td>

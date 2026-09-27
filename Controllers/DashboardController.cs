@@ -122,7 +122,7 @@ namespace EasytransitCaisse.Controllers
 
             // Une opération rejetée n'a pas eu lieu : elle est exclue de tous
             // les totaux, soldes, graphiques et répartitions.
-            operationsFiltrees = operationsFiltrees.Where(o => o.StatutValidation != "Rejeté");
+            operationsFiltrees = operationsFiltrees.NonRejetees();
 
             var operations = operationsFiltrees.Where(o =>
                 o.DateOperation >= debut && o.DateOperation < finExclue);
@@ -213,7 +213,8 @@ namespace EasytransitCaisse.Controllers
             var idsJournees = dernieresJournees.Select(j => j.Id).ToList();
 
             var totauxJournees = _context.OperationsCaisses
-                .Where(o => idsJournees.Contains(o.JourneeCaisseId) && o.StatutValidation != "Rejeté")
+                .NonRejetees()
+                .Where(o => idsJournees.Contains(o.JourneeCaisseId))
                 .GroupBy(o => new { o.JourneeCaisseId, o.TypeOperation })
                 .Select(g => new { g.Key.JourneeCaisseId, g.Key.TypeOperation, Montant = g.Sum(o => o.Montant) })
                 .ToList();
@@ -276,7 +277,7 @@ namespace EasytransitCaisse.Controllers
                 .FirstOrDefault();
 
             var nonJustifies = operationsATraiter.Where(o =>
-                o.TypeOperation == "Décaissement" && !o.EstJustifie && o.StatutValidation != "Rejeté");
+                o.TypeOperation == "Décaissement" && !o.EstJustifie && o.StatutValidation != OperationCaisseQueries.StatutRejete);
             model.DecaissementsNonJustifies = nonJustifies.Count();
             model.JourneeNonJustifieId = nonJustifies
                 .OrderBy(o => o.DateOperation)
