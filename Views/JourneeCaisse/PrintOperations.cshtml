@@ -67,7 +67,16 @@
             @* <td>@o.MotifLibelle</td> *@
             <td>@o.Libelle</td>
             <td>@(o.ModePaiement?.Libelle ?? "-")</td>
-            <td>@o.Montant</td>
+            <td>
+                @if (o.StatutValidation == "Rejeté")
+                {
+                    <s>@o.Montant.ToString("N0")</s> <small>(rejetée, exclue des totaux)</small>
+                }
+                else
+                {
+                    @o.Montant.ToString("N0")
+                }
+            </td>
         </tr>
     }
 
