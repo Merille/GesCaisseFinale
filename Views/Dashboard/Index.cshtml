@@ -388,7 +388,14 @@
                                         <td>@(item.ModePaiement ?? "—")</td>
                                         <td><span class="db-badge @badge">@item.StatutValidation</span></td>
                                         <td class="db-num text-end fw-bold text-nowrap">
-                                            <span class="@(entree ? "db-in" : "db-out")">@(entree ? "+" : "−")@Fcfa(item.Montant)</span>
+                                            @if (item.StatutValidation == "Rejeté")
+                                            {
+                                                <span class="text-muted text-decoration-line-through" title="Opération rejetée : exclue des totaux">@(entree ? "+" : "−")@Fcfa(item.Montant)</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="@(entree ? "db-in" : "db-out")">@(entree ? "+" : "−")@Fcfa(item.Montant)</span>
+                                            }
                                         </td>
                                     </tr>
                                 }

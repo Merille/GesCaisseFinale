@@ -115,6 +115,15 @@ namespace EasytransitCaisse.Controllers
 
             var finExclue = fin.AddDays(1);
 
+            // Toutes les opérations de la période, rejetées comprises : pour la
+            // liste des dernières opérations uniquement.
+            var operationsPeriode = operationsFiltrees.Where(o =>
+                o.DateOperation >= debut && o.DateOperation < finExclue);
+
+            // Une opération rejetée n'a pas eu lieu : elle est exclue de tous
+            // les totaux, soldes, graphiques et répartitions.
+            operationsFiltrees = operationsFiltrees.Where(o => o.StatutValidation != "Rejeté");
+
             var operations = operationsFiltrees.Where(o =>
                 o.DateOperation >= debut && o.DateOperation < finExclue);
 
@@ -204,7 +213,7 @@ namespace EasytransitCaisse.Controllers
             var idsJournees = dernieresJournees.Select(j => j.Id).ToList();
 
             var totauxJournees = _context.OperationsCaisses
-                .Where(o => idsJournees.Contains(o.JourneeCaisseId))
+                .Where(o => idsJournees.Contains(o.JourneeCaisseId) && o.StatutValidation != "Rejeté")
                 .GroupBy(o => new { o.JourneeCaisseId, o.TypeOperation })
                 .Select(g => new { g.Key.JourneeCaisseId, g.Key.TypeOperation, Montant = g.Sum(o => o.Montant) })
                 .ToList();
@@ -267,7 +276,7 @@ namespace EasytransitCaisse.Controllers
                 .FirstOrDefault();
 
             var nonJustifies = operationsATraiter.Where(o =>
-                o.TypeOperation == "Décaissement" && !o.EstJustifie);
+                o.TypeOperation == "Décaissement" && !o.EstJustifie && o.StatutValidation != "Rejeté");
             model.DecaissementsNonJustifies = nonJustifies.Count();
             model.JourneeNonJustifieId = nonJustifies
                 .OrderBy(o => o.DateOperation)
@@ -369,7 +378,7 @@ namespace EasytransitCaisse.Controllers
             // DERNIÈRES OPÉRATIONS
             // ==========================
 
-            model.DernieresOperations = operations
+            model.DernieresOperations = operationsPeriode
                 .OrderByDescending(o => o.DateOperation)
                 .Take(10)
                 .Select(o => new OperationDashboardViewModel
