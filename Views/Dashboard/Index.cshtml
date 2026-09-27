@@ -1,639 +1,485 @@
-﻿
 @model EasytransitCaisse.Models.ViewModels.DashboardViewModel
+@using System.Globalization
+@using System.Text.Json
 
 @{
     ViewData["Title"] = "Tableau de bord";
+
+    var fr = new CultureInfo("fr-FR");
+    string Fcfa(decimal montant) => montant.ToString("N0", fr);
+
+    var periodes = new[]
+    {
+        ("jour", "Aujourd'hui"),
+        ("semaine", "7 jours"),
+        ("mois", "Ce mois"),
+        ("perso", "Personnalisé")
+    };
+
+    string LienPeriode(string periode) => Url.Action("Index", new
+    {
+        periode,
+        caisseId = Model.CaisseId,
+        statutJournee = Model.StatutJournee
+    })!;
+
+    string LienNouvelleOperation = Model.JourneeOuverteId.HasValue
+        ? Url.Action("Details", "JourneeCaisse", new { id = Model.JourneeOuverteId })!
+        : Url.Action("Index", "Caisse")!;
+
+    string? Tendance(decimal? variation) => variation.HasValue
+        ? (variation >= 0 ? "▲ " : "▼ ") + Math.Abs(variation.Value).ToString("N0", fr) + " %"
+        : null;
+
+    var fluxLabels = Model.Flux.Select(f => f.Libelle);
+    var fluxEntrees = Model.Flux.Select(f => f.Entrees);
+    var fluxSorties = Model.Flux.Select(f => f.Sorties);
 }
 
-<div class="container-fluid">
+<style>
+    .db-card { background: #fff; border: 1px solid #e3e8f1; border-radius: 16px; }
+    .db-card h2 { font-size: 17px; font-weight: 700; margin: 0; }
+    .db-label { font-size: 12px; font-weight: 600; color: #56627a; letter-spacing: .5px; text-transform: uppercase; }
+    .db-num { font-variant-numeric: tabular-nums; }
+    .db-in { color: #0f7a4a; }
+    .db-out { color: #c2410c; }
+    .db-periodes { background: #eef2f8; border-radius: 10px; padding: 3px; display: inline-flex; gap: 2px; }
+    .db-periodes a { padding: 7px 14px; border-radius: 8px; font-size: 14px; font-weight: 600; color: #56627a; text-decoration: none; }
+    .db-periodes a.active { background: #fff; color: #0a2f78; box-shadow: 0 1px 3px rgba(15,27,51,.15); }
+    .db-solde { background: #0a2f78; color: #fff; border-radius: 16px; }
+    .db-solde .db-label, .db-solde .db-muted { color: #c9d5f0; }
+    .db-solde-split > div + div { border-left: 1px solid #2c549f; }
+    .db-sign { width: 28px; height: 28px; border-radius: 8px; color: #fff; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; }
+    .db-todo { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 16px; }
+    .db-todo a { background: #fff; border: 1px solid #fed7aa; border-radius: 12px; color: #0f1b33; text-decoration: none; }
+    .db-todo a:hover { border-color: #c2410c; }
+    .db-todo .db-count { font-size: 24px; font-weight: 800; color: #c2410c; min-width: 28px; }
+    .db-badge { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 20px; white-space: nowrap; }
+    .db-badge-ok { background: #dcf3e6; color: #0b5e39; }
+    .db-badge-wait { background: #fff1e0; color: #9a3412; }
+    .db-badge-ko { background: #fde2e2; color: #991b1b; }
+    .db-badge-off { background: #eef1f6; color: #56627a; }
+    .db-bar { height: 8px; border-radius: 4px; background: #eef1f6; }
+    .db-bar > div { height: 8px; border-radius: 4px; background: #0046c7; }
+    .db-table th { font-size: 12px; font-weight: 600; color: #56627a; }
+</style>
 
-    <form asp-action="Index" method="get" class="card shadow-sm border-0 mb-4">
+<div class="container-fluid d-flex flex-column gap-4">
 
-        <div class="card-body">
+    @* ===== Barre de filtres et actions ===== *@
+    <form asp-action="Index" method="get" class="db-card p-3">
+        <input type="hidden" name="periode" value="perso" />
 
-            <div class="row align-items-end">
-                <div class="col-md-3">
+        <div class="d-flex flex-wrap align-items-end gap-3">
 
-                    <label class="form-label">
-                        Caisse
-                    </label>
-
-                    <select asp-for="CaisseId"
-                            asp-items="Model.ListeCaisses"
-                            class="form-select">
-                    </select>
-
-                </div>
-                <div class="col-md-2">
-
-                    <label class="form-label">
-                        Date début
-                    </label>
-
-                    <input asp-for="DateDebut"
-                           type="date"
-                           class="form-control" />
-
-                </div>
-
-                <div class="col-md-2">
-
-                    <label class="form-label">
-                        Date fin
-                    </label>
-
-                    <input asp-for="DateFin"
-                           type="date"
-                           class="form-control" />
-
-                </div>
-                <div class="col-md-2">
-
-                    <label class="form-label">
-
-                        Statut journée
-
-                    </label>
-
-                    <select asp-for="StatutJournee"
-                            class="form-select">
-
-                        <option value="">Toutes</option>
-
-                        <option value="Ouverte">Ouvertes</option>
-
-                        <option value="Cloturee">Clôturées</option>
-
-                    </select>
-
-                </div>
-
-                <div class="col-md-3">
-
-                    <button class="btn btn-primary w-100">
-
-                        <i class="fa fa-search"></i>
-
-                        Filtrer
-
-                    </button>
-
-                </div>
-
+            <div>
+                <div class="form-label small fw-semibold text-muted mb-1">Période</div>
+                <nav class="db-periodes" aria-label="Période">
+                    @foreach (var (code, libelle) in periodes.Where(p => p.Item1 != "perso"))
+                    {
+                        <a href="@LienPeriode(code)" class="@(Model.Periode == code ? "active" : "")">@libelle</a>
+                    }
+                    <a href="#" class="@(Model.Periode == "perso" ? "active" : "")"
+                       onclick="document.getElementById('dbPerso').classList.toggle('d-none'); return false;">Personnalisé</a>
+                </nav>
             </div>
 
+            <div id="dbPerso" class="d-flex gap-2 align-items-end @(Model.Periode == "perso" ? "" : "d-none")">
+                <div>
+                    <label asp-for="DateDebut" class="form-label small fw-semibold text-muted mb-1">Du</label>
+                    <input asp-for="DateDebut" type="date" class="form-control" />
+                </div>
+                <div>
+                    <label asp-for="DateFin" class="form-label small fw-semibold text-muted mb-1">Au</label>
+                    <input asp-for="DateFin" type="date" class="form-control" />
+                </div>
+            </div>
+
+            <div>
+                <label asp-for="CaisseId" class="form-label small fw-semibold text-muted mb-1">Caisse</label>
+                <select asp-for="CaisseId" asp-items="Model.ListeCaisses" class="form-select"></select>
+            </div>
+
+            <div>
+                <label asp-for="StatutJournee" class="form-label small fw-semibold text-muted mb-1">Statut journée</label>
+                <select asp-for="StatutJournee" class="form-select">
+                    <option value="">Toutes</option>
+                    <option value="Ouverte">Ouvertes</option>
+                    <option value="Cloturee">Clôturées</option>
+                </select>
+            </div>
+
+            <button class="btn btn-outline-primary">
+                <i class="fa fa-search"></i> Filtrer
+            </button>
+
+            <div class="ms-auto d-flex gap-2">
+                <a href="@LienNouvelleOperation" class="btn btn-success fw-semibold">
+                    <i class="fa fa-plus"></i> Nouvelle opération
+                </a>
+                <a href="@Url.Action("Operations", "Rapport")" class="btn btn-outline-secondary fw-semibold">
+                    <i class="fa fa-chart-column"></i> Rapports
+                </a>
+            </div>
         </div>
 
+        <div class="small text-muted mt-2">
+            Du <strong class="db-num text-dark">@Model.DateDebut?.ToString("dd/MM/yyyy")</strong>
+            au <strong class="db-num text-dark">@Model.DateFin?.ToString("dd/MM/yyyy")</strong>
+        </div>
     </form>
 
-    <div class="row mb-4">
+    @* ===== Solde + indicateurs ===== *@
+    <div class="row g-4">
 
-        <div class="col-lg-3 col-md-6 mb-3">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body d-flex">
-
-                    <div class="flex-grow-1">
-
-                        <small class="text-muted">
-                            MONTANT INITIAL
-                        </small>
-
-                        <h3 class="fw-bold text-primary mt-2">
-                            @Model.SoldeCaisse.ToString("N0") FCFA
-                        </h3>
-
+        <div class="col-xl-5">
+            <section class="db-solde p-4 h-100 d-flex flex-column gap-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="db-label">Solde en caisse</span>
+                    <span class="db-badge" style="background:#1d4aa8;color:#fff;">
+                        @Model.NombreCaissesOuvertes caisse@(Model.NombreCaissesOuvertes > 1 ? "s" : "") ouverte@(Model.NombreCaissesOuvertes > 1 ? "s" : "")
+                    </span>
+                </div>
+                <div class="db-num fw-bold" style="font-size:40px;line-height:1;">
+                    @Fcfa(Model.Solde) <span class="db-muted" style="font-size:18px;">FCFA</span>
+                </div>
+                <div class="row g-0 db-solde-split pt-3" style="border-top:1px solid #2c549f;">
+                    <div class="col-4 pe-3">
+                        <div class="small db-muted">Fond initial</div>
+                        <div class="db-num fw-bold">@Fcfa(Model.MontantInitial)</div>
                     </div>
+                    <div class="col-4 px-3">
+                        <div class="small db-muted">+ Entrées</div>
+                        <div class="db-num fw-bold" style="color:#8fe3b4;">@Fcfa(Model.Entrees)</div>
+                    </div>
+                    <div class="col-4 ps-3">
+                        <div class="small db-muted">− Sorties</div>
+                        <div class="db-num fw-bold" style="color:#ffc29a;">@Fcfa(Model.Sorties)</div>
+                    </div>
+                </div>
+            </section>
+        </div>
 
-                    <div class="align-self-center">
+        <div class="col-xl-7">
+            <div class="row g-4 h-100">
 
-                        <div class="rounded-circle bg-primary text-white p-3">
-                            <i class="fa fa-wallet fa-2x"></i>
+                <div class="col-md-4">
+                    <section class="db-card p-4 h-100 d-flex flex-column gap-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="db-sign" style="background:#0f7a4a;">+</span>
+                            <span class="db-label">Entrées</span>
                         </div>
-
-                    </div>
-
-                </div>
-            </div>
-        </div>
-
-        <div class="col-lg-3 col-md-6 mb-3">
-
-            <div class="card border-0 shadow-sm h-100">
-
-                <div class="card-body d-flex">
-
-                    <div class="flex-grow-1">
-
-                        <small class="text-muted">
-                            ENTRÉES
-                        </small>
-
-                        <h3 class="fw-bold text-success mt-2">
-                            @Model.EntreesJour.ToString("N0") FCFA
-                        </h3>
-
-                    </div>
-
-                    <div class="align-self-center">
-
-                        <div class="rounded-circle bg-success text-white p-3">
-                            <i class="fa fa-arrow-down fa-2x"></i>
-                        </div>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-        </div>
-
-        <div class="col-lg-3 col-md-6 mb-3">
-
-            <div class="card border-0 shadow-sm h-100">
-
-                <div class="card-body d-flex">
-
-                    <div class="flex-grow-1">
-
-                        <small class="text-muted">
-                            SORTIES
-                        </small>
-
-                        <h3 class="fw-bold text-danger mt-2">
-                            @Model.SortiesJour.ToString("N0") FCFA
-                        </h3>
-
-                    </div>
-
-                    <div class="align-self-center">
-
-                        <div class="rounded-circle bg-danger text-white p-3">
-                            <i class="fa fa-arrow-up fa-2x"></i>
-                        </div>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-        </div>
-
-        <div class="col-lg-3 col-md-6 mb-3">
-
-            <div class="card border-0 shadow-sm h-100">
-
-                <div class="card-body d-flex">
-
-                    <div class="flex-grow-1">
-
-                        <small class="text-muted">
-                            SOLDE CAISSE
-                        </small>
-
-                        <h3 class="fw-bold text-warning mt-2">
-                            @Model.SoldeJour.ToString("N0") FCFA
-                        </h3>
-
-                    </div>
-
-                    <div class="align-self-center">
-
-                        <div class="rounded-circle text-white p-3"
-                             style="background:linear-gradient(45deg,#0046c7,#ff7300);">
-
-                            <i class="fa fa-coins fa-2x"></i>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-        </div>
-
-    </div>
-
-    <div class="row mb-4">
-
-        <div class="col-lg-3 col-md-6 mb-3">
-
-            <div class="card border-0 shadow-sm">
-
-                <div class="card-body text-center">
-
-                    <i class="fa fa-exchange-alt fa-3x text-primary mb-3"></i>
-
-                    <h2>@Model.NombreOperations</h2>
-
-                    <p class="text-muted">
-                        Opérations
-                    </p>
-
-                </div>
-
-            </div>
-
-        </div>
-
-        <div class="col-lg-3 col-md-6 mb-3">
-
-            <div class="card border-0 shadow-sm">
-
-                <div class="card-body text-center">
-
-                    <i class="fa fa-plus-circle fa-3x text-success mb-3"></i>
-
-                    <h2>@Model.NombreEncaissements</h2>
-
-                    <p class="text-muted">
-                        Encaissements
-                    </p>
-
-                </div>
-
-            </div>
-
-        </div>
-
-        <div class="col-lg-3 col-md-6 mb-3">
-
-            <div class="card border-0 shadow-sm">
-
-                <div class="card-body text-center">
-
-                    <i class="fa fa-minus-circle fa-3x text-danger mb-3"></i>
-
-                    <h2>@Model.NombreDecaissements</h2>
-
-                    <p class="text-muted">
-                        Décaissements
-                    </p>
-
-                </div>
-
-            </div>
-
-        </div>
-
-        <div class="col-lg-3 col-md-6 mb-3">
-
-            <div class="card border-0 shadow-sm">
-
-                <div class="card-body text-center">
-
-                    <i class="fa fa-users fa-3x text-warning mb-3"></i>
-
-                    <h2>@Model.NombreUtilisateurs</h2>
-
-                    <p class="text-muted">
-                        Utilisateurs
-                    </p>
-
-                </div>
-
-            </div>
-
-        </div>
-
-    </div>
-
-    <div class="row">
-
-        <div class="col-lg-8">
-
-            <div class="card shadow-sm border-0">
-
-                <div class="card-header bg-white">
-
-                    <h5 class="mb-0">
-                        Dernières opérations
-                    </h5>
-
-                </div>
-
-                <div class="card-body">
-
-                    <table class="table table-hover align-middle">
-
-                        <thead>
-
-                            <tr>
-
-                                <th>Date</th>
-
-                                <th>Référence</th>
-
-                                <th>Libellé</th>
-
-                                <th>Type</th>
-
-                                <th>Montant</th>
-
-                                <th>Caissier</th>
-
-                            </tr>
-
-                        </thead>
-
-                        <tbody>
-
-                            @foreach (var item in Model.DernieresOperations)
+                        <div class="db-num fw-bold db-in" style="font-size:26px;">@Fcfa(Model.Entrees)</div>
+                        <div class="small text-muted">FCFA</div>
+                        <div class="d-flex justify-content-between border-top pt-2 mt-auto small">
+                            <span class="text-muted">@Model.NombreEncaissements encaissement@(Model.NombreEncaissements > 1 ? "s" : "")</span>
+                            @if (Model.VariationEntrees.HasValue)
                             {
-                                <tr>
-
-                                    <td>@item.DateOperation.ToString("dd/MM/yyyy HH:mm")</td>
-
-                                    <td>@item.Reference</td>
-
-                                    <td>@item.Libelle</td>
-
-                                    <td>
-
-                                        @if (item.TypeOperation == "Encaissement")
-                                        {
-                                            <span class="badge bg-success">
-                                                Encaissement
-                                            </span>
-                                        }
-                                        else
-                                        {
-                                            <span class="badge bg-danger">
-                                                Décaissement
-                                            </span>
-                                        }
-
-                                    </td>
-
-                                    <td>
-
-                                        @item.Montant.ToString("N0") FCFA
-
-                                    </td>
-
-                                    <td>
-
-                                        @item.Caissier
-
-                                    </td>
-
-                                </tr>
+                                <span class="fw-bold @(Model.VariationEntrees >= 0 ? "db-in" : "text-muted")"
+                                      title="Par rapport à la période précédente">@Tendance(Model.VariationEntrees)</span>
                             }
+                        </div>
+                    </section>
+                </div>
 
-                        </tbody>
+                <div class="col-md-4">
+                    <section class="db-card p-4 h-100 d-flex flex-column gap-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="db-sign" style="background:#c2410c;">−</span>
+                            <span class="db-label">Sorties</span>
+                        </div>
+                        <div class="db-num fw-bold db-out" style="font-size:26px;">@Fcfa(Model.Sorties)</div>
+                        <div class="small text-muted">FCFA</div>
+                        <div class="d-flex justify-content-between border-top pt-2 mt-auto small">
+                            <span class="text-muted">@Model.NombreDecaissements décaissement@(Model.NombreDecaissements > 1 ? "s" : "")</span>
+                            @if (Model.VariationSorties.HasValue)
+                            {
+                                <span class="fw-bold @(Model.VariationSorties > 0 ? "db-out" : "text-muted")"
+                                      title="Par rapport à la période précédente">@Tendance(Model.VariationSorties)</span>
+                            }
+                        </div>
+                    </section>
+                </div>
 
-                    </table>
-
+                <div class="col-md-4">
+                    <section class="db-card p-4 h-100 d-flex flex-column gap-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="db-sign" style="background:#0046c7;">=</span>
+                            <span class="db-label">Résultat net</span>
+                        </div>
+                        <div class="db-num fw-bold" style="font-size:26px;color:#0046c7;">
+                            @(Model.ResultatNet > 0 ? "+" : "")@Fcfa(Model.ResultatNet)
+                        </div>
+                        <div class="small text-muted">FCFA</div>
+                        <div class="border-top pt-2 mt-auto small text-muted">
+                            @Model.NombreOperations opération@(Model.NombreOperations > 1 ? "s" : "")
+                        </div>
+                    </section>
                 </div>
 
             </div>
+        </div>
+    </div>
 
+    @* ===== À traiter ===== *@
+    @if (!Model.RienATraiter)
+    {
+        <section class="db-todo p-3 d-flex flex-wrap align-items-center gap-3">
+            <div class="d-flex align-items-center gap-2">
+                <span class="db-sign" style="background:#c2410c;width:36px;height:36px;"><i class="fa fa-exclamation"></i></span>
+                <h2 class="m-0 fw-bold" style="font-size:16px;color:#7c2d12;">À traiter</h2>
+            </div>
+            <div class="row g-2 flex-grow-1">
+                @if (Model.OperationsEnAttente > 0)
+                {
+                    <div class="col-md-4">
+                        <a class="d-flex align-items-center gap-3 px-3 py-2 h-100"
+                           href="@Url.Action("Details", "JourneeCaisse", new { id = Model.JourneeOperationEnAttenteId })">
+                            <span class="db-count db-num">@Model.OperationsEnAttente</span>
+                            <span class="small flex-grow-1">opération@(Model.OperationsEnAttente > 1 ? "s" : "") en attente de validation</span>
+                            <i class="fa fa-chevron-right" style="color:#c2410c;"></i>
+                        </a>
+                    </div>
+                }
+                @if (Model.DecaissementsNonJustifies > 0)
+                {
+                    <div class="col-md-4">
+                        <a class="d-flex align-items-center gap-3 px-3 py-2 h-100"
+                           href="@Url.Action("Details", "JourneeCaisse", new { id = Model.JourneeNonJustifieId })">
+                            <span class="db-count db-num">@Model.DecaissementsNonJustifies</span>
+                            <span class="small flex-grow-1">décaissement@(Model.DecaissementsNonJustifies > 1 ? "s" : "") sans justificatif</span>
+                            <i class="fa fa-chevron-right" style="color:#c2410c;"></i>
+                        </a>
+                    </div>
+                }
+                @if (Model.JourneesOuvertesAnciennes > 0)
+                {
+                    <div class="col-md-4">
+                        <a class="d-flex align-items-center gap-3 px-3 py-2 h-100"
+                           href="@Url.Action("Details", "JourneeCaisse", new { id = Model.JourneeOuverteAncienneId })">
+                            <span class="db-count db-num">@Model.JourneesOuvertesAnciennes</span>
+                            <span class="small flex-grow-1">journée@(Model.JourneesOuvertesAnciennes > 1 ? "s" : "") ouverte@(Model.JourneesOuvertesAnciennes > 1 ? "s" : "") depuis plus de 24 h</span>
+                            <i class="fa fa-chevron-right" style="color:#c2410c;"></i>
+                        </a>
+                    </div>
+                }
+            </div>
+        </section>
+    }
+
+    @* ===== Graphique + État des caisses ===== *@
+    <div class="row g-4">
+
+        <div class="col-xl-8">
+            <section class="db-card p-4 h-100 d-flex flex-column gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <h2 class="flex-grow-1">@Model.TitreFlux</h2>
+                    <span class="small text-muted"><span class="d-inline-block rounded-1 me-1" style="width:12px;height:12px;background:#0f7a4a;"></span>Entrées</span>
+                    <span class="small text-muted"><span class="d-inline-block rounded-1 me-1" style="width:12px;height:12px;background:#f59e5b;"></span>Sorties</span>
+                </div>
+                <div style="position:relative;height:260px;">
+                    <canvas id="chartFlux" aria-label="Entrées et sorties par période" role="img"></canvas>
+                </div>
+            </section>
         </div>
 
-        <div class="col-lg-4">
-
-            <!-- Situation mensuelle -->
-
-            <div class="card border-0 shadow-sm mb-4">
-
-                <div class="card-header bg-white">
-
-                    <h5 class="mb-0">
-                        Situation du mois
-                    </h5>
-
+        <div class="col-xl-4">
+            <section class="db-card p-4 h-100 d-flex flex-column gap-3">
+                <div class="d-flex align-items-center">
+                    <h2 class="flex-grow-1">État des caisses</h2>
+                    <a href="@Url.Action("Index", "Caisse")" class="small fw-semibold">Gérer</a>
                 </div>
 
-                <div class="card-body">
+                @if (!Model.EtatCaisses.Any())
+                {
+                    <p class="text-muted small m-0">Aucune caisse configurée.</p>
+                }
 
-                    <div class="mb-4">
-
-                        <div class="d-flex justify-content-between">
-
+                @foreach (var c in Model.EtatCaisses)
+                {
+                    var ouverte = c.Statut == "Ouverte";
+                    <a href="@(c.JourneeId.HasValue ? Url.Action("Details", "JourneeCaisse", new { id = c.JourneeId }) : Url.Action("Details", "Caisse", new { id = c.CaisseId }))"
+                       class="d-flex flex-column gap-1 p-3 border rounded-3 text-decoration-none text-dark">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="fw-bold small flex-grow-1">@c.Nom</span>
+                            @if (c.Statut == null)
+                            {
+                                <span class="db-badge db-badge-off">Aucune journée</span>
+                            }
+                            else
+                            {
+                                <span class="db-badge @(ouverte ? "db-badge-ok" : "db-badge-off")">@(ouverte ? "Ouverte" : "Clôturée")</span>
+                            }
+                        </div>
+                        <div class="d-flex justify-content-between small text-muted">
                             <span>
-                                Encaissements
+                                @if (ouverte && c.DateOuverture.HasValue)
+                                {
+                                    <text>Ouverte le @c.DateOuverture.Value.ToString("dd/MM à HH:mm")</text>
+                                }
+                                else if (c.DateFermeture.HasValue)
+                                {
+                                    <text>Clôturée le @c.DateFermeture.Value.ToString("dd/MM à HH:mm")</text>
+                                }
+                                @if (!string.IsNullOrEmpty(c.Caissier))
+                                {
+                                    <text> · @c.Caissier</text>
+                                }
                             </span>
-
-                            <strong class="text-success">
-                                @Model.TotalEncaissementsMois.ToString("N0") FCFA
-                            </strong>
-
+                            @if (c.Statut != null)
+                            {
+                                <strong class="db-num text-dark">@Fcfa(c.Solde) FCFA</strong>
+                            }
                         </div>
+                    </a>
+                }
+            </section>
+        </div>
+    </div>
 
-                        <div class="progress mt-2" style="height:8px;">
+    @* ===== Dernières opérations + répartitions ===== *@
+    <div class="row g-4">
 
-                            <div class="progress-bar bg-success"
-                                 style="width:80%">
-                            </div>
-
-                        </div>
-
-                    </div>
-
-                    <div class="mb-4">
-
-                        <div class="d-flex justify-content-between">
-
-                            <span>
-                                Décaissements
-                            </span>
-
-                            <strong class="text-danger">
-                                @Model.TotalDecaissementsMois.ToString("N0") FCFA
-                            </strong>
-
-                        </div>
-
-                        <div class="progress mt-2" style="height:8px;">
-
-                            <div class="progress-bar bg-danger"
-                                 style="width:55%">
-                            </div>
-
-                        </div>
-
-                    </div>
-
+        <div class="col-xl-8">
+            <section class="db-card p-4 h-100">
+                <div class="d-flex align-items-center mb-2">
+                    <h2 class="flex-grow-1">Dernières opérations</h2>
+                    <a href="@Url.Action("Operations", "Rapport", new { dateDebut = Model.DateDebut?.ToString("yyyy-MM-dd"), dateFin = Model.DateFin?.ToString("yyyy-MM-dd"), caisseId = Model.CaisseId })"
+                       class="small fw-semibold">Voir tout le journal <i class="fa fa-chevron-right"></i></a>
                 </div>
 
-            </div>
-
-            <!-- Statistiques -->
-
-            <div class="card border-0 shadow-sm mb-4">
-
-                <div class="card-header bg-white">
-
-                    <h5 class="mb-0">
-                        Activité
-                    </h5>
-
-                </div>
-
-                <div class="card-body">
-
-                    <canvas id="chartOperations"
-                            height="250">
-                    </canvas>
-
-                </div>
-
-            </div>
-
-            <!-- Informations -->
-
-            <div class="card border-0 shadow-sm">
-
-                <div class="card-header bg-white">
-
-                    <h5 class="mb-0">
-
-                        Informations
-
-                    </h5>
-
-                </div>
-
-                <div class="card-body">
-
-                    <div class="d-flex justify-content-between mb-3">
-
-                        <span>
-
-                            Caisses ouvertes
-
-                        </span>
-
-                        <span class="badge bg-primary">
-
-                            @Model.NombreCaissesOuvertes
-
-                        </span>
-
+                @if (!Model.DernieresOperations.Any())
+                {
+                    <p class="text-muted small m-0 py-4 text-center">Aucune opération sur la période.</p>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle small db-table mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Réf.</th>
+                                    <th>Libellé</th>
+                                    <th>Mode</th>
+                                    <th>Validation</th>
+                                    <th class="text-end">Montant</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model.DernieresOperations)
+                                {
+                                    var entree = item.TypeOperation == "Encaissement";
+                                    var badge = item.StatutValidation switch
+                                    {
+                                        "Validé" => "db-badge-ok",
+                                        "Rejeté" => "db-badge-ko",
+                                        _ => "db-badge-wait"
+                                    };
+                                    <tr>
+                                        <td class="db-num text-muted text-nowrap">@item.DateOperation.ToString("dd/MM HH:mm")</td>
+                                        <td class="db-num text-muted">
+                                            <a href="@Url.Action("Details", "JourneeCaisse", new { id = item.JourneeId })">@item.Reference</a>
+                                        </td>
+                                        <td>
+                                            <div class="fw-semibold">@item.Libelle</div>
+                                            <div class="text-muted" style="font-size:12px;">@item.Caissier</div>
+                                        </td>
+                                        <td>@(item.ModePaiement ?? "—")</td>
+                                        <td><span class="db-badge @badge">@item.StatutValidation</span></td>
+                                        <td class="db-num text-end fw-bold text-nowrap">
+                                            <span class="@(entree ? "db-in" : "db-out")">@(entree ? "+" : "−")@Fcfa(item.Montant)</span>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
                     </div>
-
-                    <div class="d-flex justify-content-between mb-3">
-
-                        <span>
-
-                            Nombre d'utilisateurs
-
-                        </span>
-
-                        <span class="badge bg-success">
-
-                            @Model.NombreUtilisateurs
-
-                        </span>
-
-                    </div>
-
-                    <div class="d-flex justify-content-between mb-3">
-
-                        <span>
-
-                            Opérations du jour
-
-                        </span>
-
-                        <span class="badge bg-warning text-dark">
-
-                            @Model.NombreOperations
-
-                        </span>
-
-                    </div>
-
-                    <div class="d-flex justify-content-between">
-
-                        <span>
-
-                            Solde disponible
-
-                        </span>
-
-                        <strong class="text-primary">
-
-                            @Model.SoldeCaisse.ToString("N0") FCFA
-
-                        </strong>
-
-                    </div>
-
-                </div>
-
-            </div>
-
+                }
+            </section>
         </div>
 
+        <div class="col-xl-4">
+            <section class="db-card p-4 h-100 d-flex flex-column gap-3">
+                <h2>Entrées par mode de paiement</h2>
+
+                @if (!Model.EntreesParMode.Any())
+                {
+                    <p class="text-muted small m-0">Aucun encaissement sur la période.</p>
+                }
+
+                @foreach (var m in Model.EntreesParMode)
+                {
+                    <div>
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span class="fw-semibold">@m.Libelle</span>
+                            <span class="db-num text-muted">@Fcfa(m.Montant) · <strong class="text-dark">@m.Pourcentage.ToString("N0", fr) %</strong></span>
+                        </div>
+                        <div class="db-bar"><div style="width:@(m.Pourcentage.ToString(CultureInfo.InvariantCulture))%"></div></div>
+                    </div>
+                }
+
+                <div class="border-top pt-3 d-flex flex-column gap-2">
+                    <h3 class="fw-bold m-0" style="font-size:14px;">Principaux motifs de sortie</h3>
+
+                    @if (!Model.TopMotifsSortie.Any())
+                    {
+                        <p class="text-muted small m-0">Aucun décaissement sur la période.</p>
+                    }
+
+                    @foreach (var x in Model.TopMotifsSortie)
+                    {
+                        <div class="d-flex justify-content-between small">
+                            <span>@x.Libelle</span>
+                            <strong class="db-num">@Fcfa(x.Montant)</strong>
+                        </div>
+                    }
+                </div>
+            </section>
+        </div>
     </div>
 
 </div>
 
 @section Scripts {
-
     <script>
+        (function () {
+            // Données sérialisées en JSON : format invariant, indépendant de la
+            // culture du serveur (un "2144499,00" casserait le tableau JS).
+            const labels = @Html.Raw(JsonSerializer.Serialize(fluxLabels));
+            const entrees = @Html.Raw(JsonSerializer.Serialize(fluxEntrees));
+            const sorties = @Html.Raw(JsonSerializer.Serialize(fluxSorties));
+            const fmt = new Intl.NumberFormat('fr-FR');
 
-        const ctx=document.getElementById('chartOperations');
-
-        new Chart(ctx,{
-
-            type:'bar',
-
-            data:{
-
-                labels:[
-                    'Encaissements',
-                    'Décaissements'
-                ],
-
-                datasets:[{
-
-                    label:'Montant',
-
-                    data:[
-                        @Model.TotalEncaissementsMois,
-                        @Model.TotalDecaissementsMois
-                    ],
-
-                    backgroundColor:[
-                        '#0d6efd',
-                        '#ff7300'
-                    ],
-
-                    borderRadius:10
-
-                }]
-
-            },
-
-            options:{
-
-                responsive:true,
-
-                maintainAspectRatio:false,
-
-                plugins:{
-                    legend:{
-                        display:false
-                    }
+            new Chart(document.getElementById('chartFlux'), {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: 'Entrées', data: entrees, backgroundColor: '#0f7a4a', borderRadius: 5, maxBarThickness: 22 },
+                        { label: 'Sorties', data: sorties, backgroundColor: '#f59e5b', borderRadius: 5, maxBarThickness: 22 }
+                    ]
                 },
-
-                scales:{
-
-                    y:{
-                        beginAtZero:true
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: (c) => c.dataset.label + ' : ' + fmt.format(c.parsed.y) + ' FCFA'
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { grid: { display: false } },
+                        y: {
+                            beginAtZero: true,
+                            ticks: { callback: (v) => fmt.format(v) }
+                        }
                     }
-
                 }
-
-            }
-
-        });
-
+            });
+        })();
     </script>
-
 }
