@@ -269,7 +269,7 @@
     color: #fff;
 }
 
-/* ---------- Contenu et barre du haut ---------- */
+/* ---------- Contenu et barre du haut (bleue) ---------- */
 .content {
     margin-left: var(--sidebar-w);
     min-height: 100vh;
@@ -277,7 +277,8 @@
 }
 
 .topbar {
-    background: #fff;
+    background: var(--brand);
+    color: #fff;
     min-height: 72px;
     display: flex;
     align-items: center;
@@ -293,11 +294,11 @@
 
 .topbar-fil {
     font-size: 12px;
-    color: var(--brand-grey-text);
+    color: #c6dae6;
 }
 
 .topbar-fil strong {
-    color: var(--brand);
+    color: #fff;
     font-weight: 600;
 }
 
@@ -305,26 +306,26 @@
     margin: 0;
     font-size: 21px;
     font-weight: 700;
-    color: #0f1b33;
+    color: #fff;
 }
 
 .topbar-societe {
     font-size: 13px;
-    color: var(--brand-grey-text);
+    color: #c6dae6;
     white-space: nowrap;
 }
 
 .topbar-societe strong {
-    color: var(--brand);
+    color: #fff;
 }
 
 .topbar-icone {
     width: 42px;
     height: 42px;
     border-radius: 10px;
-    border: 1px solid #e3e8f1;
-    background: #fff;
-    color: #0f1b33;
+    border: 1px solid #6f9fbd;
+    background: transparent;
+    color: #fff;
     display: flex;
     align-items: center;
     justify-content: center;
