@@ -33,6 +33,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="~/css/theme.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/print.css" />
     <style>
             body {
@@ -47,7 +48,7 @@
                 left: 0;
                 width: 280px;
                 height: 100vh;
-                background: linear-gradient(180deg, #003c97 0%, #1f4fa8 25%, #5d4f88 55%, #c7642c 80%, #ff7300 100%);
+                background: linear-gradient(180deg, var(--brand-darker) 0%, var(--brand-dark) 45%, var(--brand) 100%);
                 color: white;
                 overflow-y: auto;
             }
@@ -102,7 +103,8 @@
                 }
 
                 .sidebar .nav-link.active {
-                    background: #2f78ff;
+                    background: #fff;
+                    color: var(--brand);
                     box-shadow: 0 5px 20px rgba(0,0,0,.15);
                 }
 
@@ -174,9 +176,10 @@
             }
 
             .bg-blue {
-                background: #0d6efd;
+                background: var(--brand);
             }
 
+            /* Couleur de catégorie (badges "Fournisseur"), pas une couleur de marque */
             .bg-orange {
                 background: #ff7300;
             }
@@ -312,7 +315,7 @@
 
     <div class="content">
 
-        <div class="topbar bg-orange" style="color: white;">
+        <div class="topbar bg-brand" style="color: white;">
             <h4 class="mb-0">@ViewData["Title"]</h4>
             <div>
                 <i class="fas fa-bell me-4"></i>

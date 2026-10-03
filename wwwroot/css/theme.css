@@ -1,0 +1,85 @@
+/* Thème M-ITECH AFRICA : couleurs du logo (bleu #195D84, gris #999997).
+   Toutes les couleurs de marque de l'application partent de ces variables. */
+:root {
+    --brand: #195d84;          /* bleu du logo */
+    --brand-rgb: 25, 93, 132;
+    --brand-dark: #12445f;     /* survol, cartes foncées */
+    --brand-darker: #0b2f44;   /* haut de la barre latérale */
+    --brand-light: #6f9fbd;
+    --brand-soft: #e8f0f5;     /* fonds légers */
+    --brand-grey: #999997;     /* gris du logo (décor, bordures) */
+    --brand-grey-text: #6b6b69; /* gris lisible sur fond blanc */
+
+    /* Bootstrap : la couleur "primary" devient le bleu du logo */
+    --bs-primary: var(--brand);
+    --bs-primary-rgb: var(--brand-rgb);
+    --bs-primary-text-emphasis: var(--brand-dark);
+    --bs-primary-bg-subtle: var(--brand-soft);
+    --bs-primary-border-subtle: #b9d0de;
+    --bs-link-color: var(--brand);
+    --bs-link-color-rgb: var(--brand-rgb);
+    --bs-link-hover-color: var(--brand-dark);
+    --bs-link-hover-color-rgb: 18, 68, 95;
+    --bs-focus-ring-color: rgba(var(--brand-rgb), .25);
+}
+
+.btn-primary {
+    --bs-btn-bg: var(--brand);
+    --bs-btn-border-color: var(--brand);
+    --bs-btn-hover-bg: var(--brand-dark);
+    --bs-btn-hover-border-color: var(--brand-dark);
+    --bs-btn-active-bg: var(--brand-darker);
+    --bs-btn-active-border-color: var(--brand-darker);
+    --bs-btn-disabled-bg: var(--brand);
+    --bs-btn-disabled-border-color: var(--brand);
+    --bs-btn-focus-shadow-rgb: var(--brand-rgb);
+}
+
+.btn-outline-primary {
+    --bs-btn-color: var(--brand);
+    --bs-btn-border-color: var(--brand);
+    --bs-btn-hover-bg: var(--brand);
+    --bs-btn-hover-border-color: var(--brand);
+    --bs-btn-active-bg: var(--brand-dark);
+    --bs-btn-active-border-color: var(--brand-dark);
+    --bs-btn-disabled-color: var(--brand);
+    --bs-btn-disabled-border-color: var(--brand);
+    --bs-btn-focus-shadow-rgb: var(--brand-rgb);
+}
+
+.form-control:focus,
+.form-select:focus,
+.form-check-input:focus {
+    border-color: var(--brand-light);
+    box-shadow: 0 0 0 .25rem rgba(var(--brand-rgb), .25);
+}
+
+.form-check-input:checked {
+    background-color: var(--brand);
+    border-color: var(--brand);
+}
+
+.page-item.active .page-link,
+.dataTables_wrapper .page-item.active .page-link {
+    background-color: var(--brand);
+    border-color: var(--brand);
+}
+
+.page-link {
+    color: var(--brand);
+}
+
+/* Bandeaux d'en-tête (barre du haut, en-têtes de cartes et de fenêtres) */
+.bg-brand {
+    background: var(--brand) !important;
+    color: #fff;
+}
+
+.text-brand {
+    color: var(--brand) !important;
+}
+
+/* Filet gris du logo sous la barre du haut */
+.topbar.bg-brand {
+    border-bottom: 4px solid var(--brand-grey);
+}

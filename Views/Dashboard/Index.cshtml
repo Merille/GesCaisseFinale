@@ -110,14 +110,14 @@
             <section class="db-solde p-4 h-100 d-flex flex-column gap-3">
                 <div class="d-flex justify-content-between align-items-center">
                     <span class="db-label">Solde en caisse</span>
-                    <span class="db-badge" style="background:#1d4aa8;color:#fff;">
+                    <span class="db-badge" style="background:#2a6f97;color:#fff;">
                         @Model.NombreCaissesOuvertes caisse@(Model.NombreCaissesOuvertes > 1 ? "s" : "") ouverte@(Model.NombreCaissesOuvertes > 1 ? "s" : "")
                     </span>
                 </div>
                 <div class="db-num fw-bold" style="font-size:40px;line-height:1;">
                     @Fcfa(Model.Solde) <span class="db-muted" style="font-size:18px;">FCFA</span>
                 </div>
-                <div class="row g-0 db-solde-split pt-3" style="border-top:1px solid #2c549f;">
+                <div class="row g-0 db-solde-split pt-3" style="border-top:1px solid #2f6d92;">
                     <div class="col-4 pe-3">
                         <div class="small db-muted">Fond initial</div>
                         <div class="db-num fw-bold">@Fcfa(Model.MontantInitial)</div>
@@ -178,10 +178,10 @@
                 <div class="col-md-4">
                     <section class="db-card p-4 h-100 d-flex flex-column gap-2">
                         <div class="d-flex align-items-center gap-2">
-                            <span class="db-sign" style="background:#0046c7;">=</span>
+                            <span class="db-sign" style="background:var(--brand);">=</span>
                             <span class="db-label">Résultat net</span>
                         </div>
-                        <div class="db-num fw-bold" style="font-size:26px;color:#0046c7;">
+                        <div class="db-num fw-bold" style="font-size:26px;color:var(--brand);">
                             @(Model.ResultatNet > 0 ? "+" : "")@Fcfa(Model.ResultatNet)
                         </div>
                         <div class="small text-muted">FCFA</div>
