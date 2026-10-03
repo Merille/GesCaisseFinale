@@ -145,11 +145,11 @@
                         </div>
                         <div class="db-num fw-bold db-in" style="font-size:26px;">@Fcfa(Model.Entrees)</div>
                         <div class="small text-muted">FCFA</div>
-                        <div class="d-flex justify-content-between border-top pt-2 mt-auto small">
-                            <span class="text-muted">@Model.NombreEncaissements encaissement@(Model.NombreEncaissements > 1 ? "s" : "")</span>
+                        <div class="d-flex flex-wrap justify-content-between column-gap-2 border-top pt-2 mt-auto small">
+                            <span class="text-muted text-nowrap">@Model.NombreEncaissements encaissement@(Model.NombreEncaissements > 1 ? "s" : "")</span>
                             @if (Model.VariationEntrees.HasValue)
                             {
-                                <span class="fw-bold @(Model.VariationEntrees >= 0 ? "db-in" : "text-muted")"
+                                <span class="fw-bold text-nowrap @(Model.VariationEntrees >= 0 ? "db-in" : "text-muted")"
                                       title="Par rapport à la période précédente">@Tendance(Model.VariationEntrees)</span>
                             }
                         </div>
@@ -164,11 +164,11 @@
                         </div>
                         <div class="db-num fw-bold db-out" style="font-size:26px;">@Fcfa(Model.Sorties)</div>
                         <div class="small text-muted">FCFA</div>
-                        <div class="d-flex justify-content-between border-top pt-2 mt-auto small">
-                            <span class="text-muted">@Model.NombreDecaissements décaissement@(Model.NombreDecaissements > 1 ? "s" : "")</span>
+                        <div class="d-flex flex-wrap justify-content-between column-gap-2 border-top pt-2 mt-auto small">
+                            <span class="text-muted text-nowrap">@Model.NombreDecaissements décaissement@(Model.NombreDecaissements > 1 ? "s" : "")</span>
                             @if (Model.VariationSorties.HasValue)
                             {
-                                <span class="fw-bold @(Model.VariationSorties > 0 ? "db-out" : "text-muted")"
+                                <span class="fw-bold text-nowrap @(Model.VariationSorties > 0 ? "db-out" : "text-muted")"
                                       title="Par rapport à la période précédente">@Tendance(Model.VariationSorties)</span>
                             }
                         </div>

@@ -23,139 +23,61 @@
             ? societesDisponibles.FirstOrDefault(t => t.Id == TenantProvider.TenantId)?.Nom
             : null;
     }
+
+    // Journées encore ouvertes (badge du menu "Caisses"), dans le périmètre
+    // de la société consultée grâce au filtre multi-société du contexte.
+    var nbJourneesOuvertes = DbContext.JourneesCaisses.Count(j => j.Statut == "Ouverte");
+
+    // Rubrique du fil d'Ariane de la barre du haut.
+    var rubrique = controller switch
+    {
+        "Dashboard" or "Caisse" or "JourneeCaisse" or "Client" => "Activité",
+        "Rapport" => "Analyse",
+        "Utilisateur" or "Motif" or "ModePaiement" or "Tenant" => "Administration",
+        _ => null
+    };
+
+    // Titre affiché dans la barre du haut : celui de la page, sinon celui de la rubrique.
+    var titrePage = ViewData["Title"]?.ToString();
+    if (string.IsNullOrWhiteSpace(titrePage))
+    {
+        titrePage = controller switch
+        {
+            "Client" => "Tiers",
+            "Motif" => "Motifs",
+            "ModePaiement" => "Modes de paiement",
+            "Utilisateur" => "Utilisateurs",
+            "Tenant" => "Sociétés",
+            "Caisse" => "Caisses",
+            "Rapport" => "Rapports",
+            _ => "EasyCaisse"
+        };
+    }
+
+    var initiales = string.IsNullOrEmpty(nomUtilisateur) ? "?" : nomUtilisateur.Substring(0, Math.Min(2, nomUtilisateur.Length));
+    var libelleProfil = isSuperAdmin ? "Super administrateur" : (User.FindFirst(AppClaimTypes.Profil)?.Value ?? "Utilisateur");
 }
 
 <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="utf-8" />
-    <title>@ViewData["Title"] - EasyCaisse</title>
+    <title>@titrePage - EasyCaisse</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="~/css/theme.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/print.css" />
+    <link rel="stylesheet" href="~/css/layout.css" asp-append-version="true" />
+    <script>
+        // Applique l'état replié du menu avant l'affichage (pas de saut visuel).
+        try { if (localStorage.getItem('sidebarReplie') === '1') document.documentElement.classList.add('sidebar-replie'); } catch (e) { }
+    </script>
     <style>
             body {
                 margin: 0;
                 background: #f5f7fb;
                 font-family: 'Segoe UI', sans-serif;
-            }
-
-            .sidebar {
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 280px;
-                height: 100vh;
-                background: linear-gradient(180deg, var(--brand-darker) 0%, var(--brand-dark) 45%, var(--brand) 100%);
-                color: white;
-                overflow-y: auto;
-            }
-
-            .logo-area {
-                padding: 20px;
-                text-align: center;
-            }
-
-                .logo-area img {
-                    width: 100%;
-                    max-width: 220px;
-                    background: white;
-                    padding: 10px;
-                    border-radius: 10px;
-                }
-
-                .societe-connectee {
-                    margin-top: 8px;
-                    font-size: 13px;
-                    font-weight: 600;
-                    color: white;
-                    background: rgba(255,255,255,.15);
-                    border-radius: 20px;
-                    padding: 4px 14px;
-                    display: inline-block;
-                }
-
-            .menu-title {
-                padding: 10px 25px;
-                font-size: 12px;
-                opacity: .8;
-                text-transform: uppercase;
-            }
-
-            .sidebar .nav-link {
-                color: white;
-                padding: 15px 25px;
-                margin: 5px 15px;
-                border-radius: 12px;
-                display: flex;
-                align-items: center;
-                gap: 15px;
-                font-size: 18px;
-                transition: .3s;
-                cursor: pointer;
-            }
-
-                .sidebar .nav-link:hover {
-                    background: rgba(255,255,255,.12);
-                    transform: translateX(5px);
-                }
-
-                .sidebar .nav-link.active {
-                    background: #fff;
-                    color: var(--brand);
-                    box-shadow: 0 5px 20px rgba(0,0,0,.15);
-                }
-
-            /* Sous-menu */
-            .submenu {
-                display: none;
-                flex-direction: column;
-                padding-left: 20px;
-            }
-
-                .submenu.open {
-                    display: flex;
-                }
-
-                .submenu .nav-link {
-                    font-size: 15px;
-                    padding: 10px 20px;
-                    margin: 2px 15px;
-                }
-
-                    .submenu .nav-link i {
-                        font-size: 14px;
-                    }
-
-            .arrow {
-                margin-left: auto;
-                font-size: 12px;
-                transition: transform .3s;
-            }
-
-                .arrow.open {
-                    transform: rotate(180deg);
-                }
-
-            .content {
-                margin-left: 280px;
-                min-height: 100vh;
-            }
-
-            .topbar {
-                background: white;
-                height: 80px;
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                padding: 0 30px;
-                box-shadow: 0 2px 15px rgba(0,0,0,.05);
-            }
-
-            .page-content {
-                padding: 30px;
             }
 
             .card-stat {
@@ -183,155 +105,134 @@
             .bg-orange {
                 background: #ff7300;
             }
-
-            .logout {
-                margin: 20px;
-                border: 1px solid rgba(255,255,255,.5);
-                border-radius: 12px;
-            }
-
-                .logout a {
-                    color: white;
-                    display: block;
-                    text-align: center;
-                    padding: 15px;
-                    text-decoration: none;
-                }
     </style>
 </head>
 <body>
 
-    <div class="sidebar">
+    <aside class="sidebar">
 
-        <div class="logo-area">
-            <h2 class="mb-0">EasyCaisse</h2>
-            @if (!string.IsNullOrEmpty(nomSociete))
-            {
-                <div class="societe-connectee">@nomSociete</div>
-            }
-            else if (isSuperAdmin)
-            {
-                <div class="societe-connectee">@(societeConsultee ?? "Toutes les sociétés")</div>
-            }
+        <div class="sb-brand">
+            <span class="sb-logo">EC</span>
+            <div class="sb-brand-text">
+                <strong>EasyCaisse</strong>
+                <small>par M-ITECH AFRICA</small>
+            </div>
         </div>
 
         @if (isSuperAdmin)
         {
-            <div class="px-3 mb-3">
-                <form method="post" asp-controller="Tenant" asp-action="Consulter">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="returnUrl" value="@(Context.Request.Path)@(Context.Request.QueryString)" />
-                    <select name="tenantId" class="form-select form-select-sm"
-                            onchange="this.form.submit()" title="Consulter les données d'une société">
-                        <option value="">-- Toutes les sociétés --</option>
-                        @foreach (var s in societesDisponibles)
-                        {
-                            <option value="@s.Id" selected="@(s.Id == TenantProvider.TenantId)">@s.Nom</option>
-                        }
-                    </select>
-                </form>
+            <form class="sb-societe" method="post" asp-controller="Tenant" asp-action="Consulter">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="returnUrl" value="@(Context.Request.Path)@(Context.Request.QueryString)" />
+                <label for="sbSociete">Société consultée</label>
+                <select id="sbSociete" name="tenantId" class="form-select form-select-sm"
+                        onchange="this.form.submit()" title="Consulter les données d'une société">
+                    <option value="">Toutes les sociétés</option>
+                    @foreach (var s in societesDisponibles)
+                    {
+                        <option value="@s.Id" selected="@(s.Id == TenantProvider.TenantId)">@s.Nom</option>
+                    }
+                </select>
+            </form>
+        }
+        else if (!string.IsNullOrEmpty(nomSociete))
+        {
+            <div class="sb-societe">
+                <label>Société</label>
+                <div class="sb-societe-nom" title="@nomSociete">@nomSociete</div>
             </div>
         }
 
-        <div class="menu-title">Menu Principal</div>
+        <nav class="sb-nav" aria-label="Menu principal">
 
-        <nav class="nav flex-column">
+            <div class="sb-section">
+                <div class="sb-section-title">Activité</div>
+                <a class="sb-link @(controller == "Dashboard" ? "active" : "")" href="/Dashboard/Index" title="Tableau de bord">
+                    <i class="fas fa-house"></i>
+                    <span class="sb-label">Tableau de bord</span>
+                </a>
+                <a class="sb-link @(controller == "Caisse" || controller == "JourneeCaisse" ? "active" : "")" href="/Caisse/Index" title="Caisses">
+                    <i class="fas fa-cash-register"></i>
+                    <span class="sb-label">Caisses</span>
+                    @if (nbJourneesOuvertes > 0)
+                    {
+                        <span class="sb-badge">@nbJourneesOuvertes ouverte@(nbJourneesOuvertes > 1 ? "s" : "")</span>
+                    }
+                </a>
+                <a class="sb-link @(controller == "Client" ? "active" : "")" href="/Client/Index" title="Tiers">
+                    <i class="fas fa-address-book"></i>
+                    <span class="sb-label">Tiers</span>
+                </a>
+            </div>
 
-            <a class="nav-link @(controller == "Dashboard" ? "active" : "")" href="/Dashboard/Index">
-                <i class="fas fa-home"></i>
-                Tableau de bord
-            </a>
+            <div class="sb-section">
+                <div class="sb-section-title">Analyse</div>
+                <a class="sb-link @(controller == "Rapport" ? "active" : "")" href="/Rapport/Operations" title="Rapports">
+                    <i class="fas fa-chart-column"></i>
+                    <span class="sb-label">Rapports</span>
+                </a>
+            </div>
 
-            @* <a class="nav-link @(controller == "Facture" ? "active" : "")" href="/Facture/Index">
-                <i class="fas fa-file-invoice"></i>
-                Factures
-            </a> *@
-
-            <a class="nav-link @(controller == "Caisse" ? "active" : "")" href="/Caisse/Index">
-                <i class="fas fa-cash-register"></i>
-                Caisse
-            </a>
-
-
-            <a class="nav-link @(controller == "Rapport" ? "active" : "")" href="/Rapport/Operations">
-                <i class="fas fa-chart-column"></i>
-                Rapports
-            </a>
-
-            <a class="nav-link @(controller == "Client" ? "active" : "")" href="/Client/Index">
-                <i class="fas fa-users"></i>
-                Tiers
-            </a>
-
-            @* Menu Paramètres avec sous-menu *@
-            @{
-                bool parametreActif = controller == "Utilisateur" || controller == "Motif"
-                    || controller == "ModePaiement" || controller == "Tenant";
-            }
-            <a class="nav-link @(parametreActif ? "active" : "")"
-               onclick="toggleSubmenu()" id="parametreMenu">
-                <i class="fas fa-gear"></i>
-                Paramètres
-                <i class="fas fa-chevron-down arrow @(parametreActif ? "open" : "")" id="parametreArrow"></i>
-            </a>
-
-            <div class="submenu @(parametreActif ? "open" : "")" id="parametreSubmenu">
-                <a class="nav-link @(controller == "Utilisateur" ? "active" : "")" href="/Utilisateur/Index">
+            <div class="sb-section">
+                <div class="sb-section-title">Administration</div>
+                <a class="sb-link @(controller == "Utilisateur" ? "active" : "")" href="/Utilisateur/Index" title="Utilisateurs">
                     <i class="fas fa-user-shield"></i>
-                    Utilisateurs
+                    <span class="sb-label">Utilisateurs</span>
                 </a>
-                <a class="nav-link @(controller == "Motif" ? "active" : "")" href="/Motif/Index">
-                    <i class="fas fa-file-invoice"></i>
-                    Motifs
+                <a class="sb-link @(controller == "Motif" ? "active" : "")" href="/Motif/Index" title="Motifs">
+                    <i class="fas fa-list-ul"></i>
+                    <span class="sb-label">Motifs</span>
                 </a>
-                <a class="nav-link @(controller == "ModePaiement" ? "active" : "")" href="/ModePaiement/Index">
+                <a class="sb-link @(controller == "ModePaiement" ? "active" : "")" href="/ModePaiement/Index" title="Modes de paiement">
                     <i class="fas fa-money-check-dollar"></i>
-                    Modes de paiement
+                    <span class="sb-label">Modes de paiement</span>
                 </a>
                 @if (isSuperAdmin)
                 {
-                    <a class="nav-link @(controller == "Tenant" ? "active" : "")" href="/Tenant/Index">
-                        <i class="fas fa-building"></i>
-                        Sociétés
-                    </a>
+                    <a class="sb-link @(controller == "Tenant" ? "active" : "")" href="/Tenant/Index" title="Sociétés">
+                    <i class="fas fa-building"></i>
+                    <span class="sb-label">Sociétés</span>
+                </a>
                 }
-
-                @* <a class="nav-link @(controller == "Facture" ? "active" : "")" href="/Facture/Index">
-                    <i class="fas fa-file-invoice"></i>
-                    Factures
-                </a> *@
             </div>
 
         </nav>
 
-        <div class="logout">
-            <a href="/Auth/login">
-                <i class="fas fa-power-off"></i>
-                Déconnexion
-            </a>
+        <div class="sb-footer">
+            <div class="sb-user">
+                <span class="sb-avatar" title="@nomUtilisateur">@initiales</span>
+                <div class="sb-user-text">
+                    <strong>@nomUtilisateur</strong>
+                    <small>@libelleProfil</small>
+                </div>
+                <a class="sb-logout" href="/Auth/Logout" title="Se déconnecter" aria-label="Se déconnecter">
+                    <i class="fas fa-right-from-bracket"></i>
+                </a>
+            </div>
+            <button type="button" class="sb-toggle" onclick="basculerMenu()" aria-label="Réduire ou agrandir le menu">
+                <i class="fas fa-angles-left" id="sbToggleIcone"></i>
+                <span class="sb-toggle-texte">Réduire le menu</span>
+            </button>
         </div>
 
-    </div>
+    </aside>
 
     <div class="content">
 
-        <div class="topbar bg-brand" style="color: white;">
-            <h4 class="mb-0">@ViewData["Title"]</h4>
-            <div>
-                <i class="fas fa-bell me-4"></i>
-                <span>
-                    @nomUtilisateur
-                    @if (!string.IsNullOrEmpty(nomSociete))
-                    {
-                        <text> — @nomSociete</text>
-                    }
-                    else if (isSuperAdmin && societeConsultee != null)
-                    {
-                        <text> — Consultation : @societeConsultee</text>
-                    }
-                </span>
+        <header class="topbar">
+            <div class="topbar-titre">
+                @if (rubrique != null)
+                {
+                    <div class="topbar-fil">@rubrique › <strong>@titrePage</strong></div>
+                }
+                <h1>@titrePage</h1>
             </div>
-        </div>
+            @if (isSuperAdmin && societeConsultee != null)
+            {
+                <div class="topbar-societe">Consultation : <strong>@societeConsultee</strong></div>
+            }
+            <span class="topbar-icone" title="Notifications"><i class="fas fa-bell"></i></span>
+        </header>
 
         <div class="page-content">
             @RenderBody()
@@ -346,12 +247,21 @@
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 
     <script>
-            function toggleSubmenu() {
-                const submenu = document.getElementById('parametreSubmenu');
-                const arrow = document.getElementById('parametreArrow');
-                submenu.classList.toggle('open');
-                arrow.classList.toggle('open');
+            // Menu latéral replié / déplié, mémorisé dans le navigateur.
+            function basculerMenu() {
+                const replie = document.documentElement.classList.toggle('sidebar-replie');
+                try { localStorage.setItem('sidebarReplie', replie ? '1' : '0'); } catch (e) { }
+                majIconeMenu();
             }
+
+            function majIconeMenu() {
+                const icone = document.getElementById('sbToggleIcone');
+                if (!icone) return;
+                const replie = document.documentElement.classList.contains('sidebar-replie');
+                icone.className = 'fas ' + (replie ? 'fa-angles-right' : 'fa-angles-left');
+            }
+
+            majIconeMenu();
     </script>
 
     @await RenderSectionAsync("Scripts", required: false)

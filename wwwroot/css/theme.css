@@ -78,8 +78,3 @@
 .text-brand {
     color: var(--brand) !important;
 }
-
-/* Filet gris du logo sous la barre du haut */
-.topbar.bg-brand {
-    border-bottom: 4px solid var(--brand-grey);
-}
