@@ -1,0 +1,6 @@
+/* Compléments propres à la version PHP. */
+.table-actions { white-space: nowrap; }
+.table-actions form { display: inline; }
+.card-brand > .card-header { background: var(--brand); color: #fff; }
+.badge-orange { background: #ff7300; color: #fff; }
+.bg-orange { background: #ff7300; }

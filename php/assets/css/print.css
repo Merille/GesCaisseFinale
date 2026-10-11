@@ -1,0 +1,36 @@
+﻿@media print {
+    /* Masquer la barre de navigation */
+    header,
+    nav,
+    footer,
+    aside,
+    .sidebar,
+    .navbar,
+    .topbar,
+    .no-print {
+        display: none !important;
+    }
+
+    /* Supprimer les marges Bootstrap */
+    .container,
+    .container-fluid {
+        width: 100%;
+        margin: 0;
+        padding: 0;
+    }
+
+    .content{
+        margin:0px !important
+
+    }
+    /* La facture occupe toute la page */
+    #facture {
+        width: 100%;
+        margin: 0;
+        padding: 20px;
+    }
+
+    body {
+        background: white;
+    }
+}

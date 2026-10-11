@@ -1,0 +1,6 @@
+# Apache : empêche l'accès direct aux fichiers internes (code, configuration, SQL).
+<FilesMatch "^(config\.php|.*\.sql|.*\.md)$">
+    Require all denied
+</FilesMatch>
+Options -Indexes
+DirectoryIndex index.php
