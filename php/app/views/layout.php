@@ -97,6 +97,7 @@ $badge = $nbJourneesOuvertes > 0
             <div class="sb-section-title">Analyse</div>
             <?= $lien('rapport/operations', 'rapport', 'fa-chart-column', 'Rapports') ?>
         </div>
+        <?php if (is_admin()): ?>
         <div class="sb-section">
             <div class="sb-section-title">Administration</div>
             <?= $lien('utilisateur/index', 'utilisateur', 'fa-user-shield', 'Utilisateurs') ?>
@@ -106,6 +107,7 @@ $badge = $nbJourneesOuvertes > 0
                 <?= $lien('tenant/index', 'tenant', 'fa-building', 'Sociétés') ?>
             <?php endif; ?>
         </div>
+        <?php endif; ?>
     </nav>
 
     <div class="sb-footer">

@@ -33,6 +33,11 @@ if ($module !== 'auth') {
 
 csrf_check();
 
+// Modules d'administration réservés aux profils Admin et SuperAdmin.
+if (in_array($module, ['utilisateur', 'motif', 'modepaiement'], true)) {
+    require_admin();
+}
+
 require __DIR__ . '/app/controllers/' . $module . '.php';
 
 try {

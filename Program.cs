@@ -17,7 +17,7 @@ builder.Services
     .AddCookie(options =>
     {
         options.LoginPath = "/Auth/Login";
-        options.AccessDeniedPath = "/Auth/Login";
+        options.AccessDeniedPath = "/Auth/AccesRefuse";
         options.ExpireTimeSpan = TimeSpan.FromHours(8);
         options.SlidingExpiration = true;
     });
@@ -26,6 +26,10 @@ builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("SuperAdmin", policy =>
         policy.RequireClaim(AppClaimTypes.Profil, "SuperAdmin"));
+
+    // Gestion des utilisateurs et des paramètres (motifs, modes de paiement).
+    options.AddPolicy("Admin", policy =>
+        policy.RequireClaim(AppClaimTypes.Profil, "Admin", "SuperAdmin"));
 });
 
 // MVC — connexion obligatoire par défaut sur tous les contrôleurs

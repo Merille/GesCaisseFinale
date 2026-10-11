@@ -153,11 +153,27 @@ function require_login(): void
     }
 }
 
+/** Profils Admin et SuperAdmin (gestion des utilisateurs et des paramètres). */
+function is_admin(): bool
+{
+    return in_array(user()['profil'] ?? '', ['Admin', 'SuperAdmin'], true);
+}
+
+function require_admin(): void
+{
+    if (!is_admin()) {
+        http_response_code(403);
+        render('acces_refuse', [], user() !== null);
+        exit;
+    }
+}
+
 function require_super_admin(): void
 {
     if (!is_super_admin()) {
         http_response_code(403);
-        exit('Accès réservé au SuperAdmin.');
+        render('acces_refuse', ['reserveA' => 'au SuperAdmin'], user() !== null);
+        exit;
     }
 }
 

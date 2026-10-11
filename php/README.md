@@ -66,6 +66,9 @@ php/
   à la bonne société.
 - **Rapport des opérations** : la date de fin est incluse, et le montant initial correspond au
   solde initial de la première journée de chaque caisse sur la période (comme le tableau de bord).
+- **Droits** : les pages Utilisateurs, Motifs et Modes de paiement sont réservées aux profils
+  Admin et SuperAdmin (comme la version .NET), Sociétés au SuperAdmin. Un caissier ne voit pas la
+  section « Administration » du menu.
 - **Sécurité** : tous les formulaires sont protégés contre les envois frauduleux (jeton CSRF),
   et chaque requête vérifie que les données appartiennent à la société de l'utilisateur.
 

@@ -1,9 +1,12 @@
 ﻿using EasytransitCaisse.Data;
 using EasytransitCaisse.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EasytransitCaisse.Controllers
 {
+    // Réservé aux profils Admin et SuperAdmin.
+    [Authorize(Policy = "Admin")]
     public class MotifController : Controller
     {
         private readonly AppDbContext _context;

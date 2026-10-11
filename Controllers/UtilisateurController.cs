@@ -1,6 +1,7 @@
 ﻿using EasytransitCaisse.Data;
 using EasytransitCaisse.Models;
 using EasytransitCaisse.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using System.Security.Cryptography;
@@ -9,6 +10,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace EasytransitCaisse.Controllers
 {
+    // Réservé aux profils Admin et SuperAdmin.
+    [Authorize(Policy = "Admin")]
     public class UtilisateurController : Controller
     {
         private readonly AppDbContext _context;

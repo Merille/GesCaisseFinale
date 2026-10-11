@@ -85,6 +85,16 @@ namespace EasytransitCaisse.Controllers
             return RedirectToAction("Login");
         }
 
+        // Page affichée quand un utilisateur connecté ouvre une page réservée
+        // à un autre profil (ex. un caissier sur la gestion des utilisateurs).
+        public IActionResult AccesRefuse()
+        {
+            if (User.Identity?.IsAuthenticated != true)
+                return RedirectToAction("Login");
+
+            return View();
+        }
+
         // Page affichée à la place de toute action dès que la société de
         // l'utilisateur connecté est inactive ou que sa licence/son abonnement
         // a expiré (voir TenantStatusFilter).

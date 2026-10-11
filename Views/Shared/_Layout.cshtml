@@ -8,6 +8,7 @@
     var controller = ViewContext.RouteData.Values["controller"]?.ToString();
     var action = ViewContext.RouteData.Values["action"]?.ToString();
     var isSuperAdmin = User.HasClaim(AppClaimTypes.Profil, "SuperAdmin");
+    var isAdmin = isSuperAdmin || User.HasClaim(AppClaimTypes.Profil, "Admin");
     var nomUtilisateur = User.Identity?.Name;
     var nomSociete = User.FindFirst(AppClaimTypes.TenantName)?.Value;
 
@@ -173,6 +174,8 @@
                 </a>
             </div>
 
+            @if (isAdmin)
+            {
             <div class="sb-section">
                 <div class="sb-section-title">Administration</div>
                 <a class="sb-link @(controller == "Utilisateur" ? "active" : "")" href="/Utilisateur/Index" title="Utilisateurs">
@@ -195,6 +198,7 @@
                 </a>
                 }
             </div>
+            }
 
         </nav>
 
