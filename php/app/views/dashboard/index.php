@@ -8,7 +8,7 @@ $solde = $montantInitial + $entrees - $sorties;
 $net = $entrees - $sorties;
 $rienATraiter = array_sum(array_column($aTraiter, 'n')) === 0;
 ?>
-<link rel="stylesheet" href="assets/css/dashboard.css">
+<link rel="stylesheet" href="<?= asset('assets/css/dashboard.css') ?>">
 
 <div class="container-fluid d-flex flex-column gap-4">
 

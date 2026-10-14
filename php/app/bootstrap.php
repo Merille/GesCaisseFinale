@@ -298,6 +298,16 @@ function not_found(string $message = 'Élément introuvable.'): never
 // Affichage
 // ---------------------------------------------------------------------------
 
+/**
+ * Adresse d'un fichier statique avec sa date de modification en paramètre,
+ * pour que le navigateur recharge le fichier dès qu'il change (pas de cache périmé).
+ */
+function asset(string $chemin): string
+{
+    $fichier = __DIR__ . '/../' . $chemin;
+    return h($chemin . (is_file($fichier) ? '?v=' . filemtime($fichier) : ''));
+}
+
 function h(mixed $v): string
 {
     return htmlspecialchars((string) ($v ?? ''), ENT_QUOTES, 'UTF-8');

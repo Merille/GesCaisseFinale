@@ -46,10 +46,10 @@ $badge = $nbJourneesOuvertes > 0
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="assets/css/theme.css">
-    <link rel="stylesheet" href="assets/css/layout.css">
-    <link rel="stylesheet" href="assets/css/print.css">
-    <link rel="stylesheet" href="assets/css/app.css">
+    <link rel="stylesheet" href="<?= asset('assets/css/theme.css') ?>">
+    <link rel="stylesheet" href="<?= asset('assets/css/layout.css') ?>">
+    <link rel="stylesheet" href="<?= asset('assets/css/print.css') ?>">
+    <link rel="stylesheet" href="<?= asset('assets/css/app.css') ?>">
     <script>
         // Applique l'état replié du menu avant l'affichage (pas de saut visuel).
         try { if (localStorage.getItem('sidebarReplie') === '1') document.documentElement.classList.add('sidebar-replie'); } catch (e) { }
