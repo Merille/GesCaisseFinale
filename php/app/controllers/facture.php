@@ -30,7 +30,7 @@ function facture_index(): void
         'SELECT f.*, c.NomSociete FROM Factures f LEFT JOIN Clients c ON c.Id = f.ClientId
          WHERE ' . tf('f') . ' ORDER BY f.DateFacture DESC, f.Id DESC' . $pagination['limite']
     );
-    render('facture/index', ['factures' => $factures, 'pagination' => $pagination]);
+    render('facture/index', ['factures' => $factures, 'pagination' => $pagination, 'creation' => facture_donnees_creation()]);
 }
 
 function facture_create(): void
@@ -52,12 +52,17 @@ function facture_create(): void
             redirect('facture/edit', ['id' => $id]);
         }
     }
-    // Numéro proposé : FAC-AAAA-0001, suivant le nombre de factures de l'année.
+    render('facture/create', facture_donnees_creation());
+}
+
+/** Clients et numéro proposé (FAC-AAAA-0001, suivant le nombre de factures de l'année). */
+function facture_donnees_creation(): array
+{
     $n = (int) qv('SELECT COUNT(*) FROM Factures WHERE YEAR(DateFacture) = YEAR(CURDATE()) AND ' . tf()) + 1;
-    render('facture/create', [
+    return [
         'clients' => q('SELECT Id, NomSociete FROM Clients WHERE ' . tf() . ' ORDER BY NomSociete'),
         'numeroPropose' => 'FAC-' . date('Y') . '-' . str_pad((string) $n, 4, '0', STR_PAD_LEFT),
-    ]);
+    ];
 }
 
 function facture_edit(): void

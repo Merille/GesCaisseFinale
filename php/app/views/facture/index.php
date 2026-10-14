@@ -1,7 +1,7 @@
 <?php $titre = 'Factures'; ?>
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h4 class="mb-0">Factures</h4>
-    <a href="<?= h(url('facture/create')) ?>" class="btn btn-primary"><i class="fa fa-plus"></i> Nouvelle facture</a>
+    <a href="<?= h(url('facture/create')) ?>" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalCreation"><i class="fa fa-plus"></i> Nouvelle facture</a>
 </div>
 <div class="card shadow-sm border-0">
     <div class="card-body table-responsive">
@@ -29,3 +29,5 @@
     </div>
 </div>
 <?= partial('partials/pagination', $pagination) ?>
+
+<?= partial('facture/create', $creation + ['modale' => true]) ?>
