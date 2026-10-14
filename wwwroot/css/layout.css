@@ -421,3 +421,70 @@ html.sidebar-replie .sb-link {
         padding: 16px;
     }
 }
+
+/* ---------- Sous-menu « Paramètres » ---------- */
+.sb-parent {
+    width: 100%;
+    border: 0;
+    background: transparent;
+    text-align: left;
+    cursor: pointer;
+}
+
+.sb-parent.parent-actif {
+    color: #fff;
+    font-weight: 600;
+}
+
+.sb-chevron {
+    margin-left: auto;
+    font-size: 12px !important;
+    transition: transform .2s;
+}
+
+.sb-parent[aria-expanded="true"] .sb-chevron {
+    transform: rotate(180deg);
+}
+
+.sb-sub {
+    display: none;
+    flex-direction: column;
+    gap: 2px;
+    margin: 2px 0 4px 21px;
+    padding-left: 10px;
+    border-left: 2px solid #2f6d92;
+}
+
+.sb-sub.open {
+    display: flex;
+}
+
+.sb-sub .sb-link {
+    height: 38px;
+    font-size: 14px;
+}
+
+/* Menu replié : le titre « Paramètres » disparaît, ses pages s'affichent en icônes. */
+html.sidebar-replie .sb-parent {
+    display: none;
+}
+
+html.sidebar-replie .sb-sub {
+    display: flex;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+@media (max-width: 991.98px) {
+    .sb-parent {
+        display: none;
+    }
+
+    .sb-sub {
+        display: flex;
+        margin: 0;
+        padding: 0;
+        border: 0;
+    }
+}

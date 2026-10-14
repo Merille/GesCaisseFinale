@@ -21,7 +21,8 @@ $nbJourneesOuvertes = (int) qv("SELECT COUNT(*) FROM JourneesCaisses WHERE Statu
 $rubrique = match ($module) {
     'dashboard', 'caisse', 'journee', 'client', 'facture' => 'Activité',
     'rapport' => 'Analyse',
-    'utilisateur', 'motif', 'modepaiement', 'tenant' => 'Administration',
+    'utilisateur', 'motif', 'modepaiement' => 'Paramètres',
+    'tenant' => 'Administration',
     default => null,
 };
 
@@ -100,9 +101,16 @@ $badge = $nbJourneesOuvertes > 0
         <?php if (is_admin()): ?>
         <div class="sb-section">
             <div class="sb-section-title">Administration</div>
-            <?= $lien('utilisateur/index', 'utilisateur', 'fa-user-shield', 'Utilisateurs') ?>
-            <?= $lien('motif/index', 'motif', 'fa-list-ul', 'Motifs') ?>
-            <?= $lien('modepaiement/index', 'modepaiement', 'fa-money-check-dollar', 'Modes de paiement') ?>
+            <?php $parametresActif = in_array($module, ['utilisateur', 'motif', 'modepaiement'], true); ?>
+            <button type="button" class="sb-link sb-parent <?= $parametresActif ? 'parent-actif' : '' ?>" title="Paramètres"
+                    aria-expanded="<?= $parametresActif ? 'true' : 'false' ?>" aria-controls="sbParametres" onclick="basculerSousMenu(this)">
+                <i class="fas fa-gear"></i><span class="sb-label">Paramètres</span><i class="fas fa-chevron-down sb-chevron"></i>
+            </button>
+            <div class="sb-sub <?= $parametresActif ? 'open' : '' ?>" id="sbParametres">
+                <?= $lien('utilisateur/index', 'utilisateur', 'fa-user-shield', 'Utilisateurs') ?>
+                <?= $lien('motif/index', 'motif', 'fa-list-ul', 'Motifs') ?>
+                <?= $lien('modepaiement/index', 'modepaiement', 'fa-money-check-dollar', 'Modes de paiement') ?>
+            </div>
             <?php if (is_super_admin()): ?>
                 <?= $lien('tenant/index', 'tenant', 'fa-building', 'Sociétés') ?>
             <?php endif; ?>
@@ -170,6 +178,13 @@ $badge = $nbJourneesOuvertes > 0
         icone.className = 'fas ' + (replie ? 'fa-angles-right' : 'fa-angles-left');
     }
     majIconeMenu();
+
+    // Ouvre / ferme un sous-menu (ex. « Paramètres »).
+    function basculerSousMenu(bouton) {
+        const sous = document.getElementById(bouton.getAttribute('aria-controls'));
+        const ouvert = sous.classList.toggle('open');
+        bouton.setAttribute('aria-expanded', ouvert ? 'true' : 'false');
+    }
 </script>
 <?= $scripts ?? '' ?>
 </body>
