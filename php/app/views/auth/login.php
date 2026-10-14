@@ -9,13 +9,13 @@
             margin: 0;
             font-family: 'Segoe UI', Arial, sans-serif;
             min-height: 100vh;
-            background: url('assets/img/login.jpg') center / cover no-repeat;
+            background: #0b2f44 url('<?= asset('assets/img/login-caisse.svg') ?>') center / cover no-repeat;
         }
         body::before {
             content: '';
             position: fixed;
             inset: 0;
-            background: rgba(0, 0, 0, .55);
+            background: rgba(11, 47, 68, .25);
         }
         .container {
             position: relative;
@@ -29,10 +29,12 @@
         .login-box {
             width: 100%;
             max-width: 380px;
-            background: #195d84; /* bleu du logo M-ITECH AFRICA */
+            background: rgba(25, 93, 132, .92); /* bleu du logo M-ITECH AFRICA */
             padding: 40px;
             border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, .3);
+            border: 1px solid rgba(255, 255, 255, .25);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, .45);
+            backdrop-filter: blur(4px);
             box-sizing: border-box;
         }
         h1 { text-align: center; margin: 0 0 25px; color: #fff; font-size: 28px; letter-spacing: 1px; }
