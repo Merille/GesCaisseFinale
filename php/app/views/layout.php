@@ -185,6 +185,12 @@ $badge = $nbJourneesOuvertes > 0
         const ouvert = sous.classList.toggle('open');
         bouton.setAttribute('aria-expanded', ouvert ? 'true' : 'false');
     }
+
+    // Fenêtre de saisie ouverte : curseur dans le premier champ.
+    document.addEventListener('shown.bs.modal', function (e) {
+        const champ = e.target.querySelector('input:not([type=hidden]):not([type=checkbox]), select, textarea');
+        if (champ) champ.focus();
+    });
 </script>
 <?= $scripts ?? '' ?>
 </body>

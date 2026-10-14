@@ -1,7 +1,7 @@
 <?php $titre = 'Sociétés'; ?>
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h4 class="mb-0">Sociétés</h4>
-    <a href="<?= h(url('tenant/create')) ?>" class="btn btn-primary"><i class="fa fa-plus"></i> Nouvelle société</a>
+    <a href="<?= h(url('tenant/create')) ?>" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalCreation"><i class="fa fa-plus"></i> Nouvelle société</a>
 </div>
 <div class="card shadow-sm border-0">
     <div class="card-body table-responsive">
@@ -35,3 +35,5 @@
         </table>
     </div>
 </div>
+
+<?= partial('tenant/form', ['t' => ['Actif' => 1, 'ModeAcces' => 'Licence'], 'edition' => false, 'modale' => true]) ?>

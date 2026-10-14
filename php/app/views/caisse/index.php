@@ -1,7 +1,7 @@
 <?php $titre = 'Caisses'; ?>
 <div class="d-flex justify-content-end gap-2 mb-3">
     <a href="<?= h(url('caisse/print')) ?>" class="btn btn-outline-primary"><i class="fa fa-print"></i> Imprimer</a>
-    <a href="<?= h(url('caisse/create')) ?>" class="btn btn-primary"><i class="fa fa-plus"></i> Nouvelle caisse</a>
+    <a href="<?= h(url('caisse/create')) ?>" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalCreation"><i class="fa fa-plus"></i> Nouvelle caisse</a>
 </div>
 <div class="card shadow-sm border-0">
     <div class="card-body">
@@ -34,3 +34,5 @@
         </table>
     </div>
 </div>
+
+<?= partial('caisse/form', ['caisse' => [], 'utilisateurs' => $utilisateurs, 'modale' => true]) ?>

@@ -22,7 +22,7 @@ function caisse_index(): void
          FROM Caisses c LEFT JOIN Utilisateurs u ON u.Id = c.CashierDefault
          WHERE ' . tf('c') . ' ORDER BY c.ChkCode'
     );
-    render('caisse/index', ['caisses' => $caisses]);
+    render('caisse/index', ['caisses' => $caisses, 'utilisateurs' => caisse_utilisateurs()]);
 }
 
 function caisse_valeurs(): array
@@ -90,7 +90,7 @@ function caisse_details(): void
         $j['Decaisse'] = $t['decaisse'];
         $j['Solde'] = (float) $j['SoldeInitial'] + $t['encaisse'] - $t['decaisse'];
     }
-    render('caisse/details', ['caisse' => $caisse, 'journees' => $journees]);
+    render('caisse/details', ['caisse' => $caisse, 'journees' => $journees, 'soldeSuggere' => journee_solde_suggere((int) $caisse['ID'])]);
 }
 
 function caisse_print(): void

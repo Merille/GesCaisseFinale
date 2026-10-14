@@ -12,7 +12,7 @@
             <button type="button" class="btn btn-outline-primary" onclick="document.getElementById('importFile').click()"><i class="fa fa-file-import"></i> Importer Excel</button>
         </form>
         <a href="<?= h(url('client/export', ['search' => $search])) ?>" class="btn btn-success"><i class="fa fa-file-excel"></i> Exporter Excel</a>
-        <a href="<?= h(url('client/create')) ?>" class="btn btn-primary"><i class="fa fa-plus"></i> Nouveau tiers</a>
+        <a href="<?= h(url('client/create')) ?>" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalCreation"><i class="fa fa-plus"></i> Nouveau tiers</a>
     </div>
 </div>
 <p class="small text-muted">Import : la première ligne du fichier est un en-tête ; colonnes dans l'ordre Code, Société, Contact, Téléphone, EmailContact, Adresse, Email, Type, FonctionContact, TelephoneContact, CompteGeneral (le plus simple est de partir d'un export).</p>
@@ -45,3 +45,5 @@
         </table>
     </div>
 </div>
+
+<?= partial('client/form', ['client' => [], 'edition' => false, 'modale' => true]) ?>

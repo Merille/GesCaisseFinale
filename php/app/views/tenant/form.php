@@ -1,9 +1,11 @@
-<?php $titre = $edition ? 'Modifier la société' : 'Nouvelle société'; ?>
-<div class="card shadow-sm border-0" style="max-width: 720px;">
-    <div class="card-header bg-brand text-white"><h5 class="mb-0"><?= h($titre) ?></h5></div>
-    <div class="card-body">
-        <form method="post">
-            <?= csrf_field() ?>
+<?php
+$titre = $edition ? 'Modifier la société' : 'Nouvelle société';
+$entete = $titre;
+$largeur = '720px';
+$action = !empty($modale) ? url('tenant/create') : null;
+$retour = url('tenant/index');
+require __DIR__ . '/../partials/form_debut.php';
+?>
             <div class="row g-3">
                 <div class="col-md-8"><label class="form-label" for="Nom">Nom</label><input class="form-control" id="Nom" name="Nom" value="<?= h($t['Nom'] ?? '') ?>" required></div>
                 <div class="col-md-4"><label class="form-label" for="Code">Code</label><input class="form-control" id="Code" name="Code" value="<?= h($t['Code'] ?? '') ?>" required></div>
@@ -25,10 +27,4 @@
                     </div>
                 </div>
             </div>
-            <div class="mt-4 d-flex gap-2">
-                <button class="btn btn-primary">Enregistrer</button>
-                <a href="<?= h(url('tenant/index')) ?>" class="btn btn-outline-secondary">Annuler</a>
-            </div>
-        </form>
-    </div>
-</div>
+<?php require __DIR__ . '/../partials/form_fin.php'; ?>

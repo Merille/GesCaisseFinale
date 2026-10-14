@@ -2,12 +2,11 @@
 $edition = !empty($caisse);
 $titre = $edition ? 'Modifier la caisse' : 'Nouvelle caisse';
 $v = fn(string $k) => h($caisse[$k] ?? '');
+$entete = $titre;
+$action = !empty($modale) ? url('caisse/create') : null;
+$retour = url('caisse/index');
+require __DIR__ . '/../partials/form_debut.php';
 ?>
-<div class="card shadow-sm border-0" style="max-width: 760px;">
-    <div class="card-header bg-brand text-white"><h5 class="mb-0"><?= h($titre) ?></h5></div>
-    <div class="card-body">
-        <form method="post">
-            <?= csrf_field() ?>
             <div class="row g-3">
                 <div class="col-md-4">
                     <label class="form-label" for="ChkCode">Code</label>
@@ -35,10 +34,4 @@ $v = fn(string $k) => h($caisse[$k] ?? '');
                     <input class="form-control" id="CompteComptable" name="CompteComptable" value="<?= $v('CompteComptable') ?>" placeholder="ex. 571000">
                 </div>
             </div>
-            <div class="mt-4 d-flex gap-2">
-                <button class="btn btn-primary">Enregistrer</button>
-                <a href="<?= h(url('caisse/index')) ?>" class="btn btn-outline-secondary">Annuler</a>
-            </div>
-        </form>
-    </div>
-</div>
+<?php require __DIR__ . '/../partials/form_fin.php'; ?>

@@ -4,12 +4,13 @@ $v = fn(string $k) => h($client[$k] ?? '');
 $champ = function (string $nom, string $libelle, string $attrs = '') use ($v) {
     return '<label class="form-label" for="' . $nom . '">' . $libelle . '</label><input class="form-control" id="' . $nom . '" name="' . $nom . '" value="' . $v($nom) . '" ' . $attrs . '>';
 };
+$entete = $titre;
+$largeur = '900px';
+$tailleModale = 'modal-xl';
+$action = !empty($modale) ? url('client/create') : null;
+$retour = url('client/index');
+require __DIR__ . '/../partials/form_debut.php';
 ?>
-<div class="card shadow-sm border-0" style="max-width: 900px;">
-    <div class="card-header bg-brand text-white"><h5 class="mb-0"><?= h($titre) ?></h5></div>
-    <div class="card-body">
-        <form method="post">
-            <?= csrf_field() ?>
             <h6 class="text-muted text-uppercase small mb-3">Société</h6>
             <div class="row g-3 mb-4">
                 <div class="col-md-3"><?= $champ('CodeClient', 'Code', 'required') ?></div>
@@ -35,10 +36,4 @@ $champ = function (string $nom, string $libelle, string $attrs = '') use ($v) {
                 <div class="col-md-3"><?= $champ('TelephoneContact', 'Téléphone') ?></div>
                 <div class="col-md-3"><?= $champ('EmailContact', 'Email', 'type="email"') ?></div>
             </div>
-            <div class="mt-4 d-flex gap-2">
-                <button class="btn btn-primary">Enregistrer</button>
-                <a href="<?= h(url('client/index')) ?>" class="btn btn-outline-secondary">Annuler</a>
-            </div>
-        </form>
-    </div>
-</div>
+<?php require __DIR__ . '/../partials/form_fin.php'; ?>

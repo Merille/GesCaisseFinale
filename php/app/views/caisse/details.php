@@ -3,7 +3,7 @@
     <h4 class="mb-0"><?= h($caisse['ChkCode'] . ' - ' . $caisse['ChkDescription']) ?></h4>
     <div class="d-flex gap-2">
         <a href="<?= h(url('journee/printjournees', ['caisseId' => $caisse['ID']])) ?>" class="btn btn-outline-primary"><i class="fa fa-print"></i> Imprimer les journées</a>
-        <a href="<?= h(url('journee/create', ['id' => $caisse['ID']])) ?>" class="btn btn-success"><i class="fa fa-plus"></i> Ouvrir une journée</a>
+        <a href="<?= h(url('journee/create', ['id' => $caisse['ID']])) ?>" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalCreation"><i class="fa fa-plus"></i> Ouvrir une journée</a>
         <a href="<?= h(url('caisse/index')) ?>" class="btn btn-dark">Retour</a>
     </div>
 </div>
@@ -33,3 +33,5 @@
         </table>
     </div>
 </div>
+
+<?= partial('journee/create', ['caisse' => $caisse, 'soldeSuggere' => $soldeSuggere, 'modale' => true]) ?>

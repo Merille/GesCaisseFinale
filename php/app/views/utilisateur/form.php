@@ -1,9 +1,12 @@
-<?php $titre = $edition ? "Modifier l'utilisateur" : 'Nouvel utilisateur'; ?>
-<div class="card shadow-sm border-0" style="max-width: 720px;">
-    <div class="card-header bg-brand text-white"><h5 class="mb-0"><?= h($titre) ?></h5></div>
-    <div class="card-body">
-        <form method="post" autocomplete="off">
-            <?= csrf_field() ?>
+<?php
+$titre = $edition ? "Modifier l'utilisateur" : 'Nouvel utilisateur';
+$entete = $titre;
+$largeur = '720px';
+$attrsForm = 'autocomplete="off"';
+$action = !empty($modale) ? url('utilisateur/create') : null;
+$retour = url('utilisateur/index');
+require __DIR__ . '/../partials/form_debut.php';
+?>
             <div class="row g-3">
                 <div class="col-md-6">
                     <label class="form-label" for="NomUtilisateur">Nom d'utilisateur (connexion)</label>
@@ -42,10 +45,4 @@
                     </div>
                 </div>
             </div>
-            <div class="mt-4 d-flex gap-2">
-                <button class="btn btn-primary">Enregistrer</button>
-                <a href="<?= h(url('utilisateur/index')) ?>" class="btn btn-outline-secondary">Annuler</a>
-            </div>
-        </form>
-    </div>
-</div>
+<?php require __DIR__ . '/../partials/form_fin.php'; ?>

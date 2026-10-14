@@ -22,7 +22,7 @@ function utilisateur_index(): void
         'SELECT u.*, t.Nom AS Societe FROM Utilisateurs u LEFT JOIN Tenants t ON t.Id = u.TenantId
          WHERE ' . tf('u') . ' ORDER BY u.NomUtilisateur'
     );
-    render('utilisateur/index', ['users' => $users]);
+    render('utilisateur/index', ['users' => $users, 'societes' => utilisateur_societes(), 'profils' => utilisateur_profils()]);
 }
 
 /** Valeurs du formulaire, avec contrôle des droits. */

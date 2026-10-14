@@ -1,7 +1,7 @@
 <?php $titre = 'Utilisateurs'; ?>
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h4 class="mb-0">Utilisateurs</h4>
-    <a href="<?= h(url('utilisateur/create')) ?>" class="btn btn-primary"><i class="fa fa-plus"></i> Nouvel utilisateur</a>
+    <a href="<?= h(url('utilisateur/create')) ?>" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalCreation"><i class="fa fa-plus"></i> Nouvel utilisateur</a>
 </div>
 <div class="card shadow-sm border-0">
     <div class="card-body table-responsive">
@@ -28,3 +28,5 @@
         </table>
     </div>
 </div>
+
+<?= partial('utilisateur/form', ['u' => ['Profil' => 'Caissier', 'TenantId' => tenant_id() ?: null], 'edition' => false, 'societes' => $societes, 'profils' => $profils, 'modale' => true]) ?>

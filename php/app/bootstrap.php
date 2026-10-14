@@ -328,6 +328,15 @@ function date_fr(?string $d, string $format = 'd/m/Y'): string
     return $ts ? date($format, $ts) : '';
 }
 
+/** Rend une vue de app/views et renvoie son HTML (ex. formulaire de création en modale). */
+function partial(string $vue, array $data = []): string
+{
+    extract($data, EXTR_SKIP);
+    ob_start();
+    require __DIR__ . '/views/' . $vue . '.php';
+    return (string) ob_get_clean();
+}
+
 /**
  * Affiche une vue de app/views. Les clés de $data deviennent des variables.
  * $layout = false pour une page autonome (connexion, impression).
@@ -384,4 +393,21 @@ function totaux_par_mode(int $journeeId): array
         $r['Net'] = $r['Encaisse'] - $r['Decaisse'];
     }
     return $rows;
+}
+
+/**
+ * Solde initial proposé à l'ouverture : solde compté de la dernière journée
+ * clôturée, ou solde théorique de la dernière journée encore ouverte.
+ */
+function journee_solde_suggere(int $caisseId): float
+{
+    $derniere = q1('SELECT * FROM JourneesCaisses WHERE CaisseId = ? ORDER BY DateJournee DESC, Id DESC LIMIT 1', [$caisseId]);
+    if (!$derniere) {
+        return 0.0;
+    }
+    if ($derniere['Statut'] === 'Cloturee') {
+        return (float) $derniere['SoldeFinal'];
+    }
+    $t = totaux_journee((int) $derniere['Id']);
+    return (float) $derniere['SoldeInitial'] + $t['encaisse'] - $t['decaisse'];
 }

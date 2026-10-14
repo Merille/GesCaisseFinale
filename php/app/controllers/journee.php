@@ -15,23 +15,6 @@ function journee_charger(int $id): array
     return $j;
 }
 
-/**
- * Solde initial proposé à l'ouverture : solde compté de la dernière journée
- * clôturée, ou solde théorique de la dernière journée encore ouverte.
- */
-function journee_solde_suggere(int $caisseId): float
-{
-    $derniere = q1('SELECT * FROM JourneesCaisses WHERE CaisseId = ? ORDER BY DateJournee DESC, Id DESC LIMIT 1', [$caisseId]);
-    if (!$derniere) {
-        return 0.0;
-    }
-    if ($derniere['Statut'] === 'Cloturee') {
-        return (float) $derniere['SoldeFinal'];
-    }
-    $t = totaux_journee((int) $derniere['Id']);
-    return (float) $derniere['SoldeInitial'] + $t['encaisse'] - $t['decaisse'];
-}
-
 function journee_create(): void
 {
     $caisse = q1('SELECT * FROM Caisses WHERE ID = ? AND ' . tf(), [(int) (get('id') ?? post('caisseId'))]);
