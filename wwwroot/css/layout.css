@@ -488,3 +488,8 @@ html.sidebar-replie .sb-sub {
         border: 0;
     }
 }
+
+/* ---------- Formulaires de création en modale ---------- */
+#modalCreation .hors-modale {
+    display: none !important;
+}
