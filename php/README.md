@@ -35,6 +35,25 @@ de l'hébergeur, importez `sql/schema.sql` et renseignez `config.php`.
 Les fichiers `.htaccess` fournis bloquent l'accès direct à `config.php`, `app/` et `sql/`
 sur Apache. Sur Nginx, interdisez ces chemins dans la configuration du site.
 
+Exemple Hostinger (hPanel → Bases de données MySQL) : la base et l'utilisateur portent un
+préfixe, par exemple `u123456789_gescaisse`. Dans `config.php` :
+
+```php
+'db_host' => 'localhost',
+'db_name' => 'u123456789_gescaisse',   // nom complet, avec le préfixe
+'db_user' => 'u123456789_gescaisse',   // utilisateur créé avec la base
+'db_pass' => 'mot de passe choisi dans hPanel',
+```
+
+Importez le fichier SQL dans cette base depuis phpMyAdmin (bouton « Importer »).
+Les serveurs Linux distinguent majuscules et minuscules dans les noms de tables : importez
+`sql/schema.sql` ou le fichier de reprise des données, et non un export fait depuis
+XAMPP sous Windows (qui écrit les noms de tables en minuscules).
+
+En cas de message « Une erreur de base de données », la page indique la cause probable
+(identifiants, base, serveur ou table manquante). Pour voir le détail technique,
+passez temporairement `'debug' => true` dans `config.php`, puis remettez `false`.
+
 ## Organisation du code
 
 ```

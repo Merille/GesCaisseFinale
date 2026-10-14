@@ -45,8 +45,17 @@ try {
 } catch (PDOException $e) {
     error_log('[GesCaisse] ' . $e->getMessage());
     http_response_code(500);
-    $message = !empty($CONFIG['debug'])
-        ? $e->getMessage()
-        : "Une erreur de base de données est survenue. Vérifiez la configuration (config.php) et que le fichier sql/schema.sql a bien été importé.";
+    // Cause la plus probable, sans dévoiler le détail technique (affiché seulement en mode debug).
+    $message = match ((string) $e->getCode()) {
+        '1045' => "Connexion à MySQL refusée : vérifiez db_user et db_pass dans config.php.",
+        '1044', '1049' => "La base indiquée dans config.php (db_name) n'existe pas ou n'est pas accessible à cet utilisateur.",
+        '2002', '2005', '2006' => "Serveur MySQL injoignable : vérifiez db_host et db_port dans config.php (chez un hébergeur, souvent « localhost »).",
+        '42S02' => "Une table est introuvable dans la base. Importez sql/schema.sql (ou la sauvegarde) dans la base de config.php. "
+            . "Sur un serveur Linux, les noms de tables doivent garder leurs majuscules (Utilisateurs, et non utilisateurs).",
+        default => "Une erreur de base de données est survenue. Vérifiez la configuration (config.php) et que le fichier sql/schema.sql a bien été importé.",
+    };
+    if (!empty($CONFIG['debug'])) {
+        $message .= "\n\nDétail : " . $e->getMessage();
+    }
     render('erreur', ['titre' => 'Erreur', 'message' => $message], user() !== null);
 }
