@@ -25,11 +25,12 @@ function facture_recalculer(int $id): void
 
 function facture_index(): void
 {
+    $pagination = paginer((int) qv('SELECT COUNT(*) FROM Factures WHERE ' . tf()), 'facture/index', [], 'Factures');
     $factures = q(
         'SELECT f.*, c.NomSociete FROM Factures f LEFT JOIN Clients c ON c.Id = f.ClientId
-         WHERE ' . tf('f') . ' ORDER BY f.DateFacture DESC, f.Id DESC'
+         WHERE ' . tf('f') . ' ORDER BY f.DateFacture DESC, f.Id DESC' . $pagination['limite']
     );
-    render('facture/index', ['factures' => $factures]);
+    render('facture/index', ['factures' => $factures, 'pagination' => $pagination]);
 }
 
 function facture_create(): void

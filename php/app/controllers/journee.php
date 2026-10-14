@@ -45,6 +45,10 @@ function journee_details(): void
     $journee = journee_charger((int) get('id'));
     $t = totaux_journee((int) $journee['Id']);
 
+    $pagination = paginer(
+        (int) qv('SELECT COUNT(*) FROM OperationsCaisses WHERE JourneeCaisseId = ?', [$journee['Id']]),
+        'journee/details', ['id' => $journee['Id']], 'Opérations'
+    );
     $operations = q(
         "SELECT o.*, COALESCE(m.LibelleMotif, '-') AS MotifLibelle, COALESCE(mp.Libelle, '-') AS ModeLibelle,
                 cl.NomSociete AS Tiers
@@ -52,7 +56,7 @@ function journee_details(): void
          LEFT JOIN Motifs m ON m.ID = o.MotifId
          LEFT JOIN ModesPaiement mp ON mp.Id = o.ModePaiementId
          LEFT JOIN Clients cl ON cl.Id = o.ClientId
-         WHERE o.JourneeCaisseId = ? ORDER BY o.DateOperation DESC, o.Id DESC",
+         WHERE o.JourneeCaisseId = ? ORDER BY o.DateOperation DESC, o.Id DESC" . $pagination['limite'],
         [$journee['Id']]
     );
 
@@ -69,6 +73,7 @@ function journee_details(): void
             [$journee['Id']]
         ),
         'operations' => $operations,
+        'pagination' => $pagination,
         'clients' => q('SELECT Id, NomSociete FROM Clients WHERE ' . tf() . ' ORDER BY NomSociete'),
         'motifs' => q('SELECT ID, LibelleMotif FROM Motifs WHERE ' . tf() . ' ORDER BY LibelleMotif'),
         'modes' => q('SELECT Id, Libelle FROM ModesPaiement WHERE Actif = 1 AND ' . tf() . ' ORDER BY Libelle'),

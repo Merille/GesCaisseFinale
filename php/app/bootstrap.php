@@ -328,6 +328,21 @@ function date_fr(?string $d, string $format = 'd/m/Y'): string
     return $ts ? date($format, $ts) : '';
 }
 
+/**
+ * Pagination d'une liste de $total lignes : page demandée (?page=), bornée.
+ * Renvoie les variables de partials/pagination.php, plus 'limite' (clause SQL).
+ */
+function paginer(int $total, string $route, array $params, string $libelle, int $parPage = 20): array
+{
+    $pages = max(1, (int) ceil($total / $parPage));
+    $page = min(max(1, (int) get('page', 1)), $pages);
+    return [
+        'page' => $page, 'pages' => $pages, 'total' => $total, 'parPage' => $parPage,
+        'route' => $route, 'params' => $params, 'libelle' => $libelle,
+        'limite' => ' LIMIT ' . $parPage . ' OFFSET ' . (($page - 1) * $parPage),
+    ];
+}
+
 /** Rend une vue de app/views et renvoie son HTML (ex. formulaire de création en modale). */
 function partial(string $vue, array $data = []): string
 {

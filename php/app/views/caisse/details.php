@@ -33,5 +33,6 @@
         </table>
     </div>
 </div>
+<?= partial('partials/pagination', $pagination) ?>
 
 <?= partial('journee/create', ['caisse' => $caisse, 'soldeSuggere' => $soldeSuggere, 'modale' => true]) ?>

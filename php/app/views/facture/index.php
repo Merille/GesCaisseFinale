@@ -28,3 +28,4 @@
         </table>
     </div>
 </div>
+<?= partial('partials/pagination', $pagination) ?>

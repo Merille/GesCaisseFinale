@@ -83,14 +83,18 @@ function caisse_delete(): void
 function caisse_details(): void
 {
     $caisse = caisse_charger((int) get('id'));
-    $journees = q('SELECT * FROM JourneesCaisses WHERE CaisseId = ? ORDER BY DateOuverture DESC, Id DESC', [$caisse['ID']]);
+    $pagination = paginer(
+        (int) qv('SELECT COUNT(*) FROM JourneesCaisses WHERE CaisseId = ?', [$caisse['ID']]),
+        'caisse/details', ['id' => $caisse['ID']], 'Journées'
+    );
+    $journees = q('SELECT * FROM JourneesCaisses WHERE CaisseId = ? ORDER BY DateOuverture DESC, Id DESC' . $pagination['limite'], [$caisse['ID']]);
     foreach ($journees as &$j) {
         $t = totaux_journee((int) $j['Id']);
         $j['Encaisse'] = $t['encaisse'];
         $j['Decaisse'] = $t['decaisse'];
         $j['Solde'] = (float) $j['SoldeInitial'] + $t['encaisse'] - $t['decaisse'];
     }
-    render('caisse/details', ['caisse' => $caisse, 'journees' => $journees, 'soldeSuggere' => journee_solde_suggere((int) $caisse['ID'])]);
+    render('caisse/details', ['caisse' => $caisse, 'journees' => $journees, 'pagination' => $pagination, 'soldeSuggere' => journee_solde_suggere((int) $caisse['ID'])]);
 }
 
 function caisse_print(): void

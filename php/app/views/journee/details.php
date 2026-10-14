@@ -117,6 +117,7 @@ $ouverte = $journee['Statut'] === 'Ouverte';
                 </tbody>
             </table>
         </div>
+        <div class="px-2 pb-2"><?= partial('partials/pagination', $pagination) ?></div>
     </div>
 </div>
 

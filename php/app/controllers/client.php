@@ -15,9 +15,6 @@ const CLIENT_COLONNES_EXCEL = [
     'FonctionContact' => 'FonctionContact', 'TelephoneContact' => 'TelephoneContact', 'CompteGeneral' => 'CompteGeneral',
 ];
 
-/** Nombre de tiers affichés par page dans la liste. */
-const CLIENTS_PAR_PAGE = 20;
-
 /** Condition de recherche et ses paramètres (liste, comptage et export). */
 function client_filtre(string $search, bool $etendue): array
 {
@@ -46,21 +43,9 @@ function client_index(): void
     $search = (string) get('search', '');
     [$where, $p] = client_filtre($search, false);
     $total = (int) qv('SELECT COUNT(*) FROM Clients WHERE ' . $where, $p);
-    $pages = max(1, (int) ceil($total / CLIENTS_PAR_PAGE));
-    $page = min(max(1, (int) get('page', 1)), $pages);
-    $clients = q(
-        'SELECT * FROM Clients WHERE ' . $where . ' ORDER BY NomSociete, Id LIMIT ' . CLIENTS_PAR_PAGE
-        . ' OFFSET ' . (($page - 1) * CLIENTS_PAR_PAGE),
-        $p
-    );
-    render('client/index', [
-        'clients' => $clients,
-        'search' => $search,
-        'pagination' => [
-            'page' => $page, 'pages' => $pages, 'total' => $total, 'parPage' => CLIENTS_PAR_PAGE,
-            'route' => 'client/index', 'params' => ['search' => $search], 'libelle' => 'Tiers',
-        ],
-    ]);
+    $pagination = paginer($total, 'client/index', ['search' => $search], 'Tiers');
+    $clients = q('SELECT * FROM Clients WHERE ' . $where . ' ORDER BY NomSociete, Id' . $pagination['limite'], $p);
+    render('client/index', ['clients' => $clients, 'search' => $search, 'pagination' => $pagination]);
 }
 
 function client_charger(int $id): array
