@@ -15,9 +15,13 @@ const CLIENT_COLONNES_EXCEL = [
     'FonctionContact' => 'FonctionContact', 'TelephoneContact' => 'TelephoneContact', 'CompteGeneral' => 'CompteGeneral',
 ];
 
-function client_recherche(string $search, bool $etendue = false): array
+/** Nombre de tiers affichés par page dans la liste. */
+const CLIENTS_PAR_PAGE = 20;
+
+/** Condition de recherche et ses paramètres (liste, comptage et export). */
+function client_filtre(string $search, bool $etendue): array
 {
-    $sql = 'SELECT * FROM Clients WHERE ' . tf();
+    $sql = tf();
     $p = [];
     if ($search !== '') {
         $champs = $etendue ? CLIENT_CHAMPS : ['CodeClient', 'NomSociete', 'NomContact', 'Telephone', 'Type'];
@@ -28,13 +32,35 @@ function client_recherche(string $search, bool $etendue = false): array
         }
         $sql .= ' AND (' . implode(' OR ', $conds) . ')';
     }
-    return q($sql . ' ORDER BY NomSociete', $p);
+    return [$sql, $p];
+}
+
+function client_recherche(string $search, bool $etendue = false): array
+{
+    [$where, $p] = client_filtre($search, $etendue);
+    return q('SELECT * FROM Clients WHERE ' . $where . ' ORDER BY NomSociete', $p);
 }
 
 function client_index(): void
 {
     $search = (string) get('search', '');
-    render('client/index', ['clients' => client_recherche($search), 'search' => $search]);
+    [$where, $p] = client_filtre($search, false);
+    $total = (int) qv('SELECT COUNT(*) FROM Clients WHERE ' . $where, $p);
+    $pages = max(1, (int) ceil($total / CLIENTS_PAR_PAGE));
+    $page = min(max(1, (int) get('page', 1)), $pages);
+    $clients = q(
+        'SELECT * FROM Clients WHERE ' . $where . ' ORDER BY NomSociete, Id LIMIT ' . CLIENTS_PAR_PAGE
+        . ' OFFSET ' . (($page - 1) * CLIENTS_PAR_PAGE),
+        $p
+    );
+    render('client/index', [
+        'clients' => $clients,
+        'search' => $search,
+        'pagination' => [
+            'page' => $page, 'pages' => $pages, 'total' => $total, 'parPage' => CLIENTS_PAR_PAGE,
+            'route' => 'client/index', 'params' => ['search' => $search], 'libelle' => 'Tiers',
+        ],
+    ]);
 }
 
 function client_charger(int $id): array

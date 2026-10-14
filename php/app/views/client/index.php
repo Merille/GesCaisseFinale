@@ -45,5 +45,6 @@
         </table>
     </div>
 </div>
+<?= partial('partials/pagination', $pagination) ?>
 
 <?= partial('client/form', ['client' => [], 'edition' => false, 'modale' => true]) ?>
