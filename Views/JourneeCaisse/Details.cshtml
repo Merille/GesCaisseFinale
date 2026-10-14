@@ -346,7 +346,7 @@
                     {
                         <tr>
 
-                            <td>
+                            <td data-order="@op.DateOperation.ToString("yyyy-MM-ddTHH:mm:ss")">
                                 @op.DateOperation.ToString("dd/MM/yyyy HH:mm")
                             </td>
 
@@ -921,8 +921,8 @@
                 language: {
                     url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/fr-FR.json'
                 },
-                pageLength: 10,
-                lengthMenu: [10, 25, 50, 100],
+                pageLength: 20,
+                lengthMenu: [20, 50, 100],
                 order: [[0, 'desc']], // tri par date décroissante
                 columnDefs: [
                     { orderable: false, targets: 5 } // colonne Type non triable
