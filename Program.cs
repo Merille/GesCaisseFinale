@@ -52,6 +52,15 @@ var app = builder.Build();
 
 app.UseStaticFiles();
 
+// wwwroot (CSS, images, wkhtmltopdf pour les PDF) doit se trouver dans le dossier
+// de démarrage. Sinon, message clair plutôt qu'une ArgumentNullException de Rotativa.
+if (string.IsNullOrEmpty(app.Environment.WebRootPath))
+{
+    throw new InvalidOperationException(
+        $"Dossier wwwroot introuvable dans « {app.Environment.ContentRootPath} ». " +
+        "Lancez l'application depuis le dossier du projet (profil « http » ou « https » dans Visual Studio).");
+}
+
 RotativaConfiguration.Setup(app.Environment.WebRootPath, "Rotativa");
 
 
@@ -69,10 +78,6 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-RotativaConfiguration.Setup(
-    builder.Environment.WebRootPath,
-    "Rotativa"
-);
 
 app.UseHttpsRedirection();
 
