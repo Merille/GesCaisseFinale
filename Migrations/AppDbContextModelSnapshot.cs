@@ -140,6 +140,79 @@ namespace EasytransitCaisse.Migrations
                     b.ToTable("Clients");
                 });
 
+            modelBuilder.Entity("EasytransitCaisse.Models.CommandePos", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("CleClient")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<int?>("ClientId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("DateCommande")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("FactureId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("JourneeCaisseId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("MonnaieRendue")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("MontantRecu")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Numero")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Statut")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("TotalHT")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TotalTTC")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TotalTVA")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("UtilisateurId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("JourneeCaisseId");
+
+                    b.HasIndex("TenantId", "CleClient")
+                        .IsUnique();
+
+                    b.HasIndex("TenantId", "Numero")
+                        .IsUnique();
+
+                    b.ToTable("CommandesPos");
+                });
+
             modelBuilder.Entity("EasytransitCaisse.Models.ComptageCloture", b =>
                 {
                     b.Property<int>("Id")
@@ -267,6 +340,54 @@ namespace EasytransitCaisse.Migrations
                     b.HasIndex("CaisseId");
 
                     b.ToTable("JourneesCaisses");
+                });
+
+            modelBuilder.Entity("EasytransitCaisse.Models.LigneCommandePos", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CommandePosId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Libelle")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("PrixUnitaire")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int?>("ProduitId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Quantite")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("Remise")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<decimal>("TauxTVA")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("TotalTTC")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CommandePosId");
+
+                    b.ToTable("LignesCommandePos");
                 });
 
             modelBuilder.Entity("EasytransitCaisse.Models.LigneFacture", b =>
@@ -421,6 +542,45 @@ namespace EasytransitCaisse.Migrations
                     b.ToTable("OperationsCaisses");
                 });
 
+            modelBuilder.Entity("EasytransitCaisse.Models.PaiementPos", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CommandePosId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Libelle")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("ModePaiementId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Montant")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("MontantRecu")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int?>("OperationCaisseId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CommandePosId");
+
+                    b.ToTable("PaiementsPos");
+                });
+
             modelBuilder.Entity("EasytransitCaisse.Models.Produit", b =>
                 {
                     b.Property<int>("Id")
@@ -551,6 +711,17 @@ namespace EasytransitCaisse.Migrations
                     b.ToTable("Utilisateurs");
                 });
 
+            modelBuilder.Entity("EasytransitCaisse.Models.CommandePos", b =>
+                {
+                    b.HasOne("EasytransitCaisse.Models.JourneeCaisse", "JourneeCaisse")
+                        .WithMany()
+                        .HasForeignKey("JourneeCaisseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("JourneeCaisse");
+                });
+
             modelBuilder.Entity("EasytransitCaisse.Models.ComptageCloture", b =>
                 {
                     b.HasOne("EasytransitCaisse.Models.JourneeCaisse", "JourneeCaisse")
@@ -588,6 +759,15 @@ namespace EasytransitCaisse.Migrations
                         .IsRequired();
 
                     b.Navigation("Caisse");
+                });
+
+            modelBuilder.Entity("EasytransitCaisse.Models.LigneCommandePos", b =>
+                {
+                    b.HasOne("EasytransitCaisse.Models.CommandePos", null)
+                        .WithMany("Lignes")
+                        .HasForeignKey("CommandePosId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("EasytransitCaisse.Models.LigneFacture", b =>
@@ -638,6 +818,15 @@ namespace EasytransitCaisse.Migrations
                     b.Navigation("Utilisateur");
                 });
 
+            modelBuilder.Entity("EasytransitCaisse.Models.PaiementPos", b =>
+                {
+                    b.HasOne("EasytransitCaisse.Models.CommandePos", null)
+                        .WithMany("Paiements")
+                        .HasForeignKey("CommandePosId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("EasytransitCaisse.Models.Produit", b =>
                 {
                     b.HasOne("EasytransitCaisse.Models.Categorie", "Categorie")
@@ -655,6 +844,13 @@ namespace EasytransitCaisse.Migrations
                         .HasForeignKey("TenantId");
 
                     b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("EasytransitCaisse.Models.CommandePos", b =>
+                {
+                    b.Navigation("Lignes");
+
+                    b.Navigation("Paiements");
                 });
 #pragma warning restore 612, 618
         }

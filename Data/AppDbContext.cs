@@ -73,6 +73,45 @@ namespace EasytransitCaisse.Data
             modelBuilder.Entity<Produit>()
                 .HasIndex(p => p.CodeBarres);
 
+            // Point de vente : ventes.
+            modelBuilder.Entity<CommandePos>()
+                .HasQueryFilter(e => _currentTenantId == 0 || e.TenantId == _currentTenantId);
+
+            modelBuilder.Entity<LigneCommandePos>()
+                .HasQueryFilter(e => _currentTenantId == 0 || e.TenantId == _currentTenantId);
+
+            modelBuilder.Entity<PaiementPos>()
+                .HasQueryFilter(e => _currentTenantId == 0 || e.TenantId == _currentTenantId);
+
+            modelBuilder.Entity<CommandePos>()
+                .HasIndex(c => new { c.TenantId, c.Numero })
+                .IsUnique();
+
+            modelBuilder.Entity<CommandePos>()
+                .HasIndex(c => new { c.TenantId, c.CleClient })
+                .IsUnique();
+
+            modelBuilder.Entity<CommandePos>()
+                .HasOne(c => c.JourneeCaisse)
+                .WithMany()
+                .HasForeignKey(c => c.JourneeCaisseId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<CommandePos>()
+                .HasMany(c => c.Lignes)
+                .WithOne()
+                .HasForeignKey(l => l.CommandePosId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<CommandePos>()
+                .HasMany(c => c.Paiements)
+                .WithOne()
+                .HasForeignKey(p => p.CommandePosId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<CommandePos>().Property(c => c.Numero).HasMaxLength(50);
+            modelBuilder.Entity<CommandePos>().Property(c => c.CleClient).HasMaxLength(64);
+
             modelBuilder.Entity<Produit>()
                 .HasOne(p => p.Categorie)
                 .WithMany()
@@ -130,5 +169,11 @@ namespace EasytransitCaisse.Data
         public DbSet<Categorie> Categories { get; set; }
 
         public DbSet<Produit> Produits { get; set; }
+
+        public DbSet<CommandePos> CommandesPos { get; set; }
+
+        public DbSet<LigneCommandePos> LignesCommandePos { get; set; }
+
+        public DbSet<PaiementPos> PaiementsPos { get; set; }
     }
 }

@@ -1,7 +1,10 @@
 using System.Security.Claims;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using EasytransitCaisse.Data;
+using EasytransitCaisse.Models;
 using EasytransitCaisse.Services;
+using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,11 +16,19 @@ namespace EasytransitCaisse.Controllers
     public class PosController : Controller
     {
         private readonly AppDbContext _context;
+        private readonly IAntiforgery _antiforgery;
 
-        public PosController(AppDbContext context)
+        public PosController(AppDbContext context, IAntiforgery antiforgery)
         {
             _context = context;
+            _antiforgery = antiforgery;
         }
+
+        private bool EstAdmin => User.FindFirst(AppClaimTypes.Profil)?.Value is "Admin" or "SuperAdmin";
+
+        // « Espèces » : le seul mode sur lequel on peut rendre la monnaie.
+        public static bool EstEspeces(ModePaiement m) =>
+            Regex.IsMatch($"{m.Code} {m.Libelle}", @"\b(esp|espèces?|especes?|cash|liquide)\b", RegexOptions.IgnoreCase);
 
         public async Task<IActionResult> Index(int journee = 0)
         {
@@ -70,6 +81,14 @@ namespace EasytransitCaisse.Controllers
                 .Select(c => new { id = c.Id, nom = c.NomSociete, code = c.CodeClient })
                 .ToListAsync();
 
+            var modes = (await _context.ModesPaiement
+                    .Where(m => m.Actif && m.TenantId == tenant)
+                    .OrderBy(m => m.Libelle)
+                    .ToListAsync())
+                .Select(m => new { id = m.Id, libelle = m.Libelle ?? "", especes = EstEspeces(m) })
+                .ToList();
+            var jetons = _antiforgery.GetAndStoreTokens(HttpContext);
+
             var profil = User.FindFirst(AppClaimTypes.Profil)?.Value ?? "";
             var nom = User.FindFirst(AppClaimTypes.NomComplet)?.Value;
             var donnees = new
@@ -90,12 +109,199 @@ namespace EasytransitCaisse.Controllers
                     profil
                 },
                 peutModifierPrix = profil is "Admin" or "SuperAdmin",
-                urlFermer = $"/JourneeCaisse/Details/{j.Id}"
+                urlFermer = $"/JourneeCaisse/Details/{j.Id}",
+                modes,
+                urlVendre = "/Pos/Vendre",
+                urlTicket = "/Pos/Ticket/",
+                jeton = new { nom = jetons.FormFieldName, valeur = jetons.RequestToken }
             };
 
             // L'encodeur par défaut échappe < > & ' " : le JSON peut aller dans une balise <script>.
             ViewBag.Donnees = JsonSerializer.Serialize(donnees);
             return View("Ecran");
+        }
+    
+        private sealed class VenteSaisie
+        {
+            public string? Cle { get; set; }
+            public int JourneeId { get; set; }
+            public int? ClientId { get; set; }
+            public List<LigneSaisie> Lignes { get; set; } = new();
+            public List<PaiementSaisi> Paiements { get; set; } = new();
+        }
+
+        private sealed class LigneSaisie
+        {
+            public int ProduitId { get; set; }
+            public decimal Qte { get; set; }
+            public decimal? Prix { get; set; }
+            public decimal Remise { get; set; }
+        }
+
+        private sealed class PaiementSaisi
+        {
+            public int ModeId { get; set; }
+            public decimal Montant { get; set; }
+        }
+
+        private IActionResult Erreur(int code, string message) => StatusCode(code, new { erreur = message });
+
+        // Enregistre une vente payée : commande, lignes, règlements, un encaissement par
+        // règlement dans la journée (motif « Vente POS ») et sortie de stock.
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Vendre([FromForm] string vente)
+        {
+            VenteSaisie? v;
+            try
+            {
+                v = JsonSerializer.Deserialize<VenteSaisie>(vente ?? "", new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            }
+            catch (JsonException)
+            {
+                v = null;
+            }
+            if (v == null || string.IsNullOrWhiteSpace(v.Cle) || !v.Lignes.Any() || !v.Paiements.Any())
+                return Erreur(400, "Vente incomplète.");
+            var cle = new string(v.Cle.Where(c => char.IsAsciiLetterOrDigit(c) || c == '-').Take(64).ToArray());
+
+            var j = await _context.JourneesCaisses.Include(x => x.Caisse).FirstOrDefaultAsync(x => x.Id == v.JourneeId);
+            if (j == null)
+                return Erreur(404, "Journée introuvable.");
+            var tenant = j.TenantId;
+
+            // Vente déjà enregistrée (nouvel envoi après une coupure réseau) : on la renvoie telle quelle.
+            var deja = await _context.CommandesPos.FirstOrDefaultAsync(c => c.TenantId == tenant && c.CleClient == cle);
+            if (deja != null)
+                return Json(new { id = deja.Id, numero = deja.Numero });
+            if (j.Statut != "Ouverte")
+                return Erreur(409, "Cette journée est clôturée : la vente ne peut pas être enregistrée.");
+
+            // Lignes : prix et TVA repris du catalogue ; prix saisi accepté pour un administrateur seulement.
+            var lignes = new List<(Produit Produit, LigneCommandePos Ligne)>();
+            decimal ttc = 0, tva = 0;
+            foreach (var l in v.Lignes)
+            {
+                var p = await _context.Produits.FirstOrDefaultAsync(x => x.Id == l.ProduitId && x.TenantId == tenant && x.Actif);
+                var qte = Math.Round(l.Qte, 2);
+                if (p == null || qte <= 0)
+                    return Erreur(400, "Un article du ticket est introuvable, inactif ou de quantité nulle.");
+                var prix = EstAdmin && l.Prix.HasValue ? Math.Max(0, Math.Round(l.Prix.Value, 2)) : p.PrixVente;
+                var remise = Math.Min(100, Math.Max(0, Math.Round(l.Remise, 2)));
+                var total = Math.Round(qte * prix * (1 - remise / 100), 0, MidpointRounding.AwayFromZero);
+                ttc += total;
+                tva += total - total / (1 + p.TauxTVA / 100);
+                lignes.Add((p, new LigneCommandePos
+                {
+                    TenantId = tenant, ProduitId = p.Id, Libelle = p.Nom, Quantite = qte,
+                    PrixUnitaire = prix, Remise = remise, TauxTVA = p.TauxTVA, TotalTTC = total
+                }));
+            }
+            tva = Math.Round(tva, 0, MidpointRounding.AwayFromZero);
+
+            // Règlements : seuls les espèces peuvent dépasser le reste à payer (monnaie rendue).
+            var modes = await _context.ModesPaiement.Where(m => m.Actif && m.TenantId == tenant).ToListAsync();
+            var paiements = new List<(ModePaiement Mode, decimal Recu)>();
+            decimal recu = 0, especes = 0;
+            foreach (var pm in v.Paiements)
+            {
+                var mode = modes.FirstOrDefault(m => m.Id == pm.ModeId);
+                var montant = Math.Round(pm.Montant, 0, MidpointRounding.AwayFromZero);
+                if (mode == null || montant <= 0)
+                    return Erreur(400, "Mode de paiement invalide ou montant nul.");
+                paiements.Add((mode, montant));
+                recu += montant;
+                if (EstEspeces(mode))
+                    especes += montant;
+            }
+            if (recu < ttc)
+                return Erreur(400, "Le montant payé est inférieur au total.");
+            var rendu = recu - ttc;
+            if (rendu > especes)
+                return Erreur(400, "Seule la monnaie sur les espèces peut être rendue : le montant payé par les autres modes dépasse le total.");
+
+            int? clientId = v.ClientId.HasValue && await _context.Clients.AnyAsync(c => c.Id == v.ClientId && c.TenantId == tenant)
+                ? v.ClientId : null;
+            int.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var utilisateurId);
+
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+            // Verrou sur la journée : numéros de ticket consécutifs même avec plusieurs postes.
+            await _context.Database.ExecuteSqlInterpolatedAsync($"SELECT Id FROM JourneesCaisses WITH (UPDLOCK, HOLDLOCK) WHERE Id = {j.Id}");
+            var rang = await _context.CommandesPos.CountAsync(c => c.JourneeCaisseId == j.Id) + 1;
+            var numero = $"POS-{j.Caisse?.ChkCode}-{j.DateJournee:yyyyMMdd}-{rang:0000}";
+
+            var commande = new CommandePos
+            {
+                TenantId = tenant, Numero = numero, CleClient = cle, JourneeCaisseId = j.Id, ClientId = clientId,
+                UtilisateurId = utilisateurId, DateCommande = DateTime.Now, TotalHT = ttc - tva, TotalTVA = tva,
+                TotalTTC = ttc, MontantRecu = recu, MonnaieRendue = rendu, Statut = "Payée",
+                Lignes = lignes.Select(x => x.Ligne).ToList()
+            };
+            foreach (var (produit, ligne) in lignes.Where(x => x.Produit.SuiviStock))
+                produit.StockActuel -= ligne.Quantite;
+
+            var motif = await _context.Motifs.FirstOrDefaultAsync(m => m.LibelleMotif == "Vente POS" && m.TenantId == tenant);
+            if (motif == null)
+            {
+                motif = new Motif { LibelleMotif = "Vente POS", TypeModif = "Client", TenantId = tenant };
+                _context.Motifs.Add(motif);
+            }
+            _context.CommandesPos.Add(commande);
+            await _context.SaveChangesAsync();
+
+            var aRendre = rendu;
+            foreach (var (mode, montantRecu) in paiements)
+            {
+                var net = montantRecu;
+                if (EstEspeces(mode) && aRendre > 0)
+                {
+                    var deduit = Math.Min(aRendre, net);
+                    net -= deduit;
+                    aRendre -= deduit;
+                }
+                OperationCaisse? operation = null;
+                if (net > 0)
+                {
+                    operation = new OperationCaisse
+                    {
+                        TenantId = tenant, JourneeCaisseId = j.Id, DateOperation = DateTime.Now,
+                        TypeOperation = "Encaissement", Montant = net, Libelle = "Vente POS " + numero,
+                        ClientId = clientId, MotifId = motif.ID, ModePaiementId = mode.Id,
+                        UtilisateurId = utilisateurId, EstJustifie = true, StatutValidation = "En attente"
+                    };
+                    _context.OperationsCaisses.Add(operation);
+                    await _context.SaveChangesAsync();
+                }
+                _context.PaiementsPos.Add(new PaiementPos
+                {
+                    TenantId = tenant, CommandePosId = commande.Id, ModePaiementId = mode.Id, Libelle = mode.Libelle ?? "",
+                    MontantRecu = montantRecu, Montant = net, OperationCaisseId = operation?.Id
+                });
+            }
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            return Json(new { id = commande.Id, numero, rendu });
+        }
+
+        // Ticket de caisse 80 mm d'une vente (impression ou réimpression).
+        public async Task<IActionResult> Ticket(int id, bool imprimer = false)
+        {
+            var commande = await _context.CommandesPos
+                .Include(c => c.Lignes)
+                .Include(c => c.Paiements)
+                .Include(c => c.JourneeCaisse).ThenInclude(j => j!.Caisse)
+                .FirstOrDefaultAsync(c => c.Id == id);
+            if (commande == null)
+                return NotFound();
+
+            ViewBag.Societe = (await _context.Tenants.FirstOrDefaultAsync(t => t.Id == commande.TenantId))?.Nom ?? "GesCaisse";
+            ViewBag.Vendeur = (await _context.Utilisateurs.IgnoreQueryFilters().FirstOrDefaultAsync(u => u.Id == commande.UtilisateurId))?.NomComplet ?? "";
+            ViewBag.Client = commande.ClientId.HasValue
+                ? (await _context.Clients.FirstOrDefaultAsync(c => c.Id == commande.ClientId))?.NomSociete
+                : null;
+            ViewBag.Imprimer = imprimer;
+            return View(commande);
         }
     }
 }

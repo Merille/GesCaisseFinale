@@ -1,0 +1,68 @@
+@model EasytransitCaisse.Models.CommandePos
+@using System.Globalization
+@{
+    Layout = null;
+    var c = Model;
+    var caisse = c.JourneeCaisse?.Caisse;
+    string Fcfa(decimal n) => n.ToString("N0", CultureInfo.GetCultureInfo("fr-FR"));
+    string Qte(decimal n) => n == Math.Round(n) ? n.ToString("0", CultureInfo.InvariantCulture) : n.ToString("0.##", CultureInfo.GetCultureInfo("fr-FR"));
+    var tvaParTaux = c.Lignes
+        .GroupBy(l => l.TauxTVA)
+        .Select(g => new { Taux = g.Key, Montant = g.Sum(l => l.TotalTTC - l.TotalTTC / (1 + l.TauxTVA / 100)) })
+        .ToList();
+}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8" />
+    <title>Ticket @c.Numero</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="~/css/ticket.css" asp-append-version="true" />
+</head>
+<body>
+    <div class="ticket">
+        <div class="c b grand">@ViewBag.Societe</div>
+        <div class="c">@caisse?.ChkDescription</div>
+        <hr />
+        <div>Ticket : @c.Numero</div>
+        <div>Date   : @c.DateCommande.ToString("dd/MM/yyyy HH:mm")</div>
+        <div>Caisse : @caisse?.ChkCode · Vendeur : @ViewBag.Vendeur</div>
+        @if (ViewBag.Client != null)
+        {
+            <div>Client : @ViewBag.Client</div>
+        }
+        <hr />
+        @foreach (var l in c.Lignes.OrderBy(x => x.Id))
+        {
+            <div class="b">@l.Libelle</div>
+            <div class="r ind">
+                <span>@Qte(l.Quantite) x @Fcfa(l.PrixUnitaire)@(l.Remise > 0 ? " -" + Qte(l.Remise) + "%" : "")</span>
+                <span>@Fcfa(l.TotalTTC)</span>
+            </div>
+        }
+        <hr />
+        <div class="r b grand"><span>TOTAL TTC</span><span>@Fcfa(c.TotalTTC) FCFA</span></div>
+        <div class="r"><span>Total HT</span><span>@Fcfa(c.TotalHT)</span></div>
+        @foreach (var t in tvaParTaux)
+        {
+            <div class="r"><span>TVA @Qte(t.Taux) %</span><span>@Fcfa(t.Montant)</span></div>
+        }
+        <hr />
+        @foreach (var p in c.Paiements.OrderBy(x => x.Id))
+        {
+            <div class="r"><span>@p.Libelle</span><span>@Fcfa(p.MontantRecu)</span></div>
+        }
+        @if (c.MonnaieRendue > 0)
+        {
+            <div class="r b"><span>Monnaie rendue</span><span>@Fcfa(c.MonnaieRendue)</span></div>
+        }
+        <hr />
+        <div class="c">Merci de votre visite !</div>
+        <div class="c petit">@c.Numero</div>
+    </div>
+    @if ((bool)ViewBag.Imprimer)
+    {
+        <script>window.addEventListener('load', function () { window.print(); });</script>
+    }
+</body>
+</html>
