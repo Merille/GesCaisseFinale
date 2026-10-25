@@ -1,10 +1,4 @@
--- GesCaisse : mise à jour d'une base existante pour le point de vente (étape 1).
--- À importer une seule fois dans la base (phpMyAdmin > Importer) ; sans effet si
--- les tables existent déjà. Aucune donnée existante n'est modifiée.
-
-SET NAMES utf8mb4;
-
--- Point de vente (POS) - étape 1 : catalogue produits.
+-- Point de vente, étape 1 : catalogue produits (catégories et produits).
 CREATE TABLE IF NOT EXISTS Categories (
     Id INT AUTO_INCREMENT PRIMARY KEY,
     TenantId INT NOT NULL DEFAULT 0,

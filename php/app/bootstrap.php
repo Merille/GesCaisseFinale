@@ -76,6 +76,46 @@ function run(string $sql, array $params = []): int
     return (int) db()->lastInsertId();
 }
 
+/**
+ * Met la base à jour : applique, une seule fois et dans l'ordre, les fichiers
+ * sql/migrations/*.sql pas encore enregistrés dans la table MigrationsAppliquees.
+ * Ainsi les nouvelles tables sont créées sans passer par phpMyAdmin.
+ */
+function schema_a_jour(): void
+{
+    $fichiers = glob(__DIR__ . '/../sql/migrations/*.sql') ?: [];
+    if (!$fichiers) {
+        return;
+    }
+    sort($fichiers);
+    try {
+        $faites = array_column(q('SELECT Nom FROM MigrationsAppliquees'), 'Nom');
+    } catch (PDOException $e) {
+        if ((string) $e->getCode() !== '42S02') {
+            throw $e;
+        }
+        db()->exec('CREATE TABLE IF NOT EXISTS MigrationsAppliquees (
+            Nom VARCHAR(100) NOT NULL PRIMARY KEY,
+            DateApplication DATETIME NOT NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
+        $faites = [];
+    }
+    foreach ($fichiers as $fichier) {
+        $nom = basename($fichier);
+        if (in_array($nom, $faites, true)) {
+            continue;
+        }
+        // Une instruction par bloc terminé par « ; » en fin de ligne ; commentaires « -- » ignorés.
+        $sql = preg_replace('/^\s*--.*$/m', '', (string) file_get_contents($fichier));
+        foreach (preg_split('/;\s*$/m', $sql) as $instruction) {
+            if (trim($instruction) !== '') {
+                db()->exec($instruction);
+            }
+        }
+        run('INSERT INTO MigrationsAppliquees (Nom, DateApplication) VALUES (?, NOW())', [$nom]);
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Utilisateur connecté et cloisonnement par société
 // ---------------------------------------------------------------------------

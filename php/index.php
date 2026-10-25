@@ -43,6 +43,7 @@ if (in_array($module, ['utilisateur', 'motif', 'modepaiement', 'produit', 'categ
 require __DIR__ . '/app/controllers/' . $module . '.php';
 
 try {
+    schema_a_jour();
     ($module . '_' . $action)();
 } catch (PDOException $e) {
     error_log('[GesCaisse] ' . $e->getMessage());

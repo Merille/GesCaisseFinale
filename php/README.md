@@ -21,6 +21,10 @@ export Sage.
 4. Ouvrez `config.php` et vérifiez l'hôte, le nom de la base, l'utilisateur et le mot de passe MySQL.
 5. Ouvrez http://localhost/gescaisse/ dans le navigateur.
 
+Mises à jour : les nouvelles tables des versions suivantes (point de vente…) sont
+créées automatiquement au premier chargement d'une page, à partir des fichiers
+`sql/migrations/*.sql` ; ceux déjà appliqués sont notés dans la table `MigrationsAppliquees`.
+
 Comptes créés par `schema.sql` (mot de passe `123`, **à changer** après la première connexion) :
 
 | Utilisateur  | Profil      | Société                  |

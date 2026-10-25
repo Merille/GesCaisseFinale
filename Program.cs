@@ -4,6 +4,9 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Storage;
 using Rotativa.AspNetCore;
 
 // Racine du site : le dossier de démarrage s'il contient wwwroot, sinon le premier
@@ -71,10 +74,32 @@ if (string.IsNullOrEmpty(app.Environment.WebRootPath))
 RotativaConfiguration.Setup(app.Environment.WebRootPath, "Rotativa");
 
 
-// Seeder DB
+// Mise à jour de la base puis données de départ.
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+    // Applique les migrations en attente (nouvelles tables du point de vente…) :
+    // plus besoin de lancer Update-Database.
+    if (context.Database.GetAppliedMigrations().Any())
+    {
+        context.Database.Migrate();
+    }
+    else if (!context.Database.CanConnect()
+             || !context.Database.GetService<IRelationalDatabaseCreator>().HasTables())
+    {
+        // Base vide : création directe du schéma complet, puis toutes les
+        // migrations notées comme appliquées pour les mises à jour suivantes.
+        context.Database.EnsureCreated();
+        var historique = context.Database.GetService<IHistoryRepository>();
+        context.Database.ExecuteSqlRaw(historique.GetCreateIfNotExistsScript());
+        foreach (var migration in context.Database.GetMigrations())
+        {
+            context.Database.ExecuteSqlRaw(historique.GetInsertScript(new HistoryRow(migration, ProductInfo.GetVersion())));
+        }
+    }
+    // Sinon (tables existantes sans historique de migrations) : base laissée telle quelle.
+
     DbSeeder.Seed(context);
 }
 
