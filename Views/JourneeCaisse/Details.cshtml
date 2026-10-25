@@ -17,6 +17,9 @@
 
             @if (Model.Statut == "Ouverte")
             {
+                <a href="/Pos/Index?journee=@Model.Id" class="btn btn-success">
+                    <i class="fas fa-store"></i> Ouvrir le POS
+                </a>
                 <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#modalCloture">
                     Clôturer
                 </button>

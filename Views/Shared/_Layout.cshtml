@@ -34,7 +34,7 @@
     {
         "Dashboard" or "Caisse" or "JourneeCaisse" or "Client" => "Activité",
         "Rapport" => "Analyse",
-        "Produit" or "Categorie" => "Point de vente",
+        "Pos" or "Produit" or "Categorie" => "Point de vente",
         "Utilisateur" or "Motif" or "ModePaiement" => "Paramètres",
         "Tenant" => "Administration",
         _ => null
@@ -53,6 +53,7 @@
             "Tenant" => "Sociétés",
             "Caisse" => "Caisses",
             "Rapport" => "Rapports",
+            "Pos" => "Vendre",
             "Produit" => "Produits",
             "Categorie" => "Catégories",
             _ => "GesCaisse"
@@ -178,19 +179,27 @@
                 </a>
             </div>
 
-            @if (isAdmin)
-            {
             <div class="sb-section">
                 <div class="sb-section-title">Point de vente</div>
-                <a class="sb-link @(controller == "Produit" ? "active" : "")" href="/Produit/Index" title="Produits">
-                    <i class="fas fa-box-open"></i>
-                    <span class="sb-label">Produits</span>
+                <a class="sb-link @(controller == "Pos" ? "active" : "")" href="/Pos/Index" title="Vendre">
+                    <i class="fas fa-store"></i>
+                    <span class="sb-label">Vendre</span>
                 </a>
-                <a class="sb-link @(controller == "Categorie" ? "active" : "")" href="/Categorie/Index" title="Catégories">
-                    <i class="fas fa-tags"></i>
-                    <span class="sb-label">Catégories</span>
-                </a>
+                @if (isAdmin)
+                {
+                    <a class="sb-link @(controller == "Produit" ? "active" : "")" href="/Produit/Index" title="Produits">
+                        <i class="fas fa-box-open"></i>
+                        <span class="sb-label">Produits</span>
+                    </a>
+                    <a class="sb-link @(controller == "Categorie" ? "active" : "")" href="/Categorie/Index" title="Catégories">
+                        <i class="fas fa-tags"></i>
+                        <span class="sb-label">Catégories</span>
+                    </a>
+                }
             </div>
+
+            @if (isAdmin)
+            {
 
             <div class="sb-section">
                 <div class="sb-section-title">Administration</div>

@@ -42,6 +42,11 @@ namespace EasytransitCaisse.Controllers
             }
         }
 
+        // Profils qu'on peut attribuer : SuperAdmin seulement par un SuperAdmin.
+        private bool ProfilAutorise(string? profil) =>
+            profil is "Admin" or "Caissier" or "Vendeur"
+            || (profil == "SuperAdmin" && _tenantProvider.IsSuperAdmin);
+
         // LISTE
 
         public async Task<IActionResult> Index()
@@ -85,6 +90,9 @@ namespace EasytransitCaisse.Controllers
                 user.TenantId = _tenantProvider.TenantId;
             }
 
+            if (!ProfilAutorise(user.Profil))
+                user.Profil = "Caissier";
+
             user.MotPasse = HashPassword(user.MotPasse);
 
             _context.Utilisateurs.Add(user);
@@ -119,7 +127,8 @@ namespace EasytransitCaisse.Controllers
 
             existing.NomUtilisateur = user.NomUtilisateur;
             existing.NomComplet = user.NomComplet;
-            existing.Profil = user.Profil;
+            if (ProfilAutorise(user.Profil))
+                existing.Profil = user.Profil;
             existing.PeutValiderOperations = user.PeutValiderOperations;
 
             // Seul le SuperAdmin peut changer le tenant d'un utilisateur.

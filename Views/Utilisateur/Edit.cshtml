@@ -37,6 +37,11 @@
                         <select name="Profil" class="form-select">
                             <option value="Admin" selected="@(Model.Profil == "Admin")">Admin</option>
                             <option value="Caissier" selected="@(Model.Profil == "Caissier")">Caissier</option>
+                            <option value="Vendeur" selected="@(Model.Profil == "Vendeur")">Vendeur</option>
+                            @if (Model.Profil == "SuperAdmin")
+                            {
+                                <option value="SuperAdmin" selected>SuperAdmin</option>
+                            }
                         </select>
                     </div>
 

@@ -1,0 +1,18 @@
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8" />
+    <title>Point de vente - GesCaisse</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="~/css/pos.css" asp-append-version="true" />
+</head>
+<body class="pos-body">
+    <div id="pos" class="pos"></div>
+    <script id="pos-donnees" type="application/json">@Html.Raw(ViewBag.Donnees)</script>
+    <script src="~/js/pos.js" asp-append-version="true"></script>
+</body>
+</html>

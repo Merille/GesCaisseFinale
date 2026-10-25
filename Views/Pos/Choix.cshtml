@@ -1,0 +1,38 @@
+@model List<EasytransitCaisse.Models.JourneeCaisse>
+@{
+    ViewData["Title"] = "Vendre";
+}
+
+<partial name="_Messages" />
+
+<p class="text-muted">Choisissez la journée de caisse dans laquelle enregistrer les ventes.</p>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-info">
+        Aucune journée de caisse n'est ouverte. Ouvrez-en une depuis
+        <a href="/Caisse/Index">Caisses</a> (bouton « Ouvrir », puis « Nouvelle journée »).
+    </div>
+}
+else
+{
+    <div class="row g-3">
+        @foreach (var j in Model)
+        {
+            <div class="col-md-6 col-xl-4">
+                <div class="card shadow-sm border-0 h-100">
+                    <div class="card-body d-flex flex-column">
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <i class="fas fa-cash-register text-brand"></i>
+                            <strong>@j.Caisse?.ChkCode</strong>
+                            <span class="badge bg-success ms-auto">Ouverte</span>
+                        </div>
+                        <div>@j.Caisse?.ChkDescription</div>
+                        <div class="small text-muted mb-3">Journée du @j.DateJournee.ToString("dd/MM/yyyy") · @j.NumeroJournee</div>
+                        <a href="/Pos/Index?journee=@j.Id" class="btn btn-success mt-auto"><i class="fas fa-store"></i> Ouvrir le point de vente</a>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
