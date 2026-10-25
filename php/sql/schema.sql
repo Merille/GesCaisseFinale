@@ -188,6 +188,7 @@ CREATE TABLE IF NOT EXISTS Produits (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Point de vente (POS) - étape 3 : ventes.
+-- (Les évolutions suivantes de ces tables sont dans sql/migrations/, appliquées automatiquement.)
 CREATE TABLE IF NOT EXISTS CommandesPos (
     Id INT AUTO_INCREMENT PRIMARY KEY,
     TenantId INT NOT NULL DEFAULT 0,

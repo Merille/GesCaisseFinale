@@ -14,8 +14,14 @@ $c = $commande;
 <div class="ticket">
     <div class="c b grand"><?= h($c['Societe'] ?: 'GesCaisse') ?></div>
     <div class="c"><?= h($c['ChkDescription']) ?></div>
+    <?php if ($c['CommandeOrigineId']): ?>
+        <div class="c b grand">RETOUR / REMBOURSEMENT</div>
+    <?php elseif ($c['Statut'] === 'Annulée'): ?>
+        <div class="c b grand">*** VENTE ANNULÉE ***</div>
+    <?php endif; ?>
     <hr>
     <div>Ticket : <?= h($c['Numero']) ?></div>
+    <?php if ($c['NumeroOrigine']): ?><div>Vente  : <?= h($c['NumeroOrigine']) ?></div><?php endif; ?>
     <div>Date   : <?= date_fr($c['DateCommande'], 'd/m/Y H:i') ?></div>
     <div>Caisse : <?= h($c['ChkCode']) ?> · Vendeur : <?= h($c['Vendeur']) ?></div>
     <?php if ($c['Client']): ?><div>Client : <?= h($c['Client']) ?></div><?php endif; ?>
@@ -35,12 +41,13 @@ $c = $commande;
     <?php endforeach; ?>
     <hr>
     <?php foreach ($paiements as $p): ?>
-        <div class="r"><span><?= h($p['Libelle']) ?></span><span><?= fcfa($p['MontantRecu']) ?></span></div>
+        <div class="r"><span><?= $c['CommandeOrigineId'] ? 'Remboursé · ' : '' ?><?= h($p['Libelle']) ?></span><span><?= fcfa($p['MontantRecu']) ?></span></div>
     <?php endforeach; ?>
     <?php if ((float) $c['MonnaieRendue'] > 0): ?>
         <div class="r b"><span>Monnaie rendue</span><span><?= fcfa($c['MonnaieRendue']) ?></span></div>
     <?php endif; ?>
     <hr>
+    <?php if ($c['Motif']): ?><div>Motif : <?= h($c['Motif']) ?></div><hr><?php endif; ?>
     <div class="c">Merci de votre visite !</div>
     <div class="c petit"><?= h($c['Numero']) ?></div>
 </div>

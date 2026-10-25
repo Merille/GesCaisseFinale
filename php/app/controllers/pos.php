@@ -69,6 +69,7 @@ function pos_index(): void
         'modes' => $modes,
         'urlVendre' => url('pos/vendre'),
         'urlTicket' => url('pos/ticket') . '&id=',
+        'urlVentes' => url('vente/index', ['journee' => $journee['Id']]),
         'jeton' => ['nom' => '_csrf', 'valeur' => csrf_token()],
     ];
     render('pos/ecran', ['donnees' => $donnees], false);
@@ -84,12 +85,6 @@ function pos_choix(): void
          ORDER BY j.DateJournee DESC, c.ChkCode'
     );
     render('pos/choix', ['journees' => $journees]);
-}
-
-function pos_est_especes(array $mode): bool
-{
-    $texte = mb_strtolower(($mode['Code'] ?? '') . ' ' . ($mode['Libelle'] ?? ''));
-    return (bool) preg_match('/\b(esp|espèces?|especes?|cash|liquide)\b/u', $texte);
 }
 
 function pos_json(array $reponse, int $code = 200): never
@@ -251,8 +246,9 @@ function pos_ticket(): void
 {
     $commande = q1(
         'SELECT cmd.*, j.DateJournee, c.ChkCode, c.ChkDescription, t.Nom AS Societe,
-                u.NomComplet AS Vendeur, cl.NomSociete AS Client
+                u.NomComplet AS Vendeur, cl.NomSociete AS Client, o.Numero AS NumeroOrigine
          FROM CommandesPos cmd
+         LEFT JOIN CommandesPos o ON o.Id = cmd.CommandeOrigineId
          JOIN JourneesCaisses j ON j.Id = cmd.JourneeCaisseId
          JOIN Caisses c ON c.ID = j.CaisseId
          LEFT JOIN Tenants t ON t.Id = cmd.TenantId

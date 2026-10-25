@@ -17,6 +17,7 @@ $routes = [
     'rapport'     => ['operations', 'preview', 'sage'],
     'facture'     => ['index', 'create', 'edit', 'ligne', 'supprimerligne', 'valider', 'print'],
     'pos'         => ['index', 'vendre', 'ticket'],
+    'vente'       => ['index', 'details', 'facture', 'retour', 'annuler'],
     'produit'     => ['index', 'create', 'edit', 'delete', 'export', 'import'],
     'categorie'   => ['index', 'save', 'delete'],
 ];

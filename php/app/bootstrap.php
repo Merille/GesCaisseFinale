@@ -474,3 +474,10 @@ function journee_solde_suggere(int $caisseId): float
     $t = totaux_journee((int) $derniere['Id']);
     return (float) $derniere['SoldeInitial'] + $t['encaisse'] - $t['decaisse'];
 }
+
+/** Mode de paiement « Espèces » : le seul sur lequel on peut rendre la monnaie. */
+function pos_est_especes(array $mode): bool
+{
+    $texte = mb_strtolower(($mode['Code'] ?? '') . ' ' . ($mode['Libelle'] ?? ''));
+    return (bool) preg_match('/\b(esp|espèces?|especes?|cash|liquide)\b/u', $texte);
+}
