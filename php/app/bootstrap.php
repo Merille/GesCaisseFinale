@@ -319,6 +319,14 @@ function fcfa(mixed $n): string
     return number_format((float) $n, 0, ',', ' ');
 }
 
+/** Quantité ou prix : sans décimales si entier, sinon 2 ; $milliers = séparateur d'espaces. */
+function quantite_fr(mixed $n, bool $milliers = true): string
+{
+    $f = (float) $n;
+    $dec = abs($f - round($f)) < 0.005 ? 0 : 2;
+    return number_format($f, $dec, ',', $milliers ? ' ' : '');
+}
+
 function date_fr(?string $d, string $format = 'd/m/Y'): string
 {
     if (!$d) {
