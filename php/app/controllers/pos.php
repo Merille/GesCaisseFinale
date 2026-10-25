@@ -187,6 +187,7 @@ function pos_vendre(): void
 
     db()->beginTransaction();
     try {
+        // Les encaissements du point de vente sont validés d'office (vente payée et justifiée par le ticket).
         // Verrou sur la journée : numéros de ticket consécutifs même avec plusieurs caisses ouvertes.
         q('SELECT Id FROM JourneesCaisses WHERE Id = ? FOR UPDATE', [$journee['Id']]);
         $rang = (int) qv('SELECT COUNT(*) FROM CommandesPos WHERE JourneeCaisseId = ?', [$journee['Id']]) + 1;
@@ -224,8 +225,8 @@ function pos_vendre(): void
             if ($net > 0) {
                 $operation = run(
                     "INSERT INTO OperationsCaisses (TenantId, JourneeCaisseId, DateOperation, TypeOperation, Montant, Libelle,
-                        ClientId, MotifId, ModePaiementId, UtilisateurId, EstJustifie, StatutValidation)
-                     VALUES (?, ?, NOW(), 'Encaissement', ?, ?, ?, ?, ?, ?, 1, 'En attente')",
+                        ClientId, MotifId, ModePaiementId, UtilisateurId, EstJustifie, StatutValidation, Valideur)
+                     VALUES (?, ?, NOW(), 'Encaissement', ?, ?, ?, ?, ?, ?, 1, 'Validé', 'Point de vente')",
                     [$tenant, $journee['Id'], $net, 'Vente POS ' . $numero, $client, $motif, $pm['mode']['Id'], user()['id']]
                 );
             }

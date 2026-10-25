@@ -267,7 +267,9 @@ namespace EasytransitCaisse.Controllers
                         TenantId = tenant, JourneeCaisseId = j.Id, DateOperation = DateTime.Now,
                         TypeOperation = "Encaissement", Montant = net, Libelle = "Vente POS " + numero,
                         ClientId = clientId, MotifId = motif.ID, ModePaiementId = mode.Id,
-                        UtilisateurId = utilisateurId, EstJustifie = true, StatutValidation = "En attente"
+                        UtilisateurId = utilisateurId, EstJustifie = true,
+                        // Validé d'office : vente payée et justifiée par le ticket.
+                        StatutValidation = "Validé", Valideur = "Point de vente"
                     };
                     _context.OperationsCaisses.Add(operation);
                     await _context.SaveChangesAsync();

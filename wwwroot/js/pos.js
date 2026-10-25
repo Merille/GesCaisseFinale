@@ -359,7 +359,7 @@
             + '<h3>Billets rapides (espèces)</h3>'
             + '<div class="pos-billets">' + [500, 1000, 2000, 5000, 10000].map(b => '<button type="button" class="pos-billet" data-billet="' + b + '">+' + fcfa(b) + '</button>').join('')
             + '<button type="button" class="pos-billet" data-billet="exact">Montant exact</button></div>'
-            + '<div class="pos-aide"><i class="fas fa-circle-info"></i> À la validation, chaque règlement devient un encaissement de la journée de caisse (motif « Vente POS »).</div>'
+            + '<div class="pos-aide"><i class="fas fa-circle-info"></i> À la validation, chaque règlement devient un encaissement validé de la journée de caisse (motif « Vente POS »).</div>'
             + '</div>'
             + '<div class="pos-droite2">'
             + '<div class="pos-pave pos-pave3">' + ['1', '2', '3', '4', '5', '6', '7', '8', '9', '00', '0'].map(v => pt(v)).join('') + pt('efface', '<i class="fas fa-delete-left"></i>') + '</div>'
