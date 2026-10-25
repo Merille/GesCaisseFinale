@@ -107,3 +107,60 @@ body.pos-body { margin: 0; background: var(--pos-bg); color: #1d2a35; font-famil
     .pos-ticket { width: auto; border-right: 0; }
     .pos-lignes { max-height: 40vh; }
 }
+
+/* Paiement */
+.pos-pay { display: flex; flex-grow: 1; min-height: 0; }
+.pos-modes { width: 290px; flex-shrink: 0; background: #fff; border-right: 1px solid #d6dee5; padding: 16px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; }
+.pos-modes h3, .pos-centre h3 { margin: 0 0 2px; font-size: 13px; text-transform: uppercase; letter-spacing: .7px; color: #6b6b69; }
+.pos-mode { padding: 15px; border-radius: 11px; border: 1px solid #d3dce3; background: #f7f9fb; font-size: 16px; font-weight: 600; display: flex; gap: 12px; align-items: center; cursor: pointer; text-align: left; color: #1d2a35; }
+.pos-mode:hover { background: #eef3f7; }
+.pos-mode i { width: 24px; text-align: center; color: var(--pos-brand); font-size: 19px; }
+.pos-centre { flex-grow: 1; padding: 20px 26px; display: flex; flex-direction: column; gap: 14px; overflow-y: auto; min-width: 0; }
+.pos-blocs { display: flex; gap: 14px; }
+.pos-bloc { flex: 1; background: #fff; border-radius: 14px; padding: 14px 18px; border: 1px solid #dde4ea; }
+.pos-bloc small { font-size: 12.5px; color: #6b6b69; text-transform: uppercase; letter-spacing: .6px; }
+.pos-bloc .v { font-size: 32px; font-weight: 800; margin-top: 4px; }
+.pos-bloc.reste .v { color: var(--pos-danger); }
+.pos-bloc.rendre { background: #e7f5ec; border-color: #a9d9bb; }
+.pos-bloc.rendre .v { color: var(--pos-ok); }
+.pos-reglements { background: #fff; border-radius: 14px; border: 1px solid #dde4ea; overflow: hidden; }
+.pos-reglement { display: flex; align-items: center; padding: 13px 16px; border-bottom: 1px solid #edf1f4; font-size: 17px; gap: 10px; cursor: pointer; }
+.pos-reglement:last-child { border-bottom: 0; }
+.pos-reglement.sel { background: #e6f0f7; box-shadow: inset 4px 0 0 var(--pos-brand); }
+.pos-reglement i { color: var(--pos-brand); }
+.pos-reglement small { color: #6b6b69; }
+.pos-reglement b { margin-left: auto; font-size: 20px; }
+.pos-reglement .x { border: 0; background: transparent; color: var(--pos-danger); font-size: 17px; cursor: pointer; padding: 4px 6px; }
+.pos-reglements .pos-aide { padding: 16px; }
+.pos-billets { display: flex; gap: 10px; flex-wrap: wrap; }
+.pos-billet { flex: 1; min-width: 90px; padding: 13px 0; text-align: center; border-radius: 10px; background: #fff; border: 1px solid #cfd8df; font-weight: 700; font-size: 16px; color: var(--pos-brand-dark); cursor: pointer; }
+.pos-billet:hover { background: #eef3f7; }
+.pos-aide { font-size: 13.5px; color: #6b6b69; }
+.pos-droite2 { width: 340px; flex-shrink: 0; padding: 20px 16px; display: flex; flex-direction: column; gap: 12px; }
+.pos-pave3 { padding: 0; grid-template-columns: repeat(3, 1fr); }
+.pos-retour { padding: 12px; border-radius: 10px; border: 1px solid #cfd8df; text-align: center; background: #fff; color: #33444f; font-weight: 600; cursor: pointer; font-size: 15px; }
+.pos-valider { margin-top: auto; padding: 22px; border-radius: 12px; border: 0; background: var(--pos-ok); color: #fff; font-size: 21px; font-weight: 800; cursor: pointer; }
+.pos-valider:disabled { background: #9fb8a9; cursor: not-allowed; }
+
+/* Fin de vente */
+.pos-finzone { display: flex; flex-grow: 1; min-height: 0; }
+.pos-apercu { flex-grow: 1; background: #dfe5ea; display: flex; }
+.pos-apercu iframe { border: 0; width: 100%; height: 100%; }
+.pos-fin { width: 420px; flex-shrink: 0; background: #fff; border-left: 1px solid #d6dee5; padding: 40px 30px; display: flex; flex-direction: column; gap: 16px; }
+.pos-ok { width: 84px; height: 84px; border-radius: 50%; background: #e7f5ec; color: var(--pos-ok); font-size: 42px; display: flex; align-items: center; justify-content: center; }
+.pos-fin h2 { margin: 0; font-size: 26px; }
+.pos-fin p { margin: 0; color: #555; font-size: 15px; line-height: 1.5; }
+.pos-rendu b { color: var(--pos-ok); font-size: 24px; }
+.pos-sec { padding: 13px; border-radius: 10px; border: 1px solid #cfd8df; text-align: center; font-weight: 600; color: #33444f; background: #fff; cursor: pointer; font-size: 15px; }
+.pos-big { margin-top: auto; padding: 20px; border-radius: 12px; border: 0; background: var(--pos-ok); color: #fff; font-size: 21px; font-weight: 800; cursor: pointer; }
+
+@media (max-width: 1100px) {
+    .pos-modes { width: 220px; }
+    .pos-droite2 { width: 280px; }
+    .pos-fin { width: 340px; }
+}
+@media (max-width: 820px) {
+    .pos-pay, .pos-finzone { flex-direction: column; }
+    .pos-modes, .pos-droite2, .pos-fin { width: auto; }
+    .pos-apercu { min-height: 60vh; }
+}

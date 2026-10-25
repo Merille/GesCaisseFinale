@@ -24,6 +24,10 @@
     let recherche = '';
     let mode = 'qte';        // qte | remise | prix
     let saisie = null;       // chiffres tapés sur le pavé pour la ligne choisie
+    let vue = 'vente';       // vente | paiement | fin
+    let pay = null;          // paiement en cours : { lignes: [{ modeId, montant, auto }], choisie, saisie, envoi }
+    let fin = null;          // vente enregistrée : { id, numero, rendu }
+    const modes = new Map((D.modes || []).map(m => [m.id, m]));
 
     function charger() {
         try {
@@ -173,7 +177,210 @@
     function payer() {
         if (!ticket().lignes.length) { message('Le ticket est vide.'); return; }
         if (ticket().lignes.some(l => l.qte <= 0)) { message('Une ligne a une quantité nulle : corrigez-la ou supprimez-la.', true); return; }
-        message('Le paiement arrive à la prochaine étape du module. Le ticket reste en attente.');
+        pay = { lignes: [], choisie: -1, saisie: null, envoi: false };
+        vue = 'paiement';
+        afficher();
+    }
+
+    // ------------------------------------------------------------------
+    // Paiement
+    // ------------------------------------------------------------------
+    function etatPaiement() {
+        const total = totaux(ticket()).ttc;
+        let recu = 0, especes = 0;
+        pay.lignes.forEach(r => {
+            recu += r.montant;
+            if (modes.get(r.modeId)?.especes) especes += r.montant;
+        });
+        const rendu = Math.max(0, recu - total);
+        return {
+            total: total, recu: recu, especes: especes, rendu: rendu,
+            reste: Math.max(0, total - recu),
+            ok: pay.lignes.length > 0 && recu >= total && rendu <= especes && !pay.lignes.some(r => r.montant <= 0)
+        };
+    }
+
+    function ajouterReglement(modeId) {
+        // Montant proposé : le reste à payer (comme sur Odoo) ; la première frappe le remplace.
+        pay.lignes.push({ modeId: modeId, montant: etatPaiement().reste, auto: true });
+        pay.choisie = pay.lignes.length - 1;
+        pay.saisie = null;
+        afficher();
+    }
+
+    function toucheReglement(k) {
+        const r = pay.lignes[pay.choisie];
+        if (!r) { message('Choisissez d\'abord un mode de paiement à gauche.'); return; }
+        if (k === 'efface') {
+            if (pay.saisie === null || pay.saisie === '') {
+                pay.saisie = '';
+            } else {
+                pay.saisie = pay.saisie.slice(0, -1);
+            }
+        } else {
+            pay.saisie = (pay.saisie === null ? '' : pay.saisie) + k;
+        }
+        r.montant = parseInt(pay.saisie || '0', 10) || 0;
+        r.auto = false;
+        afficher();
+    }
+
+    function billet(valeur) {
+        let r = pay.lignes[pay.choisie];
+        if (!r || !modes.get(r.modeId)?.especes) {
+            const especes = (D.modes || []).find(m => m.especes);
+            if (!especes) { message('Aucun mode « Espèces » actif.', true); return; }
+            r = pay.lignes.find(x => x.modeId === especes.id);
+            if (!r) { pay.lignes.push(r = { modeId: especes.id, montant: 0, auto: true }); }
+            pay.choisie = pay.lignes.indexOf(r);
+        }
+        if (valeur === 'exact') {
+            r.montant = Math.max(0, r.montant + etatPaiement().total - etatPaiement().recu);
+        } else {
+            r.montant = (r.auto ? 0 : r.montant) + Number(valeur);
+        }
+        r.auto = false;
+        pay.saisie = null;
+        afficher();
+    }
+
+    function supprimerReglement(i) {
+        pay.lignes.splice(i, 1);
+        pay.choisie = Math.min(pay.choisie, pay.lignes.length - 1);
+        pay.saisie = null;
+        afficher();
+    }
+
+    function identifiant() {
+        return Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10) + '-' + Math.random().toString(36).slice(2, 10);
+    }
+
+    async function valider() {
+        const e = etatPaiement();
+        if (pay.envoi) return;
+        if (!e.ok) {
+            message(e.recu < e.total ? 'Il reste ' + fcfa(e.reste) + ' FCFA à payer.'
+                : e.rendu > e.especes ? 'Seule la monnaie sur les espèces peut être rendue.'
+                : 'Ajoutez un règlement.', true);
+            return;
+        }
+        const t = ticket();
+        if (!t.cle) { t.cle = identifiant(); enregistrer(); }   // même clé si l'envoi est refait
+        const vente = {
+            cle: t.cle,
+            journeeId: D.journee.id,
+            clientId: t.clientId,
+            lignes: t.lignes.map(l => ({ produitId: l.produitId, qte: l.qte, prix: l.prix, remise: l.remise || 0 })),
+            paiements: pay.lignes.map(r => ({ modeId: r.modeId, montant: r.montant }))
+        };
+        const corps = new FormData();
+        corps.append(D.jeton.nom, D.jeton.valeur);
+        corps.append('vente', JSON.stringify(vente));
+        pay.envoi = true;
+        afficher();
+        let reponse = null;
+        try {
+            const res = await fetch(D.urlVendre, { method: 'POST', body: corps, credentials: 'same-origin' });
+            reponse = await res.json().catch(() => null);
+            if (!res.ok || !reponse || reponse.erreur) throw new Error(reponse && reponse.erreur ? reponse.erreur : 'Réponse inattendue du serveur (' + res.status + ').');
+        } catch (err) {
+            pay.envoi = false;
+            afficher();
+            message((err && err.message && !/fetch|network/i.test(err.message) ? err.message : 'Connexion impossible : la vente n\'est pas enregistrée. Réessayez.'), true);
+            return;
+        }
+        // Stock affiché mis à jour sans recharger la page.
+        t.lignes.forEach(l => { const p = produits.get(l.produitId); if (p && p.suivi) p.stock -= l.qte; });
+        fin = { id: reponse.id, numero: reponse.numero, rendu: e.rendu };
+        etat.tickets.splice(etat.actif, 1);
+        if (!etat.tickets.length) { etat.compteur += 1; etat.tickets.push(nouveauTicket(etat.compteur)); }
+        etat.actif = Math.min(etat.actif, etat.tickets.length - 1);
+        enregistrer();
+        pay = null;
+        vue = 'fin';
+        afficher();
+    }
+
+    function nouvelleVente() {
+        fin = null;
+        vue = 'vente';
+        mode = 'qte';
+        saisie = null;
+        afficher();
+    }
+
+    function iconeMode(m) {
+        const t = (m.libelle || '').toLowerCase();
+        if (m.especes) return 'fa-money-bill-wave';
+        if (/mobile|money|airtel|moov|momo/.test(t)) return 'fa-mobile-screen-button';
+        if (/carte|cb|visa|bancaire/.test(t)) return 'fa-credit-card';
+        if (/ch[eè]que/.test(t)) return 'fa-money-check';
+        if (/virement/.test(t)) return 'fa-building-columns';
+        return 'fa-wallet';
+    }
+
+    function enteteSimple(titre, sousTitre) {
+        return '<div class="pos-top"><span class="pos-logo">GC</span>'
+            + '<div class="pos-titre"><strong>' + echap(titre) + '</strong><small>' + echap(sousTitre) + '</small></div>'
+            + '<div class="pos-droite"><span class="pos-user"><span class="pos-avatar">' + echap(initiales(D.utilisateur.nom || '?')) + '</span><span>'
+            + echap(D.utilisateur.nom) + ' · ' + echap(D.utilisateur.profil) + '</span></span></div></div>';
+    }
+
+    function afficherPaiement() {
+        const t = ticket();
+        const e = etatPaiement();
+        const client = clients.get(t.clientId);
+        const pt = (v, html) => '<button type="button" class="pos-k" data-pt="' + v + '">' + (html || v) + '</button>';
+        racine.innerHTML = enteteSimple('Paiement · Ticket ' + t.numero, D.journee.caisse + (client ? ' · Client : ' + client.nom : ''))
+            + '<div class="pos-pay">'
+            + '<div class="pos-modes"><h3>Modes de paiement</h3>'
+            + ((D.modes || []).length
+                ? D.modes.map(m => '<button type="button" class="pos-mode" data-mode-paiement="' + m.id + '"><i class="fas ' + iconeMode(m) + '"></i> ' + echap(m.libelle) + '</button>').join('')
+                : '<div class="pos-aide">Aucun mode de paiement actif : ajoutez-en dans Paramètres › Modes de paiement.</div>')
+            + '</div>'
+            + '<div class="pos-centre">'
+            + '<div class="pos-blocs">'
+            + '<div class="pos-bloc"><small>Total à payer</small><div class="v">' + fcfa(e.total) + '</div></div>'
+            + '<div class="pos-bloc' + (e.reste > 0 ? ' reste' : '') + '"><small>Reste à payer</small><div class="v">' + fcfa(e.reste) + '</div></div>'
+            + '<div class="pos-bloc rendre"><small>Monnaie à rendre</small><div class="v">' + fcfa(e.rendu) + '</div></div>'
+            + '</div>'
+            + '<h3>Règlements</h3>'
+            + '<div class="pos-reglements">'
+            + (pay.lignes.length
+                ? pay.lignes.map((r, i) => {
+                    const m = modes.get(r.modeId) || { libelle: '?' };
+                    return '<div class="pos-reglement' + (i === pay.choisie ? ' sel' : '') + '" data-reglement="' + i + '">'
+                        + '<i class="fas ' + iconeMode(m) + '"></i> ' + echap(m.libelle) + (m.especes ? ' <small>reçu</small>' : '')
+                        + '<b>' + fcfa(r.montant) + '</b>'
+                        + '<button type="button" class="x" data-suppr-reglement="' + i + '" aria-label="Supprimer ce règlement"><i class="fas fa-xmark"></i></button></div>';
+                }).join('')
+                : '<div class="pos-aide">Choisissez un mode de paiement à gauche.</div>')
+            + '</div>'
+            + '<h3>Billets rapides (espèces)</h3>'
+            + '<div class="pos-billets">' + [500, 1000, 2000, 5000, 10000].map(b => '<button type="button" class="pos-billet" data-billet="' + b + '">+' + fcfa(b) + '</button>').join('')
+            + '<button type="button" class="pos-billet" data-billet="exact">Montant exact</button></div>'
+            + '<div class="pos-aide"><i class="fas fa-circle-info"></i> À la validation, chaque règlement devient un encaissement de la journée de caisse (motif « Vente POS »).</div>'
+            + '</div>'
+            + '<div class="pos-droite2">'
+            + '<div class="pos-pave pos-pave3">' + ['1', '2', '3', '4', '5', '6', '7', '8', '9', '00', '0'].map(v => pt(v)).join('') + pt('efface', '<i class="fas fa-delete-left"></i>') + '</div>'
+            + '<button type="button" class="pos-retour" data-action="retour"><i class="fas fa-arrow-left"></i> Retour au ticket</button>'
+            + '<button type="button" class="pos-valider" data-action="valider"' + (e.ok && !pay.envoi ? '' : ' disabled') + '>'
+            + (pay.envoi ? '<i class="fas fa-spinner fa-spin"></i> Enregistrement…' : '<i class="fas fa-check"></i> Valider le paiement') + '</button>'
+            + '</div></div>';
+    }
+
+    function afficherFin() {
+        racine.innerHTML = enteteSimple('Vente terminée · ' + fin.numero, D.journee.caisse + ' · ' + D.journee.libelle)
+            + '<div class="pos-finzone">'
+            + '<div class="pos-apercu"><iframe id="posTicket" title="Ticket de caisse" src="' + echap(D.urlTicket + fin.id) + '"></iframe></div>'
+            + '<div class="pos-fin">'
+            + '<div class="pos-ok"><i class="fas fa-check"></i></div>'
+            + '<h2>Paiement enregistré</h2>'
+            + '<p>Les encaissements sont dans la journée de caisse ' + echap(D.journee.caisse) + '.</p>'
+            + (fin.rendu > 0 ? '<p class="pos-rendu">Monnaie à rendre : <b>' + fcfa(fin.rendu) + ' FCFA</b></p>' : '')
+            + '<button type="button" class="pos-sec" data-action="imprimer"><i class="fas fa-print"></i> Imprimer le ticket</button>'
+            + '<button type="button" class="pos-big" data-action="nouvelle-vente"><i class="fas fa-plus"></i> Nouvelle vente</button>'
+            + '</div></div>';
     }
 
     // ------------------------------------------------------------------
@@ -226,6 +433,8 @@
     }
 
     function afficher() {
+        if (vue === 'paiement') { afficherPaiement(); return; }
+        if (vue === 'fin') { afficherFin(); return; }
         const t = ticket();
         const tot = totaux(t);
         const client = clients.get(t.clientId);
@@ -337,8 +546,21 @@
     // Événements
     // ------------------------------------------------------------------
     racine.addEventListener('click', e => {
-        const el = e.target.closest('button, .pos-ligne, [data-fermer]');
+        const el = e.target.closest('button, .pos-ligne, .pos-reglement, [data-fermer]');
         if (!el) return;
+        if (vue !== 'vente') {
+            const d = el.dataset;
+            if (d.supprReglement !== undefined) supprimerReglement(Number(d.supprReglement));
+            else if (d.modePaiement) ajouterReglement(Number(d.modePaiement));
+            else if (d.reglement !== undefined) { pay.choisie = Number(d.reglement); pay.saisie = null; afficher(); }
+            else if (d.billet) billet(d.billet);
+            else if (d.pt) toucheReglement(d.pt);
+            else if (d.action === 'retour') { if (!pay.envoi) { pay = null; vue = 'vente'; afficher(); } }
+            else if (d.action === 'valider') valider();
+            else if (d.action === 'imprimer') { const f = document.getElementById('posTicket'); if (f) f.contentWindow.print(); }
+            else if (d.action === 'nouvelle-vente') nouvelleVente();
+            return;
+        }
         if (e.target.closest('[data-fermer]')) { e.stopPropagation(); fermerTicket(Number(e.target.closest('[data-fermer]').dataset.fermer)); return; }
         const d = el.dataset;
         if (d.produit) ajouterProduit(produits.get(Number(d.produit)));
@@ -377,6 +599,17 @@
     let tampon = '', dernier = 0;
     document.addEventListener('keydown', e => {
         if (document.querySelector('.pos-modal-fond')) return;
+        if (vue === 'paiement') {
+            if (/^[0-9]$/.test(e.key)) toucheReglement(e.key);
+            else if (e.key === 'Backspace') { e.preventDefault(); toucheReglement('efface'); }
+            else if (e.key === 'Enter') { e.preventDefault(); valider(); }
+            else if (e.key === 'Escape' && !pay.envoi) { pay = null; vue = 'vente'; afficher(); }
+            return;
+        }
+        if (vue === 'fin') {
+            if (e.key === 'Enter') { e.preventDefault(); nouvelleVente(); }
+            return;
+        }
         const cible = e.target;
         if (cible.tagName === 'INPUT' || cible.tagName === 'TEXTAREA') return;
         const maintenant = Date.now();

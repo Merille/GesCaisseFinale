@@ -16,7 +16,7 @@ $routes = [
     'tenant'      => ['index', 'create', 'edit', 'prolonger', 'consulter'],
     'rapport'     => ['operations', 'preview', 'sage'],
     'facture'     => ['index', 'create', 'edit', 'ligne', 'supprimerligne', 'valider', 'print'],
-    'pos'         => ['index'],
+    'pos'         => ['index', 'vendre', 'ticket'],
     'produit'     => ['index', 'create', 'edit', 'delete', 'export', 'import'],
     'categorie'   => ['index', 'save', 'delete'],
 ];
