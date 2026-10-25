@@ -6,6 +6,7 @@ $ouverte = $journee['Statut'] === 'Ouverte';
     <h4 class="mb-0">Journée <?= h($journee['NumeroJournee']) ?> <small class="text-muted fs-6">— <?= h($journee['ChkCode'] . ' · ' . $journee['ChkDescription']) ?>, <?= date_fr($journee['DateJournee']) ?></small></h4>
     <div class="d-flex flex-wrap gap-2">
         <?php if ($ouverte): ?>
+            <a href="<?= h(url('pos/index', ['journee' => $journee['Id']])) ?>" class="btn btn-primary"><i class="fa fa-store"></i> Ouvrir le POS</a>
             <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalEncaissement">+ Encaissement</button>
             <button class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#modalDecaissement">− Décaissement</button>
             <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#modalCloture">Clôturer</button>

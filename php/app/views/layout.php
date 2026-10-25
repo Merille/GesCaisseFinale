@@ -21,7 +21,7 @@ $nbJourneesOuvertes = (int) qv("SELECT COUNT(*) FROM JourneesCaisses WHERE Statu
 $rubrique = match ($module) {
     'dashboard', 'caisse', 'journee', 'client', 'facture' => 'Activité',
     'rapport' => 'Analyse',
-    'produit', 'categorie' => 'Point de vente',
+    'pos', 'produit', 'categorie' => 'Point de vente',
     'utilisateur', 'motif', 'modepaiement' => 'Paramètres',
     'tenant' => 'Administration',
     default => null,
@@ -99,12 +99,15 @@ $badge = $nbJourneesOuvertes > 0
             <div class="sb-section-title">Analyse</div>
             <?= $lien('rapport/operations', 'rapport', 'fa-chart-column', 'Rapports') ?>
         </div>
-        <?php if (is_admin()): ?>
         <div class="sb-section">
             <div class="sb-section-title">Point de vente</div>
-            <?= $lien('produit/index', 'produit', 'fa-box-open', 'Produits') ?>
-            <?= $lien('categorie/index', 'categorie', 'fa-tags', 'Catégories') ?>
+            <?= $lien('pos/index', 'pos', 'fa-store', 'Vendre') ?>
+            <?php if (is_admin()): ?>
+                <?= $lien('produit/index', 'produit', 'fa-box-open', 'Produits') ?>
+                <?= $lien('categorie/index', 'categorie', 'fa-tags', 'Catégories') ?>
+            <?php endif; ?>
         </div>
+        <?php if (is_admin()): ?>
         <div class="sb-section">
             <div class="sb-section-title">Administration</div>
             <?php $parametresActif = in_array($module, ['utilisateur', 'motif', 'modepaiement'], true); ?>

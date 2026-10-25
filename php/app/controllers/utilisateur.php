@@ -4,7 +4,7 @@
 
 function utilisateur_profils(): array
 {
-    return is_super_admin() ? ['Admin', 'Caissier', 'SuperAdmin'] : ['Admin', 'Caissier'];
+    return is_super_admin() ? ['Admin', 'Caissier', 'Vendeur', 'SuperAdmin'] : ['Admin', 'Caissier', 'Vendeur'];
 }
 
 function utilisateur_charger(int $id): array
