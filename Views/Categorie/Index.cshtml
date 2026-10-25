@@ -1,0 +1,99 @@
+@model List<EasytransitCaisse.Models.Categorie>
+@{
+    ViewData["Title"] = "Catégories";
+    var nbProduits = (Dictionary<int, int>)ViewBag.NbProduits;
+}
+
+<partial name="_Messages" />
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">Catégories de produits</h4>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalCategorie" data-id="">
+        <i class="fas fa-plus"></i> Nouvelle catégorie
+    </button>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-body">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-dark">
+                <tr>
+                    <th>Catégorie</th>
+                    <th class="text-center">Ordre</th>
+                    <th class="text-center">Produits</th>
+                    <th class="text-center">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Any())
+                {
+                    <tr><td colspan="4" class="text-center text-muted py-4">Aucune catégorie. Créez-en une pour regrouper les produits sur l'écran de vente.</td></tr>
+                }
+                @foreach (var c in Model)
+                {
+                    <tr>
+                        <td><span class="pastille-categorie" style="background: @c.Couleur"></span> <span class="fw-semibold">@c.Nom</span></td>
+                        <td class="text-center">@c.Ordre</td>
+                        <td class="text-center"><a href="/Produit/Index?categorie=@c.Id">@(nbProduits.TryGetValue(c.Id, out var n) ? n : 0)</a></td>
+                        <td class="text-center">
+                            <div class="d-inline-flex gap-1">
+                                <button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#modalCategorie"
+                                        data-id="@c.Id" data-nom="@c.Nom" data-couleur="@c.Couleur" data-ordre="@c.Ordre">Modifier</button>
+                                <form asp-action="Delete" asp-route-id="@c.Id" method="post" class="d-inline"
+                                      onsubmit="return confirm('Supprimer cette catégorie ?')">
+                                    <button type="submit" class="btn btn-danger btn-sm">Supprimer</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modal fade" id="modalCategorie" tabindex="-1" aria-labelledby="categorieTitre" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <form class="modal-content" method="post" id="formCategorie" asp-action="Create">
+            <div class="modal-header bg-brand text-white">
+                <h5 class="modal-title" id="categorieTitre">Catégorie</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" name="Id" id="categorieId" />
+                <div class="mb-3">
+                    <label class="form-label" for="categorieNom">Nom</label>
+                    <input id="categorieNom" name="Nom" class="form-control" placeholder="Ex : Boissons" required />
+                </div>
+                <div class="row g-3">
+                    <div class="col-6">
+                        <label class="form-label" for="categorieCouleur">Couleur des tuiles</label>
+                        <input type="color" id="categorieCouleur" name="Couleur" class="form-control form-control-color w-100" value="#195d84" />
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label" for="categorieOrdre">Ordre d'affichage</label>
+                        <input type="number" id="categorieOrdre" name="Ordre" class="form-control" value="0" />
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button type="submit" class="btn btn-primary">Enregistrer</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.getElementById('modalCategorie').addEventListener('show.bs.modal', function (e) {
+            const d = e.relatedTarget ? e.relatedTarget.dataset : {};
+            document.getElementById('categorieTitre').textContent = d.id ? 'Modifier la catégorie' : 'Nouvelle catégorie';
+            document.getElementById('formCategorie').action = d.id ? '/Categorie/Edit' : '/Categorie/Create';
+            document.getElementById('categorieId').value = d.id || '0';
+            document.getElementById('categorieNom').value = d.nom || '';
+            document.getElementById('categorieCouleur').value = d.couleur || '#195d84';
+            document.getElementById('categorieOrdre').value = d.ordre || '0';
+        });
+    </script>
+}

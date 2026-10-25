@@ -1,0 +1,43 @@
+using EasytransitCaisse.Data;
+using Microsoft.EntityFrameworkCore;
+
+namespace EasytransitCaisse.Models
+{
+    // Produit (ou service) vendu au point de vente. Le prix de vente est saisi
+    // TTC ; la TVA est calculée à partir du TTC.
+    public class Produit : ITenantScoped
+    {
+        public int Id { get; set; }
+
+        public int TenantId { get; set; }
+
+        public string Code { get; set; } = "";
+
+        public string? CodeBarres { get; set; }
+
+        public string Nom { get; set; } = "";
+
+        public int? CategorieId { get; set; }
+
+        public virtual Categorie? Categorie { get; set; }
+
+        [Precision(18, 2)]
+        public decimal PrixVente { get; set; }
+
+        [Precision(5, 2)]
+        public decimal TauxTVA { get; set; } = 18;
+
+        // Faux pour un service (photocopie, recharge...) : pas de stock.
+        public bool SuiviStock { get; set; } = true;
+
+        [Precision(18, 2)]
+        public decimal StockActuel { get; set; }
+
+        [Precision(18, 2)]
+        public decimal? SeuilAlerte { get; set; }
+
+        public bool Actif { get; set; } = true;
+
+        public bool EnAlerteStock => SuiviStock && SeuilAlerte.HasValue && StockActuel <= SeuilAlerte.Value;
+    }
+}

@@ -78,3 +78,14 @@
 .text-brand {
     color: var(--brand) !important;
 }
+
+/* Point de vente : pastille de couleur d'une catégorie de produits */
+.pastille-categorie {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    vertical-align: -1px;
+    margin-right: 4px;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, .12);
+}

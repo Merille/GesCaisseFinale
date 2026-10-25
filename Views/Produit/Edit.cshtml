@@ -1,0 +1,19 @@
+@model EasytransitCaisse.Models.Produit
+@{
+    ViewData["Title"] = "Modifier le produit";
+}
+
+<div class="card shadow-sm border-0" style="max-width: 860px;">
+    <div class="card-header bg-brand text-white">
+        <h5 class="mb-0">Modifier le produit</h5>
+    </div>
+    <div class="card-body">
+        <form method="post" asp-action="Edit" asp-route-id="@Model.Id">
+            <partial name="_Formulaire" model="Model" />
+            <div class="mt-4 d-flex gap-2">
+                <button type="submit" class="btn btn-primary">Enregistrer</button>
+                <a href="/Produit/Index" class="btn btn-outline-secondary hors-modale">Annuler</a>
+            </div>
+        </form>
+    </div>
+</div>

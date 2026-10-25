@@ -58,6 +58,26 @@ namespace EasytransitCaisse.Data
 
             modelBuilder.Entity<ComptageCloture>()
                 .HasQueryFilter(e => _currentTenantId == 0 || e.TenantId == _currentTenantId);
+
+            // Point de vente : catalogue.
+            modelBuilder.Entity<Categorie>()
+                .HasQueryFilter(e => _currentTenantId == 0 || e.TenantId == _currentTenantId);
+
+            modelBuilder.Entity<Produit>()
+                .HasQueryFilter(e => _currentTenantId == 0 || e.TenantId == _currentTenantId);
+
+            modelBuilder.Entity<Produit>()
+                .HasIndex(p => new { p.TenantId, p.Code })
+                .IsUnique();
+
+            modelBuilder.Entity<Produit>()
+                .HasIndex(p => p.CodeBarres);
+
+            modelBuilder.Entity<Produit>()
+                .HasOne(p => p.Categorie)
+                .WithMany()
+                .HasForeignKey(p => p.CategorieId)
+                .OnDelete(DeleteBehavior.SetNull);
         }
 
         public override int SaveChanges(bool acceptAllChangesOnSuccess)
@@ -106,5 +126,9 @@ namespace EasytransitCaisse.Data
         public DbSet<ModePaiement> ModesPaiement { get; set; }
 
         public DbSet<ComptageCloture> ComptagesCloture { get; set; }
+
+        public DbSet<Categorie> Categories { get; set; }
+
+        public DbSet<Produit> Produits { get; set; }
     }
 }

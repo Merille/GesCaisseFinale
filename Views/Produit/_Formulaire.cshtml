@@ -1,0 +1,75 @@
+@model EasytransitCaisse.Models.Produit
+@using System.Globalization
+@* Champs de la fiche produit (création et modification). *@
+@{
+    var categories = (List<EasytransitCaisse.Models.Categorie>)ViewBag.Categories;
+    string Nombre(decimal? n) => n.HasValue ? n.Value.ToString("0.##", CultureInfo.InvariantCulture) : "";
+}
+@if (ViewBag.Erreur != null)
+{
+    <div class="alert alert-danger">@ViewBag.Erreur</div>
+}
+<div class="row g-3">
+    <div class="col-md-3">
+        <label class="form-label" for="Code">Code</label>
+        <input class="form-control" id="Code" name="Code" value="@Model.Code" placeholder="Ex : RIZ5" required />
+    </div>
+    <div class="col-md-5">
+        <label class="form-label" for="Nom">Nom</label>
+        <input class="form-control" id="Nom" name="Nom" value="@Model.Nom" placeholder="Ex : Riz parfumé 5 kg" required />
+    </div>
+    <div class="col-md-4">
+        <label class="form-label" for="CategorieId">Catégorie</label>
+        <select class="form-select" id="CategorieId" name="CategorieId">
+            <option value="">-- Sans catégorie --</option>
+            @foreach (var c in categories)
+            {
+                <option value="@c.Id" selected="@(Model.CategorieId == c.Id)">@c.Nom</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-4">
+        <label class="form-label" for="CodeBarres">Code-barres</label>
+        <div class="input-group">
+            <span class="input-group-text"><i class="fas fa-barcode"></i></span>
+            <input class="form-control" id="CodeBarres" name="CodeBarres" value="@Model.CodeBarres" placeholder="Scannez ou saisissez"
+                   onkeydown="if (event.key === 'Enter') event.preventDefault();" />
+        </div>
+    </div>
+    <div class="col-md-4">
+        <label class="form-label" for="PrixVente">Prix de vente TTC (FCFA)</label>
+        <input class="form-control" id="PrixVente" name="PrixVente" inputmode="decimal" value="@Nombre(Model.Id == 0 && Model.PrixVente == 0 ? null : Model.PrixVente)" required />
+    </div>
+    <div class="col-md-4">
+        <label class="form-label" for="TauxTVA">TVA (%)</label>
+        <input class="form-control" id="TauxTVA" name="TauxTVA" inputmode="decimal" value="@Nombre(Model.TauxTVA)" />
+        <div class="form-text">Comprise dans le prix TTC.</div>
+    </div>
+</div>
+
+<h6 class="text-muted text-uppercase small mt-4 mb-3">Stock</h6>
+<div class="row g-3 align-items-end">
+    <div class="col-md-4">
+        <div class="form-check mb-2">
+            <input class="form-check-input" type="checkbox" value="true" id="SuiviStock" name="SuiviStock" checked="@Model.SuiviStock" />
+            <input type="hidden" name="SuiviStock" value="false" />
+            <label class="form-check-label" for="SuiviStock">Suivre le stock de ce produit</label>
+        </div>
+        <div class="form-text mt-0">Décochez pour un service (photocopie, recharge…).</div>
+    </div>
+    <div class="col-md-4">
+        <label class="form-label" for="StockActuel">Quantité en stock</label>
+        <input class="form-control" id="StockActuel" name="StockActuel" inputmode="decimal" value="@Nombre(Model.StockActuel)" />
+    </div>
+    <div class="col-md-4">
+        <label class="form-label" for="SeuilAlerte">Seuil d'alerte</label>
+        <input class="form-control" id="SeuilAlerte" name="SeuilAlerte" inputmode="decimal" value="@Nombre(Model.SeuilAlerte)" placeholder="Ex : 5" />
+    </div>
+    <div class="col-12">
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" value="true" id="Actif" name="Actif" checked="@Model.Actif" />
+            <input type="hidden" name="Actif" value="false" />
+            <label class="form-check-label" for="Actif">Produit actif (proposé à la vente)</label>
+        </div>
+    </div>
+</div>

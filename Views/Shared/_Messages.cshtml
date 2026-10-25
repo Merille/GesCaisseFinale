@@ -1,0 +1,25 @@
+@* Messages de retour (TempData) : succès, erreur, liste d'erreurs séparées par « | ». *@
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show">
+        @TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show">
+        @TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
+    </div>
+}
+@if (TempData["Erreurs"] is string erreurs && erreurs.Length > 0)
+{
+    <div class="alert alert-warning alert-dismissible fade show">
+        @foreach (var e in erreurs.Split('|'))
+        {
+            <div>@e</div>
+        }
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
+    </div>
+}

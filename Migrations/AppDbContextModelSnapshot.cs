@@ -62,6 +62,33 @@ namespace EasytransitCaisse.Migrations
                     b.ToTable("Caisses");
                 });
 
+            modelBuilder.Entity("EasytransitCaisse.Models.Categorie", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Couleur")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Nom")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Ordre")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Categories");
+                });
+
             modelBuilder.Entity("EasytransitCaisse.Models.Client", b =>
                 {
                     b.Property<int>("Id")
@@ -394,6 +421,65 @@ namespace EasytransitCaisse.Migrations
                     b.ToTable("OperationsCaisses");
                 });
 
+            modelBuilder.Entity("EasytransitCaisse.Models.Produit", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Actif")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("CategorieId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("CodeBarres")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Nom")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("PrixVente")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("SeuilAlerte")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("StockActuel")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<bool>("SuiviStock")
+                        .HasColumnType("bit");
+
+                    b.Property<decimal>("TauxTVA")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CategorieId");
+
+                    b.HasIndex("CodeBarres");
+
+                    b.HasIndex("TenantId", "Code")
+                        .IsUnique();
+
+                    b.ToTable("Produits");
+                });
+
             modelBuilder.Entity("EasytransitCaisse.Models.Tenant", b =>
                 {
                     b.Property<int>("Id")
@@ -550,6 +636,16 @@ namespace EasytransitCaisse.Migrations
                     b.Navigation("Motif");
 
                     b.Navigation("Utilisateur");
+                });
+
+            modelBuilder.Entity("EasytransitCaisse.Models.Produit", b =>
+                {
+                    b.HasOne("EasytransitCaisse.Models.Categorie", "Categorie")
+                        .WithMany()
+                        .HasForeignKey("CategorieId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Categorie");
                 });
 
             modelBuilder.Entity("EasytransitCaisse.Models.Utilisateur", b =>
