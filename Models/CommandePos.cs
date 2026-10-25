@@ -45,6 +45,11 @@ namespace EasytransitCaisse.Models
 
         public int? FactureId { get; set; }
 
+        // Retour : vente d'origine ; motif du retour ou de l'annulation.
+        public int? CommandeOrigineId { get; set; }
+
+        public string? Motif { get; set; }
+
         public List<LigneCommandePos> Lignes { get; set; } = new();
 
         public List<PaiementPos> Paiements { get; set; } = new();
@@ -76,6 +81,9 @@ namespace EasytransitCaisse.Models
 
         [Precision(18, 2)]
         public decimal TotalTTC { get; set; }
+
+        // Retour : ligne de la vente d'origine (quantités négatives).
+        public int? LigneOrigineId { get; set; }
     }
 
     // Règlement d'une vente. Montant = part encaissée (monnaie déduite) ;

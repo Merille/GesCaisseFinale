@@ -23,8 +23,20 @@
     <div class="ticket">
         <div class="c b grand">@ViewBag.Societe</div>
         <div class="c">@caisse?.ChkDescription</div>
+        @if (c.CommandeOrigineId.HasValue)
+        {
+            <div class="c b grand">RETOUR / REMBOURSEMENT</div>
+        }
+        else if (c.Statut == "Annulée")
+        {
+            <div class="c b grand">*** VENTE ANNULÉE ***</div>
+        }
         <hr />
         <div>Ticket : @c.Numero</div>
+        @if (ViewBag.NumeroOrigine != null)
+        {
+            <div>Vente  : @ViewBag.NumeroOrigine</div>
+        }
         <div>Date   : @c.DateCommande.ToString("dd/MM/yyyy HH:mm")</div>
         <div>Caisse : @caisse?.ChkCode · Vendeur : @ViewBag.Vendeur</div>
         @if (ViewBag.Client != null)
@@ -50,13 +62,18 @@
         <hr />
         @foreach (var p in c.Paiements.OrderBy(x => x.Id))
         {
-            <div class="r"><span>@p.Libelle</span><span>@Fcfa(p.MontantRecu)</span></div>
+            <div class="r"><span>@(c.CommandeOrigineId.HasValue ? "Remboursé · " : "")@p.Libelle</span><span>@Fcfa(p.MontantRecu)</span></div>
         }
         @if (c.MonnaieRendue > 0)
         {
             <div class="r b"><span>Monnaie rendue</span><span>@Fcfa(c.MonnaieRendue)</span></div>
         }
         <hr />
+        @if (!string.IsNullOrEmpty(c.Motif))
+        {
+            <div>Motif : @c.Motif</div>
+            <hr />
+        }
         <div class="c">Merci de votre visite !</div>
         <div class="c petit">@c.Numero</div>
     </div>

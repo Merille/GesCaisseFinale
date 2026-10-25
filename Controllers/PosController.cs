@@ -113,6 +113,7 @@ namespace EasytransitCaisse.Controllers
                 modes,
                 urlVendre = "/Pos/Vendre",
                 urlTicket = "/Pos/Ticket/",
+                urlVentes = $"/Vente/Index?journee={j.Id}",
                 jeton = new { nom = jetons.FormFieldName, valeur = jetons.RequestToken }
             };
 
@@ -301,6 +302,9 @@ namespace EasytransitCaisse.Controllers
             ViewBag.Vendeur = (await _context.Utilisateurs.IgnoreQueryFilters().FirstOrDefaultAsync(u => u.Id == commande.UtilisateurId))?.NomComplet ?? "";
             ViewBag.Client = commande.ClientId.HasValue
                 ? (await _context.Clients.FirstOrDefaultAsync(c => c.Id == commande.ClientId))?.NomSociete
+                : null;
+            ViewBag.NumeroOrigine = commande.CommandeOrigineId.HasValue
+                ? (await _context.CommandesPos.FirstOrDefaultAsync(c => c.Id == commande.CommandeOrigineId))?.Numero
                 : null;
             ViewBag.Imprimer = imprimer;
             return View(commande);

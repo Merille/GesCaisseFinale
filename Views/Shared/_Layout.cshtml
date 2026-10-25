@@ -34,7 +34,7 @@
     {
         "Dashboard" or "Caisse" or "JourneeCaisse" or "Client" => "Activité",
         "Rapport" => "Analyse",
-        "Pos" or "Produit" or "Categorie" => "Point de vente",
+        "Pos" or "Vente" or "Produit" or "Categorie" => "Point de vente",
         "Utilisateur" or "Motif" or "ModePaiement" => "Paramètres",
         "Tenant" => "Administration",
         _ => null
@@ -54,6 +54,7 @@
             "Caisse" => "Caisses",
             "Rapport" => "Rapports",
             "Pos" => "Vendre",
+            "Vente" => "Ventes",
             "Produit" => "Produits",
             "Categorie" => "Catégories",
             _ => "GesCaisse"
@@ -184,6 +185,10 @@
                 <a class="sb-link @(controller == "Pos" ? "active" : "")" href="/Pos/Index" title="Vendre">
                     <i class="fas fa-store"></i>
                     <span class="sb-label">Vendre</span>
+                </a>
+                <a class="sb-link @(controller == "Vente" ? "active" : "")" href="/Vente/Index" title="Ventes">
+                    <i class="fas fa-receipt"></i>
+                    <span class="sb-label">Ventes</span>
                 </a>
                 @if (isAdmin)
                 {

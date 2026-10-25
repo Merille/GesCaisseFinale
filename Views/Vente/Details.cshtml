@@ -1,0 +1,257 @@
+@model EasytransitCaisse.Models.CommandePos
+@using System.Globalization
+@{
+    var v = Model;
+    ViewData["Title"] = (v.CommandeOrigineId.HasValue ? "Retour " : "Vente ") + v.Numero;
+    var retournees = (Dictionary<int, decimal>)ViewBag.Retournees;
+    var restant = (decimal)ViewBag.Restant;
+    var retours = (List<EasytransitCaisse.Models.CommandePos>)ViewBag.Retours;
+    var origine = (EasytransitCaisse.Models.CommandePos?)ViewBag.Origine;
+    var facture = (EasytransitCaisse.Models.Facture?)ViewBag.Facture;
+    var clients = (List<EasytransitCaisse.Models.Client>)ViewBag.Clients;
+    var journees = (List<EasytransitCaisse.Models.JourneeCaisse>)ViewBag.JourneesOuvertes;
+    var modes = (List<EasytransitCaisse.Models.ModePaiement>)ViewBag.Modes;
+    var peutRembourser = (bool)ViewBag.PeutRembourser;
+    var estRetour = v.CommandeOrigineId.HasValue;
+    var peutFacturer = !estRetour && v.Statut == "Payée" && !v.FactureId.HasValue;
+    var peutRetour = peutRembourser && !estRetour && (v.Statut == "Payée" || v.Statut == "Remboursée en partie") && restant > 0;
+    var peutAnnuler = peutRembourser && !estRetour && v.Statut == "Payée" && !v.FactureId.HasValue && v.JourneeCaisse?.Statut == "Ouverte";
+    var fr = CultureInfo.GetCultureInfo("fr-FR");
+    string Qte(decimal n) => n.ToString("0.##", fr);
+    string Fcfa(decimal n) => n.ToString("N0", fr);
+}
+
+<partial name="_Messages" />
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <h4 class="mb-0">@(estRetour ? "Retour" : "Vente") @v.Numero <partial name="_Statut" model="v.Statut" /></h4>
+    <div class="d-flex flex-wrap gap-2">
+        <a href="/Pos/Ticket/@v.Id?imprimer=true" target="_blank" class="btn btn-outline-primary"><i class="fas fa-print"></i> Réimprimer le ticket</a>
+        @if (peutRetour)
+        {
+            <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#modalRetour"><i class="fas fa-rotate-left"></i> Retour / remboursement</button>
+        }
+        @if (peutAnnuler)
+        {
+            <button class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#modalAnnuler"><i class="fas fa-ban"></i> Annuler la vente</button>
+        }
+        <a href="/Vente/Index?journee=@v.JourneeCaisseId" class="btn btn-dark">Ventes de la journée</a>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3"><div class="card h-100 border-0 shadow-sm"><div class="card-body">
+        <div class="small text-muted">Date</div><div class="fw-bold">@v.DateCommande.ToString("dd/MM/yyyy HH:mm")</div>
+        <div class="small text-muted mt-2">Caisse · journée</div>
+        <div><a href="/JourneeCaisse/Details/@v.JourneeCaisseId">@v.JourneeCaisse?.Caisse?.ChkCode · @v.JourneeCaisse?.NumeroJournee</a></div>
+    </div></div></div>
+    <div class="col-md-3"><div class="card h-100 border-0 shadow-sm"><div class="card-body">
+        <div class="small text-muted">Vendeur</div><div class="fw-bold">@ViewBag.Vendeur</div>
+        <div class="small text-muted mt-2">Client</div><div>@(ViewBag.Client ?? "—")</div>
+    </div></div></div>
+    <div class="col-md-3"><div class="card h-100 border-0 shadow-sm"><div class="card-body">
+        <div class="small text-muted">Total TTC</div>
+        <div class="fs-4 fw-bold @(v.TotalTTC < 0 ? "text-danger" : "")">@Fcfa(v.TotalTTC) FCFA</div>
+        <div class="small text-muted">dont TVA @Fcfa(v.TotalTVA)</div>
+    </div></div></div>
+    <div class="col-md-3"><div class="card h-100 border-0 shadow-sm"><div class="card-body">
+        @if (estRetour)
+        {
+            <div class="small text-muted">Vente d'origine</div>
+            <div class="fw-bold"><a href="/Vente/Details/@v.CommandeOrigineId">@origine?.Numero</a></div>
+        }
+        else
+        {
+            <div class="small text-muted">Facture</div>
+            @if (facture != null)
+            {
+                <div class="fw-bold"><a href="/Facture/Edit/@facture.Id">@facture.Numero</a></div>
+            }
+            else if (peutFacturer)
+            {
+                <form method="post" asp-action="Facture" class="mt-1" onsubmit="return confirm('Créer et valider une facture pour cette vente ?');">
+                    <input type="hidden" name="id" value="@v.Id" />
+                    @if (!v.ClientId.HasValue)
+                    {
+                        <select name="clientId" class="form-select form-select-sm mb-2" required aria-label="Client à facturer">
+                            <option value="">-- Client à facturer --</option>
+                            @foreach (var c in clients)
+                            {
+                                <option value="@c.Id">@c.NomSociete</option>
+                            }
+                        </select>
+                    }
+                    <button class="btn btn-sm btn-success"><i class="fas fa-file-invoice"></i> Établir la facture</button>
+                </form>
+            }
+            else
+            {
+                <div class="text-muted">—</div>
+            }
+        }
+        @if (!string.IsNullOrEmpty(v.Motif))
+        {
+            <div class="small text-muted mt-2">Motif</div><div>@v.Motif</div>
+        }
+    </div></div></div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm"><div class="card-header bg-brand text-white">Articles</div>
+            <div class="card-body p-2 table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead><tr><th>Article</th><th class="text-end">Qté</th><th class="text-end">Prix</th><th class="text-end">Remise</th><th class="text-end">Total TTC</th>@if (!estRetour) {<th class="text-end">Retourné</th>}</tr></thead>
+                    <tbody>
+                        @foreach (var l in v.Lignes.OrderBy(x => x.Id))
+                        {
+                            var ret = retournees.GetValueOrDefault(l.Id);
+                            <tr>
+                                <td>@l.Libelle</td>
+                                <td class="text-end">@Qte(l.Quantite)</td>
+                                <td class="text-end">@Fcfa(l.PrixUnitaire)</td>
+                                <td class="text-end">@(l.Remise > 0 ? Qte(l.Remise) + " %" : "")</td>
+                                <td class="text-end fw-semibold">@Fcfa(l.TotalTTC)</td>
+                                @if (!estRetour)
+                                {
+                                    <td class="text-end">@(ret > 0 ? Qte(ret) : "")</td>
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm mb-3"><div class="card-header bg-brand text-white">@(estRetour ? "Remboursement" : "Règlements")</div>
+            <ul class="list-group list-group-flush">
+                @foreach (var p in v.Paiements.OrderBy(x => x.Id))
+                {
+                    <li class="list-group-item d-flex justify-content-between"><span>@p.Libelle</span><span class="fw-semibold">@Fcfa(p.MontantRecu)</span></li>
+                }
+                @if (v.MonnaieRendue > 0)
+                {
+                    <li class="list-group-item d-flex justify-content-between text-muted"><span>Monnaie rendue</span><span>@Fcfa(v.MonnaieRendue)</span></li>
+                }
+            </ul>
+        </div>
+        @if (retours.Any())
+        {
+            <div class="card border-0 shadow-sm"><div class="card-header bg-warning">Retours</div>
+                <ul class="list-group list-group-flush">
+                    @foreach (var r in retours)
+                    {
+                        <li class="list-group-item d-flex justify-content-between">
+                            <a href="/Vente/Details/@r.Id">@r.Numero</a>
+                            <span class="text-danger fw-semibold">@Fcfa(r.TotalTTC)</span>
+                        </li>
+                    }
+                </ul>
+            </div>
+        }
+    </div>
+</div>
+
+@if (peutRetour)
+{
+    <div class="modal fade" id="modalRetour" tabindex="-1" aria-labelledby="retourTitre" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <form class="modal-content" method="post" asp-action="Retour">
+                <div class="modal-header bg-brand text-white">
+                    <h5 class="modal-title" id="retourTitre">Retour / remboursement · @v.Numero</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="id" value="@v.Id" />
+                    <input type="hidden" name="cle" value="@Guid.NewGuid().ToString("N")" />
+                    <table class="table align-middle">
+                        <thead><tr><th>Article</th><th class="text-end">Vendu</th><th class="text-end">Déjà retourné</th><th style="width:140px">Quantité retournée</th></tr></thead>
+                        <tbody>
+                            @foreach (var l in v.Lignes.OrderBy(x => x.Id))
+                            {
+                                var ret = retournees.GetValueOrDefault(l.Id);
+                                var reste = l.Quantite - ret;
+                                <tr>
+                                    <td>@l.Libelle</td>
+                                    <td class="text-end">@Qte(l.Quantite)</td>
+                                    <td class="text-end">@(ret > 0 ? Qte(ret) : "")</td>
+                                    <td><input class="form-control form-control-sm text-end" name="qte[@l.Id]" inputmode="decimal" value="0"
+                                               disabled="@(reste <= 0)" aria-label="Quantité retournée : @l.Libelle" data-max="@Qte(reste)" /></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                    <div class="d-flex justify-content-end mb-3"><button type="button" class="btn btn-sm btn-outline-secondary" id="retourTout">Tout retourner</button></div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label" for="retourJournee">Journée où rembourser</label>
+                            <select class="form-select" id="retourJournee" name="journeeId" required>
+                                @if (!journees.Any())
+                                {
+                                    <option value="">Aucune journée ouverte</option>
+                                }
+                                @foreach (var j in journees)
+                                {
+                                    <option value="@j.Id">@j.Caisse?.ChkCode · @j.DateJournee.ToString("dd/MM/yyyy")</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="retourMode">Mode de remboursement</label>
+                            <select class="form-select" id="retourMode" name="modeId" required>
+                                @foreach (var m in modes)
+                                {
+                                    <option value="@m.Id" selected="@EasytransitCaisse.Controllers.PosController.EstEspeces(m)">@m.Libelle</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-12"><label class="form-label" for="retourMotif">Motif</label><input class="form-control" id="retourMotif" name="motif" placeholder="Ex : produit défectueux" /></div>
+                    </div>
+                    <div class="form-text mt-2">Le montant remboursé est calculé au prorata de chaque ligne (remise comprise). Il sort de la caisse en décaissement validé, et le stock est remis.</div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button class="btn btn-warning" disabled="@(!journees.Any())">Enregistrer le retour</button>
+                </div>
+            </form>
+        </div>
+    </div>
+}
+
+@if (peutAnnuler)
+{
+    <div class="modal fade" id="modalAnnuler" tabindex="-1" aria-labelledby="annulerTitre" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <form class="modal-content" method="post" asp-action="Annuler">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title" id="annulerTitre">Annuler la vente @v.Numero</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="id" value="@v.Id" />
+                    <p>Les encaissements de cette vente passeront « Rejeté » (ils sortent des totaux de la journée) et le stock sera remis. Rendez l'argent au client.</p>
+                    <label class="form-label" for="annulerMotif">Motif</label>
+                    <input class="form-control" id="annulerMotif" name="motif" placeholder="Ex : erreur de saisie" required />
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Retour</button>
+                    <button class="btn btn-danger">Annuler la vente</button>
+                </div>
+            </form>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        (function () {
+            const tout = document.getElementById('retourTout');
+            if (tout) tout.addEventListener('click', function () {
+                document.querySelectorAll('#modalRetour input[data-max]').forEach(function (i) {
+                    if (!i.disabled) i.value = i.dataset.max;
+                });
+            });
+        })();
+    </script>
+}

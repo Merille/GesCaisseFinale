@@ -156,6 +156,9 @@ namespace EasytransitCaisse.Migrations
                     b.Property<int?>("ClientId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("CommandeOrigineId")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("DateCommande")
                         .HasColumnType("datetime2");
 
@@ -172,6 +175,10 @@ namespace EasytransitCaisse.Migrations
                     b.Property<decimal>("MontantRecu")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Motif")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
 
                     b.Property<string>("Numero")
                         .IsRequired()
@@ -201,6 +208,8 @@ namespace EasytransitCaisse.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CommandeOrigineId");
 
                     b.HasIndex("JourneeCaisseId");
 
@@ -357,6 +366,9 @@ namespace EasytransitCaisse.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int?>("LigneOrigineId")
+                        .HasColumnType("int");
+
                     b.Property<decimal>("PrixUnitaire")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
@@ -386,6 +398,8 @@ namespace EasytransitCaisse.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CommandePosId");
+
+                    b.HasIndex("LigneOrigineId");
 
                     b.ToTable("LignesCommandePos");
                 });

@@ -111,6 +111,9 @@ namespace EasytransitCaisse.Data
 
             modelBuilder.Entity<CommandePos>().Property(c => c.Numero).HasMaxLength(50);
             modelBuilder.Entity<CommandePos>().Property(c => c.CleClient).HasMaxLength(64);
+            modelBuilder.Entity<CommandePos>().Property(c => c.Motif).HasMaxLength(300);
+            modelBuilder.Entity<CommandePos>().HasIndex(c => c.CommandeOrigineId);
+            modelBuilder.Entity<LigneCommandePos>().HasIndex(l => l.LigneOrigineId);
 
             modelBuilder.Entity<Produit>()
                 .HasOne(p => p.Categorie)
