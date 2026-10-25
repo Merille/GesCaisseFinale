@@ -6,7 +6,14 @@ using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Rotativa.AspNetCore;
 
-var builder = WebApplication.CreateBuilder(args);
+// Racine du site : le dossier de démarrage s'il contient wwwroot, sinon le premier
+// dossier parent qui en contient un. Ainsi l'application trouve ses CSS, images et
+// wkhtmltopdf même lancée depuis bin\Debug\net10.0 (profil de lancement inadapté).
+var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+{
+    Args = args,
+    ContentRootPath = RacineDuSite()
+});
 
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddHttpContextAccessor();
@@ -94,3 +101,16 @@ app.MapControllerRoute(
     .WithStaticAssets();
 
 app.Run();
+
+static string RacineDuSite()
+{
+    foreach (var depart in new[] { Directory.GetCurrentDirectory(), AppContext.BaseDirectory })
+    {
+        for (var dossier = new DirectoryInfo(depart); dossier != null; dossier = dossier.Parent)
+        {
+            if (Directory.Exists(Path.Combine(dossier.FullName, "wwwroot")))
+                return dossier.FullName;
+        }
+    }
+    return Directory.GetCurrentDirectory();
+}
