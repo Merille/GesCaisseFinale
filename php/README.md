@@ -102,3 +102,11 @@ exportez chaque table depuis SQL Server (SSMS > Tâches > Exporter des données,
 puis importez les CSV dans les tables MySQL correspondantes via phpMyAdmin, en commençant par
 `Tenants`, puis `Utilisateurs`, `Caisses`, `Clients`, `Motifs`, `ModesPaiement`,
 `JourneesCaisses`, `OperationsCaisses`, `ComptagesCloture`, `Factures`, `LignesFactures`.
+
+## Données de démonstration du point de vente (base locale uniquement)
+
+`sql/demo/demo_pos_mysql.sql` crée 10 catégories, 30 produits, deux livraisons de stock et environ
+150 ventes sur les 14 derniers jours (une journée clôturée « -DEMO » par jour, sur la première
+caisse). À importer une seule fois dans phpMyAdmin, sur la base locale de test ;
+`sql/demo/demo_pos_supprimer_mysql.sql` retire ces données. Les mêmes scripts pour SQL Server
+(version .NET) sont dans le dossier `Scripts` à la racine. Ne pas envoyer `sql/demo` sur le serveur.
