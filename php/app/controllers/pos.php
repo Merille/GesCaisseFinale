@@ -70,6 +70,7 @@ function pos_index(): void
         'urlVendre' => url('pos/vendre'),
         'urlTicket' => url('pos/ticket') . '&id=',
         'urlVentes' => url('vente/index', ['journee' => $journee['Id']]),
+        'venteSansStock' => vente_sans_stock($tenant),
         'jeton' => ['nom' => '_csrf', 'valeur' => csrf_token()],
     ];
     render('pos/ecran', ['donnees' => $donnees], false);
@@ -185,6 +186,22 @@ function pos_vendre(): void
         // Les encaissements du point de vente sont validés d'office (vente payée et justifiée par le ticket).
         // Verrou sur la journée : numéros de ticket consécutifs même avec plusieurs caisses ouvertes.
         q('SELECT Id FROM JourneesCaisses WHERE Id = ? FOR UPDATE', [$journee['Id']]);
+        // Vente sans stock interdite (option de la société) : contrôle sous verrou des produits.
+        if (!vente_sans_stock($tenant)) {
+            $parProduit = [];
+            foreach ($lignes as $l) {
+                if ($l['produit']['SuiviStock']) {
+                    $parProduit[(int) $l['produit']['Id']] = ($parProduit[(int) $l['produit']['Id']] ?? 0) + $l['qte'];
+                }
+            }
+            foreach ($parProduit as $pid => $qte) {
+                $p = q1('SELECT Nom, StockActuel FROM Produits WHERE Id = ? FOR UPDATE', [$pid]);
+                if ((float) $p['StockActuel'] < $qte - 0.001) {
+                    db()->rollBack();
+                    pos_json(['erreur' => 'Stock insuffisant pour « ' . $p['Nom'] . ' » : ' . quantite_fr($p['StockActuel']) . ' disponible(s).'], 409);
+                }
+            }
+        }
         $rang = (int) qv('SELECT COUNT(*) FROM CommandesPos WHERE JourneeCaisseId = ?', [$journee['Id']]) + 1;
         $numero = sprintf('POS-%s-%s-%04d', $journee['ChkCode'], date('Ymd', strtotime($journee['DateJournee'])), $rang);
 
@@ -200,9 +217,7 @@ function pos_vendre(): void
                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
                 [$tenant, $commandeId, $l['produit']['Id'], $l['produit']['Nom'], $l['qte'], $l['prix'], $l['remise'], $l['taux'], $l['total']]
             );
-            if ($l['produit']['SuiviStock']) {
-                run('UPDATE Produits SET StockActuel = StockActuel - ? WHERE Id = ?', [$l['qte'], $l['produit']['Id']]);
-            }
+            mouvement_stock((int) $l['produit']['Id'], -$l['qte'], 'Vente', $numero, $commandeId);
         }
 
         $motif = qv("SELECT ID FROM Motifs WHERE LibelleMotif = 'Vente POS' AND TenantId = ?", [$tenant])

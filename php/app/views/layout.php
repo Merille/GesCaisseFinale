@@ -21,7 +21,7 @@ $nbJourneesOuvertes = (int) qv("SELECT COUNT(*) FROM JourneesCaisses WHERE Statu
 $rubrique = match ($module) {
     'dashboard', 'caisse', 'journee', 'client', 'facture' => 'Activité',
     'rapport' => 'Analyse',
-    'pos', 'vente', 'produit', 'categorie' => 'Point de vente',
+    'pos', 'vente', 'produit', 'categorie', 'stock' => 'Point de vente',
     'utilisateur', 'motif', 'modepaiement' => 'Paramètres',
     'tenant' => 'Administration',
     default => null,
@@ -106,6 +106,7 @@ $badge = $nbJourneesOuvertes > 0
             <?php if (is_admin()): ?>
                 <?= $lien('produit/index', 'produit', 'fa-box-open', 'Produits') ?>
                 <?= $lien('categorie/index', 'categorie', 'fa-tags', 'Catégories') ?>
+                <?= $lien('stock/index', 'stock', 'fa-warehouse', 'Stock') ?>
             <?php endif; ?>
         </div>
         <?php if (is_admin()): ?>

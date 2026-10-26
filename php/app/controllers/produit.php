@@ -101,7 +101,32 @@ function produit_erreur(array $v, int $idExclu = 0): ?string
     return null;
 }
 
-const PRODUIT_CHAMPS = ['Code', 'CodeBarres', 'Nom', 'CategorieId', 'PrixVente', 'TauxTVA', 'SuiviStock', 'StockActuel', 'SeuilAlerte', 'Actif'];
+// Champs enregistrés tels quels. Le stock n'en fait pas partie : il ne change que par des
+// mouvements (stock initial à la création, entrées, inventaires, ventes, retours).
+const PRODUIT_CHAMPS = ['Code', 'CodeBarres', 'Nom', 'CategorieId', 'PrixVente', 'TauxTVA', 'SuiviStock', 'SeuilAlerte', 'Actif'];
+
+/** Crée le produit puis enregistre son stock initial comme premier mouvement. */
+function produit_inserer(array $v, int $tenant): int
+{
+    db()->beginTransaction();
+    try {
+        $cols = implode(', ', PRODUIT_CHAMPS);
+        $marques = implode(', ', array_fill(0, count(PRODUIT_CHAMPS), '?'));
+        $id = run("INSERT INTO Produits ($cols, TenantId) VALUES ($marques, ?)", [...array_map(fn($c) => $v[$c], PRODUIT_CHAMPS), $tenant]);
+        mouvement_stock($id, (float) ($v['StockActuel'] ?? 0), 'Stock initial');
+        db()->commit();
+    } catch (Throwable $e) {
+        db()->rollBack();
+        throw $e;
+    }
+    return $id;
+}
+
+function produit_mettre_a_jour(array $v, int $id): void
+{
+    $set = implode(', ', array_map(fn($c) => "$c = ?", PRODUIT_CHAMPS));
+    run("UPDATE Produits SET $set WHERE Id = ?", [...array_map(fn($c) => $v[$c], PRODUIT_CHAMPS), $id]);
+}
 
 function produit_create(): void
 {
@@ -111,9 +136,7 @@ function produit_create(): void
         if ($e = produit_erreur($produit)) {
             flash('danger', $e);
         } else {
-            $cols = implode(', ', PRODUIT_CHAMPS);
-            $marques = implode(', ', array_fill(0, count(PRODUIT_CHAMPS), '?'));
-            run("INSERT INTO Produits ($cols, TenantId) VALUES ($marques, ?)", [...array_values($produit), tenant_insert()]);
+            produit_inserer($produit, tenant_insert());
             flash('success', 'Produit créé.');
             redirect('produit/index');
         }
@@ -127,12 +150,11 @@ function produit_edit(): void
     $produit = $existant;
     if (is_post()) {
         $produit = produit_valeurs() + ['Id' => $existant['Id']];
+        $produit['StockActuel'] = $existant['StockActuel'];
         if ($e = produit_erreur($produit, (int) $existant['Id'])) {
             flash('danger', $e);
         } else {
-            $set = implode(', ', array_map(fn($c) => "$c = ?", PRODUIT_CHAMPS));
-            $valeurs = array_map(fn($c) => $produit[$c], PRODUIT_CHAMPS);
-            run("UPDATE Produits SET $set WHERE Id = ?", [...$valeurs, $existant['Id']]);
+            produit_mettre_a_jour($produit, (int) $existant['Id']);
             flash('success', 'Produit modifié.');
             redirect('produit/index');
         }
@@ -228,14 +250,12 @@ function produit_import(): void
             $erreurs[] = "Ligne $n : $e";
             continue;
         }
+        // Produit existant : le stock du fichier est ignoré (il change par entrées et inventaires).
         if ($existant) {
-            $set = implode(', ', array_map(fn($c) => "$c = ?", PRODUIT_CHAMPS));
-            run("UPDATE Produits SET $set WHERE Id = ?", [...array_values($v), $existant['Id']]);
+            produit_mettre_a_jour($v, (int) $existant['Id']);
             $maj++;
         } else {
-            $cols = implode(', ', PRODUIT_CHAMPS);
-            $marques = implode(', ', array_fill(0, count(PRODUIT_CHAMPS), '?'));
-            run("INSERT INTO Produits ($cols, TenantId) VALUES ($marques, ?)", [...array_values($v), $tenant]);
+            produit_inserer($v, $tenant);
             $crees++;
         }
     }

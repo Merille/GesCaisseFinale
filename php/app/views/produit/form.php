@@ -47,7 +47,16 @@ require __DIR__ . '/../partials/form_debut.php';
                     </div>
                     <div class="form-text mt-0">Décochez pour un service (photocopie, recharge…).</div>
                 </div>
-                <div class="col-md-4"><label class="form-label" for="StockActuel">Quantité en stock</label><input class="form-control" id="StockActuel" name="StockActuel" inputmode="decimal" value="<?= $nombre('StockActuel') ?: '0' ?>"></div>
+                <?php if ($edition): ?>
+                    <div class="col-md-4">
+                        <div class="form-label">Quantité en stock</div>
+                        <div class="form-control-plaintext fw-bold py-1"><?= quantite_fr($produit['StockActuel'] ?? 0) ?>
+                            <a class="small fw-normal ms-2" href="<?= h(url('stock/index', ['produit' => $produit['Id'] ?? 0])) ?>">Historique</a></div>
+                        <div class="form-text mt-0">Modifiée par les entrées, inventaires et ventes (menu Stock).</div>
+                    </div>
+                <?php else: ?>
+                    <div class="col-md-4"><label class="form-label" for="StockActuel">Stock initial</label><input class="form-control" id="StockActuel" name="StockActuel" inputmode="decimal" value="<?= $nombre('StockActuel') ?: '0' ?>"></div>
+                <?php endif; ?>
                 <div class="col-md-4"><label class="form-label" for="SeuilAlerte">Seuil d'alerte</label><input class="form-control" id="SeuilAlerte" name="SeuilAlerte" inputmode="decimal" value="<?= $nombre('SeuilAlerte') ?>" placeholder="Ex : 5"></div>
                 <div class="col-12">
                     <div class="form-check">

@@ -72,8 +72,15 @@
     // ------------------------------------------------------------------
     // Actions
     // ------------------------------------------------------------------
+    // Vente sans stock interdite (option de la société) pour un produit suivi.
+    const stockBloque = (p, qteVoulue) => D.venteSansStock === false && p.suivi && qteVoulue > p.stock;
+
     function ajouterProduit(p) {
         const t = ticket();
+        if (stockBloque(p, quantiteAuTicket(p.id) + 1)) {
+            message('Stock épuisé pour « ' + p.nom + ' » : ' + qte(Math.max(0, p.stock)) + ' disponible(s).', true);
+            return;
+        }
         let i = t.lignes.findIndex(l => l.produitId === p.id && l.prix === p.prix && !l.remise);
         if (i >= 0) {
             t.lignes[i].qte += 1;
@@ -84,7 +91,7 @@
         t.choisie = i;
         mode = 'qte';
         saisie = null;
-        if (p.suivi && quantiteAuTicket(p.id) > p.stock) {
+        if (p.suivi && quantiteAuTicket(p.id) > p.stock && D.venteSansStock !== false) {
             message('Stock insuffisant pour « ' + p.nom + ' » : ' + qte(p.stock) + ' en stock.', true);
         }
         enregistrer();
@@ -124,6 +131,12 @@
             if (k === ',' && (saisie.match(/,/g) || []).length > 1) saisie = saisie.slice(0, -1);
         }
         const v = parseFloat((saisie || '0').replace(',', '.')) || 0;
+        const p = produits.get(l.produitId);
+        if (mode === 'qte' && p && stockBloque(p, quantiteAuTicket(p.id) - l.qte + v)) {
+            message('Stock insuffisant pour « ' + p.nom + ' » : ' + qte(Math.max(0, p.stock)) + ' disponible(s).', true);
+            saisie = saisie.slice(0, -1);
+            return;
+        }
         if (mode === 'qte') l.qte = v;
         else if (mode === 'remise') l.remise = Math.min(100, v);
         else if (mode === 'prix') l.prix = v;

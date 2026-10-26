@@ -234,7 +234,7 @@ function vente_retour(): void
                 [$vente['TenantId'], $retourId, $l['ProduitId'], $l['Libelle'], -$r['qte'], $l['PrixUnitaire'], $l['Remise'], $l['TauxTVA'], -$r['total'], $l['Id']]
             );
             if ($l['ProduitId']) {
-                run('UPDATE Produits SET StockActuel = StockActuel + ? WHERE Id = ? AND SuiviStock = 1', [$r['qte'], $l['ProduitId']]);
+                mouvement_stock((int) $l['ProduitId'], $r['qte'], 'Retour', $numero, $retourId, $motif);
             }
         }
         $motifId = qv("SELECT ID FROM Motifs WHERE LibelleMotif = 'Retour POS' AND TenantId = ?", [$vente['TenantId']])
@@ -294,7 +294,7 @@ function vente_annuler(): void
         );
         foreach (vente_lignes((int) $vente['Id']) as $l) {
             if ($l['ProduitId']) {
-                run('UPDATE Produits SET StockActuel = StockActuel + ? WHERE Id = ? AND SuiviStock = 1', [$l['Quantite'], $l['ProduitId']]);
+                mouvement_stock((int) $l['ProduitId'], (float) $l['Quantite'], 'Annulation', $vente['Numero'], (int) $vente['Id'], $motif);
             }
         }
         db()->commit();

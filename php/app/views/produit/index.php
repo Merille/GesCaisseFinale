@@ -21,9 +21,9 @@
         <a href="<?= h(url('produit/create')) ?>" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalCreation"><i class="fa fa-plus"></i> Nouveau produit</a>
     </div>
 </div>
-<p class="small text-muted mb-2">Import : un produit dont le code existe déjà est mis à jour, sinon il est créé ; une catégorie inconnue est créée. Colonnes dans l'ordre : <?= h(implode(', ', PRODUIT_COLONNES_EXCEL)) ?> (le plus simple est de partir d'un export).</p>
+<p class="small text-muted mb-2">Import : un produit dont le code existe déjà est mis à jour, sinon il est créé ; une catégorie inconnue est créée ; la colonne Stock ne sert qu'à la création (stock initial). Colonnes dans l'ordre : <?= h(implode(', ', PRODUIT_COLONNES_EXCEL)) ?> (le plus simple est de partir d'un export).</p>
 <?php if ($nbAlertes > 0): ?>
-    <div class="alert alert-warning py-2"><i class="fa fa-triangle-exclamation"></i> <?= $nbAlertes ?> produit(s) au niveau ou sous le seuil d'alerte de stock.</div>
+    <div class="alert alert-warning py-2"><i class="fa fa-triangle-exclamation"></i> <?= $nbAlertes ?> produit(s) au niveau ou sous le seuil d'alerte de stock. <a href="<?= h(url('stock/index')) ?>">Voir le stock</a></div>
 <?php endif; ?>
 <div class="card shadow-sm border-0">
     <div class="card-body table-responsive">

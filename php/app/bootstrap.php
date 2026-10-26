@@ -481,3 +481,31 @@ function pos_est_especes(array $mode): bool
     $texte = mb_strtolower(($mode['Code'] ?? '') . ' ' . ($mode['Libelle'] ?? ''));
     return (bool) preg_match('/\b(esp|espèces?|especes?|cash|liquide)\b/u', $texte);
 }
+
+/**
+ * Mouvement de stock d'un produit suivi : met à jour son stock et l'enregistre dans
+ * l'historique (quantité signée : + entrée, − sortie). Sans effet pour un produit
+ * dont le stock n'est pas suivi. À appeler dans la transaction de l'opération.
+ */
+function mouvement_stock(int $produitId, float $quantite, string $type, ?string $reference = null,
+                         ?int $commandeId = null, ?string $commentaire = null): void
+{
+    $p = q1('SELECT Id, TenantId, SuiviStock FROM Produits WHERE Id = ? FOR UPDATE', [$produitId]);
+    if (!$p || !$p['SuiviStock'] || abs($quantite) < 0.0001) {
+        return;
+    }
+    run('UPDATE Produits SET StockActuel = StockActuel + ? WHERE Id = ?', [$quantite, $produitId]);
+    run(
+        'INSERT INTO MouvementsStock (TenantId, ProduitId, DateMouvement, TypeMouvement, Quantite, StockApres,
+            Reference, CommandePosId, UtilisateurId, Commentaire)
+         VALUES (?, ?, NOW(), ?, ?, (SELECT StockActuel FROM Produits WHERE Id = ?), ?, ?, ?, ?)',
+        [$p['TenantId'], $produitId, $type, $quantite, $produitId, $reference, $commandeId, user()['id'] ?? null, $commentaire]
+    );
+}
+
+/** Option de la société : vente autorisée quand le stock est épuisé ? */
+function vente_sans_stock(int $tenant): bool
+{
+    return (bool) (qv('SELECT PosVenteSansStock FROM Tenants WHERE Id = ?', [$tenant]) ?? 1);
+}
+
