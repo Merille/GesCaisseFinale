@@ -34,7 +34,7 @@
     {
         "Dashboard" or "Caisse" or "JourneeCaisse" or "Client" => "Activité",
         "Rapport" => "Analyse",
-        "Pos" or "Vente" or "Produit" or "Categorie" or "Stock" => "Point de vente",
+        "Pos" or "Vente" or "Produit" or "Categorie" or "Stock" or "PosRapport" => "Point de vente",
         "Utilisateur" or "Motif" or "ModePaiement" => "Paramètres",
         "Tenant" => "Administration",
         _ => null
@@ -58,6 +58,7 @@
             "Produit" => "Produits",
             "Categorie" => "Catégories",
             "Stock" => "Stock",
+            "PosRapport" => "Rapports ventes",
             _ => "GesCaisse"
         };
     }
@@ -204,6 +205,10 @@
                     <a class="sb-link @(controller == "Stock" ? "active" : "")" href="/Stock/Index" title="Stock">
                         <i class="fas fa-warehouse"></i>
                         <span class="sb-label">Stock</span>
+                    </a>
+                    <a class="sb-link @(controller == "PosRapport" ? "active" : "")" href="/PosRapport/Index" title="Rapports ventes">
+                        <i class="fas fa-chart-pie"></i>
+                        <span class="sb-label">Rapports ventes</span>
                     </a>
                 }
             </div>

@@ -1,0 +1,124 @@
+@model EasytransitCaisse.Models.ViewModels.PosRapportVM
+@using System.Globalization
+@{
+    Layout = null;
+    var fr = new CultureInfo("fr-FR");
+    string Fcfa(decimal montant) => montant.ToString("N0", fr);
+    string Qte(decimal q) => q == Math.Floor(q) ? q.ToString("N0", fr) : q.ToString("N2", fr);
+    string Pct(decimal part) => Math.Round(part, 1, MidpointRounding.AwayFromZero).ToString("0.#", fr);
+}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8" />
+    <title>Rapport du point de vente</title>
+    <style>
+        body { font-family: Arial, sans-serif; font-size: 12px; color: #111; }
+        h1 { font-size: 19px; margin: 16px 0 10px; }
+        h2 { font-size: 15px; margin: 20px 0 6px; page-break-after: avoid; }
+        table { border-collapse: collapse; width: 100%; }
+        tr { page-break-inside: avoid; }
+        th, td { border: 1px solid #999; padding: 4px 6px; }
+        th { background: #195d84; color: #fff; text-align: left; }
+        .r { text-align: right; }
+        .entete { border-bottom: 3px solid #999997; padding-bottom: 8px; overflow: hidden; }
+        .entete strong { font-size: 17px; color: #195d84; }
+        .total td { font-weight: bold; background: #eef1f6; }
+        .muted { color: #666; }
+    </style>
+</head>
+<body>
+    <div class="entete">
+        <div style="float:left;"><strong>GesCaisse</strong><br />@Model.Societe</div>
+        <div style="float:right;text-align:right;">Édité le @DateTime.Now.ToString("dd/MM/yyyy à HH:mm")<br />par @Model.EditePar</div>
+    </div>
+
+    <h1>Rapport du point de vente</h1>
+    <p class="muted">Période : @Model.DateDebut.ToString("dd/MM/yyyy") au @Model.DateFin.ToString("dd/MM/yyyy") — Caisse : @(Model.CaisseLibelle ?? "toutes")</p>
+
+    <h2>Synthèse</h2>
+    <table>
+        <tr><td>Chiffre d'affaires net TTC</td><td class="r"><strong>@Fcfa(Model.ChiffreAffaires)</strong></td><td>Tickets de vente</td><td class="r">@Fcfa(Model.Tickets)</td></tr>
+        <tr><td>Chiffre d'affaires net HT</td><td class="r">@Fcfa(Model.ChiffreAffairesHT)</td><td>Panier moyen TTC</td><td class="r">@Fcfa(Model.PanierMoyen)</td></tr>
+        <tr><td>Ventes TTC</td><td class="r">@Fcfa(Model.Ventes)</td><td>Articles vendus (net)</td><td class="r">@Qte(Model.Articles)</td></tr>
+        <tr><td>Retours TTC</td><td class="r">@Fcfa(Model.Retours)</td><td>Retours / ventes annulées</td><td class="r">@Model.NbRetours / @Model.Annulees</td></tr>
+    </table>
+
+    <h2>Ventes par produit</h2>
+    <table>
+        <tr><th>#</th><th>Code</th><th>Produit</th><th>Catégorie</th><th class="r">Quantité</th><th class="r">CA TTC</th><th class="r">Part</th></tr>
+        @for (var i = 0; i < Model.Produits.Count; i++)
+        {
+            var p = Model.Produits[i];
+            <tr><td>@(i + 1)</td><td>@p.Code</td><td>@p.Nom</td><td>@p.Categorie</td><td class="r">@Qte(p.Quantite)</td><td class="r">@Fcfa(p.Montant)</td><td class="r">@Pct(Model.Part(p.Montant)) %</td></tr>
+        }
+        @if (Model.Produits.Count == 0)
+        {
+            <tr><td colspan="7" class="muted">Aucune vente sur la période.</td></tr>
+        }
+    </table>
+
+    <h2>Ventes par catégorie</h2>
+    <table>
+        <tr><th>Catégorie</th><th class="r">Quantité</th><th class="r">CA TTC</th><th class="r">Part</th></tr>
+        @foreach (var c in Model.Categories)
+        {
+            <tr><td>@c.Nom</td><td class="r">@Qte(c.Quantite)</td><td class="r">@Fcfa(c.Montant)</td><td class="r">@Pct(Model.Part(c.Montant)) %</td></tr>
+        }
+        @if (Model.Categories.Count == 0)
+        {
+            <tr><td colspan="4" class="muted">Aucune vente sur la période.</td></tr>
+        }
+    </table>
+
+    <h2>Ventes par vendeur</h2>
+    <table>
+        <tr><th>Vendeur</th><th class="r">Tickets</th><th class="r">Ventes TTC</th><th class="r">Retours TTC</th><th class="r">CA net TTC</th><th class="r">Panier moyen</th></tr>
+        @foreach (var v in Model.Vendeurs)
+        {
+            <tr><td>@v.Nom</td><td class="r">@v.Tickets</td><td class="r">@Fcfa(v.Ventes)</td><td class="r">@Fcfa(v.Retours)</td><td class="r">@Fcfa(v.Montant)</td><td class="r">@(v.PanierMoyen.HasValue ? Fcfa(v.PanierMoyen.Value) : "—")</td></tr>
+        }
+        @if (Model.Vendeurs.Count == 0)
+        {
+            <tr><td colspan="6" class="muted">Aucune vente sur la période.</td></tr>
+        }
+    </table>
+
+    <h2>Ventes par heure</h2>
+    <table>
+        <tr><th>Heure</th><th class="r">Tickets</th><th class="r">CA net TTC</th></tr>
+        @foreach (var h in Model.ParHeure)
+        {
+            <tr><td>@h.Heure.ToString("00")h - @(((h.Heure + 1) % 24).ToString("00"))h</td><td class="r">@h.Tickets</td><td class="r">@Fcfa(h.Montant)</td></tr>
+        }
+        @if (Model.ParHeure.Count == 0)
+        {
+            <tr><td colspan="3" class="muted">Aucune vente sur la période.</td></tr>
+        }
+    </table>
+
+    <h2>Ventes par jour</h2>
+    <table>
+        <tr><th>Date</th><th class="r">Tickets</th><th class="r">CA net TTC</th></tr>
+        @foreach (var j in Model.ParJour)
+        {
+            <tr><td>@j.Date.ToString("dd/MM/yyyy")</td><td class="r">@j.Tickets</td><td class="r">@Fcfa(j.Montant)</td></tr>
+        }
+        <tr class="total"><td>Total</td><td class="r">@Fcfa(Model.Tickets)</td><td class="r">@Fcfa(Model.ChiffreAffaires)</td></tr>
+    </table>
+
+    <h2>Encaissements par mode de paiement</h2>
+    <table>
+        <tr><th>Mode</th><th class="r">Tickets</th><th class="r">Encaissé net</th></tr>
+        @foreach (var m in Model.Modes)
+        {
+            <tr><td>@m.Nom</td><td class="r">@m.Tickets</td><td class="r">@Fcfa(m.Montant)</td></tr>
+        }
+        @if (Model.Modes.Count == 0)
+        {
+            <tr><td colspan="3" class="muted">Aucun encaissement sur la période.</td></tr>
+        }
+    </table>
+    <p class="muted">Chiffre d'affaires net = ventes − retours ; les ventes annulées sont exclues. Encaissements nets : remboursements des retours déduits.</p>
+</body>
+</html>

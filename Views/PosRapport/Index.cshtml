@@ -1,0 +1,289 @@
+@model EasytransitCaisse.Models.ViewModels.PosRapportVM
+@using System.Globalization
+@using System.Text.Json
+
+@{
+    ViewData["Title"] = "Rapports du point de vente";
+
+    var fr = new CultureInfo("fr-FR");
+    string Fcfa(decimal montant) => montant.ToString("N0", fr);
+    string Qte(decimal q) => q == Math.Floor(q) ? q.ToString("N0", fr) : q.ToString("N2", fr);
+    string S(decimal n) => n > 1 ? "s" : "";
+    string Pct(decimal part) => Math.Round(part, MidpointRounding.AwayFromZero).ToString("N0", fr);
+    int Largeur(decimal v, decimal max) => max > 0 ? (int)Math.Max(0, Math.Round(v * 100 / max, MidpointRounding.AwayFromZero)) : 0;
+
+    var auj = DateTime.Today;
+    var moisDernier = new DateTime(auj.Year, auj.Month, 1).AddMonths(-1);
+    var periodes = new (string Libelle, DateTime Du, DateTime Au)[]
+    {
+        ("Aujourd'hui", auj, auj),
+        ("7 jours", auj.AddDays(-6), auj),
+        ("Ce mois", new DateTime(auj.Year, auj.Month, 1), auj),
+        ("Mois dernier", moisDernier, moisDernier.AddMonths(1).AddDays(-1))
+    };
+    var filtres = new { dateDebut = Model.DateDebut.ToString("yyyy-MM-dd"), dateFin = Model.DateFin.ToString("yyyy-MM-dd"), caisseId = Model.CaisseId };
+
+    var maxCategorie = Model.Categories.Select(c => c.Montant).DefaultIfEmpty(0).Max();
+    var maxMode = Model.Modes.Select(m => m.Montant).DefaultIfEmpty(0).Max();
+    var top = Model.Produits.Take(10).ToList();
+    var maxTop = top.Select(p => p.Montant).DefaultIfEmpty(0).Max();
+
+    // Heures : de la première à la dernière heure de vente, les heures creuses à zéro.
+    var heures = new List<object>();
+    if (Model.ParHeure.Count > 0)
+    {
+        var index = Model.ParHeure.ToDictionary(h => h.Heure);
+        for (var h = Model.ParHeure.Min(x => x.Heure); h <= Model.ParHeure.Max(x => x.Heure); h++)
+        {
+            index.TryGetValue(h, out var p);
+            heures.Add(new { l = h.ToString("00") + "h", ca = p?.Montant ?? 0, t = p?.Tickets ?? 0 });
+        }
+    }
+    var jours = Model.ParJour.Select(j => new { l = j.Date.ToString("dd/MM"), ca = j.Montant, t = j.Tickets }).ToList();
+}
+
+<link rel="stylesheet" href="~/css/dashboard.css" asp-append-version="true" />
+
+<div class="container-fluid d-flex flex-column gap-4">
+
+    <form asp-action="Index" method="get" class="db-card p-3">
+        <div class="d-flex flex-wrap align-items-end gap-3">
+            <div>
+                <div class="form-label small fw-semibold text-muted mb-1">Période</div>
+                <nav class="db-periodes flex-wrap" aria-label="Période">
+                    @foreach (var p in periodes)
+                    {
+                        <a href="@Url.Action("Index", new { dateDebut = p.Du.ToString("yyyy-MM-dd"), dateFin = p.Au.ToString("yyyy-MM-dd"), caisseId = Model.CaisseId })"
+                           class="@(Model.DateDebut == p.Du && Model.DateFin == p.Au ? "active" : "")">@p.Libelle</a>
+                    }
+                </nav>
+            </div>
+            <div><label for="dateDebut" class="form-label small fw-semibold text-muted mb-1">Du</label><input id="dateDebut" name="dateDebut" type="date" class="form-control" value="@Model.DateDebut.ToString("yyyy-MM-dd")" /></div>
+            <div><label for="dateFin" class="form-label small fw-semibold text-muted mb-1">Au</label><input id="dateFin" name="dateFin" type="date" class="form-control" value="@Model.DateFin.ToString("yyyy-MM-dd")" /></div>
+            <div>
+                <label for="caisseId" class="form-label small fw-semibold text-muted mb-1">Caisse</label>
+                <select id="caisseId" name="caisseId" class="form-select" asp-items="ViewBag.Caisses">
+                    <option value="">-- Toutes les caisses --</option>
+                </select>
+            </div>
+            <button class="btn btn-outline-primary"><i class="fa fa-search"></i> Filtrer</button>
+            <div class="ms-auto d-flex gap-2">
+                <a class="btn btn-success fw-semibold" href="@Url.Action("Excel", filtres)"><i class="fa fa-file-excel"></i> Excel</a>
+                <a class="btn btn-outline-secondary fw-semibold" href="@Url.Action("Pdf", filtres)" target="_blank"><i class="fa fa-file-pdf"></i> PDF</a>
+            </div>
+        </div>
+        <div class="small text-muted mt-2">
+            Du <strong class="db-num text-dark">@Model.DateDebut.ToString("dd/MM/yyyy")</strong> au <strong class="db-num text-dark">@Model.DateFin.ToString("dd/MM/yyyy")</strong>
+            · Chiffre d'affaires net = ventes − retours, ventes annulées exclues.
+        </div>
+    </form>
+
+    <div class="row g-4">
+        <div class="col-md-6 col-xl-3">
+            <section class="db-solde p-4 h-100 d-flex flex-column gap-2">
+                <span class="db-label">Chiffre d'affaires net</span>
+                <div class="db-num fw-bold" style="font-size:28px;line-height:1.1;">@Fcfa(Model.ChiffreAffaires) <span class="db-muted text-nowrap" style="font-size:15px;">FCFA TTC</span></div>
+                <div class="small db-muted mt-auto pt-2" style="border-top:1px solid #2f6d92;">HT : <strong class="db-num text-white">@Fcfa(Model.ChiffreAffairesHT)</strong> FCFA</div>
+            </section>
+        </div>
+        @foreach (var (lib, val, unite, sous) in new[]
+        {
+            ("Tickets de vente", Fcfa(Model.Tickets), "", $"{Qte(Model.Articles)} article{S(Model.Articles)} vendu{S(Model.Articles)}"),
+            ("Panier moyen", Fcfa(Model.PanierMoyen), "FCFA TTC", $"Ventes : {Fcfa(Model.Ventes)} FCFA"),
+            ("Retours", Fcfa(Model.Retours), "FCFA TTC", $"{Model.NbRetours} retour{S(Model.NbRetours)} · {Model.Annulees} vente{S(Model.Annulees)} annulée{S(Model.Annulees)}")
+        })
+        {
+            <div class="col-md-6 col-xl-3">
+                <section class="db-card p-4 h-100 d-flex flex-column gap-2">
+                    <span class="db-label">@lib</span>
+                    <div class="db-num fw-bold" style="font-size:28px;line-height:1.1;">@val <span class="text-muted fw-normal" style="font-size:15px;">@unite</span></div>
+                    <div class="small text-muted border-top pt-2 mt-auto">@sous</div>
+                </section>
+            </div>
+        }
+    </div>
+
+    <div class="row g-4">
+        <div class="col-xl-8">
+            <section class="db-card p-4 h-100 d-flex flex-column gap-3">
+                <h2>Chiffre d'affaires par jour</h2>
+                @if (jours.Count == 0)
+                {
+                    <p class="text-muted small m-0 py-5 text-center">Aucune vente sur la période.</p>
+                }
+                else
+                {
+                    <div style="position:relative;height:260px;"><canvas id="chartJours" role="img" aria-label="Chiffre d'affaires par jour"></canvas></div>
+                }
+            </section>
+        </div>
+        <div class="col-xl-4">
+            <section class="db-card p-4 h-100 d-flex flex-column gap-3">
+                <h2>Encaissements nets par mode</h2>
+                @if (Model.Modes.Count == 0)
+                {
+                    <p class="text-muted small m-0">Aucun encaissement sur la période.</p>
+                }
+                @foreach (var m in Model.Modes)
+                {
+                    <div>
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span class="fw-semibold">@m.Nom</span>
+                            <span class="db-num text-muted">@m.Tickets ticket@(S(m.Tickets)) · <strong class="text-dark">@Fcfa(m.Montant)</strong></span>
+                        </div>
+                        <div class="db-bar"><div style="width:@(Largeur(m.Montant, maxMode))%"></div></div>
+                    </div>
+                }
+            </section>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-xl-6">
+            <section class="db-card p-4 h-100 d-flex flex-column gap-3">
+                <h2>Ventes par heure</h2>
+                @if (heures.Count == 0)
+                {
+                    <p class="text-muted small m-0 py-5 text-center">Aucune vente sur la période.</p>
+                }
+                else
+                {
+                    <div style="position:relative;height:240px;"><canvas id="chartHeures" role="img" aria-label="Chiffre d'affaires par heure"></canvas></div>
+                }
+            </section>
+        </div>
+        <div class="col-xl-6">
+            <section class="db-card p-4 h-100 d-flex flex-column gap-3">
+                <h2>Ventes par catégorie</h2>
+                @if (Model.Categories.Count == 0)
+                {
+                    <p class="text-muted small m-0">Aucune vente sur la période.</p>
+                }
+                @foreach (var c in Model.Categories)
+                {
+                    <div>
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span class="fw-semibold"><span class="d-inline-block rounded-circle me-2" style="width:10px;height:10px;background:@(string.IsNullOrEmpty(c.Couleur) ? "#999997" : c.Couleur);"></span>@c.Nom</span>
+                            <span class="db-num text-muted">@Qte(c.Quantite) art. · <strong class="text-dark">@Fcfa(c.Montant)</strong> · @Pct(Model.Part(c.Montant)) %</span>
+                        </div>
+                        <div class="db-bar"><div style="width:@(Largeur(c.Montant, maxCategorie))%"></div></div>
+                    </div>
+                }
+            </section>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-xl-6">
+            <section class="db-card p-4 h-100 d-flex flex-column gap-3">
+                <h2>Meilleures ventes</h2>
+                @if (top.Count == 0)
+                {
+                    <p class="text-muted small m-0">Aucune vente sur la période.</p>
+                }
+                @for (var i = 0; i < top.Count; i++)
+                {
+                    var p = top[i];
+                    <div class="d-flex align-items-center gap-3">
+                        <span class="db-num fw-bold text-muted" style="width:22px;">@(i + 1)</span>
+                        <div class="flex-grow-1">
+                            <div class="d-flex justify-content-between small mb-1">
+                                <span class="fw-semibold">@p.Nom</span>
+                                <span class="db-num text-muted">@Qte(p.Quantite) vendu@(S(p.Quantite)) · <strong class="text-dark">@Fcfa(p.Montant)</strong></span>
+                            </div>
+                            <div class="db-bar"><div style="width:@(Largeur(p.Montant, maxTop))%"></div></div>
+                        </div>
+                    </div>
+                }
+            </section>
+        </div>
+        <div class="col-xl-6">
+            <section class="db-card p-4 h-100">
+                <h2 class="mb-3">Ventes par vendeur</h2>
+                <div class="table-responsive">
+                    <table class="table align-middle small db-table mb-0">
+                        <thead><tr><th>Vendeur</th><th class="text-end">Tickets</th><th class="text-end">Retours</th><th class="text-end">CA net</th><th class="text-end">Panier moyen</th></tr></thead>
+                        <tbody>
+                            @if (Model.Vendeurs.Count == 0)
+                            {
+                                <tr><td colspan="5" class="text-center text-muted py-4">Aucune vente sur la période.</td></tr>
+                            }
+                            @foreach (var v in Model.Vendeurs)
+                            {
+                                <tr>
+                                    <td class="fw-semibold">@v.Nom</td>
+                                    <td class="db-num text-end">@v.Tickets</td>
+                                    <td class="db-num text-end text-muted">@Fcfa(v.Retours)</td>
+                                    <td class="db-num text-end fw-bold">@Fcfa(v.Montant)</td>
+                                    <td class="db-num text-end">@(v.PanierMoyen.HasValue ? Fcfa(v.PanierMoyen.Value) : "—")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <section class="db-card p-4">
+        <div class="d-flex align-items-center mb-3">
+            <h2 class="flex-grow-1">Ventes par produit</h2>
+            <span class="small text-muted">@Model.Produits.Count produit@(S(Model.Produits.Count))</span>
+        </div>
+        <div class="table-responsive" style="max-height:460px;">
+            <table class="table table-hover align-middle small db-table mb-0">
+                <thead class="sticky-top bg-white"><tr><th>#</th><th>Code</th><th>Produit</th><th>Catégorie</th><th class="text-end">Quantité</th><th class="text-end">CA TTC</th><th class="text-end">Part</th></tr></thead>
+                <tbody>
+                    @if (Model.Produits.Count == 0)
+                    {
+                        <tr><td colspan="7" class="text-center text-muted py-4">Aucune vente sur la période.</td></tr>
+                    }
+                    @for (var i = 0; i < Model.Produits.Count; i++)
+                    {
+                        var p = Model.Produits[i];
+                        <tr>
+                            <td class="db-num text-muted">@(i + 1)</td>
+                            <td class="db-num text-muted">@p.Code</td>
+                            <td class="fw-semibold">@p.Nom</td>
+                            <td>@p.Categorie</td>
+                            <td class="db-num text-end">@Qte(p.Quantite)</td>
+                            <td class="db-num text-end fw-bold">@Fcfa(p.Montant)</td>
+                            <td class="db-num text-end text-muted">@Pct(Model.Part(p.Montant)) %</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            const fmt = new Intl.NumberFormat('fr-FR');
+            const graphique = (id, points) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                new Chart(el, {
+                    type: 'bar',
+                    data: {
+                        labels: points.map((p) => p.l),
+                        datasets: [{ label: "Chiffre d'affaires", data: points.map((p) => p.ca), backgroundColor: '#195d84', borderRadius: 4, maxBarThickness: 26 }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: { callbacks: { label: (c) => fmt.format(c.parsed.y) + ' FCFA · ' + points[c.dataIndex].t + ' ticket' + (points[c.dataIndex].t > 1 ? 's' : '') } }
+                        },
+                        scales: { x: { grid: { display: false } }, y: { beginAtZero: true, ticks: { callback: (v) => fmt.format(v) } } }
+                    }
+                });
+            };
+            // Données en JSON : format invariant, indépendant de la culture du serveur.
+            graphique('chartJours', @Html.Raw(JsonSerializer.Serialize(jours)));
+            graphique('chartHeures', @Html.Raw(JsonSerializer.Serialize(heures)));
+        })();
+    </script>
+}
