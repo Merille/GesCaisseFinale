@@ -18,7 +18,13 @@ namespace EasytransitCaisse.Controllers
         // Colonnes du fichier Excel (export et import), dans cet ordre.
         public static readonly string[] ColonnesExcel =
         {
-            "Code", "Nom", "Catégorie", "Code-barres", "Prix TTC", "Taxes", "Suivi stock", "Stock", "Seuil alerte", "Actif"
+            "Code", "Nom", "Catégorie", "Code-barres", "Prix TTC", "Taxes", "Suivi stock", "Stock", "Seuil alerte", "Actif", "Unité", "Coût"
+        };
+
+        // Unités de vente proposées (la saisie reste libre).
+        public static readonly string[] Unites =
+        {
+            "Unité", "Pièce", "Kg", "g", "Litre", "cl", "Mètre", "Carton", "Paquet", "Boîte", "Sac", "Bouteille", "Page", "Heure"
         };
 
         private const string MessageSociete = "Choisissez d'abord la société concernée dans le menu « Société consultée », puis recommencez.";
@@ -72,8 +78,8 @@ namespace EasytransitCaisse.Controllers
         {
             if (string.IsNullOrWhiteSpace(p.Code) || string.IsNullOrWhiteSpace(p.Nom))
                 return "Le code et le nom du produit sont obligatoires.";
-            if (p.PrixVente < 0)
-                return "Le prix doit être positif.";
+            if (p.PrixVente < 0 || p.Cout < 0)
+                return "Le prix et le coût doivent être positifs.";
             if (_context.Produits.Any(x => x.Code == p.Code && x.Id != idExclu))
                 return $"Le code « {p.Code} » est déjà utilisé par un autre produit.";
             if (!string.IsNullOrEmpty(p.CodeBarres) && _context.Produits.Any(x => x.CodeBarres == p.CodeBarres && x.Id != idExclu))
@@ -89,6 +95,7 @@ namespace EasytransitCaisse.Controllers
             p.PrixVente = Nombre(Champ("PrixVente")) ?? 0;
             p.StockActuel = Nombre(Champ("StockActuel")) ?? 0;
             p.SeuilAlerte = Nombre(Champ("SeuilAlerte"));
+            p.Cout = Nombre(Champ("Cout"));
         }
 
         private void Nettoyer(Produit p)
@@ -96,6 +103,7 @@ namespace EasytransitCaisse.Controllers
             p.Code = (p.Code ?? "").Trim();
             p.Nom = (p.Nom ?? "").Trim();
             p.CodeBarres = string.IsNullOrWhiteSpace(p.CodeBarres) ? null : p.CodeBarres.Trim();
+            p.Unite = string.IsNullOrWhiteSpace(p.Unite) ? "Unité" : p.Unite.Trim()[..Math.Min(20, p.Unite.Trim().Length)];
             if (p.CategorieId != null && !_context.Categories.Any(c => c.Id == p.CategorieId))
                 p.CategorieId = null;
         }
@@ -109,11 +117,12 @@ namespace EasytransitCaisse.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(Produit produit, int[] taxes)
+        public async Task<IActionResult> Create(Produit produit, int[] taxes, IFormFile? image)
         {
             LireNombres(produit);
             Nettoyer(produit);
-            var erreur = _tenant.TenantId == 0 ? MessageSociete : Erreur(produit);
+            var photo = Images.Lire(image, out var erreurImage);
+            var erreur = _tenant.TenantId == 0 ? MessageSociete : Erreur(produit) ?? erreurImage;
             if (erreur != null)
             {
                 ViewBag.Erreur = erreur;
@@ -123,6 +132,8 @@ namespace EasytransitCaisse.Controllers
             }
 
             await CreerAvecStockInitial(produit, taxes);
+            _context.EnregistrerImage(produit, photo, false);
+            await _context.SaveChangesAsync();
             TempData["Success"] = "Produit créé.";
             return RedirectToAction("Index");
         }
@@ -156,7 +167,7 @@ namespace EasytransitCaisse.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Edit(int id, Produit saisi, int[] taxes)
+        public IActionResult Edit(int id, Produit saisi, int[] taxes, IFormFile? image, bool supprimerImage)
         {
             var produit = _context.Produits.FirstOrDefault(p => p.Id == id);
             if (produit == null)
@@ -164,10 +175,13 @@ namespace EasytransitCaisse.Controllers
 
             LireNombres(saisi);
             Nettoyer(saisi);
-            var erreur = Erreur(saisi, id);
+            var photo = Images.Lire(image, out var erreurImage);
+            var erreur = Erreur(saisi, id) ?? erreurImage;
             if (erreur != null)
             {
                 saisi.Id = id;
+                saisi.ImageMaj = produit.ImageMaj;
+                saisi.StockActuel = produit.StockActuel;
                 ViewBag.Erreur = erreur;
                 ChargerCategories();
                 ViewBag.TaxesCochees = taxes;
@@ -182,7 +196,10 @@ namespace EasytransitCaisse.Controllers
             produit.SuiviStock = saisi.SuiviStock;
             produit.SeuilAlerte = saisi.SeuilAlerte;
             produit.Actif = saisi.Actif;
+            produit.Cout = saisi.Cout;
+            produit.Unite = saisi.Unite;
             _context.EnregistrerTaxes(produit, taxes);
+            _context.EnregistrerImage(produit, photo, supprimerImage);
             _context.SaveChanges();
             TempData["Success"] = "Produit modifié.";
             return RedirectToAction("Index");
@@ -233,6 +250,9 @@ namespace EasytransitCaisse.Controllers
                 if (p.SeuilAlerte.HasValue)
                     sheet.Cell(r, 9).Value = p.SeuilAlerte.Value;
                 sheet.Cell(r, 10).Value = p.Actif ? "Oui" : "Non";
+                sheet.Cell(r, 11).Value = p.Unite;
+                if (p.Cout.HasValue)
+                    sheet.Cell(r, 12).Value = p.Cout.Value;
             }
             sheet.Columns().AdjustToContents();
 
@@ -371,6 +391,8 @@ namespace EasytransitCaisse.Controllers
                         StockActuel = Nombre(Col(8)) ?? 0,
                         SeuilAlerte = Nombre(Col(9)),
                         Actif = Booleen(Col(10), true),
+                        Unite = Col(11),
+                        Cout = Nombre(Col(12)),
                     };
                     Nettoyer(saisi);
 
@@ -391,6 +413,11 @@ namespace EasytransitCaisse.Controllers
                         existant.SuiviStock = saisi.SuiviStock;
                         existant.SeuilAlerte = saisi.SeuilAlerte;
                         existant.Actif = saisi.Actif;
+                        // Cellules Unité / Coût vides (ex. fichier d'une version précédente) : valeurs actuelles conservées.
+                        if (Col(11) != "")
+                            existant.Unite = saisi.Unite;
+                        if (Col(12) != "")
+                            existant.Cout = saisi.Cout;
                         // Colonne Taxes vide : taxes inchangées.
                         if (taxes != null)
                             _context.EnregistrerTaxes(existant, taxes);

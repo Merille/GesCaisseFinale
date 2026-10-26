@@ -44,24 +44,14 @@
 </head>
 
 <body>
-    @Html.Raw(System.Net.WebUtility.HtmlDecode(@"
-        <div style='display:flex; justify-content:space-between; margin-bottom:20px;'>
-
-            <div>
-                <h3 style='margin:0;'>EASYTRANSIT CAISSE</h3>
-                <p style='margin:0;'>BP : 1234</p>
-                <p style='margin:0;'>Tel : +242 06 000 0000</p>
-                <p style='margin:0;'>Email : contact@easytransit.com</p>
-            </div>
-
-            <div style='text-align:right;'>
-                <h4 style='margin:0;'>RÉPUBLIQUE GABONAISE</h4>
-                <p style='margin:0;'>Union - Travail - Justice</p>
-            </div>
-
+    <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
+        <partial name="_EnTeteSociete" model="(int?)Model.Facture.TenantId" />
+        <div style="text-align:right;">
+            <h4 style="margin:0;">RÉPUBLIQUE GABONAISE</h4>
+            <p style="margin:0;">Union - Travail - Justice</p>
         </div>
-        <hr />
-        "))
+    </div>
+    <hr />
     <div class="header">
         <h2>FACTURE</h2>
         <h4>N° @Model.Facture.Numero</h4>

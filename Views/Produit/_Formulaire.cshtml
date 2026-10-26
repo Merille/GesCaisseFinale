@@ -44,6 +44,52 @@
         <input class="form-control" id="PrixVente" name="PrixVente" inputmode="decimal" value="@Nombre(Model.Id == 0 && Model.PrixVente == 0 ? null : Model.PrixVente)" required />
     </div>
     <div class="col-md-4">
+        <label class="form-label" for="Unite">Unité de vente</label>
+        <input class="form-control" id="Unite" name="Unite" value="@(string.IsNullOrEmpty(Model.Unite) ? "Unité" : Model.Unite)" list="unites" maxlength="20" placeholder="Ex : Kg, Litre, Carton" />
+        <datalist id="unites">
+            @foreach (var u in EasytransitCaisse.Controllers.ProduitController.Unites)
+            {
+                <option value="@u"></option>
+            }
+        </datalist>
+        <div class="form-text">Le prix TTC s'entend pour une unité.</div>
+    </div>
+    <div class="col-md-4">
+        <label class="form-label" for="Cout">Coût d'achat HT (FCFA)</label>
+        <input class="form-control" id="Cout" name="Cout" inputmode="decimal" value="@Nombre(Model.Cout)" placeholder="Facultatif" />
+        @if (Model.Cout.HasValue && Model.PrixVente > 0)
+        {
+            var ht = Model.PrixVente / (1 + Model.TauxTVA / 100);
+            var marge = ht - Model.Cout.Value;
+            <div class="form-text">Marge : <strong class="@(marge < 0 ? "text-danger" : "")">@marge.ToString("N0", new CultureInfo("fr-FR")) FCFA</strong> par unité (@(ht > 0 ? Math.Round(marge * 100 / ht, 1).ToString("0.#", new CultureInfo("fr-FR")) : "0") % du prix HT).</div>
+        }
+        else
+        {
+            <div class="form-text">Sert au calcul de la marge.</div>
+        }
+    </div>
+    <div class="col-md-4">
+        <label class="form-label" for="Image">Image du produit</label>
+        <div class="d-flex align-items-center gap-2">
+            @if (EasytransitCaisse.Data.Images.UrlImage(Model) is string image)
+            {
+                <img src="@image" alt="Image actuelle" class="vignette-image" />
+            }
+            <input class="form-control" type="file" id="Image" name="Image" accept="image/png,image/jpeg,image/webp,image/gif" />
+        </div>
+        @if (Model.ImageMaj.HasValue)
+        {
+            <div class="form-check mt-1">
+                <input class="form-check-input" type="checkbox" value="true" id="SupprimerImage" name="SupprimerImage" />
+                <label class="form-check-label" for="SupprimerImage">Retirer l'image</label>
+            </div>
+        }
+        else
+        {
+            <div class="form-text">JPG, PNG, WEBP ou GIF, 1 Mo au plus.</div>
+        }
+    </div>
+    <div class="col-md-4">
         <div class="form-label">Taxes</div>
         <div class="d-flex flex-wrap gap-2" role="group" aria-label="Taxes du produit">
             @foreach (var t in taxes)

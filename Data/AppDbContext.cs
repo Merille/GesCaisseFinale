@@ -153,6 +153,19 @@ namespace EasytransitCaisse.Data
                 .HasForeignKey(t => t.LigneCommandePosId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            // Images (logo de société, photo de produit).
+            modelBuilder.Entity<TenantLogo>()
+                .HasOne<Tenant>().WithOne().HasForeignKey<TenantLogo>(l => l.TenantId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ProduitImage>()
+                .HasOne<Produit>().WithOne().HasForeignKey<ProduitImage>(i => i.ProduitId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Produit>()
+                .Property(p => p.Unite)
+                .HasDefaultValue("Unité");
+
             modelBuilder.Entity<Tenant>()
                 .Property(t => t.PosVenteSansStock)
                 .HasDefaultValue(true);
@@ -228,5 +241,9 @@ namespace EasytransitCaisse.Data
         public DbSet<ProduitTaxe> ProduitTaxes { get; set; }
 
         public DbSet<LigneCommandePosTaxe> LignesCommandePosTaxes { get; set; }
+
+        public DbSet<TenantLogo> TenantLogos { get; set; }
+
+        public DbSet<ProduitImage> ProduitImages { get; set; }
     }
 }

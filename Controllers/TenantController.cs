@@ -31,17 +31,43 @@ namespace EasytransitCaisse.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Create(Tenant tenant)
+        public IActionResult Create(Tenant tenant, IFormFile? logo)
         {
+            var image = Images.Lire(logo, out var erreurImage);
+            var erreur = ErreurCoordonnees(tenant) ?? erreurImage;
+            if (erreur != null)
+                ModelState.AddModelError("", erreur);
             if (!ModelState.IsValid)
                 return View(tenant);
 
+            NettoyerCoordonnees(tenant);
             _context.Tenants.Add(tenant);
             _context.SaveChanges();
             _context.AjouterTaxesInitiales(tenant.Id);
+            _context.EnregistrerLogo(tenant, image, false);
             _context.SaveChanges();
 
             return RedirectToAction(nameof(Index));
+        }
+
+        private static string? ErreurCoordonnees(Tenant t)
+        {
+            if (string.IsNullOrWhiteSpace(t.Nom) || string.IsNullOrWhiteSpace(t.Code))
+                return "Le nom et le code sont obligatoires.";
+            if (!string.IsNullOrWhiteSpace(t.Email) && !new System.ComponentModel.DataAnnotations.EmailAddressAttribute().IsValid(t.Email.Trim()))
+                return "L'adresse e-mail n'est pas valide.";
+            return null;
+        }
+
+        private static void NettoyerCoordonnees(Tenant t)
+        {
+            string? Texte(string? v) => string.IsNullOrWhiteSpace(v) ? null : v.Trim();
+            t.Adresse = Texte(t.Adresse);
+            t.Ville = Texte(t.Ville);
+            t.Pays = Texte(t.Pays);
+            t.Email = Texte(t.Email);
+            t.Telephone = Texte(t.Telephone);
+            t.NIF = Texte(t.NIF);
         }
 
         public IActionResult Edit(int id)
@@ -56,18 +82,35 @@ namespace EasytransitCaisse.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Edit(Tenant tenant)
+        public IActionResult Edit(Tenant tenant, IFormFile? logo, bool supprimerLogo)
         {
             var existing = _context.Tenants.Find(tenant.Id);
 
             if (existing == null)
                 return NotFound();
 
+            var image = Images.Lire(logo, out var erreurImage);
+            var erreur = ErreurCoordonnees(tenant) ?? erreurImage;
+            if (erreur != null)
+            {
+                ModelState.AddModelError("", erreur);
+                tenant.LogoMaj = existing.LogoMaj;
+                return View(tenant);
+            }
+
+            NettoyerCoordonnees(tenant);
             existing.Nom = tenant.Nom;
             existing.Code = tenant.Code;
             existing.Actif = tenant.Actif;
             existing.ModeAcces = tenant.ModeAcces;
             existing.DateExpiration = tenant.DateExpiration;
+            existing.Adresse = tenant.Adresse;
+            existing.Ville = tenant.Ville;
+            existing.Pays = tenant.Pays;
+            existing.Email = tenant.Email;
+            existing.Telephone = tenant.Telephone;
+            existing.NIF = tenant.NIF;
+            _context.EnregistrerLogo(existing, image, supprimerLogo);
 
             _context.SaveChanges();
 

@@ -32,7 +32,18 @@
                 {
                     <tr>
                         <td>@t.Code</td>
-                        <td>@t.Nom</td>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                @if (EasytransitCaisse.Data.Images.UrlLogo(t) is string logo)
+                                {
+                                    <img src="@logo" alt="" class="vignette-image vignette-petite" />
+                                }
+                                <div>
+                                    <div class="fw-semibold">@t.Nom</div>
+                                    <div class="small text-muted">@string.Join(" · ", new[] { t.Ville, t.Telephone, string.IsNullOrEmpty(t.NIF) ? null : "NIF " + t.NIF }.Where(x => !string.IsNullOrEmpty(x)))</div>
+                                </div>
+                            </div>
+                        </td>
                         <td>@t.ModeAcces</td>
                         <td>
                             @(t.DateExpiration?.ToString("dd/MM/yyyy") ?? "Illimitée")

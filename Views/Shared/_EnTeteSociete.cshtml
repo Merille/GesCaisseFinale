@@ -1,0 +1,25 @@
+@model int?
+@inject EasytransitCaisse.Data.AppDbContext Db
+@inject EasytransitCaisse.Services.ITenantProvider TenantCourant
+@using EasytransitCaisse.Data
+@using Microsoft.EntityFrameworkCore
+@* En-tête des impressions : logo et coordonnées de la société (celle indiquée, sinon la société courante).
+   Le logo est intégré à la page : il s'affiche aussi dans les PDF générés par wkhtmltopdf. *@
+@{
+    var id = Model ?? TenantCourant.TenantId;
+    var societe = id > 0 ? Db.Tenants.AsNoTracking().FirstOrDefault(t => t.Id == id) : null;
+    var logo = societe?.LogoMaj != null ? Db.LogoIntegre(societe.Id) : null;
+}
+<div style="display:flex; gap:12px; align-items:center;">
+    @if (logo != null)
+    {
+        <img src="@logo" alt="" style="max-height:64px; max-width:140px;" />
+    }
+    <div>
+        <h3 style="margin:0;">@(societe?.Nom ?? "GesCaisse")</h3>
+        @foreach (var ligne in Images.Coordonnees(societe))
+        {
+            <p style="margin:0;">@ligne</p>
+        }
+    </div>
+</div>

@@ -53,9 +53,10 @@ namespace EasytransitCaisse.Controllers
 
             // Catalogue de la société de la journée (aussi pour le SuperAdmin en mode « toutes »).
             var tenant = j.TenantId;
-            var produits = await _context.Produits
+            var produits = (await _context.Produits
                 .Where(p => p.Actif && p.TenantId == tenant)
                 .OrderBy(p => p.Nom)
+                .ToListAsync())
                 .Select(p => new
                 {
                     id = p.Id,
@@ -67,9 +68,11 @@ namespace EasytransitCaisse.Controllers
                     tva = p.TauxTVA,
                     suivi = p.SuiviStock,
                     stock = p.StockActuel,
-                    seuil = p.SeuilAlerte
+                    seuil = p.SeuilAlerte,
+                    unite = p.Unite,
+                    image = Images.UrlImage(p)
                 })
-                .ToListAsync();
+                .ToList();
             var categories = await _context.Categories
                 .Where(c => c.TenantId == tenant)
                 .OrderBy(c => c.Ordre).ThenBy(c => c.Nom)
@@ -314,7 +317,13 @@ namespace EasytransitCaisse.Controllers
             if (commande == null)
                 return NotFound();
 
-            ViewBag.Societe = (await _context.Tenants.FirstOrDefaultAsync(t => t.Id == commande.TenantId))?.Nom ?? "GesCaisse";
+            var societe = await _context.Tenants.FirstOrDefaultAsync(t => t.Id == commande.TenantId);
+            ViewBag.Societe = societe?.Nom ?? "GesCaisse";
+            ViewBag.Logo = Images.UrlLogo(societe);
+            ViewBag.Coordonnees = Images.Coordonnees(societe);
+            var produitIds = commande.Lignes.Where(l => l.ProduitId.HasValue).Select(l => l.ProduitId!.Value).ToList();
+            ViewBag.Unites = await _context.Produits.IgnoreQueryFilters().Where(p => produitIds.Contains(p.Id))
+                .ToDictionaryAsync(p => p.Id, p => p.Unite);
             ViewBag.Vendeur = (await _context.Utilisateurs.IgnoreQueryFilters().FirstOrDefaultAsync(u => u.Id == commande.UtilisateurId))?.NomComplet ?? "";
             ViewBag.Client = commande.ClientId.HasValue
                 ? (await _context.Clients.FirstOrDefaultAsync(c => c.Id == commande.ClientId))?.NomSociete

@@ -12,19 +12,23 @@
 
         <div class="card-body">
 
-            <form method="post">
+            <form method="post" enctype="multipart/form-data">
                 @Html.AntiForgeryToken()
+                @if (!ViewData.ModelState.IsValid)
+                {
+                    <div class="alert alert-danger">@string.Join(" ", ViewData.ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage))</div>
+                }
 
                 <div class="row">
 
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Code</label>
-                        <input name="Code" class="form-control" placeholder="Ex: ACME" />
+                        <input name="Code" value="@Model?.Code" class="form-control" placeholder="Ex: ACME" />
                     </div>
 
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Nom</label>
-                        <input name="Nom" class="form-control" placeholder="Ex: Acme SARL" />
+                        <input name="Nom" value="@Model?.Nom" class="form-control" placeholder="Ex: Acme SARL" />
                     </div>
 
                     <div class="col-md-6 mb-3">
@@ -42,6 +46,8 @@
                     </div>
 
                 </div>
+
+                <partial name="_Coordonnees" model="Model ?? new EasytransitCaisse.Models.Tenant()" />
 
                 <div class="text-end">
                     <button class="btn btn-success">

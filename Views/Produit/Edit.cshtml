@@ -8,7 +8,7 @@
         <h5 class="mb-0">Modifier le produit</h5>
     </div>
     <div class="card-body">
-        <form method="post" asp-action="Edit" asp-route-id="@Model.Id">
+        <form method="post" enctype="multipart/form-data" asp-action="Edit" asp-route-id="@Model.Id">
             <partial name="_Formulaire" model="Model" />
             <div class="mt-4 d-flex gap-2">
                 <button type="submit" class="btn btn-primary">Enregistrer</button>

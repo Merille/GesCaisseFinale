@@ -8,7 +8,7 @@
         <h5 class="mb-0">Nouveau produit</h5>
     </div>
     <div class="card-body">
-        <form method="post" asp-action="Create">
+        <form method="post" enctype="multipart/form-data" asp-action="Create">
             <partial name="_Formulaire" model="Model" />
             <div class="mt-4 d-flex gap-2">
                 <button type="submit" class="btn btn-primary">Enregistrer</button>

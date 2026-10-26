@@ -7,6 +7,8 @@
     string Fcfa(decimal n) => n.ToString("N0", CultureInfo.GetCultureInfo("fr-FR"));
     string Qte(decimal n) => n == Math.Round(n) ? n.ToString("0", CultureInfo.InvariantCulture) : n.ToString("0.##", CultureInfo.GetCultureInfo("fr-FR"));
     var taxes = EasytransitCaisse.Data.TaxesProduits.Regrouper(c.Lignes);
+    var unites = (Dictionary<int, string>)ViewBag.Unites;
+    string Unite(EasytransitCaisse.Models.LigneCommandePos l) => l.ProduitId.HasValue && unites.TryGetValue(l.ProduitId.Value, out var u) ? u : "Unité";
 }
 <!DOCTYPE html>
 <html lang="fr">
@@ -18,7 +20,15 @@
 </head>
 <body>
     <div class="ticket">
+        @if (ViewBag.Logo != null)
+        {
+            <div class="c"><img src="@ViewBag.Logo" alt="" class="logo" /></div>
+        }
         <div class="c b grand">@ViewBag.Societe</div>
+        @foreach (var ligne in (List<string>)ViewBag.Coordonnees)
+        {
+            <div class="c petit">@ligne</div>
+        }
         <div class="c">@caisse?.ChkDescription</div>
         @if (c.CommandeOrigineId.HasValue)
         {
@@ -45,7 +55,7 @@
         {
             <div class="b">@l.Libelle</div>
             <div class="r ind">
-                <span>@Qte(l.Quantite) x @Fcfa(l.PrixUnitaire)@(l.Remise > 0 ? " -" + Qte(l.Remise) + "%" : "")</span>
+                <span>@Qte(l.Quantite)@(Unite(l) != "Unité" ? " " + Unite(l) : "") x @Fcfa(l.PrixUnitaire)@(l.Remise > 0 ? " -" + Qte(l.Remise) + "%" : "")</span>
                 <span>@Fcfa(l.TotalTTC)</span>
             </div>
         }

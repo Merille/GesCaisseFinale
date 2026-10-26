@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace EasytransitCaisse.Models
@@ -22,6 +23,28 @@ namespace EasytransitCaisse.Models
 
         // Point de vente : vente autorisée quand le stock est épuisé (avec avertissement).
         public bool PosVenteSansStock { get; set; } = true;
+
+        // Coordonnées (en-tête des tickets, factures et impressions).
+        [MaxLength(250)]
+        public string? Adresse { get; set; }
+
+        [MaxLength(100)]
+        public string? Ville { get; set; }
+
+        [MaxLength(100)]
+        public string? Pays { get; set; }
+
+        [MaxLength(150)]
+        public string? Email { get; set; }
+
+        [MaxLength(50)]
+        public string? Telephone { get; set; }
+
+        [MaxLength(50)]
+        public string? NIF { get; set; }
+
+        // Date du logo (table TenantLogos) : null = pas de logo ; sert aussi de version dans l'adresse.
+        public DateTime? LogoMaj { get; set; }
 
         // Règle unique de blocage, utilisée à la fois par le filtre d'accès et
         // par l'affichage — jamais recalculée différemment à deux endroits.

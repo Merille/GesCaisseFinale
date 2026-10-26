@@ -75,7 +75,15 @@
                 {
                     <tr data-id="@p.Id">
                         <td class="fw-semibold">@p.Code</td>
-                        <td>@p.Nom</td>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                @if (EasytransitCaisse.Data.Images.UrlImage(p) is string img)
+                                {
+                                    <img src="@img" alt="" class="vignette-image vignette-petite" loading="lazy" />
+                                }
+                                <span>@p.Nom</span>
+                            </div>
+                        </td>
                         <td>
                             @if (p.Categorie != null)
                             {
@@ -87,7 +95,10 @@
                             }
                         </td>
                         <td class="text-muted small">@p.CodeBarres</td>
-                        <td class="text-end fw-semibold text-nowrap" data-order="@p.PrixVente.ToString(System.Globalization.CultureInfo.InvariantCulture)">@p.PrixVente.ToString("N0")</td>
+                        <td class="text-end fw-semibold text-nowrap" data-order="@p.PrixVente.ToString(System.Globalization.CultureInfo.InvariantCulture)">@p.PrixVente.ToString("N0")@if (p.Unite != "Unité")
+                            {
+                                <span class="small fw-normal text-muted"> / @p.Unite</span>
+                            }</td>
                         <td class="text-nowrap">
                             @if (Taxes(p) != "")
                             {
@@ -134,6 +145,10 @@
             {
                 <div class="col" data-id="@p.Id">
                     <article class="carte-liste h-100 d-flex flex-column" style="--couleur: @(p.Categorie?.Couleur ?? "#999997")">
+                        @if (EasytransitCaisse.Data.Images.UrlImage(p) is string image)
+                        {
+                            <div class="carte-image"><img src="@image" alt="@p.Nom" loading="lazy" /></div>
+                        }
                         <div class="p-3 d-flex flex-column gap-2 flex-grow-1">
                             <div class="d-flex justify-content-between align-items-start gap-2">
                                 <div>
@@ -159,8 +174,8 @@
                             </div>
                             <div class="d-flex justify-content-between align-items-end gap-2 mt-auto">
                                 <div>
-                                    <div class="carte-prix">@p.PrixVente.ToString("N0") <span class="small fw-normal text-muted">FCFA TTC</span></div>
-                                    <div class="small text-muted">@(Taxes(p) != "" ? Taxes(p) + " · " + Qte(p.TauxTVA) + " %" : "Sans taxe")</div>
+                                    <div class="carte-prix">@p.PrixVente.ToString("N0") <span class="small fw-normal text-muted">FCFA TTC@(p.Unite != "Unité" ? " / " + p.Unite : "")</span></div>
+                                    <div class="small text-muted">@(Taxes(p) != "" ? Taxes(p) + " · " + Qte(p.TauxTVA) + " %" : "Sans taxe")@(p.Cout.HasValue ? " · coût " + p.Cout.Value.ToString("N0") : "")</div>
                                 </div>
                                 <div class="text-end small">
                                     @if (!p.SuiviStock)

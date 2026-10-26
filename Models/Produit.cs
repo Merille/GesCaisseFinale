@@ -1,4 +1,5 @@
 using EasytransitCaisse.Data;
+using System.ComponentModel.DataAnnotations;
 using Microsoft.EntityFrameworkCore;
 
 namespace EasytransitCaisse.Models
@@ -37,6 +38,17 @@ namespace EasytransitCaisse.Models
         public decimal? SeuilAlerte { get; set; }
 
         public bool Actif { get; set; } = true;
+
+        // Coût d'achat HT (calcul de la marge).
+        [Precision(18, 2)]
+        public decimal? Cout { get; set; }
+
+        // Unité de vente : le prix TTC s'entend pour une unité.
+        [MaxLength(20)]
+        public string Unite { get; set; } = "Unité";
+
+        // Date de l'image (table ProduitImages) : null = pas d'image.
+        public DateTime? ImageMaj { get; set; }
 
         public bool EnAlerteStock => SuiviStock && SeuilAlerte.HasValue && StockActuel <= SeuilAlerte.Value;
     }

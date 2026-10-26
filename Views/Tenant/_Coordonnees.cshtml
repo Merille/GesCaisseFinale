@@ -1,0 +1,50 @@
+@model EasytransitCaisse.Models.Tenant
+@* Coordonnées et logo de la société (création et modification). *@
+@{
+    var logo = EasytransitCaisse.Data.Images.UrlLogo(Model);
+}
+<h6 class="text-muted text-uppercase small mt-2 mb-3">Coordonnées (en-tête des tickets, factures et impressions)</h6>
+<div class="row">
+    <div class="col-12 mb-3">
+        <label class="form-label" for="Adresse">Adresse</label>
+        <input id="Adresse" name="Adresse" value="@Model.Adresse" class="form-control" placeholder="Ex : Boulevard Triomphal, BP 1234" maxlength="250" />
+    </div>
+    <div class="col-md-6 mb-3">
+        <label class="form-label" for="Ville">Ville</label>
+        <input id="Ville" name="Ville" value="@Model.Ville" class="form-control" placeholder="Ex : Libreville" maxlength="100" />
+    </div>
+    <div class="col-md-6 mb-3">
+        <label class="form-label" for="Pays">Pays</label>
+        <input id="Pays" name="Pays" value="@Model.Pays" class="form-control" placeholder="Ex : Gabon" maxlength="100" />
+    </div>
+    <div class="col-md-6 mb-3">
+        <label class="form-label" for="Email">E-mail</label>
+        <input id="Email" name="Email" type="email" value="@Model.Email" class="form-control" placeholder="contact@societe.ga" maxlength="150" />
+    </div>
+    <div class="col-md-6 mb-3">
+        <label class="form-label" for="Telephone">Téléphone</label>
+        <input id="Telephone" name="Telephone" type="tel" value="@Model.Telephone" class="form-control" placeholder="+241 01 23 45 67" maxlength="50" />
+    </div>
+    <div class="col-md-6 mb-3">
+        <label class="form-label" for="NIF">NIF</label>
+        <input id="NIF" name="NIF" value="@Model.NIF" class="form-control" placeholder="Numéro d'identification fiscale" maxlength="50" />
+    </div>
+    <div class="col-md-6 mb-3">
+        <label class="form-label" for="Logo">Logo</label>
+        <div class="d-flex align-items-center gap-3">
+            @if (logo != null)
+            {
+                <img src="@logo" alt="Logo actuel" class="vignette-image" />
+            }
+            <input id="Logo" name="Logo" type="file" class="form-control" accept="image/png,image/jpeg,image/webp,image/gif" />
+        </div>
+        <div class="form-text">JPG, PNG, WEBP ou GIF, 1 Mo au plus.</div>
+        @if (logo != null)
+        {
+            <div class="form-check mt-1">
+                <input class="form-check-input" type="checkbox" value="true" id="SupprimerLogo" name="SupprimerLogo" />
+                <label class="form-check-label" for="SupprimerLogo">Retirer le logo</label>
+            </div>
+        }
+    </div>
+</div>
