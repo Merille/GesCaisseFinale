@@ -39,10 +39,10 @@
                 $alerte = $p['SuiviStock'] && $p['SeuilAlerte'] !== null && (float) $p['StockActuel'] <= (float) $p['SeuilAlerte']; ?>
                 <tr>
                     <td class="fw-semibold"><?= h($p['Code']) ?></td>
-                    <td><?= h($p['Nom']) ?></td>
+                    <td><div class="d-flex align-items-center gap-2"><?php if ($img = url_image_produit($p)): ?><img src="<?= h($img) ?>" alt="" class="vignette-image vignette-petite" loading="lazy"><?php endif; ?><span><?= h($p['Nom']) ?></span></div></td>
                     <td><?php if ($p['Categorie']): ?><span class="pastille-categorie" style="background: <?= h($p['Couleur']) ?>"></span> <?= h($p['Categorie']) ?><?php else: ?><span class="text-muted">—</span><?php endif; ?></td>
                     <td class="text-muted small"><?= h($p['CodeBarres']) ?></td>
-                    <td class="text-end fw-semibold text-nowrap"><?= fcfa($p['PrixVente']) ?></td>
+                    <td class="text-end fw-semibold text-nowrap"><?= fcfa($p['PrixVente']) ?><?php if ($p['Unite'] !== 'Unité'): ?> <span class="small fw-normal text-muted">/ <?= h($p['Unite']) ?></span><?php endif; ?></td>
                     <td class="text-nowrap"><?php if ($p['Taxes']): ?><?= h($p['Taxes']) ?> <span class="text-muted small">· <?= quantite_fr($p['TauxTVA']) ?> %</span><?php else: ?><span class="text-muted">Aucune</span><?php endif; ?></td>
                     <td class="text-end text-nowrap">
                         <?php if (!$p['SuiviStock']): ?><span class="text-muted small">Non suivi</span>
@@ -70,6 +70,7 @@
             $alerte = $p['SuiviStock'] && $p['SeuilAlerte'] !== null && (float) $p['StockActuel'] <= (float) $p['SeuilAlerte']; ?>
             <div class="col">
                 <article class="carte-liste h-100 d-flex flex-column" style="--couleur: <?= h($p['Couleur'] ?: '#999997') ?>">
+                    <?php if ($img = url_image_produit($p)): ?><div class="carte-image"><img src="<?= h($img) ?>" alt="<?= h($p['Nom']) ?>" loading="lazy"></div><?php endif; ?>
                     <div class="p-3 d-flex flex-column gap-2 flex-grow-1">
                         <div class="d-flex justify-content-between align-items-start gap-2">
                             <div>
@@ -81,8 +82,8 @@
                         <div class="small"><?php if ($p['Categorie']): ?><span class="pastille-categorie" style="background: <?= h($p['Couleur']) ?>"></span> <?= h($p['Categorie']) ?><?php else: ?><span class="text-muted">Sans catégorie</span><?php endif; ?></div>
                         <div class="d-flex justify-content-between align-items-end gap-2 mt-auto">
                             <div>
-                                <div class="carte-prix"><?= fcfa($p['PrixVente']) ?> <span class="small fw-normal text-muted">FCFA TTC</span></div>
-                                <div class="small text-muted"><?= $p['Taxes'] ? h($p['Taxes']) . ' · ' . quantite_fr($p['TauxTVA']) . ' %' : 'Sans taxe' ?></div>
+                                <div class="carte-prix"><?= fcfa($p['PrixVente']) ?> <span class="small fw-normal text-muted">FCFA TTC<?= $p['Unite'] !== 'Unité' ? ' / ' . h($p['Unite']) : '' ?></span></div>
+                                <div class="small text-muted"><?= $p['Taxes'] ? h($p['Taxes']) . ' · ' . quantite_fr($p['TauxTVA']) . ' %' : 'Sans taxe' ?><?= $p['Cout'] !== null ? ' · coût ' . fcfa($p['Cout']) : '' ?></div>
                             </div>
                             <div class="text-end small">
                                 <?php if (!$p['SuiviStock']): ?><span class="text-muted">Stock non suivi</span>
@@ -104,4 +105,4 @@
 </div>
 <?= partial('partials/pagination', $pagination) ?>
 
-<?= partial('produit/form', ['produit' => ['SuiviStock' => 1, 'Actif' => 1, 'TaxeIds' => taxes_par_defaut()], 'edition' => false, 'categories' => $categories, 'taxes' => $taxes, 'modale' => true]) ?>
+<?= partial('produit/form', ['produit' => ['SuiviStock' => 1, 'Actif' => 1, 'Unite' => 'Unité', 'TaxeIds' => taxes_par_defaut()], 'edition' => false, 'categories' => $categories, 'taxes' => $taxes, 'modale' => true]) ?>

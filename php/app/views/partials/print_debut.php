@@ -2,10 +2,9 @@
 // En-tête commun des pages imprimables (remplacent les PDF Rotativa de la version .NET).
 // Le bouton « Imprimer / PDF » ouvre l'impression du navigateur, qui permet aussi
 // d'enregistrer la page au format PDF.
-$societe = user()['tenantNom'] ?? '';
-if (is_super_admin() && tenant_id() !== 0) {
-    $societe = (string) qv('SELECT Nom FROM Tenants WHERE Id = ?', [tenant_id()]);
-}
+$infosSociete = $infosSociete ?? societe_courante();
+$societe = $infosSociete['Nom'] ?? (user()['tenantNom'] ?? '');
+$logoSociete = url_logo($infosSociete);
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -35,9 +34,12 @@ if (is_super_admin() && tenant_id() !== 0) {
     <a href="javascript:history.back()" style="margin-left:10px;">Retour</a>
 </div>
 <div class="entete">
-    <div>
-        <strong>GesCaisse</strong><br>
-        <span><?= h($societe) ?></span>
+    <div style="display:flex; gap:12px; align-items:center;">
+        <?php if ($logoSociete): ?><img src="<?= h($logoSociete) ?>" alt="" style="max-height:64px; max-width:140px;"><?php endif; ?>
+        <div>
+            <strong><?= h($societe ?: 'GesCaisse') ?></strong><br>
+            <?php foreach (societe_coordonnees($infosSociete) as $ligne): ?><span class="muted"><?= h($ligne) ?></span><br><?php endforeach; ?>
+        </div>
     </div>
     <div style="text-align:right;">
         Édité le <?= date('d/m/Y à H:i') ?><br>

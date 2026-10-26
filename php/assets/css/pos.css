@@ -76,6 +76,7 @@ body.pos-body { margin: 0; background: var(--pos-bg); color: #1d2a35; font-famil
 .pos-tuile:hover { box-shadow: 0 4px 14px rgba(11, 47, 68, .15); }
 .pos-tuile:active { transform: scale(.98); }
 .pos-tuile .img { height: 86px; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 800; color: #fff; letter-spacing: 1px; }
+.pos-tuile .img img { width: 100%; height: 100%; object-fit: cover; background: #f4f6f9; }
 .pos-tuile .info { padding: 8px 10px; }
 .pos-tuile .n { font-size: 13.5px; font-weight: 600; line-height: 1.2; height: 33px; overflow: hidden; color: #1d2a35; }
 .pos-tuile .p { position: absolute; top: 8px; right: 8px; background: rgba(11, 47, 68, .85); color: #fff; font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 12px; }

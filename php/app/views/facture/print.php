@@ -1,4 +1,4 @@
-<?php $titreImpression = 'Facture ' . $facture['Numero']; require __DIR__ . '/../partials/print_debut.php'; ?>
+<?php $titreImpression = 'Facture ' . $facture['Numero']; $infosSociete = q1('SELECT * FROM Tenants WHERE Id = ?', [$facture['TenantId']]); require __DIR__ . '/../partials/print_debut.php'; ?>
 <div style="display:flex; justify-content:space-between; margin-top:24px;">
     <div>
         <h1 style="margin:0;">FACTURE</h1>

@@ -482,6 +482,79 @@ function pos_est_especes(array $mode): bool
     return (bool) preg_match('/\b(esp|espèces?|especes?|cash|liquide)\b/u', $texte);
 }
 
+/**
+ * Image envoyée par un formulaire (logo, photo de produit) : null si aucun fichier,
+ * message d'erreur, ou ['type' => mime, 'donnees' => contenu]. JPG, PNG, WEBP ou GIF.
+ */
+function image_televersee(string $champ, int $maxOctets = 1048576): array|string|null
+{
+    $f = $_FILES[$champ] ?? null;
+    if (!$f || ($f['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+        return null;
+    }
+    if ($f['error'] !== UPLOAD_ERR_OK || $f['size'] > $maxOctets) {
+        return 'Image trop lourde : ' . round($maxOctets / 1048576, 1) . ' Mo au plus.';
+    }
+    $info = @getimagesize($f['tmp_name']);
+    $types = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (!$info || !in_array($info['mime'], $types, true)) {
+        return "Format d'image non reconnu : utilisez une image JPG, PNG, WEBP ou GIF.";
+    }
+    return ['type' => $info['mime'], 'donnees' => (string) file_get_contents($f['tmp_name'])];
+}
+
+/**
+ * Enregistre (ou supprime) l'image d'un produit ou le logo d'une société, et note la date
+ * de mise à jour qui sert à la fois d'indicateur de présence et de version dans l'adresse.
+ */
+function enregistrer_image(string $quoi, int $id, ?array $image, bool $supprimer): void
+{
+    [$table, $cle, $parent, $colonne] = $quoi === 'logo'
+        ? ['TenantLogos', 'TenantId', 'Tenants', 'LogoMaj']
+        : ['ProduitImages', 'ProduitId', 'Produits', 'ImageMaj'];
+    if ($image) {
+        run("REPLACE INTO $table ($cle, TypeContenu, Donnees) VALUES (?, ?, ?)", [$id, $image['type'], $image['donnees']]);
+        run("UPDATE $parent SET $colonne = NOW() WHERE Id = ?", [$id]);
+    } elseif ($supprimer) {
+        run("DELETE FROM $table WHERE $cle = ?", [$id]);
+        run("UPDATE $parent SET $colonne = NULL WHERE Id = ?", [$id]);
+    }
+}
+
+/** Adresse de l'image d'un produit (null sans image) ; la version évite un cache périmé. */
+function url_image_produit(array $p): ?string
+{
+    return empty($p['ImageMaj']) ? null : url('image/produit', ['id' => $p['Id'], 'v' => strtotime($p['ImageMaj'])]);
+}
+
+/** Adresse du logo d'une société (null sans logo). */
+function url_logo(?array $t): ?string
+{
+    return empty($t['LogoMaj']) ? null : url('image/societe', ['id' => $t['Id'], 'v' => strtotime($t['LogoMaj'])]);
+}
+
+/** Société de l'utilisateur connecté (ou consultée par le SuperAdmin), null pour « toutes ». */
+function societe_courante(): ?array
+{
+    return tenant_id() === 0 ? null : q1('SELECT * FROM Tenants WHERE Id = ?', [tenant_id()]);
+}
+
+/** Lignes de coordonnées d'une société : adresse, « ville, pays », téléphone, e-mail, NIF. */
+function societe_coordonnees(?array $t): array
+{
+    if (!$t) {
+        return [];
+    }
+    $texte = fn(string $cle) => trim((string) ($t[$cle] ?? ''));
+    $lignes = [
+        $texte('Adresse'),
+        implode(', ', array_filter([$texte('Ville'), $texte('Pays')])),
+        implode(' · ', array_filter([$texte('Telephone') !== '' ? 'Tél. ' . $texte('Telephone') : '', $texte('Email')])),
+        $texte('NIF') !== '' ? 'NIF : ' . $texte('NIF') : '',
+    ];
+    return array_values(array_filter($lignes, fn($l) => $l !== ''));
+}
+
 /** Taxes de la société, la TVA en premier. */
 function taxes_liste(?int $tenant = null): array
 {

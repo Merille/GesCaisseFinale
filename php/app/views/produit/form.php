@@ -4,6 +4,8 @@ $entete = $titre;
 $largeur = '860px';
 $action = !empty($modale) ? url('produit/create') : null;
 $retour = url('produit/index');
+$attrsForm = 'enctype="multipart/form-data"';
+$suffixe = !empty($modale) ? 'M' : '';
 $v = fn(string $k) => h($produit[$k] ?? '');
 $nombre = fn(string $k) => isset($produit[$k]) && $produit[$k] !== null && $produit[$k] !== '' ? h(quantite_fr($produit[$k], false)) : '';
 require __DIR__ . '/../partials/form_debut.php';
@@ -31,6 +33,31 @@ require __DIR__ . '/../partials/form_debut.php';
                 <div class="col-md-4">
                     <label class="form-label" for="PrixVente">Prix de vente TTC (FCFA)</label>
                     <input class="form-control" id="PrixVente" name="PrixVente" inputmode="decimal" value="<?= $nombre('PrixVente') ?>" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="Unite<?= $suffixe ?>">Unité de vente</label>
+                    <input class="form-control" id="Unite<?= $suffixe ?>" name="Unite" value="<?= h($produit['Unite'] ?? 'Unité') ?>" list="unites<?= $suffixe ?>" maxlength="20" placeholder="Ex : Kg, Litre, Carton">
+                    <datalist id="unites<?= $suffixe ?>"><?php foreach (PRODUIT_UNITES as $u): ?><option value="<?= h($u) ?>"><?php endforeach; ?></datalist>
+                    <div class="form-text">Le prix TTC s'entend pour une unité.</div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="Cout<?= $suffixe ?>">Coût d'achat HT (FCFA)</label>
+                    <input class="form-control" id="Cout<?= $suffixe ?>" name="Cout" inputmode="decimal" value="<?= $nombre('Cout') ?>" placeholder="Facultatif">
+                    <?php if (isset($produit['Cout']) && $produit['Cout'] !== null && $produit['Cout'] !== '' && (float) ($produit['PrixVente'] ?? 0) > 0):
+                        $ht = (float) $produit['PrixVente'] / (1 + (float) ($produit['TauxTVA'] ?? 0) / 100);
+                        $marge = $ht - (float) $produit['Cout']; ?>
+                        <div class="form-text">Marge : <strong class="<?= $marge < 0 ? 'text-danger' : '' ?>"><?= fcfa($marge) ?> FCFA</strong> par unité (<?= $ht > 0 ? quantite_fr(round($marge * 100 / $ht, 1)) : 0 ?> % du prix HT).</div>
+                    <?php else: ?><div class="form-text">Sert au calcul de la marge.</div><?php endif; ?>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="Image<?= $suffixe ?>">Image du produit</label>
+                    <div class="d-flex align-items-center gap-2">
+                        <?php if ($image = url_image_produit($produit)): ?><img src="<?= h($image) ?>" alt="Image actuelle" class="vignette-image"><?php endif; ?>
+                        <input class="form-control" type="file" id="Image<?= $suffixe ?>" name="Image" accept="image/png,image/jpeg,image/webp,image/gif">
+                    </div>
+                    <?php if ($image): ?>
+                        <div class="form-check mt-1"><input class="form-check-input" type="checkbox" value="1" id="SupprimerImage" name="SupprimerImage"><label class="form-check-label" for="SupprimerImage">Retirer l'image</label></div>
+                    <?php else: ?><div class="form-text">JPG, PNG, WEBP ou GIF, 1 Mo au plus.</div><?php endif; ?>
                 </div>
                 <div class="col-md-4">
                     <?php $cochees = array_map('intval', $produit['TaxeIds'] ?? []); $totalTaxes = 0.0; ?>

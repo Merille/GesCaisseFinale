@@ -85,7 +85,7 @@
         if (i >= 0) {
             t.lignes[i].qte += 1;
         } else {
-            t.lignes.push({ produitId: p.id, nom: p.nom, qte: 1, prix: p.prix, remise: 0, tva: p.tva });
+            t.lignes.push({ produitId: p.id, nom: p.nom, qte: 1, prix: p.prix, remise: 0, tva: p.tva, unite: p.unite });
             i = t.lignes.length - 1;
         }
         t.choisie = i;
@@ -427,8 +427,10 @@
                 stock = '<div class="stock' + (bas ? ' bas' : '') + '">' + (bas ? 'Stock bas : ' : 'Stock : ') + qte(reste) + '</div>';
             }
             return '<button type="button" class="pos-tuile" data-produit="' + p.id + '">'
-                + '<div class="img" style="background:' + echap(couleur) + '">' + echap(initiales(p.nom)) + '</div>'
-                + '<span class="p">' + fcfa(p.prix) + '</span>'
+                + (p.image
+                    ? '<div class="img"><img src="' + echap(p.image) + '" alt="" loading="lazy"></div>'
+                    : '<div class="img" style="background:' + echap(couleur) + '">' + echap(initiales(p.nom)) + '</div>')
+                + '<span class="p">' + fcfa(p.prix) + (p.unite && p.unite !== 'Unité' ? ' / ' + echap(p.unite) : '') + '</span>'
                 + '<div class="info"><div class="n">' + echap(p.nom) + '</div>' + stock + '</div></button>';
         }).join('');
     }
@@ -440,7 +442,7 @@
         return t.lignes.map((l, i) =>
             '<div class="pos-ligne' + (i === t.choisie ? ' sel' : '') + '" data-ligne="' + i + '">'
             + '<div><div class="nom">' + echap(l.nom) + '</div>'
-            + '<div class="detail">' + qte(l.qte) + ' × ' + fcfa(l.prix)
+            + '<div class="detail">' + qte(l.qte) + (l.unite && l.unite !== 'Unité' ? ' ' + echap(l.unite) : '') + ' × ' + fcfa(l.prix)
             + (l.remise ? ' · <span class="remise">remise ' + qte(l.remise) + ' %</span>' : '') + '</div></div>'
             + '<div class="tot">' + fcfa(totalLigne(l)) + '</div></div>').join('');
     }

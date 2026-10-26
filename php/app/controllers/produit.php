@@ -7,8 +7,11 @@ require_once __DIR__ . '/../xlsx.php';
 
 // Colonnes du fichier Excel (export et import), dans cet ordre.
 const PRODUIT_COLONNES_EXCEL = [
-    'Code', 'Nom', 'Catégorie', 'Code-barres', 'Prix TTC', 'Taxes', 'Suivi stock', 'Stock', 'Seuil alerte', 'Actif',
+    'Code', 'Nom', 'Catégorie', 'Code-barres', 'Prix TTC', 'Taxes', 'Suivi stock', 'Stock', 'Seuil alerte', 'Actif', 'Unité', 'Coût',
 ];
+
+// Unités de vente proposées (la saisie reste libre).
+const PRODUIT_UNITES = ['Unité', 'Pièce', 'Kg', 'g', 'Litre', 'cl', 'Mètre', 'Carton', 'Paquet', 'Boîte', 'Sac', 'Bouteille', 'Page', 'Heure'];
 
 function produit_categories(): array
 {
@@ -73,12 +76,15 @@ function produit_valeurs(): array
         $categorie = null;
     }
     $seuil = trim((string) post('SeuilAlerte', ''));
+    $cout = trim((string) post('Cout', ''));
     return [
         'Code' => (string) post('Code', ''),
         'CodeBarres' => ((string) post('CodeBarres', '')) ?: null,
         'Nom' => (string) post('Nom', ''),
         'CategorieId' => $categorie,
         'PrixVente' => montant(post('PrixVente')),
+        'Cout' => $cout === '' ? null : montant($cout),
+        'Unite' => mb_substr(trim((string) post('Unite', '')), 0, 20) ?: 'Unité',
         'SuiviStock' => post('SuiviStock') ? 1 : 0,
         'StockActuel' => montant(post('StockActuel')),
         'SeuilAlerte' => $seuil === '' ? null : montant($seuil),
@@ -93,8 +99,8 @@ function produit_erreur(array $v, int $idExclu = 0): ?string
     if ($v['Code'] === '' || $v['Nom'] === '') {
         return 'Le code et le nom du produit sont obligatoires.';
     }
-    if ($v['PrixVente'] < 0) {
-        return 'Le prix doit être positif.';
+    if ($v['PrixVente'] < 0 || ($v['Cout'] ?? 0) < 0) {
+        return 'Le prix et le coût doivent être positifs.';
     }
     if (qv('SELECT COUNT(*) FROM Produits WHERE Code = ? AND Id <> ? AND ' . tf(), [$v['Code'], $idExclu])) {
         return "Le code « {$v['Code']} » est déjà utilisé par un autre produit.";
@@ -109,7 +115,7 @@ function produit_erreur(array $v, int $idExclu = 0): ?string
 // Champs enregistrés tels quels. Le stock n'en fait pas partie : il ne change que par des
 // mouvements (stock initial à la création, entrées, inventaires, ventes, retours).
 // Le taux total (TauxTVA) suit les taxes du produit (produit_enregistrer_taxes).
-const PRODUIT_CHAMPS = ['Code', 'CodeBarres', 'Nom', 'CategorieId', 'PrixVente', 'SuiviStock', 'SeuilAlerte', 'Actif'];
+const PRODUIT_CHAMPS = ['Code', 'CodeBarres', 'Nom', 'CategorieId', 'PrixVente', 'Cout', 'Unite', 'SuiviStock', 'SeuilAlerte', 'Actif'];
 
 /** Crée le produit, ses taxes, puis enregistre son stock initial comme premier mouvement. */
 function produit_inserer(array $v, int $tenant): int
@@ -157,10 +163,11 @@ function produit_create(): void
     $produit = ['SuiviStock' => 1, 'Actif' => 1, 'TaxeIds' => taxes_par_defaut()];
     if (is_post()) {
         $produit = produit_valeurs();
-        if ($e = produit_erreur($produit)) {
+        $image = image_televersee('Image');
+        if ($e = produit_erreur($produit) ?? (is_string($image) ? $image : null)) {
             flash('danger', $e);
         } else {
-            produit_inserer($produit, tenant_insert());
+            enregistrer_image('produit', produit_inserer($produit, tenant_insert()), $image, false);
             flash('success', 'Produit créé.');
             redirect('produit/index');
         }
@@ -173,12 +180,14 @@ function produit_edit(): void
     $existant = produit_charger((int) get('id'));
     $produit = $existant + ['TaxeIds' => array_keys(produit_taxes((int) $existant['Id']))];
     if (is_post()) {
-        $produit = produit_valeurs() + ['Id' => $existant['Id']];
+        $produit = produit_valeurs() + ['Id' => $existant['Id'], 'ImageMaj' => $existant['ImageMaj']];
         $produit['StockActuel'] = $existant['StockActuel'];
-        if ($e = produit_erreur($produit, (int) $existant['Id'])) {
+        $image = image_televersee('Image');
+        if ($e = produit_erreur($produit, (int) $existant['Id']) ?? (is_string($image) ? $image : null)) {
             flash('danger', $e);
         } else {
             produit_mettre_a_jour($produit, (int) $existant['Id']);
+            enregistrer_image('produit', (int) $existant['Id'], $image, (bool) post('SupprimerImage'));
             flash('success', 'Produit modifié.');
             redirect('produit/index');
         }
@@ -207,6 +216,7 @@ function produit_export(): void
             quantite_fr($p['PrixVente'], false), (string) $p['Taxes'],
             $p['SuiviStock'] ? 'Oui' : 'Non', quantite_fr($p['StockActuel'], false),
             $p['SeuilAlerte'] === null ? '' : quantite_fr($p['SeuilAlerte'], false), $p['Actif'] ? 'Oui' : 'Non',
+            $p['Unite'], $p['Cout'] === null ? '' : quantite_fr($p['Cout'], false),
         ];
     }
     xlsx_envoyer('Produits_' . date('Ymd_Hi') . '.xlsx', ['Produits' => $lignes]);
@@ -252,7 +262,7 @@ function produit_import(): void
     foreach (array_slice($lignes, 1) as $ligne) {
         $n = $ligne['_ligne'];
         $col = fn(int $i) => trim((string) ($ligne[$i] ?? ''));
-        if (implode('', array_map($col, range(0, 9))) === '') {
+        if (implode('', array_map($col, range(0, 11))) === '') {
             continue;
         }
         $nomCategorie = $col(2);
@@ -274,12 +284,20 @@ function produit_import(): void
             'PrixVente' => montant($col(4)),
             'SuiviStock' => produit_booleen($col(6), 1), 'StockActuel' => montant($col(7)),
             'SeuilAlerte' => $col(8) === '' ? null : montant($col(8)), 'Actif' => produit_booleen($col(9), 1),
+            'Unite' => mb_substr($col(10), 0, 20) ?: 'Unité', 'Cout' => $col(11) === '' ? null : montant($col(11)),
         ];
         // Colonne Taxes vide : taxes par défaut pour un nouveau produit, inchangées pour un produit existant.
         if ($taxeIds !== null) {
             $v['TaxeIds'] = $taxeIds;
         }
-        $existant = $v['Code'] !== '' ? q1('SELECT Id FROM Produits WHERE Code = ? AND ' . tf(), [$v['Code']]) : null;
+        $existant = $v['Code'] !== '' ? q1('SELECT Id, Unite, Cout FROM Produits WHERE Code = ? AND ' . tf(), [$v['Code']]) : null;
+        // Cellules Unité / Coût vides (ex. fichier d'une version précédente) : valeurs actuelles conservées.
+        if ($existant && $col(10) === '') {
+            $v['Unite'] = $existant['Unite'];
+        }
+        if ($existant && $col(11) === '') {
+            $v['Cout'] = $existant['Cout'];
+        }
         if ($e = produit_erreur($v, (int) ($existant['Id'] ?? 0))) {
             $erreurs[] = "Ligne $n : $e";
             continue;

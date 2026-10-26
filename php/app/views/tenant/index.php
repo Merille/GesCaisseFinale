@@ -11,7 +11,15 @@
             <?php foreach ($tenants as $t): $bloquee = societe_bloquee($t); ?>
                 <tr>
                     <td><?= h($t['Code']) ?></td>
-                    <td class="fw-semibold"><?= h($t['Nom']) ?></td>
+                    <td>
+                        <div class="d-flex align-items-center gap-2">
+                            <?php if ($logo = url_logo($t)): ?><img src="<?= h($logo) ?>" alt="" class="vignette-image vignette-petite"><?php endif; ?>
+                            <div>
+                                <div class="fw-semibold"><?= h($t['Nom']) ?></div>
+                                <div class="small text-muted"><?= h(implode(' · ', array_filter([$t['Ville'] ?? '', $t['Telephone'] ?? '', ($t['NIF'] ?? '') ? 'NIF ' . $t['NIF'] : '']))) ?></div>
+                            </div>
+                        </div>
+                    </td>
                     <td><?= h($t['ModeAcces']) ?></td>
                     <td><?= $t['DateExpiration'] ? date_fr($t['DateExpiration']) : '<span class="text-muted">Illimitée</span>' ?></td>
                     <td>

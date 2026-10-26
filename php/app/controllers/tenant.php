@@ -16,45 +16,82 @@ function tenant_index(): void
     render('tenant/index', ['tenants' => q('SELECT * FROM Tenants ORDER BY Nom')]);
 }
 
+// Champs enregistrés : identification, accès et coordonnées (en-tête des tickets et factures).
+const TENANT_CHAMPS = ['Nom', 'Code', 'Actif', 'ModeAcces', 'DateExpiration', 'Adresse', 'Ville', 'Pays', 'Email', 'Telephone', 'NIF'];
+
 function tenant_valeurs(): array
 {
-    $mode = post('ModeAcces') === 'Abonnement' ? 'Abonnement' : 'Licence';
     $exp = post('DateExpiration');
+    $texte = fn(string $k) => ((string) post($k, '')) ?: null;
     return [
-        (string) post('Nom', ''),
-        (string) post('Code', ''),
-        post('Actif') ? 1 : 0,
-        $mode,
-        $exp && DateTime::createFromFormat('!Y-m-d', $exp) ? $exp : null,
+        'Nom' => (string) post('Nom', ''),
+        'Code' => (string) post('Code', ''),
+        'Actif' => post('Actif') ? 1 : 0,
+        'ModeAcces' => post('ModeAcces') === 'Abonnement' ? 'Abonnement' : 'Licence',
+        'DateExpiration' => $exp && DateTime::createFromFormat('!Y-m-d', $exp) ? $exp : null,
+        'Adresse' => $texte('Adresse'),
+        'Ville' => $texte('Ville'),
+        'Pays' => $texte('Pays'),
+        'Email' => $texte('Email'),
+        'Telephone' => $texte('Telephone'),
+        'NIF' => $texte('NIF'),
     ];
+}
+
+/** Message d'erreur, ou null si la société peut être enregistrée. */
+function tenant_erreur(array $v, array|string|null $logo): ?string
+{
+    if ($v['Nom'] === '' || $v['Code'] === '') {
+        return 'Le nom et le code sont obligatoires.';
+    }
+    if ($v['Email'] !== null && !filter_var($v['Email'], FILTER_VALIDATE_EMAIL)) {
+        return "L'adresse e-mail n'est pas valide.";
+    }
+    return is_string($logo) ? $logo : null;
 }
 
 function tenant_create(): void
 {
     require_super_admin();
+    $t = ['Actif' => 1, 'ModeAcces' => 'Licence'];
     if (is_post()) {
-        $v = tenant_valeurs();
-        if ($v[0] === '' || $v[1] === '') {
-            flash('danger', 'Le nom et le code sont obligatoires.');
+        $t = tenant_valeurs();
+        $logo = image_televersee('Logo');
+        if ($e = tenant_erreur($t, $logo)) {
+            flash('danger', $e);
         } else {
-            taxes_initiales(run('INSERT INTO Tenants (Nom, Code, Actif, ModeAcces, DateExpiration, DateCreation) VALUES (?, ?, ?, ?, ?, NOW())', $v));
+            db()->beginTransaction();
+            try {
+                $marques = implode(', ', array_fill(0, count(TENANT_CHAMPS), '?'));
+                $id = run('INSERT INTO Tenants (' . implode(', ', TENANT_CHAMPS) . ", DateCreation) VALUES ($marques, NOW())", array_values($t));
+                taxes_initiales($id);
+                enregistrer_image('logo', $id, $logo, false);
+                db()->commit();
+            } catch (Throwable $e) {
+                db()->rollBack();
+                throw $e;
+            }
             flash('success', 'Société créée.');
             redirect('tenant/index');
         }
     }
-    render('tenant/form', ['t' => ['Actif' => 1, 'ModeAcces' => 'Licence'], 'edition' => false]);
+    render('tenant/form', ['t' => $t, 'edition' => false]);
 }
 
 function tenant_edit(): void
 {
     require_super_admin();
-    $t = tenant_charger((int) get('id'));
+    $existant = tenant_charger((int) get('id'));
+    $t = $existant;
     if (is_post()) {
-        $v = tenant_valeurs();
-        if ($v[0] === '' || $v[1] === '') {
-            flash('danger', 'Le nom et le code sont obligatoires.');
+        $t = tenant_valeurs() + ['Id' => $existant['Id'], 'LogoMaj' => $existant['LogoMaj']];
+        $logo = image_televersee('Logo');
+        if ($e = tenant_erreur($t, $logo)) {
+            flash('danger', $e);
         } else {
-            run('UPDATE Tenants SET Nom = ?, Code = ?, Actif = ?, ModeAcces = ?, DateExpiration = ? WHERE Id = ?', [...$v, $t['Id']]);
+            $set = implode(', ', array_map(fn($c) => "$c = ?", TENANT_CHAMPS));
+            run("UPDATE Tenants SET $set WHERE Id = ?", [...array_map(fn($c) => $t[$c], TENANT_CHAMPS), $existant['Id']]);
+            enregistrer_image('logo', (int) $existant['Id'], $logo, (bool) post('SupprimerLogo'));
             flash('success', 'Société modifiée.');
             redirect('tenant/index');
         }

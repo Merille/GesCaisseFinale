@@ -37,6 +37,8 @@ function pos_index(): void
         'suivi' => (bool) $p['SuiviStock'],
         'stock' => (float) $p['StockActuel'],
         'seuil' => $p['SeuilAlerte'] === null ? null : (float) $p['SeuilAlerte'],
+        'unite' => $p['Unite'],
+        'image' => url_image_produit($p),
     ], q('SELECT * FROM Produits WHERE Actif = 1 AND TenantId = ? ORDER BY Nom', [$tenant]));
 
     $categories = array_map(fn($c) => [
@@ -261,7 +263,8 @@ function pos_vendre(): void
 function pos_ticket(): void
 {
     $commande = q1(
-        'SELECT cmd.*, j.DateJournee, c.ChkCode, c.ChkDescription, t.Nom AS Societe,
+        'SELECT cmd.*, j.DateJournee, c.ChkCode, c.ChkDescription, t.Nom AS Societe, t.Adresse, t.Ville, t.Pays,
+                t.Email AS EmailSociete, t.Telephone, t.NIF, t.LogoMaj,
                 u.NomComplet AS Vendeur, cl.NomSociete AS Client, o.Numero AS NumeroOrigine
          FROM CommandesPos cmd
          LEFT JOIN CommandesPos o ON o.Id = cmd.CommandeOrigineId
@@ -276,12 +279,17 @@ function pos_ticket(): void
     if (!$commande) {
         not_found('Ticket introuvable.');
     }
-    $lignes = q('SELECT * FROM LignesCommandePos WHERE CommandePosId = ? ORDER BY Id', [$commande['Id']]);
+    $lignes = q('SELECT l.*, p.Unite FROM LignesCommandePos l LEFT JOIN Produits p ON p.Id = l.ProduitId WHERE l.CommandePosId = ? ORDER BY l.Id', [$commande['Id']]);
+    // En-tête : logo et coordonnées de la société.
+    $societe = ['Id' => $commande['TenantId'], 'LogoMaj' => $commande['LogoMaj'], 'Adresse' => $commande['Adresse'], 'Ville' => $commande['Ville'],
+                'Pays' => $commande['Pays'], 'Email' => $commande['EmailSociete'], 'Telephone' => $commande['Telephone'], 'NIF' => $commande['NIF']];
     render('pos/ticket', [
         'commande' => $commande,
         'lignes' => $lignes,
         'paiements' => q('SELECT * FROM PaiementsPos WHERE CommandePosId = ? ORDER BY Id', [$commande['Id']]),
         'taxes' => vente_taxes((int) $commande['Id']),
+        'logo' => url_logo($societe),
+        'coordonnees' => societe_coordonnees($societe),
         'imprimer' => get('imprimer') === '1',
     ], false);
 }

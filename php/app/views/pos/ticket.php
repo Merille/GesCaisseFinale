@@ -12,7 +12,9 @@ $c = $commande;
 </head>
 <body>
 <div class="ticket">
+    <?php if ($logo): ?><div class="c"><img src="<?= h($logo) ?>" alt="" class="logo"></div><?php endif; ?>
     <div class="c b grand"><?= h($c['Societe'] ?: 'GesCaisse') ?></div>
+    <?php foreach ($coordonnees as $ligne): ?><div class="c petit"><?= h($ligne) ?></div><?php endforeach; ?>
     <div class="c"><?= h($c['ChkDescription']) ?></div>
     <?php if ($c['CommandeOrigineId']): ?>
         <div class="c b grand">RETOUR / REMBOURSEMENT</div>
@@ -29,7 +31,7 @@ $c = $commande;
     <?php foreach ($lignes as $l): ?>
         <div class="b"><?= h($l['Libelle']) ?></div>
         <div class="r ind">
-            <span><?= quantite_fr($l['Quantite']) ?> x <?= fcfa($l['PrixUnitaire']) ?><?= (float) $l['Remise'] > 0 ? ' -' . quantite_fr($l['Remise']) . '%' : '' ?></span>
+            <span><?= quantite_fr($l['Quantite']) ?><?= ($l['Unite'] ?? 'Unité') !== 'Unité' ? ' ' . h($l['Unite']) : '' ?> x <?= fcfa($l['PrixUnitaire']) ?><?= (float) $l['Remise'] > 0 ? ' -' . quantite_fr($l['Remise']) . '%' : '' ?></span>
             <span><?= fcfa($l['TotalTTC']) ?></span>
         </div>
     <?php endforeach; ?>
