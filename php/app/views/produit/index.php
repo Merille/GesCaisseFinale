@@ -70,7 +70,6 @@
             $alerte = $p['SuiviStock'] && $p['SeuilAlerte'] !== null && (float) $p['StockActuel'] <= (float) $p['SeuilAlerte']; ?>
             <div class="col">
                 <article class="carte-liste h-100 d-flex flex-column" style="--couleur: <?= h($p['Couleur'] ?: '#999997') ?>">
-                    <?php if ($img = url_image_produit($p)): ?><div class="carte-image"><img src="<?= h($img) ?>" alt="<?= h($p['Nom']) ?>" loading="lazy"></div><?php endif; ?>
                     <div class="p-3 d-flex flex-column gap-2 flex-grow-1">
                         <div class="d-flex justify-content-between align-items-start gap-2">
                             <div>

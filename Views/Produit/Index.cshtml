@@ -145,10 +145,6 @@
             {
                 <div class="col" data-id="@p.Id">
                     <article class="carte-liste h-100 d-flex flex-column" style="--couleur: @(p.Categorie?.Couleur ?? "#999997")">
-                        @if (EasytransitCaisse.Data.Images.UrlImage(p) is string image)
-                        {
-                            <div class="carte-image"><img src="@image" alt="@p.Nom" loading="lazy" /></div>
-                        }
                         <div class="p-3 d-flex flex-column gap-2 flex-grow-1">
                             <div class="d-flex justify-content-between align-items-start gap-2">
                                 <div>

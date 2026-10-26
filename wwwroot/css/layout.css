@@ -505,5 +505,3 @@ html.sidebar-replie .sb-sub {
 /* Images (logo de la société, photo de produit) */
 .vignette-image { width: 56px; height: 56px; object-fit: contain; border: 1px solid #e3e8f1; border-radius: 8px; background: #fff; flex-shrink: 0; }
 .vignette-petite { width: 36px; height: 36px; }
-.carte-liste .carte-image { height: 140px; background: #f4f6f9; border-radius: 6px 12px 0 0; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-.carte-liste .carte-image img { width: 100%; height: 100%; object-fit: cover; }
