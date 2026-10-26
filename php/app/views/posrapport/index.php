@@ -107,6 +107,13 @@ $jours = array_map(fn($j) => ['l' => date_fr($j['d'], 'd/m'), 'ca' => (float) $j
                         <div class="db-bar"><div style="width:<?= $maxMode > 0 ? max(0, round((float) $m['montant'] * 100 / $maxMode)) : 0 ?>%"></div></div>
                     </div>
                 <?php endforeach; ?>
+                <div class="border-top pt-3 d-flex flex-column gap-2 mt-auto">
+                    <h3 class="fw-bold m-0" style="font-size:14px;">Taxes collectées</h3>
+                    <?php if (!$taxes): ?><p class="text-muted small m-0">Aucune taxe sur la période.</p><?php endif; ?>
+                    <?php foreach ($taxes as $t): ?>
+                        <div class="d-flex justify-content-between small"><span><?= h($t['nom']) ?></span><strong class="db-num"><?= fcfa($t['montant']) ?></strong></div>
+                    <?php endforeach; ?>
+                </div>
             </section>
         </div>
     </div>

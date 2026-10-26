@@ -482,6 +482,91 @@ function pos_est_especes(array $mode): bool
     return (bool) preg_match('/\b(esp|espèces?|especes?|cash|liquide)\b/u', $texte);
 }
 
+/** Taxes de la société, la TVA en premier. */
+function taxes_liste(?int $tenant = null): array
+{
+    $where = $tenant === null ? tf() : 'TenantId = ' . (int) $tenant;
+    return q("SELECT * FROM Taxes WHERE $where ORDER BY ParDefaut DESC, Taux DESC, Code");
+}
+
+/** Taxes de départ d'une nouvelle société : TVA 18 % (par défaut) et CSS 1 %. */
+function taxes_initiales(int $tenant): void
+{
+    run("INSERT INTO Taxes (TenantId, Code, Libelle, Taux, ParDefaut) VALUES (?, 'TVA', 'Taxe sur la valeur ajoutée', 18, 1), (?, 'CSS', 'Contribution spéciale de solidarité', 1, 0)",
+        [$tenant, $tenant]);
+}
+
+/** Taxes d'un produit (Id, Code, Taux), indexées par Id. */
+function produit_taxes(int $produitId): array
+{
+    $taxes = [];
+    foreach (q('SELECT t.Id, t.Code, t.Taux FROM ProduitTaxes pt JOIN Taxes t ON t.Id = pt.TaxeId WHERE pt.ProduitId = ? ORDER BY t.ParDefaut DESC, t.Taux DESC, t.Code', [$produitId]) as $t) {
+        $taxes[(int) $t['Id']] = $t;
+    }
+    return $taxes;
+}
+
+/** Remplace les taxes d'un produit et met à jour son taux total (Produits.TauxTVA). */
+function produit_enregistrer_taxes(int $produitId, array $taxeIds, int $tenant): void
+{
+    run('DELETE FROM ProduitTaxes WHERE ProduitId = ?', [$produitId]);
+    foreach (array_unique(array_map('intval', $taxeIds)) as $taxeId) {
+        if (q1('SELECT Id FROM Taxes WHERE Id = ? AND TenantId = ?', [$taxeId, $tenant])) {
+            run('INSERT INTO ProduitTaxes (ProduitId, TaxeId) VALUES (?, ?)', [$produitId, $taxeId]);
+        }
+    }
+    taxes_recalculer('p.Id = ?', [$produitId]);
+}
+
+/** Taux total des produits désignés = somme des taux de leurs taxes. */
+function taxes_recalculer(string $condition, array $params): void
+{
+    run("UPDATE Produits p SET p.TauxTVA = (SELECT COALESCE(SUM(t.Taux), 0) FROM ProduitTaxes pt JOIN Taxes t ON t.Id = pt.TaxeId WHERE pt.ProduitId = p.Id)
+         WHERE $condition", $params);
+}
+
+/**
+ * Détail des taxes d'une ligne vendue : chaque taxe est calculée sur le HT de la ligne
+ * (HT = TTC / (1 + taux total)) ; le code et le taux sont figés au moment de la vente.
+ */
+function ligne_enregistrer_taxes(int $ligneId, array $taxes, float $totalTtc, int $tenant): void
+{
+    $total = array_sum(array_map(fn($t) => (float) $t['Taux'], $taxes));
+    if ($total <= 0) {
+        return;
+    }
+    $ht = $totalTtc / (1 + $total / 100);
+    foreach ($taxes as $t) {
+        run('INSERT INTO LignesCommandePosTaxes (TenantId, LigneCommandePosId, TaxeId, Code, Taux, Montant) VALUES (?, ?, ?, ?, ?, ?)',
+            [$tenant, $ligneId, $t['TaxeId'] ?? $t['Id'], $t['Code'], $t['Taux'], round($ht * (float) $t['Taux'] / 100, 2)]);
+    }
+}
+
+/**
+ * Taxes d'une vente regroupées par code et taux (« TVA 18 % » => montant). Les lignes
+ * vendues avant le détail des taxes sont comptées en TVA à leur taux total.
+ */
+function vente_taxes(int $commandeId): array
+{
+    $lignes = q(
+        'SELECT x.Code, x.Taux, SUM(x.Montant) AS Montant FROM LignesCommandePosTaxes x
+         JOIN LignesCommandePos l ON l.Id = x.LigneCommandePosId WHERE l.CommandePosId = ?
+         GROUP BY x.Code, x.Taux
+         UNION ALL
+         SELECT \'TVA\', l.TauxTVA, SUM(l.TotalTTC - l.TotalTTC / (1 + l.TauxTVA / 100)) FROM LignesCommandePos l
+         WHERE l.CommandePosId = ? AND l.TauxTVA > 0
+           AND NOT EXISTS (SELECT 1 FROM LignesCommandePosTaxes x WHERE x.LigneCommandePosId = l.Id)
+         GROUP BY l.TauxTVA',
+        [$commandeId, $commandeId]
+    );
+    $taxes = [];
+    foreach ($lignes as $t) {
+        $cle = $t['Code'] . ' ' . quantite_fr($t['Taux']) . ' %';
+        $taxes[$cle] = ($taxes[$cle] ?? 0) + (float) $t['Montant'];
+    }
+    return $taxes;
+}
+
 /**
  * Mouvement de stock d'un produit suivi : met à jour son stock et l'enregistre dans
  * l'historique (quantité signée : + entrée, − sortie). Sans effet pour un produit

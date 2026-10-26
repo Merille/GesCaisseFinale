@@ -37,7 +37,7 @@ function tenant_create(): void
         if ($v[0] === '' || $v[1] === '') {
             flash('danger', 'Le nom et le code sont obligatoires.');
         } else {
-            run('INSERT INTO Tenants (Nom, Code, Actif, ModeAcces, DateExpiration, DateCreation) VALUES (?, ?, ?, ?, ?, NOW())', $v);
+            taxes_initiales(run('INSERT INTO Tenants (Nom, Code, Actif, ModeAcces, DateExpiration, DateCreation) VALUES (?, ?, ?, ?, ?, NOW())', $v));
             flash('success', 'Société créée.');
             redirect('tenant/index');
         }

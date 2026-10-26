@@ -69,5 +69,13 @@
     <?php endforeach; ?>
     <?php if (!$modes): ?><tr><td colspan="3" class="muted">Aucun encaissement sur la période.</td></tr><?php endif; ?>
 </table>
+<h2>Taxes collectées</h2>
+<table>
+    <tr><th>Taxe</th><th class="r">Montant collecté</th></tr>
+    <?php foreach ($taxes as $t): ?>
+        <tr><td><?= h($t['nom']) ?></td><td class="r"><?= fcfa($t['montant']) ?></td></tr>
+    <?php endforeach; ?>
+    <?php if (!$taxes): ?><tr><td colspan="2" class="muted">Aucune taxe sur la période.</td></tr><?php endif; ?>
+</table>
 <p class="muted">Chiffre d'affaires net = ventes − retours ; les ventes annulées sont exclues. Encaissements nets : remboursements des retours déduits.</p>
 <?php require __DIR__ . '/../partials/print_fin.php'; ?>

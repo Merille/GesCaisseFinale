@@ -84,7 +84,22 @@ function posrapport_donnees(array $f): array
         $p
     );
 
+    // Taxes collectées : détail figé à la vente ; lignes plus anciennes comptées en TVA à leur taux total.
+    $taxes = [];
+    $detail = q("SELECT x.Code, x.Taux, SUM(x.Montant) AS montant $from JOIN LignesCommandePos l ON l.CommandePosId = cmd.Id
+                 JOIN LignesCommandePosTaxes x ON x.LigneCommandePosId = l.Id WHERE $net GROUP BY x.Code, x.Taux", $p);
+    $anciennes = q("SELECT 'TVA' AS Code, l.TauxTVA AS Taux, SUM(l.TotalTTC - l.TotalTTC / (1 + l.TauxTVA / 100)) AS montant
+                    $from JOIN LignesCommandePos l ON l.CommandePosId = cmd.Id
+                    WHERE $net AND l.TauxTVA > 0 AND NOT EXISTS (SELECT 1 FROM LignesCommandePosTaxes x WHERE x.LigneCommandePosId = l.Id)
+                    GROUP BY l.TauxTVA", $p);
+    foreach (array_merge($detail, $anciennes) as $t) {
+        $nom = $t['Code'] . ' ' . quantite_fr($t['Taux']) . ' %';
+        $taxes[$nom] = ($taxes[$nom] ?? 0) + (float) $t['montant'];
+    }
+    arsort($taxes);
+
     return [
+        'taxes' => array_map(fn($nom, $montant) => ['nom' => $nom, 'montant' => round($montant, 2)], array_keys($taxes), $taxes),
         'kpi' => [
             'ca' => $ventes - (float) $k['retours'],
             'ht' => (float) $k['ht'],
@@ -166,5 +181,6 @@ function posrapport_excel(): void
             fn($j) => [date_fr($j['d']), (int) $j['tickets'], $n($j['ca'])]),
         'Par mode de paiement' => $feuille(['Mode de paiement', 'Tickets', 'Encaissé net'], $d['modes'],
             fn($m) => [$m['nom'], (int) $m['tickets'], $n($m['montant'])]),
+        'Taxes' => $feuille(['Taxe', 'Montant collecté'], $d['taxes'], fn($t) => [$t['nom'], $n($t['montant'])]),
     ]);
 }

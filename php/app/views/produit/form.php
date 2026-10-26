@@ -33,9 +33,20 @@ require __DIR__ . '/../partials/form_debut.php';
                     <input class="form-control" id="PrixVente" name="PrixVente" inputmode="decimal" value="<?= $nombre('PrixVente') ?>" required>
                 </div>
                 <div class="col-md-4">
-                    <label class="form-label" for="TauxTVA">TVA (%)</label>
-                    <input class="form-control" id="TauxTVA" name="TauxTVA" inputmode="decimal" value="<?= $nombre('TauxTVA') ?>">
-                    <div class="form-text">Comprise dans le prix TTC.</div>
+                    <?php $cochees = array_map('intval', $produit['TaxeIds'] ?? []); $totalTaxes = 0.0; ?>
+                    <div class="form-label">Taxes</div>
+                    <div class="d-flex flex-wrap gap-2" role="group" aria-label="Taxes du produit">
+                        <?php foreach ($taxes as $t): $coche = in_array((int) $t['Id'], $cochees, true); $totalTaxes += $coche ? (float) $t['Taux'] : 0; ?>
+                            <input type="checkbox" class="btn-check" name="Taxes[]" value="<?= (int) $t['Id'] ?>" id="taxe<?= (int) $t['Id'] ?><?= !empty($modale) ? 'm' : '' ?>"
+                                   data-taux="<?= h((string) (float) $t['Taux']) ?>" <?= $coche ? 'checked' : '' ?> autocomplete="off"
+                                   onchange="let t = 0; this.closest('form').querySelectorAll('[name=&quot;Taxes[]&quot;]:checked').forEach((c) => t += +c.dataset.taux); this.closest('form').querySelector('.taux-total').textContent = t.toLocaleString('fr-FR');">
+                            <label class="btn btn-outline-primary btn-sm" for="taxe<?= (int) $t['Id'] ?><?= !empty($modale) ? 'm' : '' ?>" title="<?= h($t['Libelle']) ?>"><?= h($t['Code']) ?> <?= quantite_fr($t['Taux']) ?> %</label>
+                        <?php endforeach; ?>
+                    </div>
+                    <div class="form-text">
+                        <?php if (!$taxes): ?>Aucune taxe : créez-en dans Paramètres &gt; Taxes.
+                        <?php else: ?>Total <strong class="taux-total"><?= quantite_fr($totalTaxes) ?></strong> %, compris dans le prix TTC.<?php endif; ?>
+                    </div>
                 </div>
             </div>
             <h6 class="text-muted text-uppercase small mt-4 mb-3">Stock</h6>

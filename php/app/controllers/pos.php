@@ -130,7 +130,7 @@ function pos_vendre(): void
         pos_json(['erreur' => 'Cette journée est clôturée : la vente ne peut pas être enregistrée.'], 409);
     }
 
-    // Lignes : prix et TVA repris du catalogue ; prix saisi accepté pour un administrateur seulement.
+    // Lignes : prix et taxes repris du catalogue ; prix saisi accepté pour un administrateur seulement.
     $lignes = [];
     $ttc = $tva = 0.0;
     foreach ($v['lignes'] as $l) {
@@ -212,11 +212,12 @@ function pos_vendre(): void
             [$tenant, $numero, $cle, $journee['Id'], $client, user()['id'], $ttc - $tva, $tva, $ttc, $recu, $rendu]
         );
         foreach ($lignes as $l) {
-            run(
+            $ligneId = run(
                 'INSERT INTO LignesCommandePos (TenantId, CommandePosId, ProduitId, Libelle, Quantite, PrixUnitaire, Remise, TauxTVA, TotalTTC)
                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
                 [$tenant, $commandeId, $l['produit']['Id'], $l['produit']['Nom'], $l['qte'], $l['prix'], $l['remise'], $l['taux'], $l['total']]
             );
+            ligne_enregistrer_taxes($ligneId, produit_taxes((int) $l['produit']['Id']), $l['total'], $tenant);
             mouvement_stock((int) $l['produit']['Id'], -$l['qte'], 'Vente', $numero, $commandeId);
         }
 
@@ -276,16 +277,11 @@ function pos_ticket(): void
         not_found('Ticket introuvable.');
     }
     $lignes = q('SELECT * FROM LignesCommandePos WHERE CommandePosId = ? ORDER BY Id', [$commande['Id']]);
-    $tvaParTaux = [];
-    foreach ($lignes as $l) {
-        $t = (string) (float) $l['TauxTVA'];
-        $tvaParTaux[$t] = ($tvaParTaux[$t] ?? 0) + (float) $l['TotalTTC'] - (float) $l['TotalTTC'] / (1 + (float) $l['TauxTVA'] / 100);
-    }
     render('pos/ticket', [
         'commande' => $commande,
         'lignes' => $lignes,
         'paiements' => q('SELECT * FROM PaiementsPos WHERE CommandePosId = ? ORDER BY Id', [$commande['Id']]),
-        'tvaParTaux' => $tvaParTaux,
+        'taxes' => vente_taxes((int) $commande['Id']),
         'imprimer' => get('imprimer') === '1',
     ], false);
 }

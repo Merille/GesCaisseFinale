@@ -228,11 +228,13 @@ function vente_retour(): void
         );
         foreach ($retours as $r) {
             $l = $r['ligne'];
-            run(
+            $ligneId = run(
                 'INSERT INTO LignesCommandePos (TenantId, CommandePosId, ProduitId, Libelle, Quantite, PrixUnitaire, Remise, TauxTVA, TotalTTC, LigneOrigineId)
                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
                 [$vente['TenantId'], $retourId, $l['ProduitId'], $l['Libelle'], -$r['qte'], $l['PrixUnitaire'], $l['Remise'], $l['TauxTVA'], -$r['total'], $l['Id']]
             );
+            // Taxes de la ligne d'origine, avec les taux figés à la vente (montants négatifs).
+            ligne_enregistrer_taxes($ligneId, q('SELECT TaxeId, Code, Taux FROM LignesCommandePosTaxes WHERE LigneCommandePosId = ?', [$l['Id']]), -$r['total'], (int) $vente['TenantId']);
             if ($l['ProduitId']) {
                 mouvement_stock((int) $l['ProduitId'], $r['qte'], 'Retour', $numero, $retourId, $motif);
             }

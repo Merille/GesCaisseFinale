@@ -1,9 +1,15 @@
 <?php $titre = 'Catégories'; ?>
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h4 class="mb-0">Catégories de produits</h4>
-    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalCategorie" data-id=""><i class="fa fa-plus"></i> Nouvelle catégorie</button>
+    <div class="d-flex flex-wrap gap-2">
+        <div class="btn-group" role="group" aria-label="Affichage" data-vues="categories">
+            <button type="button" class="btn btn-outline-secondary" data-vue="liste" title="Affichage en liste"><i class="fa fa-list"></i> Liste</button>
+            <button type="button" class="btn btn-outline-secondary" data-vue="cartes" title="Affichage en cartes"><i class="fa fa-grip"></i> Cartes</button>
+        </div>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalCategorie" data-id=""><i class="fa fa-plus"></i> Nouvelle catégorie</button>
+    </div>
 </div>
-<div class="card shadow-sm border-0">
+<div class="card shadow-sm border-0" data-vue-de="categories" data-vue="liste">
     <div class="card-body">
         <table class="table table-hover align-middle mb-0">
             <thead class="table-dark"><tr><th>Catégorie</th><th class="text-center">Ordre</th><th class="text-center">Produits</th><th class="text-center">Actions</th></tr></thead>
@@ -26,6 +32,36 @@
             <?php endforeach; ?>
             </tbody>
         </table>
+    </div>
+</div>
+
+<div class="d-none" data-vue-de="categories" data-vue="cartes">
+    <?php if (!$categories): ?><div class="card shadow-sm border-0"><div class="card-body text-center text-muted py-4">Aucune catégorie. Créez-en une pour regrouper les produits sur l'écran de vente.</div></div><?php endif; ?>
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xxl-4 g-3">
+        <?php foreach ($categories as $c): $nb = (int) $c['NbProduits']; ?>
+            <div class="col">
+                <article class="carte-liste carte-categorie h-100 d-flex flex-column" style="--couleur: <?= h($c['Couleur']) ?>">
+                    <div class="p-3 d-flex align-items-center gap-3 flex-grow-1">
+                        <span class="carte-pastille" aria-hidden="true"></span>
+                        <div class="flex-grow-1">
+                            <h3 class="h6 fw-bold mb-1"><?= h($c['Nom']) ?></h3>
+                            <div class="small text-muted">
+                                <a href="<?= h(url('produit/index', ['categorie' => $c['Id']])) ?>"><?= $nb ?> produit<?= $nb > 1 ? 's' : '' ?></a>
+                                · ordre <?= (int) $c['Ordre'] ?>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="carte-actions px-3 py-2 d-flex gap-2 justify-content-end">
+                        <button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#modalCategorie"
+                                data-id="<?= (int) $c['Id'] ?>" data-nom="<?= h($c['Nom']) ?>" data-couleur="<?= h($c['Couleur']) ?>" data-ordre="<?= (int) $c['Ordre'] ?>">Modifier</button>
+                        <form method="post" action="<?= h(url('categorie/delete')) ?>" onsubmit="return confirm('Supprimer cette catégorie ?');">
+                            <?= csrf_field() ?><input type="hidden" name="id" value="<?= (int) $c['Id'] ?>">
+                            <button class="btn btn-danger btn-sm">Supprimer</button>
+                        </form>
+                    </div>
+                </article>
+            </div>
+        <?php endforeach; ?>
     </div>
 </div>
 

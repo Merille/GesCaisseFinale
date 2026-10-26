@@ -36,8 +36,8 @@ $c = $commande;
     <hr>
     <div class="r b grand"><span>TOTAL TTC</span><span><?= fcfa($c['TotalTTC']) ?> FCFA</span></div>
     <div class="r"><span>Total HT</span><span><?= fcfa($c['TotalHT']) ?></span></div>
-    <?php foreach ($tvaParTaux as $taux => $montant): ?>
-        <div class="r"><span>TVA <?= quantite_fr($taux) ?> %</span><span><?= fcfa($montant) ?></span></div>
+    <?php foreach ($taxes as $libelle => $montant): ?>
+        <div class="r"><span><?= h($libelle) ?></span><span><?= fcfa($montant) ?></span></div>
     <?php endforeach; ?>
     <hr>
     <?php foreach ($paiements as $p): ?>

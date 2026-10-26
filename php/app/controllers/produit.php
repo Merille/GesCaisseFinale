@@ -1,12 +1,13 @@
 <?php
 // Produits du point de vente : liste, fiche, suppression, export / import Excel.
-// Le prix de vente est saisi TTC ; la TVA est calculée à partir du TTC.
+// Le prix de vente est saisi TTC ; un produit peut porter plusieurs taxes (TVA, CSS…)
+// qui s'additionnent sur le HT. Produits.TauxTVA garde le taux total.
 
 require_once __DIR__ . '/../xlsx.php';
 
 // Colonnes du fichier Excel (export et import), dans cet ordre.
 const PRODUIT_COLONNES_EXCEL = [
-    'Code', 'Nom', 'Catégorie', 'Code-barres', 'Prix TTC', 'TVA %', 'Suivi stock', 'Stock', 'Seuil alerte', 'Actif',
+    'Code', 'Nom', 'Catégorie', 'Code-barres', 'Prix TTC', 'Taxes', 'Suivi stock', 'Stock', 'Seuil alerte', 'Actif',
 ];
 
 function produit_categories(): array
@@ -30,7 +31,10 @@ function produit_filtre(string $search, int $categorie): array
     return [$sql, $params];
 }
 
-const PRODUIT_SELECT = 'SELECT p.*, c.Nom AS Categorie, c.Couleur FROM Produits p LEFT JOIN Categories c ON c.Id = p.CategorieId';
+const PRODUIT_SELECT = "SELECT p.*, c.Nom AS Categorie, c.Couleur,
+        (SELECT GROUP_CONCAT(t.Code ORDER BY t.ParDefaut DESC, t.Taux DESC, t.Code SEPARATOR ' + ')
+         FROM ProduitTaxes pt JOIN Taxes t ON t.Id = pt.TaxeId WHERE pt.ProduitId = p.Id) AS Taxes
+    FROM Produits p LEFT JOIN Categories c ON c.Id = p.CategorieId";
 
 function produit_index(): void
 {
@@ -44,6 +48,7 @@ function produit_index(): void
     render('produit/index', [
         'produits' => q(PRODUIT_SELECT . ' WHERE ' . $where . ' ORDER BY p.Nom, p.Id' . $pagination['limite'], $params),
         'categories' => produit_categories(),
+        'taxes' => taxes_liste(),
         'search' => $search,
         'categorie' => $categorie,
         'pagination' => $pagination,
@@ -74,11 +79,11 @@ function produit_valeurs(): array
         'Nom' => (string) post('Nom', ''),
         'CategorieId' => $categorie,
         'PrixVente' => montant(post('PrixVente')),
-        'TauxTVA' => montant(post('TauxTVA', '18')),
         'SuiviStock' => post('SuiviStock') ? 1 : 0,
         'StockActuel' => montant(post('StockActuel')),
         'SeuilAlerte' => $seuil === '' ? null : montant($seuil),
         'Actif' => post('Actif') ? 1 : 0,
+        'TaxeIds' => array_map('intval', (array) post('Taxes', [])),
     ];
 }
 
@@ -88,8 +93,8 @@ function produit_erreur(array $v, int $idExclu = 0): ?string
     if ($v['Code'] === '' || $v['Nom'] === '') {
         return 'Le code et le nom du produit sont obligatoires.';
     }
-    if ($v['PrixVente'] < 0 || $v['TauxTVA'] < 0 || $v['TauxTVA'] > 100) {
-        return 'Le prix doit être positif et le taux de TVA compris entre 0 et 100 %.';
+    if ($v['PrixVente'] < 0) {
+        return 'Le prix doit être positif.';
     }
     if (qv('SELECT COUNT(*) FROM Produits WHERE Code = ? AND Id <> ? AND ' . tf(), [$v['Code'], $idExclu])) {
         return "Le code « {$v['Code']} » est déjà utilisé par un autre produit.";
@@ -103,9 +108,10 @@ function produit_erreur(array $v, int $idExclu = 0): ?string
 
 // Champs enregistrés tels quels. Le stock n'en fait pas partie : il ne change que par des
 // mouvements (stock initial à la création, entrées, inventaires, ventes, retours).
-const PRODUIT_CHAMPS = ['Code', 'CodeBarres', 'Nom', 'CategorieId', 'PrixVente', 'TauxTVA', 'SuiviStock', 'SeuilAlerte', 'Actif'];
+// Le taux total (TauxTVA) suit les taxes du produit (produit_enregistrer_taxes).
+const PRODUIT_CHAMPS = ['Code', 'CodeBarres', 'Nom', 'CategorieId', 'PrixVente', 'SuiviStock', 'SeuilAlerte', 'Actif'];
 
-/** Crée le produit puis enregistre son stock initial comme premier mouvement. */
+/** Crée le produit, ses taxes, puis enregistre son stock initial comme premier mouvement. */
 function produit_inserer(array $v, int $tenant): int
 {
     db()->beginTransaction();
@@ -113,6 +119,7 @@ function produit_inserer(array $v, int $tenant): int
         $cols = implode(', ', PRODUIT_CHAMPS);
         $marques = implode(', ', array_fill(0, count(PRODUIT_CHAMPS), '?'));
         $id = run("INSERT INTO Produits ($cols, TenantId) VALUES ($marques, ?)", [...array_map(fn($c) => $v[$c], PRODUIT_CHAMPS), $tenant]);
+        produit_enregistrer_taxes($id, $v['TaxeIds'] ?? taxes_par_defaut($tenant), $tenant);
         mouvement_stock($id, (float) ($v['StockActuel'] ?? 0), 'Stock initial');
         db()->commit();
     } catch (Throwable $e) {
@@ -122,15 +129,32 @@ function produit_inserer(array $v, int $tenant): int
     return $id;
 }
 
+/** Met le produit à jour ; ses taxes sont remplacées si elles sont fournies. */
 function produit_mettre_a_jour(array $v, int $id): void
 {
     $set = implode(', ', array_map(fn($c) => "$c = ?", PRODUIT_CHAMPS));
-    run("UPDATE Produits SET $set WHERE Id = ?", [...array_map(fn($c) => $v[$c], PRODUIT_CHAMPS), $id]);
+    db()->beginTransaction();
+    try {
+        run("UPDATE Produits SET $set WHERE Id = ?", [...array_map(fn($c) => $v[$c], PRODUIT_CHAMPS), $id]);
+        if (isset($v['TaxeIds'])) {
+            produit_enregistrer_taxes($id, $v['TaxeIds'], (int) qv('SELECT TenantId FROM Produits WHERE Id = ?', [$id]));
+        }
+        db()->commit();
+    } catch (Throwable $e) {
+        db()->rollBack();
+        throw $e;
+    }
+}
+
+/** Taxes cochées par défaut sur un nouveau produit. */
+function taxes_par_defaut(?int $tenant = null): array
+{
+    return array_map(fn($t) => (int) $t['Id'], array_filter(taxes_liste($tenant), fn($t) => $t['ParDefaut']));
 }
 
 function produit_create(): void
 {
-    $produit = ['TauxTVA' => 18, 'SuiviStock' => 1, 'Actif' => 1];
+    $produit = ['SuiviStock' => 1, 'Actif' => 1, 'TaxeIds' => taxes_par_defaut()];
     if (is_post()) {
         $produit = produit_valeurs();
         if ($e = produit_erreur($produit)) {
@@ -141,13 +165,13 @@ function produit_create(): void
             redirect('produit/index');
         }
     }
-    render('produit/form', ['produit' => $produit, 'edition' => false, 'categories' => produit_categories()]);
+    render('produit/form', ['produit' => $produit, 'edition' => false, 'categories' => produit_categories(), 'taxes' => taxes_liste()]);
 }
 
 function produit_edit(): void
 {
     $existant = produit_charger((int) get('id'));
-    $produit = $existant;
+    $produit = $existant + ['TaxeIds' => array_keys(produit_taxes((int) $existant['Id']))];
     if (is_post()) {
         $produit = produit_valeurs() + ['Id' => $existant['Id']];
         $produit['StockActuel'] = $existant['StockActuel'];
@@ -159,7 +183,7 @@ function produit_edit(): void
             redirect('produit/index');
         }
     }
-    render('produit/form', ['produit' => $produit, 'edition' => true, 'categories' => produit_categories()]);
+    render('produit/form', ['produit' => $produit, 'edition' => true, 'categories' => produit_categories(), 'taxes' => taxes_liste()]);
 }
 
 function produit_delete(): void
@@ -180,7 +204,7 @@ function produit_export(): void
     foreach (q(PRODUIT_SELECT . ' WHERE ' . $where . ' ORDER BY p.Nom', $params) as $p) {
         $lignes[] = [
             $p['Code'], $p['Nom'], (string) $p['Categorie'], (string) $p['CodeBarres'],
-            quantite_fr($p['PrixVente'], false), quantite_fr($p['TauxTVA'], false),
+            quantite_fr($p['PrixVente'], false), (string) $p['Taxes'],
             $p['SuiviStock'] ? 'Oui' : 'Non', quantite_fr($p['StockActuel'], false),
             $p['SeuilAlerte'] === null ? '' : quantite_fr($p['SeuilAlerte'], false), $p['Actif'] ? 'Oui' : 'Non',
         ];
@@ -222,6 +246,7 @@ function produit_import(): void
     foreach (produit_categories() as $c) {
         $categories[mb_strtolower($c['Nom'])] = (int) $c['Id'];
     }
+    $taxes = taxes_liste();
     $crees = $maj = 0;
     $erreurs = [];
     foreach (array_slice($lignes, 1) as $ligne) {
@@ -239,12 +264,21 @@ function produit_import(): void
             }
             $categorieId = $categories[$cle];
         }
+        $taxeIds = produit_taxes_depuis_texte($col(5), $taxes);
+        if (is_string($taxeIds)) {
+            $erreurs[] = "Ligne $n : $taxeIds";
+            continue;
+        }
         $v = [
             'Code' => $col(0), 'CodeBarres' => $col(3) ?: null, 'Nom' => $col(1), 'CategorieId' => $categorieId,
-            'PrixVente' => montant($col(4)), 'TauxTVA' => $col(5) === '' ? 18.0 : montant($col(5)),
+            'PrixVente' => montant($col(4)),
             'SuiviStock' => produit_booleen($col(6), 1), 'StockActuel' => montant($col(7)),
             'SeuilAlerte' => $col(8) === '' ? null : montant($col(8)), 'Actif' => produit_booleen($col(9), 1),
         ];
+        // Colonne Taxes vide : taxes par défaut pour un nouveau produit, inchangées pour un produit existant.
+        if ($taxeIds !== null) {
+            $v['TaxeIds'] = $taxeIds;
+        }
         $existant = $v['Code'] !== '' ? q1('SELECT Id FROM Produits WHERE Code = ? AND ' . tf(), [$v['Code']]) : null;
         if ($e = produit_erreur($v, (int) ($existant['Id'] ?? 0))) {
             $erreurs[] = "Ligne $n : $e";
@@ -265,4 +299,43 @@ function produit_import(): void
         flash('warning', implode("\n", $erreurs));
     }
     redirect('produit/index');
+}
+
+/**
+ * Taxes d'une ligne importée : codes séparés par « + », « , » ou « ; » (ex. « TVA + CSS »),
+ * ou un taux seul (ancien format « TVA % », ex. 18). Null si la cellule est vide ;
+ * message d'erreur si un code ou un taux est inconnu.
+ */
+function produit_taxes_depuis_texte(string $texte, array $taxes): array|string|null
+{
+    $texte = trim($texte);
+    if ($texte === '') {
+        return null;
+    }
+    if (preg_match('/^\d+([.,]\d+)?\s*%?$/', $texte)) {
+        $taux = montant(rtrim($texte, " %"));
+        if ($taux == 0) {
+            return [];
+        }
+        foreach ($taxes as $t) {
+            if ((float) $t['Taux'] == $taux) {
+                return [(int) $t['Id']];
+            }
+        }
+        return "aucune taxe de " . quantite_fr($taux) . " % (créez-la dans Paramètres > Taxes).";
+    }
+    $ids = [];
+    foreach (preg_split('/\s*[+,;]\s*/', $texte, -1, PREG_SPLIT_NO_EMPTY) as $code) {
+        $trouve = null;
+        foreach ($taxes as $t) {
+            if (mb_strtoupper($t['Code']) === mb_strtoupper($code)) {
+                $trouve = (int) $t['Id'];
+            }
+        }
+        if ($trouve === null) {
+            return "taxe « $code » inconnue (voir Paramètres > Taxes).";
+        }
+        $ids[] = $trouve;
+    }
+    return $ids;
 }
