@@ -1,0 +1,6 @@
+@model string
+<ul class="nav nav-tabs mb-3">
+    <li class="nav-item"><a class="nav-link @(Model == "Index" ? "active" : "")" href="/Stock/Index"><i class="fas fa-clock-rotate-left"></i> Mouvements</a></li>
+    <li class="nav-item"><a class="nav-link @(Model == "Entree" ? "active" : "")" href="/Stock/Entree"><i class="fas fa-truck-ramp-box"></i> Entrée de marchandises</a></li>
+    <li class="nav-item"><a class="nav-link @(Model == "Inventaire" ? "active" : "")" href="/Stock/Inventaire"><i class="fas fa-clipboard-check"></i> Inventaire</a></li>
+</ul>

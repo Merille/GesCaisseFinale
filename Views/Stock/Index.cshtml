@@ -1,0 +1,139 @@
+@model List<EasytransitCaisse.Models.MouvementStock>
+@using System.Globalization
+@{
+    ViewData["Title"] = "Stock";
+    var utilisateurs = (Dictionary<int, string>)ViewBag.Utilisateurs;
+    var produits = (List<EasytransitCaisse.Models.Produit>)ViewBag.Produits;
+    var alertes = (List<EasytransitCaisse.Models.Produit>)ViewBag.Alertes;
+    var venteSansStock = (bool?)ViewBag.VenteSansStock;
+    dynamic f = ViewBag.Filtres;
+    var fr = CultureInfo.GetCultureInfo("fr-FR");
+    string Qte(decimal n) => n.ToString("#,0.##", fr);
+    string Badge(string t) => t switch
+    {
+        "Entrée" => "bg-success", "Retour" or "Annulation" => "bg-info text-dark", "Vente" => "bg-primary",
+        "Inventaire" => "bg-warning text-dark", _ => "bg-secondary"
+    };
+}
+
+<partial name="_Messages" />
+<partial name="_Onglets" model="@("Index")" />
+
+<div class="row g-3 mb-3">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-warning"><i class="fas fa-triangle-exclamation"></i> Produits au niveau ou sous le seuil d'alerte (@alertes.Count)</div>
+            @if (!alertes.Any())
+            {
+                <div class="card-body text-muted">Aucun produit sous son seuil d'alerte.</div>
+            }
+            else
+            {
+                <div class="card-body p-2 table-responsive" style="max-height: 220px;">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead><tr><th>Produit</th><th class="text-end">Stock</th><th class="text-end">Seuil</th><th></th></tr></thead>
+                        <tbody>
+                            @foreach (var a in alertes)
+                            {
+                                <tr>
+                                    <td>@a.Code · @a.Nom</td>
+                                    <td class="text-end fw-bold text-danger">@Qte(a.StockActuel)</td>
+                                    <td class="text-end">@Qte(a.SeuilAlerte ?? 0)</td>
+                                    <td class="text-end"><a class="btn btn-sm btn-outline-success" href="/Stock/Entree?produit=@a.Id">Réapprovisionner</a></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm h-100"><div class="card-body">
+            <h6 class="fw-bold">Vente quand le stock est épuisé</h6>
+            @if (venteSansStock == null)
+            {
+                <p class="small text-muted mb-0">Choisissez une société dans « Société consultée » pour régler cette option.</p>
+            }
+            else
+            {
+                <form method="post" asp-action="Option">
+                    <div class="form-check"><input class="form-check-input" type="radio" name="venteSansStock" id="vssOui" value="1" checked="@(venteSansStock == true)" />
+                        <label class="form-check-label" for="vssOui">Autorisée, avec un avertissement</label></div>
+                    <div class="form-check mb-2"><input class="form-check-input" type="radio" name="venteSansStock" id="vssNon" value="0" checked="@(venteSansStock == false)" />
+                        <label class="form-check-label" for="vssNon">Interdite (le point de vente refuse l'article)</label></div>
+                    <button class="btn btn-sm btn-primary">Enregistrer</button>
+                </form>
+            }
+        </div></div>
+    </div>
+</div>
+
+<form method="get" action="/Stock/Index" class="d-flex flex-wrap gap-2 mb-3 align-items-end">
+    <div><label class="form-label small mb-1" for="fProduit">Produit</label>
+        <select id="fProduit" name="produit" class="form-select" style="min-width:240px;">
+            <option value="0">Tous les produits</option>
+            @foreach (var p in produits)
+            {
+                <option value="@p.Id" selected="@(f.produit == p.Id)">@p.Code · @p.Nom</option>
+            }
+        </select></div>
+    <div><label class="form-label small mb-1" for="fType">Type</label>
+        <select id="fType" name="type" class="form-select">
+            <option value="">Tous les types</option>
+            @foreach (var t in EasytransitCaisse.Models.MouvementStock.Types)
+            {
+                <option selected="@(f.type == t)">@t</option>
+            }
+        </select></div>
+    <div><label class="form-label small mb-1" for="fDu">Du</label><input id="fDu" type="date" name="du" class="form-control" value="@f.du" /></div>
+    <div><label class="form-label small mb-1" for="fAu">Au</label><input id="fAu" type="date" name="au" class="form-control" value="@f.au" /></div>
+    <button class="btn btn-outline-primary"><i class="fas fa-filter"></i> Filtrer</button>
+</form>
+
+<div class="card shadow-sm border-0">
+    <div class="card-body table-responsive">
+        <table id="mouvementsTable" class="table table-hover align-middle mb-0">
+            <thead class="table-dark"><tr><th>Date</th><th>Produit</th><th>Type</th><th class="text-end">Quantité</th><th class="text-end">Stock après</th><th>Référence</th><th>Par</th><th>Commentaire</th></tr></thead>
+            <tbody>
+                @foreach (var m in Model)
+                {
+                    <tr>
+                        <td class="text-nowrap" data-order="@m.DateMouvement.ToString("yyyy-MM-ddTHH:mm:ss")-@m.Id.ToString("D9")">@m.DateMouvement.ToString("dd/MM/yyyy HH:mm")</td>
+                        <td>@m.Produit?.Code · @m.Produit?.Nom</td>
+                        <td><span class="badge @Badge(m.TypeMouvement)">@m.TypeMouvement</span></td>
+                        <td class="text-end fw-semibold @(m.Quantite < 0 ? "text-danger" : "text-success")">@(m.Quantite > 0 ? "+" : "")@Qte(m.Quantite)</td>
+                        <td class="text-end">@Qte(m.StockApres)</td>
+                        <td>
+                            @if (m.CommandePosId.HasValue)
+                            {
+                                <a href="/Vente/Details/@m.CommandePosId">@m.Reference</a>
+                            }
+                            else
+                            {
+                                @m.Reference
+                            }
+                        </td>
+                        <td>@(m.UtilisateurId.HasValue && utilisateurs.TryGetValue(m.UtilisateurId.Value, out var u) ? u : "")</td>
+                        <td class="small">@m.Commentaire</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            $('#mouvementsTable').DataTable({
+                language: { url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/fr-FR.json' },
+                pageLength: 20,
+                lengthMenu: [20, 50, 100],
+                order: [[0, 'desc']],
+                searching: false,
+                dom: 'rtip'
+            });
+        });
+    </script>
+}

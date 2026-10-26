@@ -115,6 +115,24 @@ namespace EasytransitCaisse.Data
             modelBuilder.Entity<CommandePos>().HasIndex(c => c.CommandeOrigineId);
             modelBuilder.Entity<LigneCommandePos>().HasIndex(l => l.LigneOrigineId);
 
+            // Point de vente : stock.
+            modelBuilder.Entity<MouvementStock>()
+                .HasQueryFilter(e => _currentTenantId == 0 || e.TenantId == _currentTenantId);
+
+            modelBuilder.Entity<MouvementStock>()
+                .HasIndex(m => new { m.ProduitId, m.DateMouvement });
+
+            modelBuilder.Entity<MouvementStock>()
+                .HasIndex(m => new { m.TenantId, m.DateMouvement });
+
+            modelBuilder.Entity<MouvementStock>().Property(m => m.TypeMouvement).HasMaxLength(20);
+            modelBuilder.Entity<MouvementStock>().Property(m => m.Reference).HasMaxLength(100);
+            modelBuilder.Entity<MouvementStock>().Property(m => m.Commentaire).HasMaxLength(300);
+
+            modelBuilder.Entity<Tenant>()
+                .Property(t => t.PosVenteSansStock)
+                .HasDefaultValue(true);
+
             modelBuilder.Entity<Produit>()
                 .HasOne(p => p.Categorie)
                 .WithMany()
@@ -178,5 +196,7 @@ namespace EasytransitCaisse.Data
         public DbSet<LigneCommandePos> LignesCommandePos { get; set; }
 
         public DbSet<PaiementPos> PaiementsPos { get; set; }
+
+        public DbSet<MouvementStock> MouvementsStock { get; set; }
     }
 }

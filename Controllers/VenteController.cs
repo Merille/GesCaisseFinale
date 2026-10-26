@@ -215,12 +215,6 @@ namespace EasytransitCaisse.Controllers
                 }).ToList()
             };
             _context.CommandesPos.Add(retour);
-            foreach (var r in lignesRetour.Where(r => r.Origine.ProduitId.HasValue))
-            {
-                var produit = await _context.Produits.FirstOrDefaultAsync(p => p.Id == r.Origine.ProduitId);
-                if (produit != null && produit.SuiviStock)
-                    produit.StockActuel += r.Qte;
-            }
             var motifRetour = await _context.Motifs.FirstOrDefaultAsync(m => m.LibelleMotif == "Retour POS" && m.TenantId == vente.TenantId);
             if (motifRetour == null)
             {
@@ -238,6 +232,8 @@ namespace EasytransitCaisse.Controllers
             };
             _context.OperationsCaisses.Add(operation);
             await _context.SaveChangesAsync();
+            foreach (var r in lignesRetour.Where(r => r.Origine.ProduitId.HasValue))
+                await _context.MouvementAsync(r.Origine.ProduitId!.Value, r.Qte, "Retour", numero, retour.Id, UtilisateurId, motif);
             _context.PaiementsPos.Add(new PaiementPos
             {
                 TenantId = vente.TenantId, CommandePosId = retour.Id, ModePaiementId = mode.Id, Libelle = mode.Libelle ?? "",
@@ -280,13 +276,11 @@ namespace EasytransitCaisse.Controllers
                 op.Valideur = NomUtilisateur;
                 op.Observation = "Vente annulée" + (motif != null ? " : " + motif : "");
             }
+            await using var transaction = await _context.Database.BeginTransactionAsync();
             foreach (var l in vente.Lignes.Where(l => l.ProduitId.HasValue))
-            {
-                var produit = await _context.Produits.FirstOrDefaultAsync(p => p.Id == l.ProduitId);
-                if (produit != null && produit.SuiviStock)
-                    produit.StockActuel += l.Quantite;
-            }
+                await _context.MouvementAsync(l.ProduitId!.Value, l.Quantite, "Annulation", vente.Numero, vente.Id, UtilisateurId, motif);
             await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
             return VersDetails(id, succes: $"Vente {vente.Numero} annulée : ses encaissements sont rejetés et le stock est remis.");
         }
     }

@@ -1,0 +1,64 @@
+@model List<EasytransitCaisse.Models.Produit>
+@{
+    ViewData["Title"] = "Entrée de marchandises";
+    var choisi = (int)ViewBag.Choisi;
+}
+
+<partial name="_Messages" />
+<partial name="_Onglets" model="@("Entree")" />
+
+@if (!Model.Any())
+{
+    <div class="alert alert-info">Aucun produit avec suivi de stock. Cochez « Suivre le stock » dans la fiche d'un produit.</div>
+}
+else
+{
+    <form method="post" asp-action="Entree" class="card border-0 shadow-sm" style="max-width: 900px;">
+        <div class="card-header bg-brand text-white">Marchandises reçues</div>
+        <div class="card-body">
+            <div class="row g-3 mb-3">
+                <div class="col-md-5"><label class="form-label" for="reference">Référence (bon de livraison, facture fournisseur)</label><input class="form-control" id="reference" name="reference" placeholder="Ex : BL-2026-118" /></div>
+                <div class="col-md-7"><label class="form-label" for="commentaire">Commentaire</label><input class="form-control" id="commentaire" name="commentaire" placeholder="Ex : livraison du fournisseur SODIBA" /></div>
+            </div>
+            <table class="table align-middle" id="lignesEntree">
+                <thead><tr><th>Produit</th><th style="width:160px">Quantité reçue</th><th style="width:50px"></th></tr></thead>
+                <tbody>
+                    @for (var i = 0; i < 5; i++)
+                    {
+                        <tr>
+                            <td>
+                                <select class="form-select" name="produit" aria-label="Produit">
+                                    <option value="0">-- Produit --</option>
+                                    @foreach (var p in Model)
+                                    {
+                                        <option value="@p.Id" selected="@(i == 0 && p.Id == choisi)">@p.Code · @p.Nom (stock @p.StockActuel.ToString("0.##"))</option>
+                                    }
+                                </select>
+                            </td>
+                            <td><input class="form-control text-end" name="qte" inputmode="decimal" aria-label="Quantité reçue" /></td>
+                            <td><button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('tr').remove()" aria-label="Retirer la ligne"><i class="fas fa-xmark"></i></button></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="ajouterLigne"><i class="fas fa-plus"></i> Ajouter une ligne</button>
+        </div>
+        <div class="card-footer bg-white d-flex gap-2">
+            <button class="btn btn-success"><i class="fas fa-check"></i> Enregistrer l'entrée</button>
+            <a href="/Stock/Index" class="btn btn-outline-secondary">Annuler</a>
+        </div>
+    </form>
+}
+
+@section Scripts {
+    <script>
+        const bouton = document.getElementById('ajouterLigne');
+        if (bouton) bouton.addEventListener('click', function () {
+            const corps = document.querySelector('#lignesEntree tbody');
+            const ligne = corps.rows[0].cloneNode(true);
+            ligne.querySelector('select').value = '0';
+            ligne.querySelector('input').value = '';
+            corps.appendChild(ligne);
+        });
+    </script>
+}

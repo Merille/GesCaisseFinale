@@ -101,7 +101,7 @@ namespace EasytransitCaisse.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Create(Produit produit)
+        public async Task<IActionResult> Create(Produit produit)
         {
             LireNombres(produit);
             Nettoyer(produit);
@@ -113,11 +113,25 @@ namespace EasytransitCaisse.Controllers
                 return View(produit);
             }
 
-            produit.Id = 0;
-            _context.Produits.Add(produit);
-            _context.SaveChanges();
+            await CreerAvecStockInitial(produit);
             TempData["Success"] = "Produit créé.";
             return RedirectToAction("Index");
+        }
+
+        // Crée le produit puis enregistre son stock initial comme premier mouvement.
+        // Le stock ne change ensuite que par des mouvements (entrées, inventaires, ventes, retours).
+        private async Task CreerAvecStockInitial(Produit produit)
+        {
+            var initial = produit.StockActuel;
+            produit.Id = 0;
+            produit.StockActuel = 0;
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+            _context.Produits.Add(produit);
+            await _context.SaveChangesAsync();
+            int.TryParse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var utilisateurId);
+            await _context.MouvementAsync(produit.Id, initial, "Stock initial", utilisateurId: utilisateurId);
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
         }
 
         public IActionResult Edit(int id)
@@ -155,7 +169,6 @@ namespace EasytransitCaisse.Controllers
             produit.PrixVente = saisi.PrixVente;
             produit.TauxTVA = saisi.TauxTVA;
             produit.SuiviStock = saisi.SuiviStock;
-            produit.StockActuel = saisi.StockActuel;
             produit.SeuilAlerte = saisi.SeuilAlerte;
             produit.Actif = saisi.Actif;
             _context.SaveChanges();
@@ -324,14 +337,14 @@ namespace EasytransitCaisse.Controllers
                         existant.PrixVente = saisi.PrixVente;
                         existant.TauxTVA = saisi.TauxTVA;
                         existant.SuiviStock = saisi.SuiviStock;
-                        existant.StockActuel = saisi.StockActuel;
                         existant.SeuilAlerte = saisi.SeuilAlerte;
                         existant.Actif = saisi.Actif;
                         maj++;
                     }
                     else
                     {
-                        _context.Produits.Add(saisi);
+                        // Produit existant : le stock du fichier est ignoré (il change par entrées et inventaires).
+                        await CreerAvecStockInitial(saisi);
                         crees++;
                     }
                     // Enregistré ligne par ligne : les contrôles de doublon voient les lignes précédentes.

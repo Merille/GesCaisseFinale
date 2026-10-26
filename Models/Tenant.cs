@@ -20,6 +20,9 @@ namespace EasytransitCaisse.Models
 
         public DateTime DateCreation { get; set; } = DateTime.Now;
 
+        // Point de vente : vente autorisée quand le stock est épuisé (avec avertissement).
+        public bool PosVenteSansStock { get; set; } = true;
+
         // Règle unique de blocage, utilisée à la fois par le filtre d'accès et
         // par l'affichage — jamais recalculée différemment à deux endroits.
         [NotMapped]

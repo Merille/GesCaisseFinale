@@ -57,10 +57,22 @@
         </div>
         <div class="form-text mt-0">Décochez pour un service (photocopie, recharge…).</div>
     </div>
-    <div class="col-md-4">
-        <label class="form-label" for="StockActuel">Quantité en stock</label>
-        <input class="form-control" id="StockActuel" name="StockActuel" inputmode="decimal" value="@Nombre(Model.StockActuel)" />
-    </div>
+    @if (Model.Id == 0)
+    {
+        <div class="col-md-4">
+            <label class="form-label" for="StockActuel">Stock initial</label>
+            <input class="form-control" id="StockActuel" name="StockActuel" inputmode="decimal" value="@Nombre(Model.StockActuel)" />
+        </div>
+    }
+    else
+    {
+        <div class="col-md-4">
+            <div class="form-label">Quantité en stock</div>
+            <div class="form-control-plaintext fw-bold py-1">@Model.StockActuel.ToString("0.##")
+                <a class="small fw-normal ms-2" href="/Stock/Index?produit=@Model.Id">Historique</a></div>
+            <div class="form-text mt-0">Modifiée par les entrées, inventaires et ventes (menu Stock).</div>
+        </div>
+    }
     <div class="col-md-4">
         <label class="form-label" for="SeuilAlerte">Seuil d'alerte</label>
         <input class="form-control" id="SeuilAlerte" name="SeuilAlerte" inputmode="decimal" value="@Nombre(Model.SeuilAlerte)" placeholder="Ex : 5" />

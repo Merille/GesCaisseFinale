@@ -114,6 +114,7 @@ namespace EasytransitCaisse.Controllers
                 urlVendre = "/Pos/Vendre",
                 urlTicket = "/Pos/Ticket/",
                 urlVentes = $"/Vente/Index?journee={j.Id}",
+                venteSansStock = (await _context.Tenants.AsNoTracking().FirstOrDefaultAsync(t => t.Id == tenant))?.PosVenteSansStock ?? true,
                 jeton = new { nom = jetons.FormFieldName, valeur = jetons.RequestToken }
             };
 
@@ -228,6 +229,19 @@ namespace EasytransitCaisse.Controllers
             await using var transaction = await _context.Database.BeginTransactionAsync();
             // Verrou sur la journée : numéros de ticket consécutifs même avec plusieurs postes.
             await _context.Database.ExecuteSqlInterpolatedAsync($"SELECT Id FROM JourneesCaisses WITH (UPDLOCK, HOLDLOCK) WHERE Id = {j.Id}");
+            // Vente sans stock interdite (option de la société) : contrôle sous verrou des produits.
+            var societe = await _context.Tenants.AsNoTracking().FirstOrDefaultAsync(t => t.Id == tenant);
+            if (societe != null && !societe.PosVenteSansStock)
+            {
+                foreach (var g in lignes.Where(x => x.Produit.SuiviStock).GroupBy(x => x.Produit.Id))
+                {
+                    var disponible = await _context.Produits
+                        .FromSqlInterpolated($"SELECT * FROM Produits WITH (UPDLOCK, ROWLOCK) WHERE Id = {g.Key}")
+                        .AsNoTracking().Select(p => p.StockActuel).FirstAsync();
+                    if (disponible < g.Sum(x => x.Ligne.Quantite) - 0.001m)
+                        return Erreur(409, $"Stock insuffisant pour « {g.First().Produit.Nom} » : {disponible:0.##} disponible(s).");
+                }
+            }
             var rang = await _context.CommandesPos.CountAsync(c => c.JourneeCaisseId == j.Id) + 1;
             var numero = $"POS-{j.Caisse?.ChkCode}-{j.DateJournee:yyyyMMdd}-{rang:0000}";
 
@@ -238,9 +252,6 @@ namespace EasytransitCaisse.Controllers
                 TotalTTC = ttc, MontantRecu = recu, MonnaieRendue = rendu, Statut = "Payée",
                 Lignes = lignes.Select(x => x.Ligne).ToList()
             };
-            foreach (var (produit, ligne) in lignes.Where(x => x.Produit.SuiviStock))
-                produit.StockActuel -= ligne.Quantite;
-
             var motif = await _context.Motifs.FirstOrDefaultAsync(m => m.LibelleMotif == "Vente POS" && m.TenantId == tenant);
             if (motif == null)
             {
@@ -249,6 +260,8 @@ namespace EasytransitCaisse.Controllers
             }
             _context.CommandesPos.Add(commande);
             await _context.SaveChangesAsync();
+            foreach (var (produit, ligne) in lignes)
+                await _context.MouvementAsync(produit.Id, -ligne.Quantite, "Vente", numero, commande.Id, utilisateurId);
 
             var aRendre = rendu;
             foreach (var (mode, montantRecu) in paiements)

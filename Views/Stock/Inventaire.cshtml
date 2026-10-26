@@ -1,0 +1,71 @@
+@model List<EasytransitCaisse.Models.Produit>
+@using System.Globalization
+@{
+    ViewData["Title"] = "Inventaire";
+    var categories = (List<EasytransitCaisse.Models.Categorie>)ViewBag.Categories;
+    var categorie = (int)ViewBag.Categorie;
+}
+
+<partial name="_Messages" />
+<partial name="_Onglets" model="@("Inventaire")" />
+
+<form method="get" action="/Stock/Inventaire" class="d-flex gap-2 mb-3">
+    <select name="categorie" class="form-select" style="width:auto;" onchange="this.form.submit()" aria-label="Catégorie">
+        <option value="0">Toutes les catégories</option>
+        @foreach (var c in categories)
+        {
+            <option value="@c.Id" selected="@(categorie == c.Id)">@c.Nom</option>
+        }
+    </select>
+</form>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-info">Aucun produit avec suivi de stock dans cette sélection.</div>
+}
+else
+{
+    <form method="post" asp-action="Inventaire" onsubmit="return confirm('Enregistrer l\'inventaire ? Les écarts mettront le stock à jour.');">
+        <div class="card shadow-sm border-0">
+            <div class="card-body table-responsive">
+                <p class="small text-muted">Saisissez la quantité comptée en rayon. Laissez vide les produits non comptés. Chaque écart devient un mouvement « Inventaire ».</p>
+                <table class="table align-middle mb-0">
+                    <thead class="table-dark"><tr><th>Code</th><th>Produit</th><th>Catégorie</th><th class="text-end">Stock théorique</th><th style="width:160px">Stock compté</th><th class="text-end" style="width:110px">Écart</th></tr></thead>
+                    <tbody>
+                        @foreach (var p in Model)
+                        {
+                            <tr>
+                                <td class="fw-semibold">@p.Code</td>
+                                <td>@p.Nom</td>
+                                <td>@p.Categorie?.Nom</td>
+                                <td class="text-end">@p.StockActuel.ToString("#,0.##", CultureInfo.GetCultureInfo("fr-FR"))</td>
+                                <td><input class="form-control form-control-sm text-end compte" name="compte[@p.Id]" inputmode="decimal"
+                                           data-theorique="@p.StockActuel.ToString(CultureInfo.InvariantCulture)" aria-label="Stock compté : @p.Nom" /></td>
+                                <td class="text-end fw-semibold ecart"></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <div class="card-footer bg-white d-flex flex-wrap gap-2 align-items-center">
+                <input class="form-control" name="commentaire" placeholder="Commentaire (ex : inventaire de fin de mois)" style="max-width:360px;" aria-label="Commentaire" />
+                <button class="btn btn-success"><i class="fas fa-check"></i> Enregistrer l'inventaire</button>
+            </div>
+        </div>
+    </form>
+}
+
+@section Scripts {
+    <script>
+        document.querySelectorAll('.compte').forEach(function (champ) {
+            champ.addEventListener('input', function () {
+                const cellule = champ.closest('tr').querySelector('.ecart');
+                const v = champ.value.trim().replace(/\s/g, '').replace(',', '.');
+                if (v === '' || isNaN(Number(v))) { cellule.textContent = ''; return; }
+                const ecart = Math.round((Number(v) - Number(champ.dataset.theorique)) * 100) / 100;
+                cellule.textContent = (ecart > 0 ? '+' : '') + ecart.toLocaleString('fr-FR');
+                cellule.className = 'text-end fw-semibold ecart ' + (ecart < 0 ? 'text-danger' : ecart > 0 ? 'text-success' : 'text-muted');
+            });
+        });
+    </script>
+}
