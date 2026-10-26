@@ -61,11 +61,12 @@ namespace EasytransitCaisse.Controllers
         public async Task<IActionResult> Details(int id)
         {
             var vente = await _context.CommandesPos
-                .Include(c => c.Lignes).Include(c => c.Paiements)
+                .Include(c => c.Lignes).ThenInclude(l => l.Taxes).Include(c => c.Paiements)
                 .Include(c => c.JourneeCaisse).ThenInclude(j => j!.Caisse)
                 .FirstOrDefaultAsync(c => c.Id == id);
             if (vente == null)
                 return NotFound();
+            ViewBag.Taxes = TaxesProduits.Regrouper(vente.Lignes);
 
             var retournees = await QuantitesRetournees(vente.Id);
             ViewBag.Retournees = retournees;
@@ -156,7 +157,7 @@ namespace EasytransitCaisse.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Retour(int id, string? cle, int journeeId, int modeId, string? motif)
         {
-            var vente = await _context.CommandesPos.Include(c => c.Lignes).FirstOrDefaultAsync(c => c.Id == id);
+            var vente = await _context.CommandesPos.Include(c => c.Lignes).ThenInclude(l => l.Taxes).FirstOrDefaultAsync(c => c.Id == id);
             if (vente == null)
                 return NotFound();
             if (!PeutRembourser)
@@ -211,7 +212,9 @@ namespace EasytransitCaisse.Controllers
                 {
                     TenantId = vente.TenantId, ProduitId = r.Origine.ProduitId, Libelle = r.Origine.Libelle,
                     Quantite = -r.Qte, PrixUnitaire = r.Origine.PrixUnitaire, Remise = r.Origine.Remise,
-                    TauxTVA = r.Origine.TauxTVA, TotalTTC = -r.Total, LigneOrigineId = r.Origine.Id
+                    TauxTVA = r.Origine.TauxTVA, TotalTTC = -r.Total, LigneOrigineId = r.Origine.Id,
+                    // Taxes de la ligne d'origine, avec les taux figés à la vente (montants négatifs).
+                    Taxes = TaxesProduits.TaxesLigne(vente.TenantId, r.Origine.Taxes.Select(t => (t.TaxeId, t.Code, t.Taux)), -r.Total)
                 }).ToList()
             };
             _context.CommandesPos.Add(retour);

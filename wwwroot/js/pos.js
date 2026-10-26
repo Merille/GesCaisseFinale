@@ -52,7 +52,7 @@
     const ticket = () => etat.tickets[etat.actif];
 
     // ------------------------------------------------------------------
-    // Calculs (prix TTC ; la TVA est comprise)
+    // Calculs (prix TTC ; les taxes sont comprises, l.tva = taux total du produit)
     // ------------------------------------------------------------------
     const totalLigne = l => Math.round(l.qte * l.prix * (1 - (l.remise || 0) / 100));
     function totaux(t) {
@@ -474,7 +474,7 @@
             + '<div class="pos-ticket">'
             + '<div class="pos-lignes">' + htmlLignes(t) + '</div>'
             + '<div class="pos-totaux"><div class="pos-grand">' + fcfa(tot.ttc) + ' FCFA</div>'
-            + '<div class="pos-tva">dont TVA : ' + fcfa(tot.tva) + ' · ' + t.lignes.length + ' article(s), ' + qte(tot.unites) + ' unité(s)</div></div>'
+            + '<div class="pos-tva">dont taxes : ' + fcfa(tot.tva) + ' · ' + t.lignes.length + ' article(s), ' + qte(tot.unites) + ' unité(s)</div></div>'
             + '<div class="pos-actions">'
             + '<button type="button" class="pos-act" data-action="client"><i class="fas fa-user"></i> ' + (client ? 'Client : <b>' + echap(client.nom) + '</b>' : 'Choisir un client') + '</button>'
             + '<button type="button" class="pos-act" data-action="nouveau"><i class="fas fa-pause"></i> Mettre en attente</button>'

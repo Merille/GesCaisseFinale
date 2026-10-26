@@ -35,7 +35,7 @@
         "Dashboard" or "Caisse" or "JourneeCaisse" or "Client" => "Activité",
         "Rapport" => "Analyse",
         "Pos" or "Vente" or "Produit" or "Categorie" or "Stock" or "PosRapport" => "Point de vente",
-        "Utilisateur" or "Motif" or "ModePaiement" => "Paramètres",
+        "Utilisateur" or "Motif" or "ModePaiement" or "Taxe" => "Paramètres",
         "Tenant" => "Administration",
         _ => null
     };
@@ -49,6 +49,7 @@
             "Client" => "Tiers",
             "Motif" => "Motifs",
             "ModePaiement" => "Modes de paiement",
+            "Taxe" => "Taxes",
             "Utilisateur" => "Utilisateurs",
             "Tenant" => "Sociétés",
             "Caisse" => "Caisses",
@@ -219,7 +220,7 @@
             <div class="sb-section">
                 <div class="sb-section-title">Administration</div>
                 @{
-                    var parametresActif = controller is "Utilisateur" or "Motif" or "ModePaiement";
+                    var parametresActif = controller is "Utilisateur" or "Motif" or "ModePaiement" or "Taxe";
                 }
                 <button type="button" class="sb-link sb-parent @(parametresActif ? "parent-actif" : "")" title="Paramètres"
                         aria-expanded="@(parametresActif ? "true" : "false")" aria-controls="sbParametres" onclick="basculerSousMenu(this)">
@@ -239,6 +240,10 @@
                     <a class="sb-link @(controller == "ModePaiement" ? "active" : "")" href="/ModePaiement/Index" title="Modes de paiement">
                         <i class="fas fa-money-check-dollar"></i>
                         <span class="sb-label">Modes de paiement</span>
+                    </a>
+                    <a class="sb-link @(controller == "Taxe" ? "active" : "")" href="/Taxe/Index" title="Taxes">
+                        <i class="fas fa-percent"></i>
+                        <span class="sb-label">Taxes</span>
                     </a>
                 </div>
                 @if (isSuperAdmin)
@@ -327,6 +332,7 @@
     </script>
 
     <script src="~/js/modale-creation.js" asp-append-version="true"></script>
+    <script src="~/js/vues.js" asp-append-version="true"></script>
 
     @await RenderSectionAsync("Scripts", required: false)
 

@@ -129,6 +129,30 @@ namespace EasytransitCaisse.Data
             modelBuilder.Entity<MouvementStock>().Property(m => m.Reference).HasMaxLength(100);
             modelBuilder.Entity<MouvementStock>().Property(m => m.Commentaire).HasMaxLength(300);
 
+            // Point de vente : taxes (plusieurs par produit).
+            modelBuilder.Entity<Taxe>()
+                .HasQueryFilter(e => _currentTenantId == 0 || e.TenantId == _currentTenantId);
+
+            modelBuilder.Entity<ProduitTaxe>()
+                .HasKey(pt => new { pt.ProduitId, pt.TaxeId });
+
+            modelBuilder.Entity<ProduitTaxe>()
+                .HasOne<Produit>().WithMany().HasForeignKey(pt => pt.ProduitId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ProduitTaxe>()
+                .HasOne<Taxe>().WithMany().HasForeignKey(pt => pt.TaxeId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<LigneCommandePosTaxe>()
+                .HasQueryFilter(e => _currentTenantId == 0 || e.TenantId == _currentTenantId);
+
+            modelBuilder.Entity<LigneCommandePos>()
+                .HasMany(l => l.Taxes)
+                .WithOne()
+                .HasForeignKey(t => t.LigneCommandePosId)
+                .OnDelete(DeleteBehavior.Cascade);
+
             modelBuilder.Entity<Tenant>()
                 .Property(t => t.PosVenteSansStock)
                 .HasDefaultValue(true);
@@ -198,5 +222,11 @@ namespace EasytransitCaisse.Data
         public DbSet<PaiementPos> PaiementsPos { get; set; }
 
         public DbSet<MouvementStock> MouvementsStock { get; set; }
+
+        public DbSet<Taxe> Taxes { get; set; }
+
+        public DbSet<ProduitTaxe> ProduitTaxes { get; set; }
+
+        public DbSet<LigneCommandePosTaxe> LignesCommandePosTaxes { get; set; }
     }
 }

@@ -119,6 +119,18 @@
             <tr><td colspan="3" class="muted">Aucun encaissement sur la période.</td></tr>
         }
     </table>
+    <h2>Taxes collectées</h2>
+    <table>
+        <tr><th>Taxe</th><th class="r">Montant collecté</th></tr>
+        @foreach (var t in Model.Taxes)
+        {
+            <tr><td>@t.Nom</td><td class="r">@Fcfa(t.Montant)</td></tr>
+        }
+        @if (Model.Taxes.Count == 0)
+        {
+            <tr><td colspan="2" class="muted">Aucune taxe sur la période.</td></tr>
+        }
+    </table>
     <p class="muted">Chiffre d'affaires net = ventes − retours ; les ventes annulées sont exclues. Encaissements nets : remboursements des retours déduits.</p>
 </body>
 </html>

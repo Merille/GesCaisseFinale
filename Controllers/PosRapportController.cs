@@ -80,6 +80,8 @@ namespace EasytransitCaisse.Controllers
                 m.ParJour.Select(j => new object[] { j.Date.ToString("dd/MM/yyyy"), j.Tickets, j.Montant }));
             Feuille(classeur, "Par mode de paiement", new[] { "Mode de paiement", "Tickets", "Encaissé net" },
                 m.Modes.Select(x => new object[] { x.Nom, x.Tickets, x.Montant }));
+            Feuille(classeur, "Taxes", new[] { "Taxe", "Montant collecté" },
+                m.Taxes.Select(x => new object[] { x.Nom, x.Montant }));
 
             using var flux = new MemoryStream();
             classeur.SaveAs(flux);
@@ -147,13 +149,17 @@ namespace EasytransitCaisse.Controllers
                           from cat in cs.DefaultIfEmpty()
                           select new
                           {
-                              l.ProduitId, l.Libelle, l.Quantite, l.TotalTTC,
+                              l.Id, l.TauxTVA, l.ProduitId, l.Libelle, l.Quantite, l.TotalTTC,
                               Nom = p == null ? null : p.Nom,
                               Code = p == null ? null : p.Code,
                               CategorieId = cat == null ? (int?)null : cat.Id,
                               Categorie = cat == null ? null : cat.Nom,
                               Couleur = cat == null ? null : cat.Couleur
                           }).ToList();
+            var detailTaxes = (from x in _context.LignesCommandePosTaxes
+                               join l in _context.LignesCommandePos on x.LigneCommandePosId equals l.Id
+                               where nettes.Contains(l.CommandePosId)
+                               select new { x.LigneCommandePosId, x.Code, x.Taux, x.Montant }).ToList();
             var paiements = (from pp in _context.PaiementsPos
                              where nettes.Contains(pp.CommandePosId)
                              select new { pp.CommandePosId, pp.Libelle, pp.Montant }).ToList();
@@ -231,6 +237,15 @@ namespace EasytransitCaisse.Controllers
                     Montant = g.Sum(p => p.Montant)
                 })
                 .OrderByDescending(x => x.Montant).ThenBy(x => x.Nom)
+                .ToList();
+            // Taxes collectées : détail figé à la vente ; lignes plus anciennes comptées en TVA à leur taux total.
+            var avecDetail = detailTaxes.Select(x => x.LigneCommandePosId).ToHashSet();
+            model.Taxes = detailTaxes.Select(x => (Nom: TaxesProduits.Libelle(x.Code, x.Taux), x.Montant))
+                .Concat(lignes.Where(l => l.TauxTVA > 0 && !avecDetail.Contains(l.Id))
+                    .Select(l => (Nom: TaxesProduits.Libelle("TVA", l.TauxTVA), Montant: l.TotalTTC - l.TotalTTC / (1 + l.TauxTVA / 100))))
+                .GroupBy(x => x.Nom)
+                .Select(g => new PosRapportMode { Nom = g.Key, Montant = Math.Round(g.Sum(x => x.Montant), 2) })
+                .OrderByDescending(x => x.Montant)
                 .ToList();
             return model;
         }

@@ -84,6 +84,8 @@ namespace EasytransitCaisse.Models
 
         // Retour : ligne de la vente d'origine (quantités négatives).
         public int? LigneOrigineId { get; set; }
+
+        public List<LigneCommandePosTaxe> Taxes { get; set; } = new();
     }
 
     // Règlement d'une vente. Montant = part encaissée (monnaie déduite) ;

@@ -38,6 +38,8 @@ namespace EasytransitCaisse.Controllers
 
             _context.Tenants.Add(tenant);
             _context.SaveChanges();
+            _context.AjouterTaxesInitiales(tenant.Id);
+            _context.SaveChanges();
 
             return RedirectToAction(nameof(Index));
         }

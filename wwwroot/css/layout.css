@@ -493,3 +493,11 @@ html.sidebar-replie .sb-sub {
 #modalCreation .hors-modale {
     display: none !important;
 }
+
+/* Affichage en cartes (produits, catégories) */
+.carte-liste { background: #fff; border: 1px solid #e3e8f1; border-left: 6px solid var(--couleur, #999997); border-radius: 12px; }
+.carte-liste:hover { box-shadow: 0 4px 14px rgba(15, 27, 51, .08); }
+.carte-liste .carte-prix { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.carte-liste .carte-actions { border-top: 1px solid #eef1f6; }
+.carte-liste .carte-actions form { display: inline; }
+.carte-categorie .carte-pastille { width: 44px; height: 44px; border-radius: 12px; background: var(--couleur, #999997); flex-shrink: 0; }

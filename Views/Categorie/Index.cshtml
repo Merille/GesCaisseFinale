@@ -8,12 +8,18 @@
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h4 class="mb-0">Catégories de produits</h4>
-    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalCategorie" data-id="">
-        <i class="fas fa-plus"></i> Nouvelle catégorie
-    </button>
+    <div class="d-flex flex-wrap gap-2">
+        <div class="btn-group" role="group" aria-label="Affichage" data-vues="categories">
+            <button type="button" class="btn btn-outline-secondary" data-vue="liste" title="Affichage en liste"><i class="fas fa-list"></i> Liste</button>
+            <button type="button" class="btn btn-outline-secondary" data-vue="cartes" title="Affichage en cartes"><i class="fas fa-grip"></i> Cartes</button>
+        </div>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalCategorie" data-id="">
+            <i class="fas fa-plus"></i> Nouvelle catégorie
+        </button>
+    </div>
 </div>
 
-<div class="card shadow-sm border-0">
+<div class="card shadow-sm border-0" data-vue-de="categories" data-vue="liste">
     <div class="card-body">
         <table class="table table-hover align-middle mb-0">
             <thead class="table-dark">
@@ -49,6 +55,39 @@
                 }
             </tbody>
         </table>
+    </div>
+</div>
+
+<div class="d-none" data-vue-de="categories" data-vue="cartes">
+    @if (!Model.Any())
+    {
+        <div class="card shadow-sm border-0"><div class="card-body text-center text-muted py-4">Aucune catégorie. Créez-en une pour regrouper les produits sur l'écran de vente.</div></div>
+    }
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xxl-4 g-3">
+        @foreach (var c in Model)
+        {
+            var nb = nbProduits.TryGetValue(c.Id, out var n) ? n : 0;
+            <div class="col">
+                <article class="carte-liste carte-categorie h-100 d-flex flex-column" style="--couleur: @c.Couleur">
+                    <div class="p-3 d-flex align-items-center gap-3 flex-grow-1">
+                        <span class="carte-pastille" aria-hidden="true"></span>
+                        <div class="flex-grow-1">
+                            <h3 class="h6 fw-bold mb-1">@c.Nom</h3>
+                            <div class="small text-muted">
+                                <a href="/Produit/Index?categorie=@c.Id">@nb produit@(nb > 1 ? "s" : "")</a> · ordre @c.Ordre
+                            </div>
+                        </div>
+                    </div>
+                    <div class="carte-actions px-3 py-2 d-flex gap-2 justify-content-end">
+                        <button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#modalCategorie"
+                                data-id="@c.Id" data-nom="@c.Nom" data-couleur="@c.Couleur" data-ordre="@c.Ordre">Modifier</button>
+                        <form asp-action="Delete" asp-route-id="@c.Id" method="post" onsubmit="return confirm('Supprimer cette catégorie ?')">
+                            <button type="submit" class="btn btn-danger btn-sm">Supprimer</button>
+                        </form>
+                    </div>
+                </article>
+            </div>
+        }
     </div>
 </div>
 

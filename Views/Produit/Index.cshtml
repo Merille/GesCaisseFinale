@@ -5,6 +5,8 @@
     var categorieChoisie = (int)ViewBag.Categorie;
     var nbAlertes = (int)ViewBag.NbAlertes;
     string Qte(decimal n) => n == Math.Round(n) ? n.ToString("N0") : n.ToString("N2");
+    var taxesProduits = (Dictionary<int, List<EasytransitCaisse.Models.Taxe>>)ViewBag.TaxesProduits;
+    string Taxes(EasytransitCaisse.Models.Produit p) => EasytransitCaisse.Data.TaxesProduits.Codes(taxesProduits.GetValueOrDefault(p.Id));
 }
 
 <partial name="_Messages" />
@@ -24,7 +26,11 @@
             }
         </select>
     </form>
-    <div class="d-flex gap-2">
+    <div class="d-flex flex-wrap gap-2">
+        <div class="btn-group" role="group" aria-label="Affichage" data-vues="produits">
+            <button type="button" class="btn btn-outline-secondary" data-vue="liste" title="Affichage en liste"><i class="fas fa-list"></i> Liste</button>
+            <button type="button" class="btn btn-outline-secondary" data-vue="cartes" title="Affichage en cartes"><i class="fas fa-grip"></i> Cartes</button>
+        </div>
         <button type="button" class="btn btn-outline-primary" onclick="document.getElementById('importProduits').click()">
             <i class="fas fa-file-import"></i> Importer Excel
         </button>
@@ -38,7 +44,7 @@
 </div>
 
 <p class="small text-muted mb-2">
-    Import : un produit dont le code existe déjà est mis à jour, sinon il est créé ; une catégorie inconnue est créée ; la colonne Stock ne sert qu'à la création (stock initial).
+    Import : un produit dont le code existe déjà est mis à jour, sinon il est créé ; une catégorie inconnue est créée ; la colonne Taxes contient les codes séparés par « + » (ex. TVA + CSS), vide = taxes par défaut ; la colonne Stock ne sert qu'à la création (stock initial).
     Colonnes dans l'ordre : @string.Join(", ", EasytransitCaisse.Controllers.ProduitController.ColonnesExcel)
     (le plus simple est de partir d'un export).
 </p>
@@ -50,7 +56,7 @@
 
 <div class="card shadow-sm border-0">
     <div class="card-body table-responsive">
-        <table id="produitsTable" class="table table-hover align-middle mb-0">
+        <table id="produitsTable" class="table table-hover align-middle mb-0" data-vue-de="produits" data-vue="liste">
             <thead class="table-dark">
                 <tr>
                     <th>Code</th>
@@ -58,7 +64,7 @@
                     <th>Catégorie</th>
                     <th>Code-barres</th>
                     <th class="text-end">Prix TTC</th>
-                    <th class="text-end">TVA</th>
+                    <th>Taxes</th>
                     <th class="text-end">Stock</th>
                     <th class="text-center">Statut</th>
                     <th class="text-center">Actions</th>
@@ -67,7 +73,7 @@
             <tbody>
                 @foreach (var p in Model)
                 {
-                    <tr>
+                    <tr data-id="@p.Id">
                         <td class="fw-semibold">@p.Code</td>
                         <td>@p.Nom</td>
                         <td>
@@ -82,7 +88,16 @@
                         </td>
                         <td class="text-muted small">@p.CodeBarres</td>
                         <td class="text-end fw-semibold text-nowrap" data-order="@p.PrixVente.ToString(System.Globalization.CultureInfo.InvariantCulture)">@p.PrixVente.ToString("N0")</td>
-                        <td class="text-end">@Qte(p.TauxTVA) %</td>
+                        <td class="text-nowrap">
+                            @if (Taxes(p) != "")
+                            {
+                                @Taxes(p) <span class="text-muted small">· @Qte(p.TauxTVA) %</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">Aucune</span>
+                            }
+                        </td>
                         <td class="text-end text-nowrap" data-order="@(p.SuiviStock ? p.StockActuel.ToString(System.Globalization.CultureInfo.InvariantCulture) : "-1")">
                             @if (!p.SuiviStock)
                             {
@@ -113,12 +128,70 @@
                 }
             </tbody>
         </table>
+        @* Cartes : mêmes produits, page et ordre que le tableau (synchronisés après chaque tri ou recherche). *@
+        <div id="produitsCartes" class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xxl-4 g-3 d-none" data-vue-de="produits" data-vue="cartes">
+            @foreach (var p in Model)
+            {
+                <div class="col" data-id="@p.Id">
+                    <article class="carte-liste h-100 d-flex flex-column" style="--couleur: @(p.Categorie?.Couleur ?? "#999997")">
+                        <div class="p-3 d-flex flex-column gap-2 flex-grow-1">
+                            <div class="d-flex justify-content-between align-items-start gap-2">
+                                <div>
+                                    <h3 class="h6 fw-bold mb-1">@p.Nom</h3>
+                                    <div class="small text-muted">@p.Code
+                                        @if (!string.IsNullOrEmpty(p.CodeBarres))
+                                        {
+                                            <text> · <i class="fas fa-barcode"></i> @p.CodeBarres</text>
+                                        }
+                                    </div>
+                                </div>
+                                <span class="badge @(p.Actif ? "bg-success" : "bg-secondary")">@(p.Actif ? "Actif" : "Inactif")</span>
+                            </div>
+                            <div class="small">
+                                @if (p.Categorie != null)
+                                {
+                                    <span class="pastille-categorie" style="background: @p.Categorie.Couleur"></span> @p.Categorie.Nom
+                                }
+                                else
+                                {
+                                    <span class="text-muted">Sans catégorie</span>
+                                }
+                            </div>
+                            <div class="d-flex justify-content-between align-items-end gap-2 mt-auto">
+                                <div>
+                                    <div class="carte-prix">@p.PrixVente.ToString("N0") <span class="small fw-normal text-muted">FCFA TTC</span></div>
+                                    <div class="small text-muted">@(Taxes(p) != "" ? Taxes(p) + " · " + Qte(p.TauxTVA) + " %" : "Sans taxe")</div>
+                                </div>
+                                <div class="text-end small">
+                                    @if (!p.SuiviStock)
+                                    {
+                                        <span class="text-muted">Stock non suivi</span>
+                                    }
+                                    else
+                                    {
+                                        <div class="text-muted">Stock</div>
+                                        <span class="fw-bold @(p.EnAlerteStock ? "badge bg-danger" : "")" title="@(p.EnAlerteStock ? "Stock au niveau ou sous le seuil d'alerte" : null)">@Qte(p.StockActuel)</span>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                        <div class="carte-actions px-3 py-2 d-flex gap-2 justify-content-end">
+                            <a href="/Produit/Edit/@p.Id" class="btn btn-warning btn-sm">Modifier</a>
+                            <form asp-action="Delete" asp-route-id="@p.Id" method="post" onsubmit="return confirm('Supprimer ce produit ?')">
+                                <button type="submit" class="btn btn-danger btn-sm">Supprimer</button>
+                            </form>
+                        </div>
+                    </article>
+                </div>
+            }
+        </div>
     </div>
 </div>
 
 @section Scripts {
     <script>
         $(document).ready(function () {
+            const cartes = document.getElementById('produitsCartes');
             $('#produitsTable').DataTable({
                 language: {
                     url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/fr-FR.json'
@@ -127,8 +200,24 @@
                 lengthMenu: [20, 50, 100],
                 order: [[1, 'asc']],
                 columnDefs: [{ orderable: false, targets: 8 }],  // colonne Actions
-                dom: '<"d-flex justify-content-between align-items-center mb-3"lf>rtip'
+                dom: '<"d-flex justify-content-between align-items-center mb-3"lf>rtip',
+                // Cartes placées juste après le tableau, avant le pied (infos et pagination).
+                initComplete: function () {
+                    document.getElementById('produitsTable').after(cartes);
+                    synchroniserCartes(this.api());
+                },
+                drawCallback: function () { synchroniserCartes(this.api()); }
             });
+
+            // Affichage en cartes : la recherche, le tri et la pagination du tableau s'appliquent aussi aux cartes.
+            function synchroniserCartes(tableau) {
+                const parId = {};
+                cartes.querySelectorAll(':scope > [data-id]').forEach(function (c) { parId[c.dataset.id] = c; c.classList.add('d-none'); });
+                tableau.rows({ page: 'current' }).nodes().each(function (tr) {
+                    const carte = parId[tr.dataset.id];
+                    if (carte) { carte.classList.remove('d-none'); cartes.appendChild(carte); }
+                });
+            }
         });
     </script>
 }

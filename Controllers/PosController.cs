@@ -179,7 +179,8 @@ namespace EasytransitCaisse.Controllers
             if (j.Statut != "Ouverte")
                 return Erreur(409, "Cette journée est clôturée : la vente ne peut pas être enregistrée.");
 
-            // Lignes : prix et TVA repris du catalogue ; prix saisi accepté pour un administrateur seulement.
+            // Lignes : prix et taxes repris du catalogue ; prix saisi accepté pour un administrateur seulement.
+            var taxesProduits = _context.TaxesDesProduits(v.Lignes.Select(l => l.ProduitId));
             var lignes = new List<(Produit Produit, LigneCommandePos Ligne)>();
             decimal ttc = 0, tva = 0;
             foreach (var l in v.Lignes)
@@ -196,7 +197,9 @@ namespace EasytransitCaisse.Controllers
                 lignes.Add((p, new LigneCommandePos
                 {
                     TenantId = tenant, ProduitId = p.Id, Libelle = p.Nom, Quantite = qte,
-                    PrixUnitaire = prix, Remise = remise, TauxTVA = p.TauxTVA, TotalTTC = total
+                    PrixUnitaire = prix, Remise = remise, TauxTVA = p.TauxTVA, TotalTTC = total,
+                    Taxes = TaxesProduits.TaxesLigne(tenant,
+                        (taxesProduits.GetValueOrDefault(p.Id) ?? new List<Taxe>()).Select(t => ((int?)t.Id, t.Code, t.Taux)), total)
                 }));
             }
             tva = Math.Round(tva, 0, MidpointRounding.AwayFromZero);
@@ -304,7 +307,7 @@ namespace EasytransitCaisse.Controllers
         public async Task<IActionResult> Ticket(int id, bool imprimer = false)
         {
             var commande = await _context.CommandesPos
-                .Include(c => c.Lignes)
+                .Include(c => c.Lignes).ThenInclude(l => l.Taxes)
                 .Include(c => c.Paiements)
                 .Include(c => c.JourneeCaisse).ThenInclude(j => j!.Caisse)
                 .FirstOrDefaultAsync(c => c.Id == id);

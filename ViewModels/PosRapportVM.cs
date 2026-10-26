@@ -29,6 +29,7 @@ namespace EasytransitCaisse.Models.ViewModels
         public List<PosRapportCategorie> Categories { get; set; } = new();
         public List<PosRapportVendeur> Vendeurs { get; set; } = new();
         public List<PosRapportMode> Modes { get; set; } = new();
+        public List<PosRapportMode> Taxes { get; set; } = new();
 
         // Part du chiffre d'affaires net, en pourcentage.
         public decimal Part(decimal montant) => ChiffreAffaires != 0 ? montant * 100 / ChiffreAffaires : 0;

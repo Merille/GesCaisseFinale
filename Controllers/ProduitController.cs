@@ -10,14 +10,15 @@ using Microsoft.EntityFrameworkCore;
 namespace EasytransitCaisse.Controllers
 {
     // Produits du point de vente : liste, fiche, suppression, export / import Excel.
-    // Réservé aux profils Admin et SuperAdmin. Le prix de vente est saisi TTC.
+    // Réservé aux profils Admin et SuperAdmin. Le prix de vente est saisi TTC ; un produit
+    // peut porter plusieurs taxes (TVA, CSS…) qui s'additionnent sur le HT.
     [Authorize(Policy = "Admin")]
     public class ProduitController : Controller
     {
         // Colonnes du fichier Excel (export et import), dans cet ordre.
         public static readonly string[] ColonnesExcel =
         {
-            "Code", "Nom", "Catégorie", "Code-barres", "Prix TTC", "TVA %", "Suivi stock", "Stock", "Seuil alerte", "Actif"
+            "Code", "Nom", "Catégorie", "Code-barres", "Prix TTC", "Taxes", "Suivi stock", "Stock", "Seuil alerte", "Actif"
         };
 
         private const string MessageSociete = "Choisissez d'abord la société concernée dans le menu « Société consultée », puis recommencez.";
@@ -47,7 +48,11 @@ namespace EasytransitCaisse.Controllers
         private void ChargerCategories()
         {
             ViewBag.Categories = _context.Categories.OrderBy(c => c.Ordre).ThenBy(c => c.Nom).ToList();
+            ViewBag.Taxes = _context.ListeTaxes();
         }
+
+        // Taxes cochées par défaut sur un nouveau produit.
+        private int[] TaxesParDefaut() => _context.ListeTaxes().Where(t => t.ParDefaut).Select(t => t.Id).ToArray();
 
         public async Task<IActionResult> Index(string search = "", int categorie = 0)
         {
@@ -56,7 +61,10 @@ namespace EasytransitCaisse.Controllers
             ViewBag.Categorie = categorie;
             ViewBag.NbAlertes = await _context.Produits.CountAsync(p =>
                 p.SuiviStock && p.Actif && p.SeuilAlerte != null && p.StockActuel <= p.SeuilAlerte);
-            return View(await Filtrer(search, categorie).OrderBy(p => p.Nom).ToListAsync());
+            var produits = await Filtrer(search, categorie).OrderBy(p => p.Nom).ToListAsync();
+            ViewBag.TaxesProduits = _context.TaxesDesProduits(produits.Select(p => p.Id));
+            ViewBag.TaxesCochees = TaxesParDefaut();
+            return View(produits);
         }
 
         // Message d'erreur, ou null si le produit peut être enregistré.
@@ -64,8 +72,8 @@ namespace EasytransitCaisse.Controllers
         {
             if (string.IsNullOrWhiteSpace(p.Code) || string.IsNullOrWhiteSpace(p.Nom))
                 return "Le code et le nom du produit sont obligatoires.";
-            if (p.PrixVente < 0 || p.TauxTVA < 0 || p.TauxTVA > 100)
-                return "Le prix doit être positif et le taux de TVA compris entre 0 et 100 %.";
+            if (p.PrixVente < 0)
+                return "Le prix doit être positif.";
             if (_context.Produits.Any(x => x.Code == p.Code && x.Id != idExclu))
                 return $"Le code « {p.Code} » est déjà utilisé par un autre produit.";
             if (!string.IsNullOrEmpty(p.CodeBarres) && _context.Produits.Any(x => x.CodeBarres == p.CodeBarres && x.Id != idExclu))
@@ -79,7 +87,6 @@ namespace EasytransitCaisse.Controllers
         {
             string Champ(string nom) => Request.Form[nom].ToString();
             p.PrixVente = Nombre(Champ("PrixVente")) ?? 0;
-            p.TauxTVA = Nombre(Champ("TauxTVA")) ?? 18;
             p.StockActuel = Nombre(Champ("StockActuel")) ?? 0;
             p.SeuilAlerte = Nombre(Champ("SeuilAlerte"));
         }
@@ -96,12 +103,13 @@ namespace EasytransitCaisse.Controllers
         public IActionResult Create()
         {
             ChargerCategories();
+            ViewBag.TaxesCochees = TaxesParDefaut();
             return View(new Produit());
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(Produit produit)
+        public async Task<IActionResult> Create(Produit produit, int[] taxes)
         {
             LireNombres(produit);
             Nettoyer(produit);
@@ -110,17 +118,18 @@ namespace EasytransitCaisse.Controllers
             {
                 ViewBag.Erreur = erreur;
                 ChargerCategories();
+                ViewBag.TaxesCochees = taxes;
                 return View(produit);
             }
 
-            await CreerAvecStockInitial(produit);
+            await CreerAvecStockInitial(produit, taxes);
             TempData["Success"] = "Produit créé.";
             return RedirectToAction("Index");
         }
 
-        // Crée le produit puis enregistre son stock initial comme premier mouvement.
+        // Crée le produit et ses taxes, puis enregistre son stock initial comme premier mouvement.
         // Le stock ne change ensuite que par des mouvements (entrées, inventaires, ventes, retours).
-        private async Task CreerAvecStockInitial(Produit produit)
+        private async Task CreerAvecStockInitial(Produit produit, IEnumerable<int> taxes)
         {
             var initial = produit.StockActuel;
             produit.Id = 0;
@@ -128,6 +137,7 @@ namespace EasytransitCaisse.Controllers
             await using var transaction = await _context.Database.BeginTransactionAsync();
             _context.Produits.Add(produit);
             await _context.SaveChangesAsync();
+            _context.EnregistrerTaxes(produit, taxes);
             int.TryParse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var utilisateurId);
             await _context.MouvementAsync(produit.Id, initial, "Stock initial", utilisateurId: utilisateurId);
             await _context.SaveChangesAsync();
@@ -140,12 +150,13 @@ namespace EasytransitCaisse.Controllers
             if (produit == null)
                 return NotFound();
             ChargerCategories();
+            ViewBag.TaxesCochees = _context.ProduitTaxes.Where(pt => pt.ProduitId == id).Select(pt => pt.TaxeId).ToArray();
             return View(produit);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Edit(int id, Produit saisi)
+        public IActionResult Edit(int id, Produit saisi, int[] taxes)
         {
             var produit = _context.Produits.FirstOrDefault(p => p.Id == id);
             if (produit == null)
@@ -159,6 +170,7 @@ namespace EasytransitCaisse.Controllers
                 saisi.Id = id;
                 ViewBag.Erreur = erreur;
                 ChargerCategories();
+                ViewBag.TaxesCochees = taxes;
                 return View(saisi);
             }
 
@@ -167,10 +179,10 @@ namespace EasytransitCaisse.Controllers
             produit.Nom = saisi.Nom;
             produit.CategorieId = saisi.CategorieId;
             produit.PrixVente = saisi.PrixVente;
-            produit.TauxTVA = saisi.TauxTVA;
             produit.SuiviStock = saisi.SuiviStock;
             produit.SeuilAlerte = saisi.SeuilAlerte;
             produit.Actif = saisi.Actif;
+            _context.EnregistrerTaxes(produit, taxes);
             _context.SaveChanges();
             TempData["Success"] = "Produit modifié.";
             return RedirectToAction("Index");
@@ -194,6 +206,7 @@ namespace EasytransitCaisse.Controllers
         public async Task<IActionResult> Export(string search = "", int categorie = 0)
         {
             var produits = await Filtrer(search, categorie).OrderBy(p => p.Nom).ToListAsync();
+            var taxesProduits = _context.TaxesDesProduits(produits.Select(p => p.Id));
 
             using var workbook = new XLWorkbook();
             var sheet = workbook.Worksheets.Add("Produits");
@@ -214,7 +227,7 @@ namespace EasytransitCaisse.Controllers
                 sheet.Cell(r, 4).Value = p.CodeBarres ?? "";
                 sheet.Cell(r, 4).Style.NumberFormat.Format = "@";
                 sheet.Cell(r, 5).Value = p.PrixVente;
-                sheet.Cell(r, 6).Value = p.TauxTVA;
+                sheet.Cell(r, 6).Value = TaxesProduits.Codes(taxesProduits.GetValueOrDefault(p.Id));
                 sheet.Cell(r, 7).Value = p.SuiviStock ? "Oui" : "Non";
                 sheet.Cell(r, 8).Value = p.StockActuel;
                 if (p.SeuilAlerte.HasValue)
@@ -235,6 +248,38 @@ namespace EasytransitCaisse.Controllers
         {
             var t = texte.Replace(" ", "").Replace(" ", "").Replace(" ", "").Replace(',', '.');
             return decimal.TryParse(t, NumberStyles.Number, CultureInfo.InvariantCulture, out var n) ? n : null;
+        }
+
+        // Taxes d'une ligne importée : codes séparés par « + », « , » ou « ; » (ex. « TVA + CSS »),
+        // ou un taux seul (ancien format « TVA % », ex. 18). Null si la cellule est vide.
+        private static int[]? TaxesDepuisTexte(string texte, List<Taxe> taxes, out string? erreur)
+        {
+            erreur = null;
+            texte = texte.Trim();
+            if (texte == "")
+                return null;
+            if (System.Text.RegularExpressions.Regex.IsMatch(texte, @"^\d+([.,]\d+)?\s*%?$"))
+            {
+                var taux = Nombre(texte.TrimEnd('%', ' ')) ?? 0;
+                if (taux == 0)
+                    return Array.Empty<int>();
+                var taxe = taxes.FirstOrDefault(t => t.Taux == taux);
+                if (taxe == null)
+                    erreur = $"aucune taxe de {taux.ToString("0.##", new CultureInfo("fr-FR"))} % (créez-la dans Paramètres > Taxes).";
+                return taxe == null ? null : new[] { taxe.Id };
+            }
+            var ids = new List<int>();
+            foreach (var code in texte.Split(new[] { '+', ',', ';' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            {
+                var taxe = taxes.FirstOrDefault(t => string.Equals(t.Code, code, StringComparison.OrdinalIgnoreCase));
+                if (taxe == null)
+                {
+                    erreur = $"taxe « {code} » inconnue (voir Paramètres > Taxes).";
+                    return null;
+                }
+                ids.Add(taxe.Id);
+            }
+            return ids.ToArray();
         }
 
         private static bool Booleen(string texte, bool defaut)
@@ -283,6 +328,8 @@ namespace EasytransitCaisse.Controllers
             using (workbook)
             {
                 var categories = await _context.Categories.ToListAsync();
+                var taxesSociete = _context.ListeTaxes();
+                var taxesDefaut = TaxesParDefaut();
                 var erreurs = new List<string>();
                 int crees = 0, maj = 0;
 
@@ -306,6 +353,13 @@ namespace EasytransitCaisse.Controllers
                         }
                     }
 
+                    var taxes = TaxesDepuisTexte(Col(6), taxesSociete, out var erreurTaxes);
+                    if (erreurTaxes != null)
+                    {
+                        erreurs.Add($"Ligne {row.RowNumber()} : {erreurTaxes}");
+                        continue;
+                    }
+
                     var saisi = new Produit
                     {
                         Code = Col(1),
@@ -313,7 +367,6 @@ namespace EasytransitCaisse.Controllers
                         CategorieId = categorie?.Id,
                         CodeBarres = Col(4),
                         PrixVente = Nombre(Col(5)) ?? 0,
-                        TauxTVA = Nombre(Col(6)) ?? 18,
                         SuiviStock = Booleen(Col(7), true),
                         StockActuel = Nombre(Col(8)) ?? 0,
                         SeuilAlerte = Nombre(Col(9)),
@@ -335,16 +388,18 @@ namespace EasytransitCaisse.Controllers
                         existant.CategorieId = saisi.CategorieId;
                         existant.CodeBarres = saisi.CodeBarres;
                         existant.PrixVente = saisi.PrixVente;
-                        existant.TauxTVA = saisi.TauxTVA;
                         existant.SuiviStock = saisi.SuiviStock;
                         existant.SeuilAlerte = saisi.SeuilAlerte;
                         existant.Actif = saisi.Actif;
+                        // Colonne Taxes vide : taxes inchangées.
+                        if (taxes != null)
+                            _context.EnregistrerTaxes(existant, taxes);
                         maj++;
                     }
                     else
                     {
                         // Produit existant : le stock du fichier est ignoré (il change par entrées et inventaires).
-                        await CreerAvecStockInitial(saisi);
+                        await CreerAvecStockInitial(saisi, taxes ?? taxesDefaut);
                         crees++;
                     }
                     // Enregistré ligne par ligne : les contrôles de doublon voient les lignes précédentes.

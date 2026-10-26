@@ -4,6 +4,9 @@
 @{
     var categories = (List<EasytransitCaisse.Models.Categorie>)ViewBag.Categories;
     string Nombre(decimal? n) => n.HasValue ? n.Value.ToString("0.##", CultureInfo.InvariantCulture) : "";
+    var taxes = (List<EasytransitCaisse.Models.Taxe>)ViewBag.Taxes;
+    var cochees = (int[])(ViewBag.TaxesCochees ?? Array.Empty<int>());
+    var totalTaxes = taxes.Where(t => cochees.Contains(t.Id)).Sum(t => t.Taux);
 }
 @if (ViewBag.Erreur != null)
 {
@@ -41,9 +44,26 @@
         <input class="form-control" id="PrixVente" name="PrixVente" inputmode="decimal" value="@Nombre(Model.Id == 0 && Model.PrixVente == 0 ? null : Model.PrixVente)" required />
     </div>
     <div class="col-md-4">
-        <label class="form-label" for="TauxTVA">TVA (%)</label>
-        <input class="form-control" id="TauxTVA" name="TauxTVA" inputmode="decimal" value="@Nombre(Model.TauxTVA)" />
-        <div class="form-text">Comprise dans le prix TTC.</div>
+        <div class="form-label">Taxes</div>
+        <div class="d-flex flex-wrap gap-2" role="group" aria-label="Taxes du produit">
+            @foreach (var t in taxes)
+            {
+                <input type="checkbox" class="btn-check" name="Taxes" value="@t.Id" id="taxe@(t.Id)" data-taux="@t.Taux.ToString(CultureInfo.InvariantCulture)"
+                       checked="@cochees.Contains(t.Id)" autocomplete="off"
+                       onchange="let t = 0; this.closest('form').querySelectorAll('[name=Taxes]:checked').forEach((c) => t += +c.dataset.taux); this.closest('form').querySelector('.taux-total').textContent = t.toLocaleString('fr-FR');" />
+                <label class="btn btn-outline-primary btn-sm" for="taxe@(t.Id)" title="@t.Libelle">@EasytransitCaisse.Data.TaxesProduits.Libelle(t.Code, t.Taux)</label>
+            }
+        </div>
+        <div class="form-text">
+            @if (!taxes.Any())
+            {
+                <text>Aucune taxe : créez-en dans Paramètres &gt; Taxes.</text>
+            }
+            else
+            {
+                <text>Total <strong class="taux-total">@totalTaxes.ToString("0.##", new CultureInfo("fr-FR"))</strong> %, compris dans le prix TTC.</text>
+            }
+        </div>
     </div>
 </div>
 
