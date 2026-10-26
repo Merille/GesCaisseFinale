@@ -107,6 +107,8 @@ puis importez les CSV dans les tables MySQL correspondantes via phpMyAdmin, en c
 
 `sql/demo/demo_pos_mysql.sql` crée 10 catégories, 30 produits, deux livraisons de stock et environ
 150 ventes sur les 14 derniers jours (une journée clôturée « -DEMO » par jour, sur la première
-caisse). À importer une seule fois dans phpMyAdmin, sur la base locale de test ;
+caisse de la société). La société visée est indiquée par son nom au début du script
+(EASYTECH AFRICA GABON - LBV par défaut) ; une caisse « DEMO » et les modes Espèces / Mobile Money
+sont créés s'ils manquent. À importer une seule fois dans phpMyAdmin, sur la base locale de test ;
 `sql/demo/demo_pos_supprimer_mysql.sql` retire ces données. Les mêmes scripts pour SQL Server
 (version .NET) sont dans le dossier `Scripts` à la racine. Ne pas envoyer `sql/demo` sur le serveur.

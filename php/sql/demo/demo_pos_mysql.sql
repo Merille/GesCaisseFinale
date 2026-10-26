@@ -4,8 +4,7 @@
 -- 151 ventes réparties sur les 14 derniers jours (une journée clôturée par jour).
 --
 -- À exécuter UNE SEULE FOIS, sur la base LOCALE de test (jamais en production).
--- Société : la première qui possède une caisse ; pour en choisir une autre,
--- remplacez la ligne « SET @t = ... » par exemple par « SET @t = 2; ».
+-- Société : EASYTECH AFRICA GABON - LBV (pour en choisir une autre, modifiez le nom dans la ligne « SET @t = ... »).
 -- Tout est fait dans une transaction : en cas d'erreur, rien n'est enregistré.
 -- Pour retirer ces données : script demo_pos_supprimer_mysql.sql.
 -- =====================================================================
@@ -13,17 +12,33 @@
 SET NAMES utf8mb4;
 START TRANSACTION;
 
--- Société, caisse, utilisateurs et modes de paiement existants
-SET @t = (SELECT MIN(TenantId) FROM Caisses WHERE TenantId > 0);
+-- Société visée : nom exact, tel qu'il apparaît dans Sociétés (à modifier ci-dessous) ; s'il est introuvable,
+-- la première société qui possède une caisse est utilisée.
+SET @t = COALESCE((SELECT MIN(Id) FROM Tenants WHERE Nom = 'EASYTECH AFRICA GABON - LBV'),
+                  (SELECT MIN(TenantId) FROM Caisses WHERE TenantId > 0));
+
+-- Caisse : la première de la société, sinon une caisse « DEMO » est créée
+INSERT INTO Caisses (ChkCode, ChkDescription, TenantId) SELECT 'DEMO', 'Caisse de démonstration', @t FROM DUAL
+    WHERE NOT EXISTS (SELECT 1 FROM Caisses WHERE TenantId = @t);
 SET @caisse = (SELECT MIN(ID) FROM Caisses WHERE TenantId = @t);
-SET @code = (SELECT ChkCode FROM Caisses WHERE ID = @caisse);
+SET @code = COALESCE((SELECT ChkCode FROM Caisses WHERE ID = @caisse), 'CAISSE');
+
+-- Utilisateurs : un vendeur (ou caissier) et un administrateur de la société
 SET @u2 = (SELECT MIN(Id) FROM Utilisateurs WHERE TenantId = @t AND Profil = 'Admin');
 SET @u1 = COALESCE((SELECT MIN(Id) FROM Utilisateurs WHERE TenantId = @t AND Profil = 'Vendeur'),
-                   (SELECT MIN(Id) FROM Utilisateurs WHERE TenantId = @t AND Profil = 'Caissier'), @u2);
+                   (SELECT MIN(Id) FROM Utilisateurs WHERE TenantId = @t AND Profil = 'Caissier'),
+                   @u2, (SELECT MIN(Id) FROM Utilisateurs WHERE TenantId = @t),
+                   (SELECT MIN(Id) FROM Utilisateurs WHERE Profil = 'SuperAdmin'));
 SET @u2 = COALESCE(@u2, @u1);
+
+-- Modes de paiement Espèces et Mobile Money (créés s'ils manquent)
+INSERT INTO ModesPaiement (Code, Libelle, Actif, TenantId) SELECT 'ESP', 'Espèces', 1, @t FROM DUAL
+    WHERE NOT EXISTS (SELECT 1 FROM ModesPaiement WHERE TenantId = @t AND Actif = 1 AND (Code = 'ESP' OR Libelle LIKE 'Esp%'));
+INSERT INTO ModesPaiement (Code, Libelle, Actif, TenantId) SELECT 'MM', 'Mobile Money', 1, @t FROM DUAL
+    WHERE NOT EXISTS (SELECT 1 FROM ModesPaiement WHERE TenantId = @t AND Actif = 1 AND (Code = 'MM' OR Libelle LIKE '%Mobile%'));
 SET @esp = (SELECT MIN(Id) FROM ModesPaiement WHERE TenantId = @t AND Actif = 1 AND (Code = 'ESP' OR Libelle LIKE 'Esp%'));
-SET @mm = COALESCE((SELECT MIN(Id) FROM ModesPaiement WHERE TenantId = @t AND Actif = 1 AND (Code = 'MM' OR Libelle LIKE '%Mobile%')), @esp);
--- (sans caisse, utilisateur ou mode Espèces, une des insertions ci-dessous échoue et rien n'est enregistré)
+SET @mm = (SELECT MIN(Id) FROM ModesPaiement WHERE TenantId = @t AND Actif = 1 AND (Code = 'MM' OR Libelle LIKE '%Mobile%'));
+
 INSERT INTO Motifs (LibelleMotif, TypeModif, TenantId) SELECT 'Vente POS', 'Client', @t FROM DUAL
     WHERE NOT EXISTS (SELECT 1 FROM Motifs WHERE LibelleMotif = 'Vente POS' AND TenantId = @t);
 SET @motif = (SELECT MIN(ID) FROM Motifs WHERE LibelleMotif = 'Vente POS' AND TenantId = @t);
@@ -2888,3 +2903,4 @@ UPDATE JourneesCaisses SET SoldeFinal = SoldeInitial + COALESCE((SELECT SUM(o.Mo
     WHERE o.JourneeCaisseId = @j AND o.TypeOperation = 'Encaissement' AND o.StatutValidation <> 'Rejeté'), 0), EcartCloture = 0 WHERE Id = @j;
 
 COMMIT;
+SELECT CONCAT('Données de démonstration enregistrées pour la société ', (SELECT Nom FROM Tenants WHERE Id = @t), ' (Id ', @t, ').') AS Resultat;
