@@ -505,3 +505,14 @@ html.sidebar-replie .sb-sub {
 /* Images (logo de la société, photo de produit) */
 .vignette-image { width: 56px; height: 56px; object-fit: contain; border: 1px solid #e3e8f1; border-radius: 8px; background: #fff; flex-shrink: 0; }
 .vignette-petite { width: 36px; height: 36px; }
+
+/* En-têtes de tableaux : bleu de la marque (remplace le noir de .table-dark). */
+.table > thead.table-dark,
+.table thead.table-dark {
+    --bs-table-bg: var(--brand, #195d84);
+    --bs-table-color: #fff;
+    --bs-table-border-color: #2f6d92;
+    --bs-table-striped-bg: var(--brand, #195d84);
+    --bs-table-hover-bg: var(--brand, #195d84);
+    --bs-table-hover-color: #fff;
+}
