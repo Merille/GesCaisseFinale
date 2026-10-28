@@ -44,6 +44,7 @@ namespace EasytransitCaisse.Controllers
             _context.Tenants.Add(tenant);
             _context.SaveChanges();
             _context.AjouterTaxesInitiales(tenant.Id);
+            _context.AjouterUnitesInitiales(tenant.Id);
             _context.EnregistrerLogo(tenant, image, false);
             _context.SaveChanges();
 

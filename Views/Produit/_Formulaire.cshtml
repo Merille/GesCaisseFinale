@@ -1,4 +1,5 @@
 @model EasytransitCaisse.Models.Produit
+@inject EasytransitCaisse.Data.AppDbContext Db
 @using System.Globalization
 @* Champs de la fiche produit (création et modification). *@
 @{
@@ -45,14 +46,24 @@
     </div>
     <div class="col-md-4">
         <label class="form-label" for="Unite">Unité de vente</label>
-        <input class="form-control" id="Unite" name="Unite" value="@(string.IsNullOrEmpty(Model.Unite) ? "Unité" : Model.Unite)" list="unites" maxlength="20" placeholder="Ex : Kg, Litre, Carton" />
-        <datalist id="unites">
-            @foreach (var u in EasytransitCaisse.Controllers.ProduitController.Unites)
+        @{
+            var unitesListe = EasytransitCaisse.Data.Unites.UnitesActives(Db);
+            var uniteProduit = string.IsNullOrEmpty(Model.Unite) ? "Unité" : Model.Unite;
+            // Nouveau produit : l'unité par défaut doit être active.
+            if (Model.Id == 0 && unitesListe.Count > 0 && !unitesListe.Contains(uniteProduit))
+                uniteProduit = unitesListe[0];
+        }
+        <select class="form-select" id="Unite" name="Unite">
+            @if (!unitesListe.Contains(uniteProduit))
             {
-                <option value="@u"></option>
+                <option value="@uniteProduit" selected>@uniteProduit (désactivée)</option>
             }
-        </datalist>
-        <div class="form-text">Le prix TTC s'entend pour une unité.</div>
+            @foreach (var u in unitesListe)
+            {
+                <option value="@u" selected="@(u == uniteProduit)">@u</option>
+            }
+        </select>
+        <div class="form-text">Le prix TTC s'entend pour une unité. <a href="/Unite/Index" class="hors-modale">Gérer les unités</a></div>
     </div>
     <div class="col-md-4">
         <label class="form-label" for="Cout">Coût d'achat HT (FCFA)</label>

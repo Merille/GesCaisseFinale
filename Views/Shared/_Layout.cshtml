@@ -35,7 +35,7 @@
         "Dashboard" or "Caisse" or "JourneeCaisse" or "Client" => "Activité",
         "Rapport" => "Analyse",
         "Pos" or "Vente" or "Produit" or "Categorie" or "Stock" or "PosRapport" => "Point de vente",
-        "Utilisateur" or "Motif" or "ModePaiement" or "Taxe" => "Paramètres",
+        "Utilisateur" or "Motif" or "ModePaiement" or "Taxe" or "Unite" => "Paramètres",
         "Tenant" => "Administration",
         _ => null
     };
@@ -50,6 +50,7 @@
             "Motif" => "Motifs",
             "ModePaiement" => "Modes de paiement",
             "Taxe" => "Taxes",
+            "Unite" => "Unités de vente",
             "Utilisateur" => "Utilisateurs",
             "Tenant" => "Sociétés",
             "Caisse" => "Caisses",
@@ -220,7 +221,7 @@
             <div class="sb-section">
                 <div class="sb-section-title">Administration</div>
                 @{
-                    var parametresActif = controller is "Utilisateur" or "Motif" or "ModePaiement" or "Taxe";
+                    var parametresActif = controller is "Utilisateur" or "Motif" or "ModePaiement" or "Taxe" or "Unite";
                 }
                 <button type="button" class="sb-link sb-parent @(parametresActif ? "parent-actif" : "")" title="Paramètres"
                         aria-expanded="@(parametresActif ? "true" : "false")" aria-controls="sbParametres" onclick="basculerSousMenu(this)">
@@ -244,6 +245,10 @@
                     <a class="sb-link @(controller == "Taxe" ? "active" : "")" href="/Taxe/Index" title="Taxes">
                         <i class="fas fa-percent"></i>
                         <span class="sb-label">Taxes</span>
+                    </a>
+                    <a class="sb-link @(controller == "Unite" ? "active" : "")" href="/Unite/Index" title="Unités de vente">
+                        <i class="fas fa-scale-balanced"></i>
+                        <span class="sb-label">Unités de vente</span>
                     </a>
                 </div>
                 @if (isSuperAdmin)

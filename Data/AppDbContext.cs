@@ -129,6 +129,12 @@ namespace EasytransitCaisse.Data
             modelBuilder.Entity<MouvementStock>().Property(m => m.Reference).HasMaxLength(100);
             modelBuilder.Entity<MouvementStock>().Property(m => m.Commentaire).HasMaxLength(300);
 
+            // Point de vente : unités de vente.
+            modelBuilder.Entity<UniteVente>().ToTable("Unites")
+                .HasQueryFilter(e => _currentTenantId == 0 || e.TenantId == _currentTenantId);
+            modelBuilder.Entity<UniteVente>()
+                .HasIndex(u => new { u.TenantId, u.Nom }).IsUnique();
+
             // Point de vente : taxes (plusieurs par produit).
             modelBuilder.Entity<Taxe>()
                 .HasQueryFilter(e => _currentTenantId == 0 || e.TenantId == _currentTenantId);
@@ -261,6 +267,8 @@ namespace EasytransitCaisse.Data
         public DbSet<MouvementStock> MouvementsStock { get; set; }
 
         public DbSet<Taxe> Taxes { get; set; }
+
+        public DbSet<UniteVente> Unites { get; set; }
 
         public DbSet<ProduitTaxe> ProduitTaxes { get; set; }
 

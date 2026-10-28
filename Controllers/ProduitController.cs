@@ -22,12 +22,6 @@ namespace EasytransitCaisse.Controllers
             "Code", "Nom", "Catégorie", "Code-barres", "Prix TTC", "Taxes", "Suivi stock", "Stock", "Seuil alerte", "Actif", "Unité", "Coût"
         };
 
-        // Unités de vente proposées (la saisie reste libre).
-        public static readonly string[] Unites =
-        {
-            "Unité", "Pièce", "Kg", "g", "Litre", "cl", "Mètre", "Carton", "Paquet", "Boîte", "Sac", "Bouteille", "Page", "Heure"
-        };
-
         private const string MessageSociete = "Choisissez d'abord la société concernée dans le menu « Société consultée », puis recommencez.";
 
         private readonly AppDbContext _context;
@@ -157,6 +151,7 @@ namespace EasytransitCaisse.Controllers
             await using var transaction = await _context.Database.BeginTransactionAsync();
             _context.Produits.Add(produit);
             await _context.SaveChangesAsync();
+            _context.AssurerUnite(produit.Unite, produit.TenantId);
             _context.EnregistrerTaxes(produit, taxes);
             int.TryParse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var utilisateurId);
             await _context.MouvementAsync(produit.Id, initial, "Stock initial", utilisateurId: utilisateurId);
@@ -213,6 +208,7 @@ namespace EasytransitCaisse.Controllers
             produit.Actif = saisi.Actif;
             produit.Cout = saisi.Cout;
             produit.Unite = saisi.Unite;
+            _context.AssurerUnite(produit.Unite, produit.TenantId);
             _context.EnregistrerTaxes(produit, taxes);
             _context.EnregistrerImage(produit, photo, supprimerImage);
             _context.SaveChanges();
@@ -531,7 +527,10 @@ namespace EasytransitCaisse.Controllers
                         existant.Actif = saisi.Actif;
                         // Cellules Unité / Coût vides (ex. fichier d'une version précédente) : valeurs actuelles conservées.
                         if (Col(11) != "")
+                        {
                             existant.Unite = saisi.Unite;
+                            _context.AssurerUnite(existant.Unite, existant.TenantId);
+                        }
                         if (Col(12) != "")
                             existant.Cout = saisi.Cout;
                         // Colonne Taxes vide : taxes inchangées.
