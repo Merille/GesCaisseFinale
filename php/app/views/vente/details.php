@@ -33,6 +33,7 @@ $peutAnnuler = $peutRembourser && !$estRetour && $vente['Statut'] === 'Payée' &
     <div class="col-md-3"><div class="card h-100 border-0 shadow-sm"><div class="card-body">
         <div class="small text-muted">Total TTC</div>
         <div class="fs-4 fw-bold <?= (float) $vente['TotalTTC'] < 0 ? 'text-danger' : '' ?>"><?= fcfa($vente['TotalTTC']) ?> FCFA</div>
+        <?php if ((float) $vente['RemiseGlobale'] != 0): ?><div class="small text-muted">après remise globale de <?= fcfa($vente['RemiseGlobale']) ?><?= $vente['RemiseGlobaleTaux'] !== null ? ' (' . quantite_fr($vente['RemiseGlobaleTaux']) . ' %)' : '' ?></div><?php endif; ?>
         <div class="small text-muted">dont taxes <?= fcfa($vente['TotalTVA']) ?><?php $taxesVente = vente_taxes((int) $vente['Id']); if (count($taxesVente) > 0): ?> :
             <?= h(implode(' · ', array_map(fn($l, $m) => $l . ' ' . fcfa($m), array_keys($taxesVente), $taxesVente))) ?><?php endif; ?></div>
     </div></div></div>

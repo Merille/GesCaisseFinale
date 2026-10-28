@@ -9,7 +9,7 @@ function stock_produits_suivis(int $categorie = 0): array
     return q(
         'SELECT p.Id, p.Code, p.Nom, p.StockActuel, p.SeuilAlerte, c.Nom AS Categorie
          FROM Produits p LEFT JOIN Categories c ON c.Id = p.CategorieId
-         WHERE p.SuiviStock = 1 AND p.Actif = 1 AND ' . tf('p') . ($categorie ? ' AND p.CategorieId = ' . $categorie : '') . '
+         WHERE p.SuiviStock = 1 AND p.Actif = 1 AND p.EstModele = 0 AND ' . tf('p') . ($categorie ? ' AND p.CategorieId = ' . $categorie : '') . '
          ORDER BY p.Nom'
     );
 }
@@ -46,11 +46,11 @@ function stock_index(): void
         'mouvements' => q('SELECT m.*, p.Code, p.Nom, u.NomComplet AS Utilisateur' . $from
             . ' ORDER BY m.DateMouvement DESC, m.Id DESC' . $pagination['limite'], $params),
         'pagination' => $pagination,
-        'produits' => q('SELECT Id, Code, Nom FROM Produits WHERE SuiviStock = 1 AND ' . tf() . ' ORDER BY Nom'),
+        'produits' => q('SELECT Id, Code, Nom FROM Produits WHERE SuiviStock = 1 AND EstModele = 0 AND ' . tf() . ' ORDER BY Nom'),
         'filtres' => ['produit' => $produit, 'type' => $type, 'du' => $du, 'au' => $au],
         'alertes' => q(
             'SELECT Id, Code, Nom, StockActuel, SeuilAlerte FROM Produits
-             WHERE SuiviStock = 1 AND Actif = 1 AND SeuilAlerte IS NOT NULL AND StockActuel <= SeuilAlerte AND ' . tf() . '
+             WHERE SuiviStock = 1 AND Actif = 1 AND EstModele = 0 AND SeuilAlerte IS NOT NULL AND StockActuel <= SeuilAlerte AND ' . tf() . '
              ORDER BY StockActuel - SeuilAlerte, Nom'
         ),
         'venteSansStock' => tenant_id() ? vente_sans_stock(tenant_id()) : null,
@@ -70,7 +70,7 @@ function stock_entree(): void
         foreach ($produits as $i => $id) {
             $q = round(montant($quantites[$i] ?? 0), 2);
             if ((int) $id && $q > 0) {
-                if (!q1('SELECT Id FROM Produits WHERE Id = ? AND TenantId = ? AND SuiviStock = 1', [(int) $id, $tenant])) {
+                if (!q1('SELECT Id FROM Produits WHERE Id = ? AND TenantId = ? AND SuiviStock = 1 AND EstModele = 0', [(int) $id, $tenant])) {
                     flash('danger', 'Un produit de la liste est introuvable ou sans suivi de stock.');
                     redirect('stock/entree');
                 }
@@ -111,7 +111,7 @@ function stock_inventaire(): void
                 if (trim((string) $valeur) === '') {
                     continue;
                 }
-                $p = q1('SELECT Id, StockActuel FROM Produits WHERE Id = ? AND SuiviStock = 1 AND ' . tf() . ' FOR UPDATE', [(int) $id]);
+                $p = q1('SELECT Id, StockActuel FROM Produits WHERE Id = ? AND SuiviStock = 1 AND EstModele = 0 AND ' . tf() . ' FOR UPDATE', [(int) $id]);
                 if (!$p) {
                     continue;
                 }

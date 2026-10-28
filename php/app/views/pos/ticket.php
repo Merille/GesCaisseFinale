@@ -32,10 +32,14 @@ $c = $commande;
         <div class="b"><?= h($l['Libelle']) ?></div>
         <div class="r ind">
             <span><?= quantite_fr($l['Quantite']) ?><?= ($l['Unite'] ?? 'Unité') !== 'Unité' ? ' ' . h($l['Unite']) : '' ?> x <?= fcfa($l['PrixUnitaire']) ?><?= (float) $l['Remise'] > 0 ? ' -' . quantite_fr($l['Remise']) . '%' : '' ?></span>
-            <span><?= fcfa($l['TotalTTC']) ?></span>
+            <span><?= fcfa((float) $l['TotalTTC'] + (float) $l['RemiseGlobale']) ?></span>
         </div>
     <?php endforeach; ?>
     <hr>
+    <?php if ((float) $c['RemiseGlobale'] != 0): ?>
+        <div class="r"><span>Sous-total</span><span><?= fcfa((float) $c['TotalTTC'] + (float) $c['RemiseGlobale']) ?></span></div>
+        <div class="r"><span>Remise globale<?= $c['RemiseGlobaleTaux'] !== null ? ' ' . quantite_fr($c['RemiseGlobaleTaux']) . ' %' : '' ?></span><span>-<?= fcfa($c['RemiseGlobale']) ?></span></div>
+    <?php endif; ?>
     <div class="r b grand"><span>TOTAL TTC</span><span><?= fcfa($c['TotalTTC']) ?> FCFA</span></div>
     <div class="r"><span>Total HT</span><span><?= fcfa($c['TotalHT']) ?></span></div>
     <?php foreach ($taxes as $libelle => $montant): ?>

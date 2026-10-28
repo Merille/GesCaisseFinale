@@ -475,6 +475,12 @@ function journee_solde_suggere(int $caisseId): float
     return (float) $derniere['SoldeInitial'] + $t['encaisse'] - $t['decaisse'];
 }
 
+/** Remise globale sur un ticket : administrateurs et utilisateurs autorisés à valider. */
+function pos_peut_remise_globale(): bool
+{
+    return is_admin() || peut_valider();
+}
+
 /** Mode de paiement « Espèces » : le seul sur lequel on peut rendre la monnaie. */
 function pos_est_especes(array $mode): bool
 {

@@ -36,10 +36,13 @@
             <tbody>
             <?php if (!$produits): ?><tr><td colspan="9" class="text-center text-muted py-4">Aucun produit.</td></tr><?php endif; ?>
             <?php foreach ($produits as $p):
-                $alerte = $p['SuiviStock'] && $p['SeuilAlerte'] !== null && (float) $p['StockActuel'] <= (float) $p['SeuilAlerte']; ?>
+                // Modèle à variantes : stock total de ses variantes actives.
+                if ($p['EstModele']) { $p['StockActuel'] = $p['StockVariantes']; }
+                $alerte = !$p['EstModele'] && $p['SuiviStock'] && $p['SeuilAlerte'] !== null && (float) $p['StockActuel'] <= (float) $p['SeuilAlerte'];
+                $badgeVariantes = $p['EstModele'] ? ' <span class="badge text-bg-light border">' . (int) $p['NbVariantes'] . ' variante' . ((int) $p['NbVariantes'] > 1 ? 's' : '') . '</span>' : ''; ?>
                 <tr>
                     <td class="fw-semibold"><?= h($p['Code']) ?></td>
-                    <td><div class="d-flex align-items-center gap-2"><?php if ($img = url_image_produit($p)): ?><img src="<?= h($img) ?>" alt="" class="vignette-image vignette-petite" loading="lazy"><?php endif; ?><span><?= h($p['Nom']) ?></span></div></td>
+                    <td><div class="d-flex align-items-center gap-2"><?php if ($img = url_image_produit($p)): ?><img src="<?= h($img) ?>" alt="" class="vignette-image vignette-petite" loading="lazy"><?php endif; ?><span><?= h($p['Nom']) ?><?= $badgeVariantes ?></span></div></td>
                     <td><?php if ($p['Categorie']): ?><span class="pastille-categorie" style="background: <?= h($p['Couleur']) ?>"></span> <?= h($p['Categorie']) ?><?php else: ?><span class="text-muted">—</span><?php endif; ?></td>
                     <td class="text-muted small"><?= h($p['CodeBarres']) ?></td>
                     <td class="text-end fw-semibold text-nowrap"><?= fcfa($p['PrixVente']) ?><?php if ($p['Unite'] !== 'Unité'): ?> <span class="small fw-normal text-muted">/ <?= h($p['Unite']) ?></span><?php endif; ?></td>
@@ -67,13 +70,15 @@
     <?php if (!$produits): ?><div class="card shadow-sm border-0"><div class="card-body text-center text-muted py-4">Aucun produit.</div></div><?php endif; ?>
     <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xxl-4 g-3">
         <?php foreach ($produits as $p):
-            $alerte = $p['SuiviStock'] && $p['SeuilAlerte'] !== null && (float) $p['StockActuel'] <= (float) $p['SeuilAlerte']; ?>
+            if ($p['EstModele']) { $p['StockActuel'] = $p['StockVariantes']; }
+            $alerte = !$p['EstModele'] && $p['SuiviStock'] && $p['SeuilAlerte'] !== null && (float) $p['StockActuel'] <= (float) $p['SeuilAlerte'];
+            $badgeVariantes = $p['EstModele'] ? ' <span class="badge text-bg-light border">' . (int) $p['NbVariantes'] . ' variante' . ((int) $p['NbVariantes'] > 1 ? 's' : '') . '</span>' : ''; ?>
             <div class="col">
                 <article class="carte-liste h-100 d-flex flex-column" style="--couleur: <?= h($p['Couleur'] ?: '#999997') ?>">
                     <div class="p-3 d-flex flex-column gap-2 flex-grow-1">
                         <div class="d-flex justify-content-between align-items-start gap-2">
                             <div>
-                                <h3 class="h6 fw-bold mb-1"><?= h($p['Nom']) ?></h3>
+                                <h3 class="h6 fw-bold mb-1"><?= h($p['Nom']) ?><?= $badgeVariantes ?></h3>
                                 <div class="small text-muted"><?= h($p['Code']) ?><?= $p['CodeBarres'] ? ' · <i class="fa fa-barcode"></i> ' . h($p['CodeBarres']) : '' ?></div>
                             </div>
                             <span class="badge <?= $p['Actif'] ? 'bg-success' : 'bg-secondary' ?>"><?= $p['Actif'] ? 'Actif' : 'Inactif' ?></span>

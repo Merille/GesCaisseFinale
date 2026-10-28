@@ -21,7 +21,8 @@ function produit_categories(): array
 /** Condition de recherche (nom, code, code-barres) et de catégorie, sur l'alias p. */
 function produit_filtre(string $search, int $categorie): array
 {
-    $sql = tf('p');
+    // Les variantes sont gérées depuis la fiche de leur modèle.
+    $sql = tf('p') . ' AND p.ParentId IS NULL';
     $params = [];
     if ($search !== '') {
         $sql .= ' AND (p.Nom LIKE ? OR p.Code LIKE ? OR p.CodeBarres LIKE ?)';
@@ -36,7 +37,9 @@ function produit_filtre(string $search, int $categorie): array
 
 const PRODUIT_SELECT = "SELECT p.*, c.Nom AS Categorie, c.Couleur,
         (SELECT GROUP_CONCAT(t.Code ORDER BY t.ParDefaut DESC, t.Taux DESC, t.Code SEPARATOR ' + ')
-         FROM ProduitTaxes pt JOIN Taxes t ON t.Id = pt.TaxeId WHERE pt.ProduitId = p.Id) AS Taxes
+         FROM ProduitTaxes pt JOIN Taxes t ON t.Id = pt.TaxeId WHERE pt.ProduitId = p.Id) AS Taxes,
+        (SELECT COUNT(*) FROM Produits v WHERE v.ParentId = p.Id AND v.Actif = 1) AS NbVariantes,
+        (SELECT COALESCE(SUM(v.StockActuel), 0) FROM Produits v WHERE v.ParentId = p.Id AND v.Actif = 1) AS StockVariantes
     FROM Produits p LEFT JOIN Categories c ON c.Id = p.CategorieId";
 
 function produit_index(): void
@@ -55,7 +58,7 @@ function produit_index(): void
         'search' => $search,
         'categorie' => $categorie,
         'pagination' => $pagination,
-        'nbAlertes' => (int) qv('SELECT COUNT(*) FROM Produits WHERE SuiviStock = 1 AND Actif = 1 AND SeuilAlerte IS NOT NULL AND StockActuel <= SeuilAlerte AND ' . tf()),
+        'nbAlertes' => (int) qv('SELECT COUNT(*) FROM Produits WHERE SuiviStock = 1 AND Actif = 1 AND EstModele = 0 AND SeuilAlerte IS NOT NULL AND StockActuel <= SeuilAlerte AND ' . tf()),
     ]);
 }
 
@@ -145,6 +148,7 @@ function produit_mettre_a_jour(array $v, int $id): void
         if (isset($v['TaxeIds'])) {
             produit_enregistrer_taxes($id, $v['TaxeIds'], (int) qv('SELECT TenantId FROM Produits WHERE Id = ?', [$id]));
         }
+        produit_propager_variantes($id);
         db()->commit();
     } catch (Throwable $e) {
         db()->rollBack();
@@ -178,6 +182,10 @@ function produit_create(): void
 function produit_edit(): void
 {
     $existant = produit_charger((int) get('id'));
+    // Une variante se gère depuis la fiche de son modèle.
+    if ($existant['ParentId']) {
+        redirect('produit/edit', ['id' => $existant['ParentId']]);
+    }
     $produit = $existant + ['TaxeIds' => array_keys(produit_taxes((int) $existant['Id']))];
     if (is_post()) {
         $produit = produit_valeurs() + ['Id' => $existant['Id'], 'ImageMaj' => $existant['ImageMaj']];
@@ -192,7 +200,9 @@ function produit_edit(): void
             redirect('produit/index');
         }
     }
-    render('produit/form', ['produit' => $produit, 'edition' => true, 'categories' => produit_categories(), 'taxes' => taxes_liste()]);
+    render('produit/form', ['produit' => $produit, 'edition' => true, 'categories' => produit_categories(), 'taxes' => taxes_liste(),
+        'attributs' => produit_attributs((int) $existant['Id']), 'variantes' => produit_variantes((int) $existant['Id']),
+        'nomsAttributs' => array_column(q('SELECT DISTINCT a.Nom FROM ProduitAttributs a JOIN Produits p ON p.Id = a.ProduitId WHERE ' . tf('p') . ' ORDER BY a.Nom'), 'Nom')]);
 }
 
 function produit_delete(): void
@@ -200,6 +210,8 @@ function produit_delete(): void
     if (is_post()) {
         // Étapes suivantes : refuser la suppression d'un produit déjà vendu (le désactiver à la place).
         $produit = produit_charger((int) post('id'));
+        // Un modèle emporte ses variantes.
+        run('DELETE FROM Produits WHERE ParentId = ?', [$produit['Id']]);
         run('DELETE FROM Produits WHERE Id = ?', [$produit['Id']]);
         flash('success', 'Produit supprimé.');
     }
@@ -356,4 +368,247 @@ function produit_taxes_depuis_texte(string $texte, array $taxes): array|string|n
         $ids[] = $trouve;
     }
     return $ids;
+}
+
+// ----------------------------------------------------------------------------------
+// Variantes : attributs du produit modèle (Taille : S, M, L…) et combinaisons générées.
+// Chaque variante est un produit (ParentId = modèle) : stock, ventes, retours, taxes et
+// rapports la traitent comme n'importe quel produit.
+// ----------------------------------------------------------------------------------
+
+/** Attributs du produit et leurs valeurs : [['Id', 'Nom', 'valeurs' => [Id => Valeur]]]. */
+function produit_attributs(int $produitId): array
+{
+    $attributs = [];
+    foreach (q('SELECT * FROM ProduitAttributs WHERE ProduitId = ? ORDER BY Ordre, Id', [$produitId]) as $a) {
+        $a['valeurs'] = [];
+        $attributs[(int) $a['Id']] = $a;
+    }
+    if ($attributs) {
+        $ids = implode(',', array_keys($attributs));
+        foreach (q("SELECT * FROM ProduitAttributValeurs WHERE ProduitAttributId IN ($ids) ORDER BY Ordre, Id") as $v) {
+            $attributs[(int) $v['ProduitAttributId']]['valeurs'][(int) $v['Id']] = $v['Valeur'];
+        }
+    }
+    return array_values($attributs);
+}
+
+/** Variantes du modèle (actives et désactivées). */
+function produit_variantes(int $produitId): array
+{
+    return q('SELECT * FROM Produits WHERE ParentId = ? ORDER BY Actif DESC, Id', [$produitId]);
+}
+
+/** Code libre pour une nouvelle variante : CODE-01, CODE-02… */
+function produit_code_variante(array $modele): string
+{
+    for ($n = 1; ; $n++) {
+        $code = mb_substr($modele['Code'], 0, 44) . '-' . str_pad((string) $n, 2, '0', STR_PAD_LEFT);
+        if (!qv('SELECT COUNT(*) FROM Produits WHERE Code = ? AND TenantId = ?', [$code, $modele['TenantId']])) {
+            return $code;
+        }
+    }
+}
+
+/**
+ * Recopie sur les variantes ce qui vient du modèle : nom (+ valeurs), catégorie, prix
+ * (+ supplément), coût, unité, suivi du stock, seuil et taxes.
+ */
+function produit_propager_variantes(int $modeleId): void
+{
+    $m = q1('SELECT * FROM Produits WHERE Id = ?', [$modeleId]);
+    if (!$m || !$m['EstModele']) {
+        return;
+    }
+    run("UPDATE Produits SET Nom = LEFT(TRIM(CONCAT(?, ' ', COALESCE(LibelleVariante, ''))), 200), CategorieId = ?, PrixVente = ? + Supplement,
+            Cout = ?, Unite = ?, SuiviStock = ?, SeuilAlerte = ?, TauxTVA = ?
+         WHERE ParentId = ?",
+        [$m['Nom'], $m['CategorieId'], $m['PrixVente'], $m['Cout'], $m['Unite'], $m['SuiviStock'], $m['SeuilAlerte'], $m['TauxTVA'], $modeleId]);
+    run('DELETE pt FROM ProduitTaxes pt JOIN Produits v ON v.Id = pt.ProduitId WHERE v.ParentId = ?', [$modeleId]);
+    run('INSERT INTO ProduitTaxes (ProduitId, TaxeId) SELECT v.Id, pt.TaxeId FROM Produits v JOIN ProduitTaxes pt ON pt.ProduitId = ? WHERE v.ParentId = ?',
+        [$modeleId, $modeleId]);
+}
+
+/** Lit les attributs saisis : [['nom' => 'Taille', 'valeurs' => ['S', 'M', 'L']], …]. */
+function produit_attributs_saisis(): array
+{
+    $saisis = [];
+    foreach ((array) post('attribut', []) as $a) {
+        $nom = mb_substr(trim((string) ($a['nom'] ?? '')), 0, 50);
+        $valeurs = [];
+        foreach (preg_split('/\s*[,;]\s*/', (string) ($a['valeurs'] ?? ''), -1, PREG_SPLIT_NO_EMPTY) as $v) {
+            $v = mb_substr(trim($v), 0, 50);
+            if ($v !== '' && !in_array(mb_strtolower($v), array_map('mb_strtolower', $valeurs), true)) {
+                $valeurs[] = $v;
+            }
+        }
+        if ($nom !== '' && $valeurs) {
+            $saisis[mb_strtolower($nom)] = ['nom' => $nom, 'valeurs' => $valeurs];
+        }
+    }
+    return array_values($saisis);
+}
+
+/**
+ * Enregistre les attributs du modèle puis génère les combinaisons manquantes.
+ * Une valeur ou un attribut retiré désactive les variantes qui l'utilisaient (l'historique
+ * des ventes est gardé) ; une combinaison déjà existante n'est jamais dupliquée.
+ */
+function produit_genvariantes(): void
+{
+    $m = produit_charger((int) post('id'));
+    $retour = fn(string $type, string $msg) => [flash($type, $msg), redirect('produit/edit', ['id' => $m['Id']])];
+    if ($m['ParentId']) {
+        $retour('danger', 'Une variante ne peut pas avoir ses propres variantes.');
+    }
+    $saisis = produit_attributs_saisis();
+    if (!$m['EstModele'] && $saisis && $m['SuiviStock'] && abs((float) $m['StockActuel']) > 0.0001) {
+        $retour('danger', 'Ce produit a encore ' . quantite_fr($m['StockActuel']) . ' en stock : ramenez son stock à 0 (inventaire) avant de créer des variantes, puis faites l\'entrée de stock sur chaque variante.');
+    }
+    $combinaisons = array_product(array_map(fn($a) => count($a['valeurs']), $saisis ?: [['valeurs' => []]]));
+    if ($saisis && $combinaisons > 200) {
+        $retour('danger', "Trop de combinaisons ($combinaisons) : 200 variantes au plus par produit.");
+    }
+
+    db()->beginTransaction();
+    try {
+        // 1. Attributs et valeurs (identifiés par leur nom, sans tenir compte des majuscules).
+        $existants = produit_attributs((int) $m['Id']);
+        $gardes = [];
+        $valeursRetenues = [];
+        foreach ($saisis as $ordre => $a) {
+            $attr = null;
+            foreach ($existants as $e) {
+                if (mb_strtolower($e['Nom']) === mb_strtolower($a['nom'])) {
+                    $attr = $e;
+                }
+            }
+            if ($attr) {
+                run('UPDATE ProduitAttributs SET Nom = ?, Ordre = ? WHERE Id = ?', [$a['nom'], $ordre, $attr['Id']]);
+                $attrId = (int) $attr['Id'];
+            } else {
+                $attrId = run('INSERT INTO ProduitAttributs (ProduitId, Nom, Ordre) VALUES (?, ?, ?)', [$m['Id'], $a['nom'], $ordre]);
+                $attr = ['valeurs' => []];
+            }
+            $gardes[] = $attrId;
+            $ids = [];
+            foreach ($a['valeurs'] as $o => $valeur) {
+                $id = array_search(mb_strtolower($valeur), array_map('mb_strtolower', $attr['valeurs']), true);
+                if ($id === false) {
+                    $id = run('INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) VALUES (?, ?, ?)', [$attrId, $valeur, $o]);
+                } else {
+                    run('UPDATE ProduitAttributValeurs SET Valeur = ?, Ordre = ? WHERE Id = ?', [$valeur, $o, $id]);
+                }
+                $ids[(int) $id] = $valeur;
+            }
+            // Valeurs retirées : variantes désactivées, puis valeur supprimée.
+            foreach (array_diff_key($attr['valeurs'], $ids) as $idRetire => $_) {
+                run('UPDATE Produits SET Actif = 0 WHERE Id IN (SELECT VarianteId FROM VarianteValeurs WHERE ValeurId = ?)', [$idRetire]);
+                run('DELETE FROM ProduitAttributValeurs WHERE Id = ?', [$idRetire]);
+            }
+            $valeursRetenues[] = $ids;
+        }
+        // Attributs retirés : leurs variantes sont désactivées.
+        foreach ($existants as $e) {
+            if (!in_array((int) $e['Id'], $gardes, true)) {
+                if ($e['valeurs']) {
+                    $liste = implode(',', array_keys($e['valeurs']));
+                    run("UPDATE Produits SET Actif = 0 WHERE Id IN (SELECT VarianteId FROM VarianteValeurs WHERE ValeurId IN ($liste))");
+                }
+                run('DELETE FROM ProduitAttributs WHERE Id = ?', [$e['Id']]);
+            }
+        }
+
+        // 2. Combinaisons manquantes : une variante par combinaison de valeurs.
+        $creees = 0;
+        if ($valeursRetenues) {
+            $connues = [];
+            foreach (q('SELECT vv.VarianteId, GROUP_CONCAT(vv.ValeurId ORDER BY vv.ValeurId) AS Cle FROM VarianteValeurs vv
+                        JOIN Produits v ON v.Id = vv.VarianteId WHERE v.ParentId = ? GROUP BY vv.VarianteId', [$m['Id']]) as $c) {
+                $connues[$c['Cle']] = (int) $c['VarianteId'];
+            }
+            $combis = [[]];
+            foreach ($valeursRetenues as $valeurs) {
+                $suivantes = [];
+                foreach ($combis as $c) {
+                    foreach ($valeurs as $id => $valeur) {
+                        $suivantes[] = $c + [$id => $valeur];
+                    }
+                }
+                $combis = $suivantes;
+            }
+            foreach ($combis as $c) {
+                $ids = array_keys($c);
+                sort($ids);
+                $cle = implode(',', $ids);
+                $libelle = mb_substr(implode(' ', $c), 0, 150);
+                if (isset($connues[$cle])) {
+                    run('UPDATE Produits SET LibelleVariante = ? WHERE Id = ?', [$libelle, $connues[$cle]]);
+                    continue;
+                }
+                $vid = run(
+                    'INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, SeuilAlerte, Actif,
+                        Cout, Unite, ParentId, Supplement, LibelleVariante)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, 1, ?, ?, ?, 0, ?)',
+                    [$m['TenantId'], produit_code_variante($m), mb_substr($m['Nom'] . ' ' . $libelle, 0, 200), $m['CategorieId'], $m['PrixVente'],
+                     $m['TauxTVA'], $m['SuiviStock'], $m['SeuilAlerte'], $m['Cout'], $m['Unite'], $m['Id'], $libelle]
+                );
+                foreach ($ids as $id) {
+                    run('INSERT INTO VarianteValeurs (VarianteId, ValeurId) VALUES (?, ?)', [$vid, $id]);
+                }
+                $creees++;
+            }
+        }
+
+        // 3. Le produit est un modèle tant qu'il a des variantes.
+        $nb = (int) qv('SELECT COUNT(*) FROM Produits WHERE ParentId = ?', [$m['Id']]);
+        run('UPDATE Produits SET EstModele = ? WHERE Id = ?', [$nb > 0 ? 1 : 0, $m['Id']]);
+        produit_propager_variantes((int) $m['Id']);
+        db()->commit();
+    } catch (Throwable $e) {
+        db()->rollBack();
+        throw $e;
+    }
+    $retour('success', $creees ? "$creees variante(s) créée(s)." : 'Attributs enregistrés.');
+}
+
+/** Grille des variantes : code, code-barres, supplément de prix et activation. */
+function produit_majvariantes(): void
+{
+    $m = produit_charger((int) post('id'));
+    $retour = fn(string $type, string $msg) => [flash($type, $msg), redirect('produit/edit', ['id' => $m['Id']])];
+    $saisies = (array) post('variante', []);
+    $variantes = [];
+    foreach (produit_variantes((int) $m['Id']) as $v) {
+        $s = $saisies[$v['Id']] ?? null;
+        if (!is_array($s)) {
+            continue;
+        }
+        $v['Code'] = trim((string) ($s['Code'] ?? $v['Code']));
+        $v['CodeBarres'] = trim((string) ($s['CodeBarres'] ?? '')) ?: null;
+        $v['Supplement'] = montant($s['Supplement'] ?? 0);
+        $v['Actif'] = empty($s['Actif']) ? 0 : 1;
+        if ($v['Code'] === '') {
+            $retour('danger', 'Le code de la variante « ' . $v['LibelleVariante'] . ' » est obligatoire.');
+        }
+        if (qv('SELECT COUNT(*) FROM Produits WHERE Code = ? AND Id <> ? AND TenantId = ?', [$v['Code'], $v['Id'], $m['TenantId']])) {
+            $retour('danger', "Le code « {$v['Code']} » est déjà utilisé.");
+        }
+        if ($v['CodeBarres'] !== null && qv('SELECT COUNT(*) FROM Produits WHERE CodeBarres = ? AND Id <> ? AND TenantId = ?', [$v['CodeBarres'], $v['Id'], $m['TenantId']])) {
+            $retour('danger', "Le code-barres « {$v['CodeBarres']} » est déjà utilisé.");
+        }
+        if ((float) $m['PrixVente'] + $v['Supplement'] < 0) {
+            $retour('danger', 'Le supplément de « ' . $v['LibelleVariante'] . ' » rend le prix négatif.');
+        }
+        $variantes[] = $v;
+    }
+    $codes = array_map(fn($v) => mb_strtolower($v['Code']), $variantes);
+    if (count($codes) !== count(array_unique($codes))) {
+        $retour('danger', 'Deux variantes ont le même code.');
+    }
+    foreach ($variantes as $v) {
+        run('UPDATE Produits SET Code = ?, CodeBarres = ?, Supplement = ?, PrixVente = ?, Actif = ? WHERE Id = ?',
+            [$v['Code'], $v['CodeBarres'], $v['Supplement'], (float) $m['PrixVente'] + $v['Supplement'], $v['Actif'], $v['Id']]);
+    }
+    $retour('success', 'Variantes enregistrées.');
 }

@@ -39,7 +39,11 @@ function pos_index(): void
         'seuil' => $p['SeuilAlerte'] === null ? null : (float) $p['SeuilAlerte'],
         'unite' => $p['Unite'],
         'image' => url_image_produit($p),
-    ], q('SELECT * FROM Produits WHERE Actif = 1 AND TenantId = ? ORDER BY Nom', [$tenant]));
+        'parentId' => $p['ParentId'] === null ? null : (int) $p['ParentId'],
+        'modele' => (bool) $p['EstModele'],
+        'variante' => $p['LibelleVariante'],
+    ], q('SELECT p.* FROM Produits p LEFT JOIN Produits m ON m.Id = p.ParentId
+          WHERE p.Actif = 1 AND p.TenantId = ? AND (p.ParentId IS NULL OR m.Actif = 1) ORDER BY p.Nom', [$tenant]));
 
     $categories = array_map(fn($c) => [
         'id' => (int) $c['Id'], 'nom' => $c['Nom'], 'couleur' => $c['Couleur'],
@@ -67,6 +71,7 @@ function pos_index(): void
         'clients' => $clients,
         'utilisateur' => ['nom' => $u['nomComplet'] ?: $u['nom'], 'profil' => $u['profil']],
         'peutModifierPrix' => is_admin(),
+        'peutRemiseGlobale' => pos_peut_remise_globale(),
         'urlFermer' => url('journee/details', ['id' => $journee['Id']]),
         'modes' => $modes,
         'urlVendre' => url('pos/vendre'),
@@ -136,10 +141,14 @@ function pos_vendre(): void
     $lignes = [];
     $ttc = $tva = 0.0;
     foreach ($v['lignes'] as $l) {
-        $p = q1('SELECT * FROM Produits WHERE Id = ? AND TenantId = ? AND Actif = 1', [(int) ($l['produitId'] ?? 0), $tenant]);
+        $p = q1('SELECT p.* FROM Produits p LEFT JOIN Produits m ON m.Id = p.ParentId
+                 WHERE p.Id = ? AND p.TenantId = ? AND p.Actif = 1 AND (p.ParentId IS NULL OR m.Actif = 1)', [(int) ($l['produitId'] ?? 0), $tenant]);
         $qte = round((float) ($l['qte'] ?? 0), 2);
         if (!$p || $qte <= 0) {
             pos_json(['erreur' => 'Un article du ticket est introuvable, inactif ou de quantité nulle.'], 400);
+        }
+        if ($p['EstModele']) {
+            pos_json(['erreur' => 'Choisissez une variante de « ' . $p['Nom'] . ' ».'], 400);
         }
         $prix = is_admin() ? max(0, round((float) ($l['prix'] ?? $p['PrixVente']), 2)) : (float) $p['PrixVente'];
         $remise = min(100, max(0, round((float) ($l['remise'] ?? 0), 2)));
@@ -147,7 +156,38 @@ function pos_vendre(): void
         $taux = (float) $p['TauxTVA'];
         $ttc += $total;
         $tva += $total - $total / (1 + $taux / 100);
-        $lignes[] = ['produit' => $p, 'qte' => $qte, 'prix' => $prix, 'remise' => $remise, 'taux' => $taux, 'total' => $total];
+        $lignes[] = ['produit' => $p, 'qte' => $qte, 'prix' => $prix, 'remise' => $remise, 'taux' => $taux, 'total' => $total, 'part' => 0.0];
+    }
+
+    // Remise globale (administrateurs et utilisateurs autorisés à valider) : en % ou en montant,
+    // répartie sur les lignes au prorata ; les totaux et les taxes portent sur le net.
+    $remiseGlobale = 0.0;
+    $tauxRemise = null;
+    $rg = $v['remiseGlobale'] ?? null;
+    if (is_array($rg) && (float) ($rg['valeur'] ?? 0) > 0 && $ttc > 0) {
+        if (!pos_peut_remise_globale()) {
+            pos_json(['erreur' => "La remise globale est réservée aux administrateurs et aux utilisateurs autorisés à valider."], 403);
+        }
+        $valeur = (float) $rg['valeur'];
+        if (($rg['type'] ?? '') === 'pct') {
+            $tauxRemise = min(100, round($valeur, 2));
+            $remiseGlobale = round($ttc * $tauxRemise / 100);
+        } else {
+            $remiseGlobale = min($ttc, round($valeur));
+        }
+        $reste = $remiseGlobale;
+        foreach ($lignes as $i => &$l) {
+            $part = $i === array_key_last($lignes) ? $reste : min($reste, round($remiseGlobale * $l['total'] / $ttc));
+            $l['part'] = $part;
+            $l['total'] -= $part;
+            $reste -= $part;
+        }
+        unset($l);
+        $ttc = $tva = 0.0;
+        foreach ($lignes as $l) {
+            $ttc += $l['total'];
+            $tva += $l['total'] - $l['total'] / (1 + $l['taux'] / 100);
+        }
     }
     $tva = round($tva);
 
@@ -209,15 +249,15 @@ function pos_vendre(): void
 
         $commandeId = run(
             "INSERT INTO CommandesPos (TenantId, Numero, CleClient, JourneeCaisseId, ClientId, UtilisateurId, DateCommande,
-                TotalHT, TotalTVA, TotalTTC, MontantRecu, MonnaieRendue, Statut)
-             VALUES (?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?, ?, 'Payée')",
-            [$tenant, $numero, $cle, $journee['Id'], $client, user()['id'], $ttc - $tva, $tva, $ttc, $recu, $rendu]
+                TotalHT, TotalTVA, TotalTTC, MontantRecu, MonnaieRendue, Statut, RemiseGlobale, RemiseGlobaleTaux)
+             VALUES (?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?, ?, 'Payée', ?, ?)",
+            [$tenant, $numero, $cle, $journee['Id'], $client, user()['id'], $ttc - $tva, $tva, $ttc, $recu, $rendu, $remiseGlobale, $tauxRemise]
         );
         foreach ($lignes as $l) {
             $ligneId = run(
-                'INSERT INTO LignesCommandePos (TenantId, CommandePosId, ProduitId, Libelle, Quantite, PrixUnitaire, Remise, TauxTVA, TotalTTC)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                [$tenant, $commandeId, $l['produit']['Id'], $l['produit']['Nom'], $l['qte'], $l['prix'], $l['remise'], $l['taux'], $l['total']]
+                'INSERT INTO LignesCommandePos (TenantId, CommandePosId, ProduitId, Libelle, Quantite, PrixUnitaire, Remise, TauxTVA, TotalTTC, RemiseGlobale)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                [$tenant, $commandeId, $l['produit']['Id'], $l['produit']['Nom'], $l['qte'], $l['prix'], $l['remise'], $l['taux'], $l['total'], $l['part']]
             );
             ligne_enregistrer_taxes($ligneId, produit_taxes((int) $l['produit']['Id']), $l['total'], $tenant);
             mouvement_stock((int) $l['produit']['Id'], -$l['qte'], 'Vente', $numero, $commandeId);
