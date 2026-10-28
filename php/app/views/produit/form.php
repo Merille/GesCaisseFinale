@@ -1,13 +1,18 @@
 <?php
 $titre = $edition ? 'Modifier le produit' : 'Nouveau produit';
 $entete = $titre;
-$largeur = '860px';
+$avecVariantes = $edition && empty($modale) && empty($produit['ParentId']);
+// En modification, la fiche est à gauche et les variantes à droite (l'une sous l'autre sur écran étroit).
+$largeur = $avecVariantes ? '100%' : '860px';
 $action = !empty($modale) ? url('produit/create') : null;
 $retour = url('produit/index');
 $attrsForm = 'enctype="multipart/form-data"';
 $suffixe = !empty($modale) ? 'M' : '';
 $v = fn(string $k) => h($produit[$k] ?? '');
 $nombre = fn(string $k) => isset($produit[$k]) && $produit[$k] !== null && $produit[$k] !== '' ? h(quantite_fr($produit[$k], false)) : '';
+if ($avecVariantes) {
+    echo '<div class="row g-4 align-items-start"><div class="col-xl-7">';
+}
 require __DIR__ . '/../partials/form_debut.php';
 ?>
             <div class="row g-3">
@@ -111,11 +116,13 @@ require __DIR__ . '/../partials/form_debut.php';
                 </div>
             </div>
 <?php require __DIR__ . '/../partials/form_fin.php'; ?>
-<?php if ($edition && empty($modale) && empty($produit['ParentId'])):
+<?php if ($avecVariantes):
     $attributs = $attributs ?? [];
     $variantes = $variantes ?? [];
     $lignesAttributs = $attributs ?: [['Nom' => '', 'valeurs' => []]]; ?>
-<div class="card shadow-sm border-0 mt-4" style="max-width: <?= h($largeur) ?>;" id="variantes">
+</div>
+<div class="col-xl-5">
+<div class="card shadow-sm border-0" id="variantes">
     <div class="card-header bg-brand text-white d-flex align-items-center gap-2">
         <h5 class="mb-0 flex-grow-1">Variantes</h5>
         <?php if ($variantes): ?><span class="badge bg-light text-dark"><?= count(array_filter($variantes, fn($v) => $v['Actif'])) ?> active(s)</span><?php endif; ?>
@@ -150,19 +157,26 @@ require __DIR__ . '/../partials/form_debut.php';
             <form method="post" action="<?= h(url('produit/majvariantes')) ?>">
                 <?= csrf_field() ?><input type="hidden" name="id" value="<?= (int) $produit['Id'] ?>">
                 <div class="table-responsive">
-                    <table class="table table-hover align-middle small mb-2">
-                        <thead class="table-dark"><tr><th>Variante</th><th>Code</th><th>Code-barres</th><th class="text-end">Supplément TTC</th><th class="text-end">Prix TTC</th><th class="text-end">Stock</th><th class="text-center">Active</th></tr></thead>
+                    <table class="table align-middle small mb-2">
+                        <thead class="table-dark"><tr><th>Variante</th><th class="text-end">Prix TTC</th><th class="text-end">Quantité</th><th class="text-center" title="Active">Active</th></tr></thead>
                         <tbody>
                         <?php foreach ($variantes as $v): $id = (int) $v['Id']; ?>
                             <tr class="<?= $v['Actif'] ? '' : 'text-muted' ?>">
-                                <td class="fw-semibold"><?= h($v['LibelleVariante'] ?: $v['Nom']) ?></td>
-                                <td><input class="form-control form-control-sm" name="variante[<?= $id ?>][Code]" value="<?= h($v['Code']) ?>" required style="min-width:110px" aria-label="Code"></td>
-                                <td><input class="form-control form-control-sm" name="variante[<?= $id ?>][CodeBarres]" value="<?= h($v['CodeBarres']) ?>" style="min-width:130px" aria-label="Code-barres"
-                                           onkeydown="if (event.key === 'Enter') event.preventDefault();"></td>
-                                <td><input class="form-control form-control-sm text-end" name="variante[<?= $id ?>][Supplement]" value="<?= h(quantite_fr($v['Supplement'], false)) ?>" inputmode="decimal" style="width:100px; margin-left:auto" aria-label="Supplément"></td>
-                                <td class="text-end text-nowrap"><?= fcfa($v['PrixVente']) ?></td>
-                                <td class="text-end"><?= $v['SuiviStock'] ? quantite_fr($v['StockActuel']) : '<span class="text-muted">—</span>' ?></td>
-                                <td class="text-center"><input class="form-check-input" type="checkbox" value="1" name="variante[<?= $id ?>][Actif]" <?= $v['Actif'] ? 'checked' : '' ?> aria-label="Variante active"></td>
+                                <td class="fw-semibold border-bottom-0"><?= h($v['LibelleVariante'] ?: $v['Nom']) ?></td>
+                                <td class="border-bottom-0"><input class="form-control form-control-sm text-end" name="variante[<?= $id ?>][Prix]" value="<?= h(quantite_fr($v['PrixVente'], false)) ?>" inputmode="decimal" required style="width:95px; margin-left:auto" aria-label="Prix TTC"></td>
+                                <td class="border-bottom-0"><?php if ($v['SuiviStock']): ?>
+                                    <input class="form-control form-control-sm text-end" name="variante[<?= $id ?>][Quantite]" value="<?= h(quantite_fr($v['StockActuel'], false)) ?>" inputmode="decimal" style="width:80px; margin-left:auto" aria-label="Quantité en stock">
+                                <?php else: ?><span class="d-block text-end text-muted">—</span><?php endif; ?></td>
+                                <td class="text-center border-bottom-0"><input class="form-check-input" type="checkbox" value="1" name="variante[<?= $id ?>][Actif]" <?= $v['Actif'] ? 'checked' : '' ?> aria-label="Variante active"></td>
+                            </tr>
+                            <tr class="<?= $v['Actif'] ? '' : 'text-muted' ?>">
+                                <td colspan="4" class="pt-0">
+                                    <div class="d-flex gap-2">
+                                        <input class="form-control form-control-sm" name="variante[<?= $id ?>][Code]" value="<?= h($v['Code']) ?>" required placeholder="Code" title="Code" aria-label="Code">
+                                        <input class="form-control form-control-sm" name="variante[<?= $id ?>][CodeBarres]" value="<?= h($v['CodeBarres']) ?>" placeholder="Code-barres" title="Code-barres" aria-label="Code-barres"
+                                               onkeydown="if (event.key === 'Enter') event.preventDefault();">
+                                    </div>
+                                </td>
                             </tr>
                         <?php endforeach; ?>
                         </tbody>
@@ -171,11 +185,13 @@ require __DIR__ . '/../partials/form_debut.php';
                 <div class="d-flex flex-wrap gap-2 align-items-center">
                     <button class="btn btn-primary btn-sm"><i class="fa fa-floppy-disk"></i> Enregistrer les variantes</button>
                     <a class="btn btn-outline-secondary btn-sm" href="<?= h(url('stock/entree')) ?>"><i class="fa fa-truck-ramp-box"></i> Entrée de stock</a>
-                    <span class="small text-muted">Prix = prix du modèle + supplément. Le nom, la catégorie, les taxes, l'unité et le coût suivent le modèle.</span>
+                    <span class="small text-muted">Une quantité modifiée est enregistrée comme un ajustement d'inventaire. Le nom, la catégorie, les taxes, l'unité et le coût suivent le modèle ; l'écart de prix avec le modèle est gardé quand son prix change.</span>
                 </div>
             </form>
         <?php endif; ?>
     </div>
+</div>
+</div>
 </div>
 <script>
     function ajouterAttribut() {

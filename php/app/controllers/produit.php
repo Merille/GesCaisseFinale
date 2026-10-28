@@ -586,7 +586,10 @@ function produit_majvariantes(): void
         }
         $v['Code'] = trim((string) ($s['Code'] ?? $v['Code']));
         $v['CodeBarres'] = trim((string) ($s['CodeBarres'] ?? '')) ?: null;
-        $v['Supplement'] = montant($s['Supplement'] ?? 0);
+        // Prix TTC saisi : on garde l'écart avec le modèle (supplément) pour suivre ses changements de prix.
+        $prix = isset($s['Prix']) ? montant($s['Prix']) : (float) $m['PrixVente'] + montant($s['Supplement'] ?? 0);
+        $v['Supplement'] = round($prix - (float) $m['PrixVente'], 2);
+        $v['Quantite'] = isset($s['Quantite']) && trim((string) $s['Quantite']) !== '' ? montant($s['Quantite']) : null;
         $v['Actif'] = empty($s['Actif']) ? 0 : 1;
         if ($v['Code'] === '') {
             $retour('danger', 'Le code de la variante « ' . $v['LibelleVariante'] . ' » est obligatoire.');
@@ -597,8 +600,8 @@ function produit_majvariantes(): void
         if ($v['CodeBarres'] !== null && qv('SELECT COUNT(*) FROM Produits WHERE CodeBarres = ? AND Id <> ? AND TenantId = ?', [$v['CodeBarres'], $v['Id'], $m['TenantId']])) {
             $retour('danger', "Le code-barres « {$v['CodeBarres']} » est déjà utilisé.");
         }
-        if ((float) $m['PrixVente'] + $v['Supplement'] < 0) {
-            $retour('danger', 'Le supplément de « ' . $v['LibelleVariante'] . ' » rend le prix négatif.');
+        if ($prix < 0) {
+            $retour('danger', 'Le prix de « ' . $v['LibelleVariante'] . ' » ne peut pas être négatif.');
         }
         $variantes[] = $v;
     }
@@ -606,9 +609,27 @@ function produit_majvariantes(): void
     if (count($codes) !== count(array_unique($codes))) {
         $retour('danger', 'Deux variantes ont le même code.');
     }
-    foreach ($variantes as $v) {
-        run('UPDATE Produits SET Code = ?, CodeBarres = ?, Supplement = ?, PrixVente = ?, Actif = ? WHERE Id = ?',
-            [$v['Code'], $v['CodeBarres'], $v['Supplement'], (float) $m['PrixVente'] + $v['Supplement'], $v['Actif'], $v['Id']]);
+    // Quantité modifiée : l'écart avec le stock devient un mouvement « Inventaire ».
+    $reference = 'INV-' . date('Ymd-Hi');
+    $ajustees = 0;
+    db()->beginTransaction();
+    try {
+        foreach ($variantes as $v) {
+            run('UPDATE Produits SET Code = ?, CodeBarres = ?, Supplement = ?, PrixVente = ?, Actif = ? WHERE Id = ?',
+                [$v['Code'], $v['CodeBarres'], $v['Supplement'], (float) $m['PrixVente'] + $v['Supplement'], $v['Actif'], $v['Id']]);
+            if ($v['Quantite'] !== null && $v['SuiviStock']) {
+                $stock = (float) qv('SELECT StockActuel FROM Produits WHERE Id = ? FOR UPDATE', [$v['Id']]);
+                $ecart = round($v['Quantite'] - $stock, 2);
+                if (abs($ecart) >= 0.01) {
+                    mouvement_stock((int) $v['Id'], $ecart, 'Inventaire', $reference, null, 'Fiche produit (variantes)');
+                    $ajustees++;
+                }
+            }
+        }
+        db()->commit();
+    } catch (Throwable $e) {
+        db()->rollBack();
+        throw $e;
     }
-    $retour('success', 'Variantes enregistrées.');
+    $retour('success', $ajustees ? "Variantes enregistrées : stock ajusté sur $ajustees variante(s) (inventaire $reference)." : 'Variantes enregistrées.');
 }

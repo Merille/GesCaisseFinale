@@ -1,9 +1,13 @@
 @model EasytransitCaisse.Models.Produit
 @{
     ViewData["Title"] = "Modifier le produit";
+    // La fiche est à gauche et les variantes à droite (l'une sous l'autre sur écran étroit).
+    var avecVariantes = Model.ParentId == null;
 }
 
-<div class="card shadow-sm border-0" style="max-width: 860px;">
+<div class="@(avecVariantes ? "row g-4 align-items-start" : "")">
+<div class="@(avecVariantes ? "col-xl-7" : "")">
+<div class="card shadow-sm border-0" style="max-width: @(avecVariantes ? "100%" : "860px");">
     <div class="card-header bg-brand text-white">
         <h5 class="mb-0">Modifier le produit</h5>
     </div>
@@ -18,7 +22,11 @@
     </div>
 </div>
 
-@if (Model.ParentId == null)
+</div>
+@if (avecVariantes)
 {
-    <partial name="_Variantes" model="Model" />
+    <div class="col-xl-5">
+        <partial name="_Variantes" model="Model" />
+    </div>
 }
+</div>

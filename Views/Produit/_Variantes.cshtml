@@ -10,7 +10,7 @@
         : new List<(string, string)> { ("", "") };
     var fr = new CultureInfo("fr-FR");
 }
-<div class="card shadow-sm border-0 mt-4" style="max-width: 860px;" id="variantes">
+<div class="card shadow-sm border-0" id="variantes">
     <div class="card-header bg-brand text-white d-flex align-items-center gap-2">
         <h5 class="mb-0 flex-grow-1">Variantes</h5>
         @if (variantes.Count > 0)
@@ -59,22 +59,36 @@
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="id" value="@Model.Id" />
                 <div class="table-responsive">
-                    <table class="table table-hover align-middle small mb-2">
-                        <thead class="table-dark"><tr><th>Variante</th><th>Code</th><th>Code-barres</th><th class="text-end">Supplément TTC</th><th class="text-end">Prix TTC</th><th class="text-end">Stock</th><th class="text-center">Active</th></tr></thead>
+                    <table class="table align-middle small mb-2">
+                        <thead class="table-dark"><tr><th>Variante</th><th class="text-end">Prix TTC</th><th class="text-end">Quantité</th><th class="text-center">Active</th></tr></thead>
                         <tbody>
                             @foreach (var v in variantes)
                             {
                                 <tr class="@(v.Actif ? "" : "text-muted")">
-                                    <td class="fw-semibold">@(v.LibelleVariante ?? v.Nom)</td>
-                                    <td><input class="form-control form-control-sm" name="variante[@v.Id][Code]" value="@v.Code" required style="min-width:110px" aria-label="Code" /></td>
-                                    <td><input class="form-control form-control-sm" name="variante[@v.Id][CodeBarres]" value="@v.CodeBarres" style="min-width:130px" aria-label="Code-barres"
-                                               onkeydown="if (event.key === 'Enter') event.preventDefault();" /></td>
-                                    <td><input class="form-control form-control-sm text-end" name="variante[@v.Id][Supplement]" value="@v.Supplement.ToString("0.##", CultureInfo.InvariantCulture)" inputmode="decimal" style="width:100px; margin-left:auto" aria-label="Supplément" /></td>
-                                    <td class="text-end text-nowrap">@v.PrixVente.ToString("N0", fr)</td>
-                                    <td class="text-end">@(v.SuiviStock ? v.StockActuel.ToString("0.##") : "—")</td>
-                                    <td class="text-center">
+                                    <td class="fw-semibold border-bottom-0">@(v.LibelleVariante ?? v.Nom)</td>
+                                    <td class="border-bottom-0"><input class="form-control form-control-sm text-end" name="variante[@v.Id][Prix]" value="@v.PrixVente.ToString("0.##", CultureInfo.InvariantCulture)" inputmode="decimal" required style="width:95px; margin-left:auto" aria-label="Prix TTC" /></td>
+                                    <td class="border-bottom-0">
+                                        @if (v.SuiviStock)
+                                        {
+                                            <input class="form-control form-control-sm text-end" name="variante[@v.Id][Quantite]" value="@v.StockActuel.ToString("0.##", CultureInfo.InvariantCulture)" inputmode="decimal" style="width:80px; margin-left:auto" aria-label="Quantité en stock" />
+                                        }
+                                        else
+                                        {
+                                            <span class="d-block text-end text-muted">—</span>
+                                        }
+                                    </td>
+                                    <td class="text-center border-bottom-0">
                                         <input class="form-check-input" type="checkbox" value="true" name="variante[@v.Id][Actif]" checked="@v.Actif" aria-label="Variante active" />
                                         <input type="hidden" name="variante[@v.Id][Actif]" value="false" />
+                                    </td>
+                                </tr>
+                                <tr class="@(v.Actif ? "" : "text-muted")">
+                                    <td colspan="4" class="pt-0">
+                                        <div class="d-flex gap-2">
+                                            <input class="form-control form-control-sm" name="variante[@v.Id][Code]" value="@v.Code" required placeholder="Code" title="Code" aria-label="Code" />
+                                            <input class="form-control form-control-sm" name="variante[@v.Id][CodeBarres]" value="@v.CodeBarres" placeholder="Code-barres" title="Code-barres" aria-label="Code-barres"
+                                                   onkeydown="if (event.key === 'Enter') event.preventDefault();" />
+                                        </div>
                                     </td>
                                 </tr>
                             }
@@ -84,7 +98,7 @@
                 <div class="d-flex flex-wrap gap-2 align-items-center">
                     <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-floppy-disk"></i> Enregistrer les variantes</button>
                     <a class="btn btn-outline-secondary btn-sm" href="/Stock/Entree"><i class="fas fa-truck-ramp-box"></i> Entrée de stock</a>
-                    <span class="small text-muted">Prix = prix du modèle + supplément. Le nom, la catégorie, les taxes, l'unité et le coût suivent le modèle.</span>
+                    <span class="small text-muted">Une quantité modifiée est enregistrée comme un ajustement d'inventaire. Le nom, la catégorie, les taxes, l'unité et le coût suivent le modèle ; l'écart de prix avec le modèle est gardé quand son prix change.</span>
                 </div>
             </form>
         }

@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using System.Globalization;
 using ClosedXML.Excel;
 using EasytransitCaisse.Data;
@@ -279,6 +280,7 @@ namespace EasytransitCaisse.Controllers
                 return RedirectToAction("Edit", new { id });
             }
             var variantes = await _context.Produits.Where(p => p.ParentId == id).ToListAsync();
+            var quantites = new Dictionary<int, decimal>();
             foreach (var v in variantes)
             {
                 string Champ(string nom) => Request.Form[$"variante[{v.Id}][{nom}]"].ToString();
@@ -286,9 +288,15 @@ namespace EasytransitCaisse.Controllers
                     continue;
                 v.Code = Champ("Code").Trim();
                 v.CodeBarres = string.IsNullOrWhiteSpace(Champ("CodeBarres")) ? null : Champ("CodeBarres").Trim();
-                v.Supplement = Nombre(Champ("Supplement")) ?? 0;
+                // Prix TTC saisi : on garde l'écart avec le modèle (supplément) pour suivre ses changements de prix.
+                var prix = Request.Form.ContainsKey($"variante[{v.Id}][Prix]")
+                    ? Nombre(Champ("Prix")) ?? v.PrixVente
+                    : modele.PrixVente + (Nombre(Champ("Supplement")) ?? 0);
+                v.Supplement = Math.Round(prix - modele.PrixVente, 2);
                 v.Actif = Champ("Actif").Split(',').Contains("true");
                 v.PrixVente = modele.PrixVente + v.Supplement;
+                if (v.SuiviStock && Nombre(Champ("Quantite")) is decimal quantite)
+                    quantites[v.Id] = quantite;
                 if (v.Code == "")
                     return Erreur($"Le code de la variante « {v.LibelleVariante} » est obligatoire.");
                 if (await _context.Produits.AnyAsync(p => p.Code == v.Code && p.Id != v.Id && !variantes.Select(x => x.Id).Contains(p.Id)))
@@ -296,14 +304,33 @@ namespace EasytransitCaisse.Controllers
                 if (v.CodeBarres != null && await _context.Produits.AnyAsync(p => p.CodeBarres == v.CodeBarres && p.Id != v.Id && !variantes.Select(x => x.Id).Contains(p.Id)))
                     return Erreur($"Le code-barres « {v.CodeBarres} » est déjà utilisé.");
                 if (v.PrixVente < 0)
-                    return Erreur($"Le supplément de « {v.LibelleVariante} » rend le prix négatif.");
+                    return Erreur($"Le prix de « {v.LibelleVariante} » ne peut pas être négatif.");
             }
             if (variantes.GroupBy(v => v.Code.ToLowerInvariant()).Any(g => g.Count() > 1))
                 return Erreur("Deux variantes ont le même code.");
             if (variantes.Where(v => v.CodeBarres != null).GroupBy(v => v.CodeBarres).Any(g => g.Count() > 1))
                 return Erreur("Deux variantes ont le même code-barres.");
+
+            // Quantité modifiée : l'écart avec le stock devient un mouvement « Inventaire ».
+            var reference = $"INV-{DateTime.Now:yyyyMMdd-HHmm}";
+            var ajustees = 0;
+            await using var transaction = await _context.Database.BeginTransactionAsync();
             await _context.SaveChangesAsync();
-            TempData["Success"] = "Variantes enregistrées.";
+            foreach (var (varianteId, quantite) in quantites)
+            {
+                var stock = await _context.Produits
+                    .FromSqlInterpolated($"SELECT * FROM Produits WITH (UPDLOCK, ROWLOCK) WHERE Id = {varianteId}")
+                    .AsNoTracking().Select(p => p.StockActuel).FirstAsync();
+                var ecart = Math.Round(quantite - stock, 2);
+                if (Math.Abs(ecart) >= 0.01m)
+                {
+                    await _context.MouvementAsync(varianteId, ecart, "Inventaire", reference, null, UtilisateurId, "Fiche produit (variantes)");
+                    ajustees++;
+                }
+            }
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+            TempData["Success"] = ajustees > 0 ? $"Variantes enregistrées : stock ajusté sur {ajustees} variante(s) (inventaire {reference})." : "Variantes enregistrées.";
             return RedirectToAction("Edit", new { id });
         }
 
@@ -351,6 +378,8 @@ namespace EasytransitCaisse.Controllers
         }
 
         // « 1 500 », « 1500,5 » ou « 1500.5 » ; vide → valeur par défaut.
+        private int UtilisateurId => int.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var id) ? id : 0;
+
         private static decimal? Nombre(string texte)
         {
             var t = texte.Replace(" ", "").Replace(" ", "").Replace(" ", "").Replace(',', '.');
