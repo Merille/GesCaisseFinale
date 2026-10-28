@@ -5,10 +5,14 @@
 
 function unite_index(): void
 {
-    render('unite/index', ['unites' => q(
-        "SELECT u.*, (SELECT COUNT(*) FROM Produits p WHERE p.TenantId = u.TenantId AND p.Unite = u.Nom) AS NbProduits
-         FROM Unites u WHERE " . tf('u') . " ORDER BY u.Actif DESC, u.Nom = 'Unité' DESC, u.Nom"
-    )]);
+    $pagination = paginer((int) qv('SELECT COUNT(*) FROM Unites WHERE ' . tf()), 'unite/index', [], 'Unités', 10);
+    render('unite/index', [
+        'unites' => q(
+            "SELECT u.*, (SELECT COUNT(*) FROM Produits p WHERE p.TenantId = u.TenantId AND p.Unite = u.Nom) AS NbProduits
+             FROM Unites u WHERE " . tf('u') . " ORDER BY u.Actif DESC, u.Nom = 'Unité' DESC, u.Nom, u.Id" . $pagination['limite']
+        ),
+        'pagination' => $pagination,
+    ]);
 }
 
 function unite_charger(int $id): array

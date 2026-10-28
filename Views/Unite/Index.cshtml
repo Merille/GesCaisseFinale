@@ -19,7 +19,7 @@
 
 <div class="card shadow-sm border-0">
     <div class="card-body">
-        <table class="table table-hover align-middle mb-0">
+        <table id="unitesTable" class="table table-hover align-middle mb-0">
             <thead class="table-dark">
                 <tr>
                     <th>Unité</th>
@@ -30,10 +30,6 @@
                 </tr>
             </thead>
             <tbody>
-                @if (!Model.Any())
-                {
-                    <tr><td colspan="5" class="text-center text-muted py-4">Aucune unité.</td></tr>
-                }
                 @foreach (var u in Model)
                 {
                     <tr class="@(u.Actif ? "" : "text-muted")">
@@ -108,6 +104,22 @@
 
 @section Scripts {
     <script>
+        $(document).ready(function () {
+            // Ordre du serveur conservé (actives d'abord) ; tri possible par colonne.
+            $('#unitesTable').DataTable({
+                language: {
+                    url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/fr-FR.json'
+                },
+                pageLength: 10,
+                lengthMenu: [10, 25, 50, 100],
+                order: [],
+                columnDefs: [
+                    { orderable: false, targets: 4 }
+                ],
+                dom: '<"d-flex justify-content-between align-items-center mb-3"lf>rtip'
+            });
+        });
+
         document.getElementById('modalUnite').addEventListener('show.bs.modal', function (e) {
             const d = e.relatedTarget ? e.relatedTarget.dataset : {};
             document.getElementById('uniteTitre').textContent = d.id ? "Modifier l'unité" : 'Nouvelle unité';

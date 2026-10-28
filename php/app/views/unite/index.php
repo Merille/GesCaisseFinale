@@ -33,6 +33,7 @@
             <?php endforeach; ?>
             </tbody>
         </table>
+        <?= partial('partials/pagination', $pagination) ?>
     </div>
 </div>
 
