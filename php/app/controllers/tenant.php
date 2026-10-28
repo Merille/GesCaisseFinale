@@ -65,6 +65,7 @@ function tenant_create(): void
                 $marques = implode(', ', array_fill(0, count(TENANT_CHAMPS), '?'));
                 $id = run('INSERT INTO Tenants (' . implode(', ', TENANT_CHAMPS) . ", DateCreation) VALUES ($marques, NOW())", array_values($t));
                 taxes_initiales($id);
+                unites_initiales($id);
                 enregistrer_image('logo', $id, $logo, false);
                 db()->commit();
             } catch (Throwable $e) {

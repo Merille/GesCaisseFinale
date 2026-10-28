@@ -41,9 +41,16 @@ require __DIR__ . '/../partials/form_debut.php';
                 </div>
                 <div class="col-md-4">
                     <label class="form-label" for="Unite<?= $suffixe ?>">Unité de vente</label>
-                    <input class="form-control" id="Unite<?= $suffixe ?>" name="Unite" value="<?= h($produit['Unite'] ?? 'Unité') ?>" list="unites<?= $suffixe ?>" maxlength="20" placeholder="Ex : Kg, Litre, Carton">
-                    <datalist id="unites<?= $suffixe ?>"><?php foreach (PRODUIT_UNITES as $u): ?><option value="<?= h($u) ?>"><?php endforeach; ?></datalist>
-                    <div class="form-text">Le prix TTC s'entend pour une unité.</div>
+                    <?php $uniteProduit = $produit['Unite'] ?? null; $unitesListe = unites_actives();
+                    // Nouveau produit : l'unité par défaut doit être active.
+                    if (!$edition && $unitesListe && !in_array($uniteProduit, $unitesListe, true)) { $uniteProduit = $unitesListe[0]; } ?>
+                    <select class="form-select" id="Unite<?= $suffixe ?>" name="Unite">
+                        <?php if ($uniteProduit !== null && $uniteProduit !== '' && !in_array($uniteProduit, $unitesListe, true)): ?>
+                            <option value="<?= h($uniteProduit) ?>" selected><?= h($uniteProduit) ?> (désactivée)</option>
+                        <?php endif; ?>
+                        <?php foreach ($unitesListe as $u): ?><option value="<?= h($u) ?>" <?= $u === $uniteProduit ? 'selected' : '' ?>><?= h($u) ?></option><?php endforeach; ?>
+                    </select>
+                    <div class="form-text">Le prix TTC s'entend pour une unité.<?php if (is_admin()): ?> <a href="<?= h(url('unite/index')) ?>">Gérer les unités</a><?php endif; ?></div>
                 </div>
                 <div class="col-md-4">
                     <label class="form-label" for="Cout<?= $suffixe ?>">Coût d'achat HT (FCFA)</label>

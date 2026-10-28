@@ -575,6 +575,34 @@ function taxes_initiales(int $tenant): void
         [$tenant, $tenant]);
 }
 
+// Unités de vente de départ d'une nouvelle société (nom affiché sur le ticket => libellé).
+const UNITES_INITIALES = [
+    'Unité' => "Article vendu à l'unité", 'Pièce' => 'Pièce', 'Kg' => 'Kilogramme', 'g' => 'Gramme', 'Litre' => 'Litre',
+    'cl' => 'Centilitre', 'Mètre' => 'Mètre', 'Carton' => 'Carton', 'Paquet' => 'Paquet', 'Boîte' => 'Boîte', 'Sac' => 'Sac',
+    'Bouteille' => 'Bouteille', 'Page' => 'Page (impression, photocopie)', 'Heure' => 'Heure (service)',
+];
+
+function unites_initiales(int $tenant): void
+{
+    foreach (UNITES_INITIALES as $nom => $libelle) {
+        run('INSERT IGNORE INTO Unites (TenantId, Nom, Libelle) VALUES (?, ?, ?)', [$tenant, $nom, $libelle]);
+    }
+}
+
+/** Noms des unités actives de la société consultée (« Unité » en premier). */
+function unites_actives(): array
+{
+    return array_column(q("SELECT DISTINCT Nom FROM Unites WHERE Actif = 1 AND " . tf() . " ORDER BY Nom = 'Unité' DESC, Nom"), 'Nom');
+}
+
+/** Ajoute l'unité à la liste de la société si elle n'y est pas (saisie par import Excel, par exemple). */
+function unite_assurer(string $nom, int $tenant): void
+{
+    if (trim($nom) !== '' && $tenant > 0) {
+        run('INSERT IGNORE INTO Unites (TenantId, Nom) VALUES (?, ?)', [$tenant, $nom]);
+    }
+}
+
 /** Taxes d'un produit (Id, Code, Taux), indexées par Id. */
 function produit_taxes(int $produitId): array
 {

@@ -10,9 +10,6 @@ const PRODUIT_COLONNES_EXCEL = [
     'Code', 'Nom', 'Catégorie', 'Code-barres', 'Prix TTC', 'Taxes', 'Suivi stock', 'Stock', 'Seuil alerte', 'Actif', 'Unité', 'Coût',
 ];
 
-// Unités de vente proposées (la saisie reste libre).
-const PRODUIT_UNITES = ['Unité', 'Pièce', 'Kg', 'g', 'Litre', 'cl', 'Mètre', 'Carton', 'Paquet', 'Boîte', 'Sac', 'Bouteille', 'Page', 'Heure'];
-
 function produit_categories(): array
 {
     return q('SELECT Id, Nom, Couleur FROM Categories WHERE ' . tf() . ' ORDER BY Ordre, Nom');
@@ -128,6 +125,7 @@ function produit_inserer(array $v, int $tenant): int
         $cols = implode(', ', PRODUIT_CHAMPS);
         $marques = implode(', ', array_fill(0, count(PRODUIT_CHAMPS), '?'));
         $id = run("INSERT INTO Produits ($cols, TenantId) VALUES ($marques, ?)", [...array_map(fn($c) => $v[$c], PRODUIT_CHAMPS), $tenant]);
+        unite_assurer($v['Unite'], $tenant);
         produit_enregistrer_taxes($id, $v['TaxeIds'] ?? taxes_par_defaut($tenant), $tenant);
         mouvement_stock($id, (float) ($v['StockActuel'] ?? 0), 'Stock initial');
         db()->commit();
@@ -145,6 +143,7 @@ function produit_mettre_a_jour(array $v, int $id): void
     db()->beginTransaction();
     try {
         run("UPDATE Produits SET $set WHERE Id = ?", [...array_map(fn($c) => $v[$c], PRODUIT_CHAMPS), $id]);
+        unite_assurer($v['Unite'], (int) qv('SELECT TenantId FROM Produits WHERE Id = ?', [$id]));
         if (isset($v['TaxeIds'])) {
             produit_enregistrer_taxes($id, $v['TaxeIds'], (int) qv('SELECT TenantId FROM Produits WHERE Id = ?', [$id]));
         }
