@@ -50,6 +50,18 @@ namespace EasytransitCaisse.Models
         // Date de l'image (table ProduitImages) : null = pas d'image.
         public DateTime? ImageMaj { get; set; }
 
+        // Variantes : le modèle (EstModele) porte les attributs ; chaque combinaison est un
+        // produit variante (ParentId = modèle) avec son code, son stock et un supplément de prix.
+        public int? ParentId { get; set; }
+
+        public bool EstModele { get; set; }
+
+        [Precision(18, 2)]
+        public decimal Supplement { get; set; }
+
+        [MaxLength(150)]
+        public string? LibelleVariante { get; set; }
+
         public bool EnAlerteStock => SuiviStock && SeuilAlerte.HasValue && StockActuel <= SeuilAlerte.Value;
     }
 }

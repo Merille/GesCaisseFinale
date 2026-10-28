@@ -50,6 +50,13 @@ namespace EasytransitCaisse.Models
 
         public string? Motif { get; set; }
 
+        // Remise globale du ticket (montant, et taux si saisie en %), répartie sur les lignes.
+        [Precision(18, 2)]
+        public decimal RemiseGlobale { get; set; }
+
+        [Precision(5, 2)]
+        public decimal? RemiseGlobaleTaux { get; set; }
+
         public List<LigneCommandePos> Lignes { get; set; } = new();
 
         public List<PaiementPos> Paiements { get; set; } = new();
@@ -84,6 +91,10 @@ namespace EasytransitCaisse.Models
 
         // Retour : ligne de la vente d'origine (quantités négatives).
         public int? LigneOrigineId { get; set; }
+
+        // Part de la remise globale du ticket (TotalTTC est net de cette part).
+        [Precision(18, 2)]
+        public decimal RemiseGlobale { get; set; }
 
         public List<LigneCommandePosTaxe> Taxes { get; set; } = new();
     }

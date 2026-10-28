@@ -1,0 +1,104 @@
+@model EasytransitCaisse.Models.Produit
+@using System.Globalization
+@* Variantes du produit : attributs (Taille : S, M, L…) et grille des combinaisons générées. *@
+@{
+    var attributs = (List<EasytransitCaisse.Models.ProduitAttribut>?)ViewBag.Attributs ?? new();
+    var variantes = (List<EasytransitCaisse.Models.Produit>?)ViewBag.Variantes ?? new();
+    var noms = (List<string>?)ViewBag.NomsAttributs ?? new();
+    var lignes = attributs.Count > 0
+        ? attributs.Select(a => (a.Nom, string.Join(", ", a.Valeurs.OrderBy(v => v.Ordre).ThenBy(v => v.Id).Select(v => v.Valeur)))).ToList()
+        : new List<(string, string)> { ("", "") };
+    var fr = new CultureInfo("fr-FR");
+}
+<div class="card shadow-sm border-0 mt-4" style="max-width: 860px;" id="variantes">
+    <div class="card-header bg-brand text-white d-flex align-items-center gap-2">
+        <h5 class="mb-0 flex-grow-1">Variantes</h5>
+        @if (variantes.Count > 0)
+        {
+            <span class="badge bg-light text-dark">@variantes.Count(v => v.Actif) active(s)</span>
+        }
+    </div>
+    <div class="card-body">
+        <p class="small text-muted">
+            Ajoutez des attributs (ex. <strong>Taille</strong> : S, M, L ; <strong>Couleur</strong> : Rouge, Bleu) : une variante est créée pour
+            chaque combinaison, avec son code, son code-barres, son stock et un supplément de prix. Le produit devient alors un modèle :
+            à la vente, on choisit la variante. Retirer une valeur désactive les variantes concernées (l'historique est gardé).
+        </p>
+        <form method="post" action="/Produit/GenVariantes">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="@Model.Id" />
+            <datalist id="nomsAttributs">
+                @foreach (var n in noms)
+                {
+                    <option value="@n"></option>
+                }
+            </datalist>
+            <table class="table align-middle mb-2" id="tableAttributs">
+                <thead class="table-dark"><tr><th style="width:30%">Attribut</th><th>Valeurs (séparées par des virgules)</th><th style="width:1%"></th></tr></thead>
+                <tbody>
+                    @for (var i = 0; i < lignes.Count; i++)
+                    {
+                        <tr>
+                            <td><input class="form-control" name="attribut[@i][nom]" value="@lignes[i].Item1" list="nomsAttributs" placeholder="Ex : Taille" maxlength="50" aria-label="Attribut" /></td>
+                            <td><input class="form-control" name="attribut[@i][valeurs]" value="@lignes[i].Item2" placeholder="Ex : S, M, L, XL" aria-label="Valeurs" /></td>
+                            <td><button type="button" class="btn btn-outline-danger btn-sm" onclick="this.closest('tr').remove()" aria-label="Retirer cet attribut"><i class="fas fa-xmark"></i></button></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            <div class="d-flex flex-wrap gap-2">
+                <button type="button" class="btn btn-outline-primary btn-sm" onclick="ajouterAttribut()"><i class="fas fa-plus"></i> Ajouter un attribut</button>
+                <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-wand-magic-sparkles"></i> Enregistrer et générer les variantes</button>
+            </div>
+        </form>
+
+        @if (variantes.Count > 0)
+        {
+            <hr class="my-4" />
+            <form method="post" action="/Produit/MajVariantes">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.Id" />
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle small mb-2">
+                        <thead class="table-dark"><tr><th>Variante</th><th>Code</th><th>Code-barres</th><th class="text-end">Supplément TTC</th><th class="text-end">Prix TTC</th><th class="text-end">Stock</th><th class="text-center">Active</th></tr></thead>
+                        <tbody>
+                            @foreach (var v in variantes)
+                            {
+                                <tr class="@(v.Actif ? "" : "text-muted")">
+                                    <td class="fw-semibold">@(v.LibelleVariante ?? v.Nom)</td>
+                                    <td><input class="form-control form-control-sm" name="variante[@v.Id][Code]" value="@v.Code" required style="min-width:110px" aria-label="Code" /></td>
+                                    <td><input class="form-control form-control-sm" name="variante[@v.Id][CodeBarres]" value="@v.CodeBarres" style="min-width:130px" aria-label="Code-barres"
+                                               onkeydown="if (event.key === 'Enter') event.preventDefault();" /></td>
+                                    <td><input class="form-control form-control-sm text-end" name="variante[@v.Id][Supplement]" value="@v.Supplement.ToString("0.##", CultureInfo.InvariantCulture)" inputmode="decimal" style="width:100px; margin-left:auto" aria-label="Supplément" /></td>
+                                    <td class="text-end text-nowrap">@v.PrixVente.ToString("N0", fr)</td>
+                                    <td class="text-end">@(v.SuiviStock ? v.StockActuel.ToString("0.##") : "—")</td>
+                                    <td class="text-center">
+                                        <input class="form-check-input" type="checkbox" value="true" name="variante[@v.Id][Actif]" checked="@v.Actif" aria-label="Variante active" />
+                                        <input type="hidden" name="variante[@v.Id][Actif]" value="false" />
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <div class="d-flex flex-wrap gap-2 align-items-center">
+                    <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-floppy-disk"></i> Enregistrer les variantes</button>
+                    <a class="btn btn-outline-secondary btn-sm" href="/Stock/Entree"><i class="fas fa-truck-ramp-box"></i> Entrée de stock</a>
+                    <span class="small text-muted">Prix = prix du modèle + supplément. Le nom, la catégorie, les taxes, l'unité et le coût suivent le modèle.</span>
+                </div>
+            </form>
+        }
+    </div>
+</div>
+<script>
+    function ajouterAttribut() {
+        const corps = document.querySelector('#tableAttributs tbody');
+        const n = Date.now();
+        const tr = document.createElement('tr');
+        tr.innerHTML = '<td><input class="form-control" name="attribut[' + n + '][nom]" list="nomsAttributs" placeholder="Ex : Couleur" maxlength="50" aria-label="Attribut"></td>'
+            + '<td><input class="form-control" name="attribut[' + n + '][valeurs]" placeholder="Ex : Rouge, Bleu" aria-label="Valeurs"></td>'
+            + '<td><button type="button" class="btn btn-outline-danger btn-sm" onclick="this.closest(\'tr\').remove()" aria-label="Retirer cet attribut"><i class="fas fa-xmark"></i></button></td>';
+        corps.appendChild(tr);
+        tr.querySelector('input').focus();
+    }
+</script>

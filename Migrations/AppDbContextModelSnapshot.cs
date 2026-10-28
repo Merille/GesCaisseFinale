@@ -185,6 +185,14 @@ namespace EasytransitCaisse.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<decimal>("RemiseGlobale")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("RemiseGlobaleTaux")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
                     b.Property<string>("Statut")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -383,6 +391,10 @@ namespace EasytransitCaisse.Migrations
                     b.Property<decimal>("Remise")
                         .HasPrecision(5, 2)
                         .HasColumnType("decimal(5,2)");
+
+                    b.Property<decimal>("RemiseGlobale")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal>("TauxTVA")
                         .HasPrecision(5, 2)
@@ -710,12 +722,22 @@ namespace EasytransitCaisse.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<bool>("EstModele")
+                        .HasColumnType("bit");
+
                     b.Property<DateTime?>("ImageMaj")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("LibelleVariante")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
 
                     b.Property<string>("Nom")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("ParentId")
+                        .HasColumnType("int");
 
                     b.Property<decimal>("PrixVente")
                         .HasPrecision(18, 2)
@@ -731,6 +753,10 @@ namespace EasytransitCaisse.Migrations
 
                     b.Property<bool>("SuiviStock")
                         .HasColumnType("bit");
+
+                    b.Property<decimal>("Supplement")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal>("TauxTVA")
                         .HasPrecision(5, 2)
@@ -752,10 +778,64 @@ namespace EasytransitCaisse.Migrations
 
                     b.HasIndex("CodeBarres");
 
+                    b.HasIndex("ParentId");
+
                     b.HasIndex("TenantId", "Code")
                         .IsUnique();
 
                     b.ToTable("Produits");
+                });
+
+            modelBuilder.Entity("EasytransitCaisse.Models.ProduitAttribut", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Nom")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("Ordre")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ProduitId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProduitId");
+
+                    b.ToTable("ProduitAttributs");
+                });
+
+            modelBuilder.Entity("EasytransitCaisse.Models.ProduitAttributValeur", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Ordre")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ProduitAttributId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Valeur")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProduitAttributId");
+
+                    b.ToTable("ProduitAttributValeurs");
                 });
 
             modelBuilder.Entity("EasytransitCaisse.Models.ProduitImage", b =>
@@ -947,6 +1027,21 @@ namespace EasytransitCaisse.Migrations
                     b.ToTable("Utilisateurs");
                 });
 
+            modelBuilder.Entity("EasytransitCaisse.Models.VarianteValeur", b =>
+                {
+                    b.Property<int>("VarianteId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ValeurId")
+                        .HasColumnType("int");
+
+                    b.HasKey("VarianteId", "ValeurId");
+
+                    b.HasIndex("ValeurId");
+
+                    b.ToTable("VarianteValeurs");
+                });
+
             modelBuilder.Entity("EasytransitCaisse.Models.CommandePos", b =>
                 {
                     b.HasOne("EasytransitCaisse.Models.JourneeCaisse", "JourneeCaisse")
@@ -1093,6 +1188,24 @@ namespace EasytransitCaisse.Migrations
                     b.Navigation("Categorie");
                 });
 
+            modelBuilder.Entity("EasytransitCaisse.Models.ProduitAttribut", b =>
+                {
+                    b.HasOne("EasytransitCaisse.Models.Produit", null)
+                        .WithMany()
+                        .HasForeignKey("ProduitId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("EasytransitCaisse.Models.ProduitAttributValeur", b =>
+                {
+                    b.HasOne("EasytransitCaisse.Models.ProduitAttribut", null)
+                        .WithMany("Valeurs")
+                        .HasForeignKey("ProduitAttributId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("EasytransitCaisse.Models.ProduitImage", b =>
                 {
                     b.HasOne("EasytransitCaisse.Models.Produit", null)
@@ -1135,6 +1248,21 @@ namespace EasytransitCaisse.Migrations
                     b.Navigation("Tenant");
                 });
 
+            modelBuilder.Entity("EasytransitCaisse.Models.VarianteValeur", b =>
+                {
+                    b.HasOne("EasytransitCaisse.Models.ProduitAttributValeur", null)
+                        .WithMany()
+                        .HasForeignKey("ValeurId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EasytransitCaisse.Models.Produit", null)
+                        .WithMany()
+                        .HasForeignKey("VarianteId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("EasytransitCaisse.Models.CommandePos", b =>
                 {
                     b.Navigation("Lignes");
@@ -1145,6 +1273,11 @@ namespace EasytransitCaisse.Migrations
             modelBuilder.Entity("EasytransitCaisse.Models.LigneCommandePos", b =>
                 {
                     b.Navigation("Taxes");
+                });
+
+            modelBuilder.Entity("EasytransitCaisse.Models.ProduitAttribut", b =>
+                {
+                    b.Navigation("Valeurs");
                 });
 #pragma warning restore 612, 618
         }

@@ -130,6 +130,16 @@
             <input class="form-control" id="StockActuel" name="StockActuel" inputmode="decimal" value="@Nombre(Model.StockActuel)" />
         </div>
     }
+    else if (Model.EstModele)
+    {
+        var variantesModele = (List<EasytransitCaisse.Models.Produit>?)ViewBag.Variantes ?? new List<EasytransitCaisse.Models.Produit>();
+        <div class="col-md-4">
+            <div class="form-label">Quantité en stock</div>
+            <div class="form-control-plaintext fw-bold py-1">@variantesModele.Where(v => v.Actif).Sum(v => v.StockActuel).ToString("0.##")
+                <a class="small fw-normal ms-2" href="#variantes">par variante</a></div>
+            <div class="form-text mt-0">Total des variantes actives : le stock se gère sur chaque variante.</div>
+        </div>
+    }
     else
     {
         <div class="col-md-4">

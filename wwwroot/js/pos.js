@@ -13,6 +13,13 @@
     const echap = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
     const produits = new Map(D.produits.map(p => [p.id, p]));
+    // Variantes rangées sous leur modèle (une tuile par modèle, choix de la variante au clic).
+    const variantesDe = new Map();
+    D.produits.filter(p => p.parentId).forEach(v => {
+        if (!variantesDe.has(v.parentId)) variantesDe.set(v.parentId, []);
+        variantesDe.get(v.parentId).push(v);
+    });
+    variantesDe.forEach(liste => liste.sort((a, b) => a.id - b.id));   // ordre de création : S, M, L…
     const categories = new Map(D.categories.map(c => [c.id, c]));
     const clients = new Map(D.clients.map(c => [c.id, c]));
 
@@ -55,19 +62,28 @@
     // Calculs (prix TTC ; les taxes sont comprises, l.tva = taux total du produit)
     // ------------------------------------------------------------------
     const totalLigne = l => Math.round(l.qte * l.prix * (1 - (l.remise || 0) / 100));
+    // Remise globale du ticket (en % ou en montant), répartie sur les lignes par le serveur.
+    function montantRemise(t, brut) {
+        const r = t.remise;
+        if (!r || !(r.valeur > 0) || brut <= 0) return 0;
+        return r.type === 'pct' ? Math.round(brut * Math.min(100, r.valeur) / 100) : Math.min(brut, Math.round(r.valeur));
+    }
     function totaux(t) {
-        let ttc = 0, tva = 0, unites = 0;
+        let brut = 0, tva = 0, unites = 0;
         t.lignes.forEach(l => {
             const tl = totalLigne(l);
-            ttc += tl;
+            brut += tl;
             tva += tl - tl / (1 + (l.tva || 0) / 100);
             unites += l.qte;
         });
-        return { ttc: ttc, tva: Math.round(tva), unites: unites };
+        const remise = montantRemise(t, brut);
+        const ttc = brut - remise;
+        return { brut: brut, remise: remise, ttc: ttc, tva: Math.round(brut > 0 ? tva * ttc / brut : 0), unites: unites };
     }
     function quantiteAuTicket(produitId) {
         return ticket().lignes.filter(l => l.produitId === produitId).reduce((s, l) => s + l.qte, 0);
     }
+    const variantes = p => variantesDe.get(p.id) || [];
 
     // ------------------------------------------------------------------
     // Actions
@@ -76,6 +92,7 @@
     const stockBloque = (p, qteVoulue) => D.venteSansStock === false && p.suivi && qteVoulue > p.stock;
 
     function ajouterProduit(p) {
+        if (p.modele) { choisirVariante(p); return; }
         const t = ticket();
         if (stockBloque(p, quantiteAuTicket(p.id) + 1)) {
             message('Stock épuisé pour « ' + p.nom + ' » : ' + qte(Math.max(0, p.stock)) + ' disponible(s).', true);
@@ -102,7 +119,7 @@
         const c = code.trim().toLowerCase();
         if (!c) return null;
         return D.produits.find(p => (p.codeBarres || '').toLowerCase() === c)
-            || D.produits.find(p => p.code.toLowerCase() === c) || null;
+            || D.produits.find(p => p.code.toLowerCase() === c) || null;   // un modèle ouvre le choix de la variante
     }
 
     function scanner(code) {
@@ -284,6 +301,7 @@
             journeeId: D.journee.id,
             clientId: t.clientId,
             lignes: t.lignes.map(l => ({ produitId: l.produitId, qte: l.qte, prix: l.prix, remise: l.remise || 0 })),
+            remiseGlobale: t.remise || null,
             paiements: pay.lignes.map(r => ({ modeId: r.modeId, montant: r.montant }))
         };
         const corps = new FormData();
@@ -405,9 +423,11 @@
 
     function produitsAffiches() {
         const r = recherche.trim().toLowerCase();
+        const correspond = p => p.nom.toLowerCase().includes(r) || p.code.toLowerCase().includes(r) || (p.codeBarres || '').toLowerCase().includes(r);
         return D.produits.filter(p =>
-            (!categorieChoisie || p.categorieId === categorieChoisie)
-            && (!r || p.nom.toLowerCase().includes(r) || p.code.toLowerCase().includes(r) || (p.codeBarres || '').toLowerCase().includes(r)));
+            !p.parentId && (!p.modele || variantes(p).length)
+            && (!categorieChoisie || p.categorieId === categorieChoisie)
+            && (!r || correspond(p) || variantes(p).some(correspond)));
     }
 
     function htmlTuiles() {
@@ -421,7 +441,11 @@
             const c = categories.get(p.categorieId);
             const couleur = c ? c.couleur : '#5a6b78';
             let stock = '<div class="stock">Service</div>';
-            if (p.suivi) {
+            if (p.modele) {
+                const vs = variantes(p);
+                const reste = vs.reduce((s, v) => s + (v.suivi ? v.stock - quantiteAuTicket(v.id) : 0), 0);
+                stock = '<div class="stock">' + vs.length + ' variante' + (vs.length > 1 ? 's' : '') + (p.suivi ? ' · stock ' + qte(reste) : '') + '</div>';
+            } else if (p.suivi) {
                 const reste = p.stock - quantiteAuTicket(p.id);
                 const bas = p.seuil !== null ? reste <= p.seuil : reste <= 0;
                 stock = '<div class="stock' + (bas ? ' bas' : '') + '">' + (bas ? 'Stock bas : ' : 'Stock : ') + qte(reste) + '</div>';
@@ -475,11 +499,16 @@
             + '<div class="pos-main">'
             + '<div class="pos-ticket">'
             + '<div class="pos-lignes">' + htmlLignes(t) + '</div>'
-            + '<div class="pos-totaux"><div class="pos-grand">' + fcfa(tot.ttc) + ' FCFA</div>'
+            + '<div class="pos-totaux">'
+            + (tot.remise ? '<div class="pos-tva">Sous-total ' + fcfa(tot.brut) + ' · <span class="remise">remise globale'
+                + (t.remise.type === 'pct' ? ' ' + qte(t.remise.valeur) + ' %' : '') + ' −' + fcfa(tot.remise) + '</span></div>' : '')
+            + '<div class="pos-grand">' + fcfa(tot.ttc) + ' FCFA</div>'
             + '<div class="pos-tva">dont taxes : ' + fcfa(tot.tva) + ' · ' + t.lignes.length + ' article(s), ' + qte(tot.unites) + ' unité(s)</div></div>'
             + '<div class="pos-actions">'
             + '<button type="button" class="pos-act" data-action="client"><i class="fas fa-user"></i> ' + (client ? 'Client : <b>' + echap(client.nom) + '</b>' : 'Choisir un client') + '</button>'
             + '<button type="button" class="pos-act" data-action="nouveau"><i class="fas fa-pause"></i> Mettre en attente</button>'
+            + '<button type="button" class="pos-act" data-action="remise"' + (D.peutRemiseGlobale ? '' : ' disabled title="Réservée aux administrateurs"') + '>'
+            + '<i class="fas fa-percent"></i> ' + (t.remise ? 'Remise : <b>' + (t.remise.type === 'pct' ? qte(t.remise.valeur) + ' %' : fcfa(t.remise.valeur)) + '</b>' : 'Remise globale') + '</button>'
             + '</div>'
             + '<div class="pos-pave">'
             + m('qte', 'Qté') + k('1') + k('2') + k('3') + m('remise', 'Remise %')
@@ -546,6 +575,92 @@
     }
 
     // ------------------------------------------------------------------
+    // Choix de la variante d'un modèle
+    // ------------------------------------------------------------------
+    function choisirVariante(m) {
+        const vs = variantes(m);
+        if (!vs.length) { message('Aucune variante active pour « ' + m.nom + ' ».', true); return; }
+        const fond = document.createElement('div');
+        fond.className = 'pos-modal-fond';
+        fond.innerHTML = '<div class="pos-modal" role="dialog" aria-modal="true" aria-label="Choisir la variante">'
+            + '<div class="pos-modal-tete">' + echap(m.nom) + '<button type="button" data-close aria-label="Fermer">×</button></div>'
+            + '<div class="pos-variantes">' + vs.map(v => {
+                const reste = v.stock - quantiteAuTicket(v.id);
+                return '<button type="button" class="pos-variante" data-variante="' + v.id + '">'
+                    + '<span class="n">' + echap(v.variante || v.nom) + '</span>'
+                    + '<span class="p">' + fcfa(v.prix) + ' FCFA</span>'
+                    + '<span class="s' + (v.suivi && reste <= 0 ? ' bas' : '') + '">' + (v.suivi ? 'Stock : ' + qte(reste) : 'Service') + '</span></button>';
+            }).join('') + '</div></div>';
+        document.body.appendChild(fond);
+        const fermer = () => fond.remove();
+        fond.addEventListener('click', e => {
+            if (e.target === fond || e.target.closest('[data-close]')) { fermer(); return; }
+            const b = e.target.closest('[data-variante]');
+            if (!b) return;
+            fermer();
+            ajouterProduit(produits.get(Number(b.dataset.variante)));
+        });
+        fond.addEventListener('keydown', e => { if (e.key === 'Escape') fermer(); });
+        fond.querySelector('.pos-variante').focus();
+    }
+
+    // ------------------------------------------------------------------
+    // Remise globale du ticket (administrateurs et utilisateurs autorisés à valider)
+    // ------------------------------------------------------------------
+    function remiseGlobale() {
+        if (!D.peutRemiseGlobale) { message('La remise globale est réservée aux administrateurs.', true); return; }
+        const t = ticket();
+        if (!t.lignes.length) { message('Le ticket est vide.'); return; }
+        let type = t.remise ? t.remise.type : 'pct';
+        const fond = document.createElement('div');
+        fond.className = 'pos-modal-fond';
+        fond.innerHTML = '<div class="pos-modal pos-modal-remise" role="dialog" aria-modal="true" aria-label="Remise globale">'
+            + '<div class="pos-modal-tete">Remise globale du ticket<button type="button" data-close aria-label="Fermer">×</button></div>'
+            + '<div class="pos-remise-corps">'
+            + '<div class="pos-remise-types"><button type="button" data-type="pct">En %</button><button type="button" data-type="montant">En FCFA</button></div>'
+            + '<input inputmode="decimal" autocomplete="off" aria-label="Valeur de la remise" value="' + (t.remise ? String(t.remise.valeur).replace('.', ',') : '') + '">'
+            + '<div class="pos-remise-apercu"></div>'
+            + '<div class="pos-remise-boutons">'
+            + (t.remise ? '<button type="button" class="pos-sec" data-retirer>Retirer la remise</button>' : '')
+            + '<button type="button" class="pos-big" data-appliquer>Appliquer</button></div>'
+            + '</div></div>';
+        document.body.appendChild(fond);
+        const champ = fond.querySelector('input');
+        const apercu = fond.querySelector('.pos-remise-apercu');
+        const valeur = () => parseFloat(champ.value.replace(/\s/g, '').replace(',', '.')) || 0;
+        const maj = () => {
+            fond.querySelectorAll('[data-type]').forEach(b => b.classList.toggle('on', b.dataset.type === type));
+            const brut = totaux({ lignes: t.lignes, remise: null }).brut;
+            const r = montantRemise({ remise: { type: type, valeur: valeur() } }, brut);
+            apercu.innerHTML = 'Sous-total ' + fcfa(brut) + ' · remise <b>−' + fcfa(r) + '</b> · total <b>' + fcfa(brut - r) + ' FCFA</b>';
+        };
+        const fermer = () => fond.remove();
+        const appliquer = () => {
+            const v = valeur();
+            if (type === 'pct' && v > 100) { message('La remise ne peut pas dépasser 100 %.', true); return; }
+            t.remise = v > 0 ? { type: type, valeur: v } : null;
+            enregistrer();
+            fermer();
+            afficher();
+        };
+        maj();
+        champ.addEventListener('input', maj);
+        fond.addEventListener('click', e => {
+            if (e.target === fond || e.target.closest('[data-close]')) { fermer(); return; }
+            const b = e.target.closest('[data-type]');
+            if (b) { type = b.dataset.type; maj(); champ.focus(); return; }
+            if (e.target.closest('[data-retirer]')) { t.remise = null; enregistrer(); fermer(); afficher(); return; }
+            if (e.target.closest('[data-appliquer]')) appliquer();
+        });
+        fond.addEventListener('keydown', e => {
+            if (e.key === 'Escape') fermer();
+            else if (e.key === 'Enter') { e.preventDefault(); appliquer(); }
+        });
+        champ.focus();
+        champ.select();
+    }
+
+    // ------------------------------------------------------------------
     // Messages
     // ------------------------------------------------------------------
     let minuterie = null;
@@ -587,6 +702,7 @@
         else if (d.ticket !== undefined) { etat.actif = Number(d.ticket); mode = 'qte'; saisie = null; enregistrer(); afficher(); }
         else if (d.action === 'nouveau') nouveauTicketActif();
         else if (d.action === 'client') choisirClient();
+        else if (d.action === 'remise') remiseGlobale();
         else if (d.action === 'payer') payer();
     });
 

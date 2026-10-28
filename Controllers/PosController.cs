@@ -26,6 +26,10 @@ namespace EasytransitCaisse.Controllers
 
         private bool EstAdmin => User.FindFirst(AppClaimTypes.Profil)?.Value is "Admin" or "SuperAdmin";
 
+        // Remise globale sur un ticket : administrateurs et utilisateurs autorisés à valider.
+        private bool PeutRemiseGlobale => EstAdmin
+            || (bool.TryParse(User.FindFirst(AppClaimTypes.PeutValiderOperations)?.Value, out var pv) && pv);
+
         // « Espèces » : le seul mode sur lequel on peut rendre la monnaie.
         public static bool EstEspeces(ModePaiement m) =>
             Regex.IsMatch($"{m.Code} {m.Libelle}", @"\b(esp|espèces?|especes?|cash|liquide)\b", RegexOptions.IgnoreCase);
@@ -53,10 +57,14 @@ namespace EasytransitCaisse.Controllers
 
             // Catalogue de la société de la journée (aussi pour le SuperAdmin en mode « toutes »).
             var tenant = j.TenantId;
-            var produits = (await _context.Produits
+            var catalogue = await _context.Produits
                 .Where(p => p.Actif && p.TenantId == tenant)
                 .OrderBy(p => p.Nom)
-                .ToListAsync())
+                .ToListAsync();
+            // Variantes : seulement celles dont le modèle est actif.
+            var modelesActifs = catalogue.Where(p => p.EstModele).Select(p => p.Id).ToHashSet();
+            var produits = catalogue
+                .Where(p => p.ParentId == null || modelesActifs.Contains(p.ParentId.Value))
                 .Select(p => new
                 {
                     id = p.Id,
@@ -70,7 +78,10 @@ namespace EasytransitCaisse.Controllers
                     stock = p.StockActuel,
                     seuil = p.SeuilAlerte,
                     unite = p.Unite,
-                    image = Images.UrlImage(p)
+                    image = Images.UrlImage(p),
+                    parentId = p.ParentId,
+                    modele = p.EstModele,
+                    variante = p.LibelleVariante
                 })
                 .ToList();
             var categories = await _context.Categories
@@ -112,6 +123,7 @@ namespace EasytransitCaisse.Controllers
                     profil
                 },
                 peutModifierPrix = profil is "Admin" or "SuperAdmin",
+                peutRemiseGlobale = PeutRemiseGlobale,
                 urlFermer = $"/JourneeCaisse/Details/{j.Id}",
                 modes,
                 urlVendre = "/Pos/Vendre",
@@ -133,6 +145,13 @@ namespace EasytransitCaisse.Controllers
             public int? ClientId { get; set; }
             public List<LigneSaisie> Lignes { get; set; } = new();
             public List<PaiementSaisi> Paiements { get; set; } = new();
+            public RemiseSaisie? RemiseGlobale { get; set; }
+        }
+
+        private sealed class RemiseSaisie
+        {
+            public string? Type { get; set; }
+            public decimal Valeur { get; set; }
         }
 
         private sealed class LigneSaisie
@@ -188,10 +207,13 @@ namespace EasytransitCaisse.Controllers
             decimal ttc = 0, tva = 0;
             foreach (var l in v.Lignes)
             {
-                var p = await _context.Produits.FirstOrDefaultAsync(x => x.Id == l.ProduitId && x.TenantId == tenant && x.Actif);
+                var p = await _context.Produits.FirstOrDefaultAsync(x => x.Id == l.ProduitId && x.TenantId == tenant && x.Actif
+                    && (x.ParentId == null || _context.Produits.Any(m => m.Id == x.ParentId && m.Actif)));
                 var qte = Math.Round(l.Qte, 2);
                 if (p == null || qte <= 0)
                     return Erreur(400, "Un article du ticket est introuvable, inactif ou de quantité nulle.");
+                if (p.EstModele)
+                    return Erreur(400, $"Choisissez une variante de « {p.Nom} ».");
                 var prix = EstAdmin && l.Prix.HasValue ? Math.Max(0, Math.Round(l.Prix.Value, 2)) : p.PrixVente;
                 var remise = Math.Min(100, Math.Max(0, Math.Round(l.Remise, 2)));
                 var total = Math.Round(qte * prix * (1 - remise / 100), 0, MidpointRounding.AwayFromZero);
@@ -200,11 +222,43 @@ namespace EasytransitCaisse.Controllers
                 lignes.Add((p, new LigneCommandePos
                 {
                     TenantId = tenant, ProduitId = p.Id, Libelle = p.Nom, Quantite = qte,
-                    PrixUnitaire = prix, Remise = remise, TauxTVA = p.TauxTVA, TotalTTC = total,
-                    Taxes = TaxesProduits.TaxesLigne(tenant,
-                        (taxesProduits.GetValueOrDefault(p.Id) ?? new List<Taxe>()).Select(t => ((int?)t.Id, t.Code, t.Taux)), total)
+                    PrixUnitaire = prix, Remise = remise, TauxTVA = p.TauxTVA, TotalTTC = total
                 }));
             }
+
+            // Remise globale (administrateurs et utilisateurs autorisés à valider) : en % ou en montant,
+            // répartie sur les lignes au prorata ; les totaux et les taxes portent sur le net.
+            decimal remiseGlobale = 0;
+            decimal? tauxRemise = null;
+            if (v.RemiseGlobale != null && v.RemiseGlobale.Valeur > 0 && ttc > 0)
+            {
+                if (!PeutRemiseGlobale)
+                    return Erreur(403, "La remise globale est réservée aux administrateurs et aux utilisateurs autorisés à valider.");
+                if (v.RemiseGlobale.Type == "pct")
+                {
+                    tauxRemise = Math.Min(100, Math.Round(v.RemiseGlobale.Valeur, 2));
+                    remiseGlobale = Math.Round(ttc * tauxRemise.Value / 100, 0, MidpointRounding.AwayFromZero);
+                }
+                else
+                {
+                    remiseGlobale = Math.Min(ttc, Math.Round(v.RemiseGlobale.Valeur, 0, MidpointRounding.AwayFromZero));
+                }
+                var reste = remiseGlobale;
+                for (var i = 0; i < lignes.Count; i++)
+                {
+                    var ligne = lignes[i].Ligne;
+                    var part = i == lignes.Count - 1 ? reste
+                        : Math.Min(reste, Math.Round(remiseGlobale * ligne.TotalTTC / ttc, 0, MidpointRounding.AwayFromZero));
+                    ligne.RemiseGlobale = part;
+                    ligne.TotalTTC -= part;
+                    reste -= part;
+                }
+                ttc = lignes.Sum(x => x.Ligne.TotalTTC);
+                tva = lignes.Sum(x => x.Ligne.TotalTTC - x.Ligne.TotalTTC / (1 + x.Ligne.TauxTVA / 100));
+            }
+            foreach (var (p, ligne) in lignes)
+                ligne.Taxes = TaxesProduits.TaxesLigne(tenant,
+                    (taxesProduits.GetValueOrDefault(p.Id) ?? new List<Taxe>()).Select(t => ((int?)t.Id, t.Code, t.Taux)), ligne.TotalTTC);
             tva = Math.Round(tva, 0, MidpointRounding.AwayFromZero);
 
             // Règlements : seuls les espèces peuvent dépasser le reste à payer (monnaie rendue).
@@ -256,6 +310,7 @@ namespace EasytransitCaisse.Controllers
                 TenantId = tenant, Numero = numero, CleClient = cle, JourneeCaisseId = j.Id, ClientId = clientId,
                 UtilisateurId = utilisateurId, DateCommande = DateTime.Now, TotalHT = ttc - tva, TotalTVA = tva,
                 TotalTTC = ttc, MontantRecu = recu, MonnaieRendue = rendu, Statut = "Payée",
+                RemiseGlobale = remiseGlobale, RemiseGlobaleTaux = tauxRemise,
                 Lignes = lignes.Select(x => x.Ligne).ToList()
             };
             var motif = await _context.Motifs.FirstOrDefaultAsync(m => m.LibelleMotif == "Vente POS" && m.TenantId == tenant);

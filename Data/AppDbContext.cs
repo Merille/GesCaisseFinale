@@ -166,6 +166,30 @@ namespace EasytransitCaisse.Data
                 .Property(p => p.Unite)
                 .HasDefaultValue("Unité");
 
+            // Variantes : attributs du modèle, valeurs, combinaison de chaque variante.
+            modelBuilder.Entity<Produit>().HasIndex(p => p.ParentId);
+
+            modelBuilder.Entity<ProduitAttribut>()
+                .HasOne<Produit>().WithMany().HasForeignKey(a => a.ProduitId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ProduitAttribut>()
+                .HasMany(a => a.Valeurs).WithOne().HasForeignKey(v => v.ProduitAttributId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<VarianteValeur>()
+                .HasKey(vv => new { vv.VarianteId, vv.ValeurId });
+
+            modelBuilder.Entity<VarianteValeur>()
+                .HasOne<Produit>().WithMany().HasForeignKey(vv => vv.VarianteId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Pas de suppression en cascade depuis la valeur (SQL Server refuse deux chemins
+            // de cascade depuis Produits) : les liens sont retirés par le code avant la valeur.
+            modelBuilder.Entity<VarianteValeur>()
+                .HasOne<ProduitAttributValeur>().WithMany().HasForeignKey(vv => vv.ValeurId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             modelBuilder.Entity<Tenant>()
                 .Property(t => t.PosVenteSansStock)
                 .HasDefaultValue(true);
@@ -245,5 +269,11 @@ namespace EasytransitCaisse.Data
         public DbSet<TenantLogo> TenantLogos { get; set; }
 
         public DbSet<ProduitImage> ProduitImages { get; set; }
+
+        public DbSet<ProduitAttribut> ProduitAttributs { get; set; }
+
+        public DbSet<ProduitAttributValeur> ProduitAttributValeurs { get; set; }
+
+        public DbSet<VarianteValeur> VarianteValeurs { get; set; }
     }
 }

@@ -48,9 +48,9 @@ namespace EasytransitCaisse.Controllers
 
             var userIds = mouvements.Where(m => m.UtilisateurId.HasValue).Select(m => m.UtilisateurId!.Value).Distinct().ToList();
             ViewBag.Utilisateurs = await _context.Utilisateurs.IgnoreQueryFilters().Where(u => userIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.NomComplet);
-            ViewBag.Produits = await _context.Produits.Where(p => p.SuiviStock).OrderBy(p => p.Nom).ToListAsync();
+            ViewBag.Produits = await _context.Produits.Where(p => p.SuiviStock && !p.EstModele).OrderBy(p => p.Nom).ToListAsync();
             ViewBag.Alertes = await _context.Produits
-                .Where(p => p.SuiviStock && p.Actif && p.SeuilAlerte != null && p.StockActuel <= p.SeuilAlerte)
+                .Where(p => p.SuiviStock && p.Actif && !p.EstModele && p.SeuilAlerte != null && p.StockActuel <= p.SeuilAlerte)
                 .OrderBy(p => p.StockActuel - p.SeuilAlerte).ThenBy(p => p.Nom).ToListAsync();
             ViewBag.VenteSansStock = _tenant.TenantId == 0 ? (bool?)null
                 : (await _context.Tenants.AsNoTracking().FirstOrDefaultAsync(t => t.Id == _tenant.TenantId))?.PosVenteSansStock ?? true;
@@ -61,7 +61,7 @@ namespace EasytransitCaisse.Controllers
         public async Task<IActionResult> Entree(int produit = 0)
         {
             ViewBag.Choisi = produit;
-            return View(await _context.Produits.Where(p => p.SuiviStock && p.Actif).OrderBy(p => p.Nom).ToListAsync());
+            return View(await _context.Produits.Where(p => p.SuiviStock && p.Actif && !p.EstModele).OrderBy(p => p.Nom).ToListAsync());
         }
 
         // Entrée de marchandises : plusieurs produits reçus en une fois (bon de livraison).
@@ -80,7 +80,7 @@ namespace EasytransitCaisse.Controllers
                 var q = Math.Round(Nombre(i < qte.Count ? qte[i] : null) ?? 0, 2);
                 if (produit[i] <= 0 || q <= 0)
                     continue;
-                if (!await _context.Produits.AnyAsync(p => p.Id == produit[i] && p.TenantId == _tenant.TenantId && p.SuiviStock))
+                if (!await _context.Produits.AnyAsync(p => p.Id == produit[i] && p.TenantId == _tenant.TenantId && p.SuiviStock && !p.EstModele))
                 {
                     TempData["Error"] = "Un produit de la liste est introuvable ou sans suivi de stock.";
                     return RedirectToAction("Entree");
@@ -107,7 +107,7 @@ namespace EasytransitCaisse.Controllers
         {
             ViewBag.Categories = await _context.Categories.OrderBy(c => c.Ordre).ThenBy(c => c.Nom).ToListAsync();
             ViewBag.Categorie = categorie;
-            var query = _context.Produits.Include(p => p.Categorie).Where(p => p.SuiviStock && p.Actif);
+            var query = _context.Produits.Include(p => p.Categorie).Where(p => p.SuiviStock && p.Actif && !p.EstModele);
             if (categorie > 0)
                 query = query.Where(p => p.CategorieId == categorie);
             return View(await query.OrderBy(p => p.Nom).ToListAsync());
@@ -137,7 +137,7 @@ namespace EasytransitCaisse.Controllers
                     continue;
                 var stock = await _context.Produits
                     .FromSqlInterpolated($"SELECT * FROM Produits WITH (UPDLOCK, ROWLOCK) WHERE Id = {id}")
-                    .Where(p => p.SuiviStock).AsNoTracking().Select(p => (decimal?)p.StockActuel).FirstOrDefaultAsync();
+                    .Where(p => p.SuiviStock && !p.EstModele).AsNoTracking().Select(p => (decimal?)p.StockActuel).FirstOrDefaultAsync();
                 if (stock == null)
                     continue;
                 var ecart = Math.Round(compte.Value - stock.Value, 2);

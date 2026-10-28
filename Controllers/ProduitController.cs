@@ -40,7 +40,8 @@ namespace EasytransitCaisse.Controllers
 
         private IQueryable<Produit> Filtrer(string search, int categorie)
         {
-            var query = _context.Produits.Include(p => p.Categorie).AsQueryable();
+            // Les variantes sont gérées depuis la fiche de leur modèle.
+            var query = _context.Produits.Include(p => p.Categorie).Where(p => p.ParentId == null);
             if (!string.IsNullOrWhiteSpace(search))
             {
                 query = query.Where(p => p.Nom.Contains(search) || p.Code.Contains(search)
@@ -66,9 +67,16 @@ namespace EasytransitCaisse.Controllers
             ViewBag.Search = search;
             ViewBag.Categorie = categorie;
             ViewBag.NbAlertes = await _context.Produits.CountAsync(p =>
-                p.SuiviStock && p.Actif && p.SeuilAlerte != null && p.StockActuel <= p.SeuilAlerte);
+                p.SuiviStock && p.Actif && !p.EstModele && p.SeuilAlerte != null && p.StockActuel <= p.SeuilAlerte);
             var produits = await Filtrer(search, categorie).OrderBy(p => p.Nom).ToListAsync();
             ViewBag.TaxesProduits = _context.TaxesDesProduits(produits.Select(p => p.Id));
+            // Modèles : nombre de variantes actives et stock total.
+            var modeles = produits.Where(p => p.EstModele).Select(p => p.Id).ToList();
+            ViewBag.Variantes = await _context.Produits
+                .Where(v => v.ParentId != null && modeles.Contains(v.ParentId.Value) && v.Actif)
+                .GroupBy(v => v.ParentId!.Value)
+                .Select(g => new { g.Key, Nb = g.Count(), Stock = g.Sum(v => v.StockActuel) })
+                .ToDictionaryAsync(x => x.Key, x => (x.Nb, x.Stock));
             ViewBag.TaxesCochees = TaxesParDefaut();
             return View(produits);
         }
@@ -160,14 +168,18 @@ namespace EasytransitCaisse.Controllers
             var produit = _context.Produits.FirstOrDefault(p => p.Id == id);
             if (produit == null)
                 return NotFound();
+            // Une variante se gère depuis la fiche de son modèle.
+            if (produit.ParentId.HasValue)
+                return RedirectToAction("Edit", new { id = produit.ParentId.Value });
             ChargerCategories();
+            ChargerVariantes(id);
             ViewBag.TaxesCochees = _context.ProduitTaxes.Where(pt => pt.ProduitId == id).Select(pt => pt.TaxeId).ToArray();
             return View(produit);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Edit(int id, Produit saisi, int[] taxes, IFormFile? image, bool supprimerImage)
+        public async Task<IActionResult> Edit(int id, Produit saisi, int[] taxes, IFormFile? image, bool supprimerImage)
         {
             var produit = _context.Produits.FirstOrDefault(p => p.Id == id);
             if (produit == null)
@@ -182,6 +194,8 @@ namespace EasytransitCaisse.Controllers
                 saisi.Id = id;
                 saisi.ImageMaj = produit.ImageMaj;
                 saisi.StockActuel = produit.StockActuel;
+                saisi.EstModele = produit.EstModele;
+                ChargerVariantes(id);
                 ViewBag.Erreur = erreur;
                 ChargerCategories();
                 ViewBag.TaxesCochees = taxes;
@@ -201,6 +215,8 @@ namespace EasytransitCaisse.Controllers
             _context.EnregistrerTaxes(produit, taxes);
             _context.EnregistrerImage(produit, photo, supprimerImage);
             _context.SaveChanges();
+            await Variantes.PropagerAsync(_context, produit);
+            await _context.SaveChangesAsync();
             TempData["Success"] = "Produit modifié.";
             return RedirectToAction("Index");
         }
@@ -213,11 +229,82 @@ namespace EasytransitCaisse.Controllers
             var produit = _context.Produits.FirstOrDefault(p => p.Id == id);
             if (produit != null)
             {
+                // Un modèle emporte ses variantes (supprimées avant ses attributs).
+                _context.Produits.RemoveRange(_context.Produits.Where(v => v.ParentId == produit.Id));
+                _context.SaveChanges();
                 _context.Produits.Remove(produit);
                 _context.SaveChanges();
                 TempData["Success"] = "Produit supprimé.";
             }
             return RedirectToAction("Index");
+        }
+
+        private void ChargerVariantes(int id)
+        {
+            ViewBag.Attributs = _context.ProduitAttributs.Include(a => a.Valeurs).Where(a => a.ProduitId == id)
+                .OrderBy(a => a.Ordre).ThenBy(a => a.Id).ToList();
+            ViewBag.Variantes = _context.Produits.Where(p => p.ParentId == id).OrderByDescending(p => p.Actif).ThenBy(p => p.Id).ToList();
+            ViewBag.NomsAttributs = _context.ProduitAttributs
+                .Where(a => _context.Produits.Any(p => p.Id == a.ProduitId))
+                .Select(a => a.Nom).Distinct().OrderBy(n => n).ToList();
+        }
+
+        // Attributs du modèle (Taille : S, M, L…) puis génération des combinaisons manquantes.
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> GenVariantes(int id)
+        {
+            var modele = await _context.Produits.FirstOrDefaultAsync(p => p.Id == id);
+            if (modele == null)
+                return NotFound();
+            var (creees, erreur) = await Variantes.GenererAsync(_context, modele, Variantes.Lire(Request.Form));
+            if (erreur != null)
+                TempData["Error"] = erreur;
+            else
+                TempData["Success"] = creees > 0 ? $"{creees} variante(s) créée(s)." : "Attributs enregistrés.";
+            return RedirectToAction("Edit", new { id });
+        }
+
+        // Grille des variantes : code, code-barres, supplément de prix et activation.
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> MajVariantes(int id)
+        {
+            var modele = await _context.Produits.FirstOrDefaultAsync(p => p.Id == id);
+            if (modele == null)
+                return NotFound();
+            IActionResult Erreur(string message)
+            {
+                TempData["Error"] = message;
+                return RedirectToAction("Edit", new { id });
+            }
+            var variantes = await _context.Produits.Where(p => p.ParentId == id).ToListAsync();
+            foreach (var v in variantes)
+            {
+                string Champ(string nom) => Request.Form[$"variante[{v.Id}][{nom}]"].ToString();
+                if (!Request.Form.ContainsKey($"variante[{v.Id}][Code]"))
+                    continue;
+                v.Code = Champ("Code").Trim();
+                v.CodeBarres = string.IsNullOrWhiteSpace(Champ("CodeBarres")) ? null : Champ("CodeBarres").Trim();
+                v.Supplement = Nombre(Champ("Supplement")) ?? 0;
+                v.Actif = Champ("Actif").Split(',').Contains("true");
+                v.PrixVente = modele.PrixVente + v.Supplement;
+                if (v.Code == "")
+                    return Erreur($"Le code de la variante « {v.LibelleVariante} » est obligatoire.");
+                if (await _context.Produits.AnyAsync(p => p.Code == v.Code && p.Id != v.Id && !variantes.Select(x => x.Id).Contains(p.Id)))
+                    return Erreur($"Le code « {v.Code} » est déjà utilisé.");
+                if (v.CodeBarres != null && await _context.Produits.AnyAsync(p => p.CodeBarres == v.CodeBarres && p.Id != v.Id && !variantes.Select(x => x.Id).Contains(p.Id)))
+                    return Erreur($"Le code-barres « {v.CodeBarres} » est déjà utilisé.");
+                if (v.PrixVente < 0)
+                    return Erreur($"Le supplément de « {v.LibelleVariante} » rend le prix négatif.");
+            }
+            if (variantes.GroupBy(v => v.Code.ToLowerInvariant()).Any(g => g.Count() > 1))
+                return Erreur("Deux variantes ont le même code.");
+            if (variantes.Where(v => v.CodeBarres != null).GroupBy(v => v.CodeBarres).Any(g => g.Count() > 1))
+                return Erreur("Deux variantes ont le même code-barres.");
+            await _context.SaveChangesAsync();
+            TempData["Success"] = "Variantes enregistrées.";
+            return RedirectToAction("Edit", new { id });
         }
 
         public async Task<IActionResult> Export(string search = "", int categorie = 0)

@@ -56,10 +56,15 @@
             <div class="b">@l.Libelle</div>
             <div class="r ind">
                 <span>@Qte(l.Quantite)@(Unite(l) != "Unité" ? " " + Unite(l) : "") x @Fcfa(l.PrixUnitaire)@(l.Remise > 0 ? " -" + Qte(l.Remise) + "%" : "")</span>
-                <span>@Fcfa(l.TotalTTC)</span>
+                <span>@Fcfa(l.TotalTTC + l.RemiseGlobale)</span>
             </div>
         }
         <hr />
+        @if (c.RemiseGlobale != 0)
+        {
+            <div class="r"><span>Sous-total</span><span>@Fcfa(c.TotalTTC + c.RemiseGlobale)</span></div>
+            <div class="r"><span>Remise globale@(c.RemiseGlobaleTaux.HasValue ? " " + Qte(c.RemiseGlobaleTaux.Value) + " %" : "")</span><span>-@Fcfa(c.RemiseGlobale)</span></div>
+        }
         <div class="r b grand"><span>TOTAL TTC</span><span>@Fcfa(c.TotalTTC) FCFA</span></div>
         <div class="r"><span>Total HT</span><span>@Fcfa(c.TotalHT)</span></div>
         @foreach (var t in taxes)

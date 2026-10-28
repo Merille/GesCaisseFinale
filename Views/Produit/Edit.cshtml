@@ -17,3 +17,8 @@
         </form>
     </div>
 </div>
+
+@if (Model.ParentId == null)
+{
+    <partial name="_Variantes" model="Model" />
+}
