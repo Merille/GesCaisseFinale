@@ -1,0 +1,47 @@
+@model List<EasytransitCaisse.Models.BonPreparation>
+@using System.Globalization
+@{
+    // Bons de préparation 80 mm (cuisine / bar), un par page. Ouvre la fenêtre d'impression.
+    Layout = null;
+    string Qte(decimal n) => n == Math.Round(n) ? n.ToString("0", CultureInfo.InvariantCulture) : n.ToString("0.##", CultureInfo.GetCultureInfo("fr-FR"));
+}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8" />
+    <title>Bon de préparation</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="~/css/ticket.css" asp-append-version="true" />
+</head>
+<body>
+    @for (var i = 0; i < Model.Count; i++)
+    {
+        var b = Model[i];
+        <div class="ticket@(i < Model.Count - 1 ? " saut" : "")">
+            <div class="c b tres-grand">@b.Poste.ToUpperInvariant() · N° @b.Numero</div>
+            <div class="c b grand">@(b.TableNom ?? "Vente directe")@(b.Couverts.HasValue ? $" · {b.Couverts} couv." : "")</div>
+            <div class="c">@b.DateEnvoi.ToString("dd/MM/yyyy HH:mm") · @b.Serveur</div>
+            <hr />
+            @foreach (var l in b.Lignes.OrderBy(x => x.Id))
+            {
+                var annule = l.Quantite < 0;
+                <div class="bon-ligne@(annule ? " annule" : "")">@Qte(Math.Abs(l.Quantite)) x @l.Libelle</div>
+                @if (annule)
+                {
+                    <div class="ind b">*** ANNULÉ ***</div>
+                }
+                @if (!string.IsNullOrEmpty(l.Note))
+                {
+                    <div class="ind note">» @l.Note</div>
+                }
+            }
+            <hr />
+        </div>
+    }
+    @if (!Model.Any())
+    {
+        <div class="ticket c">Aucun bon.</div>
+    }
+    <script>window.addEventListener('load', function () { window.print(); });</script>
+</body>
+</html>

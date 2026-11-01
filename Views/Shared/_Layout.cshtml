@@ -198,6 +198,13 @@
                     <i class="fas fa-receipt"></i>
                     <span class="sb-label">Ventes</span>
                 </a>
+                @if (DbContext.Caisses.Any(c => c.TypePointVente == "Restaurant" || c.TypePointVente == "Bar"))
+                {
+                    <a class="sb-link @(controller == "Cuisine" ? "active" : "")" href="/Cuisine/Index" title="Écran cuisine / bar">
+                        <i class="fas fa-fire-burner"></i>
+                        <span class="sb-label">Écran cuisine / bar</span>
+                    </a>
+                }
                 @if (isAdmin)
                 {
                     <a class="sb-link @(controller == "PosRapport" ? "active" : "")" href="/PosRapport/Index" title="Rapports ventes">

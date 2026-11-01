@@ -49,6 +49,10 @@
     <div class="col-md-3"><div class="card h-100 border-0 shadow-sm"><div class="card-body">
         <div class="small text-muted">Vendeur</div><div class="fw-bold">@ViewBag.Vendeur</div>
         <div class="small text-muted mt-2">Client</div><div>@(ViewBag.Client ?? "—")</div>
+        @if (!string.IsNullOrEmpty(v.TableNom))
+        {
+            <div class="small text-muted mt-2">Table</div><div><i class="fas fa-utensils"></i> @v.TableNom@(v.Couverts.HasValue ? $" · {v.Couverts} couvert(s)" : "")</div>
+        }
     </div></div></div>
     <div class="col-md-3"><div class="card h-100 border-0 shadow-sm"><div class="card-body">
         <div class="small text-muted">Total TTC</div>
@@ -112,7 +116,7 @@
                         {
                             var ret = retournees.GetValueOrDefault(l.Id);
                             <tr>
-                                <td>@l.Libelle</td>
+                                <td>@l.Libelle@if (!string.IsNullOrEmpty(l.Note)) {<div class="small fst-italic text-muted">» @l.Note</div>}</td>
                                 <td class="text-end">@Qte(l.Quantite)</td>
                                 <td class="text-end">@Fcfa(l.PrixUnitaire)</td>
                                 <td class="text-end">@(l.Remise > 0 ? Qte(l.Remise) + " %" : "")</td>
@@ -138,6 +142,10 @@
                 @if (v.MonnaieRendue > 0)
                 {
                     <li class="list-group-item d-flex justify-content-between text-muted"><span>Monnaie rendue</span><span>@Fcfa(v.MonnaieRendue)</span></li>
+                }
+                @if (v.Pourboire > 0)
+                {
+                    <li class="list-group-item d-flex justify-content-between"><span><i class="fas fa-hand-holding-heart"></i> Pourboire</span><span class="fw-semibold">@Fcfa(v.Pourboire)</span></li>
                 }
             </ul>
         </div>

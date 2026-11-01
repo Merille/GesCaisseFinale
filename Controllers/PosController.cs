@@ -130,7 +130,21 @@ namespace EasytransitCaisse.Controllers
                 urlTicket = "/Pos/Ticket/",
                 urlVentes = $"/Vente/Index?journee={j.Id}",
                 venteSansStock = (await _context.Tenants.AsNoTracking().FirstOrDefaultAsync(t => t.Id == tenant))?.PosVenteSansStock ?? true,
-                jeton = new { nom = jetons.FormFieldName, valeur = jetons.RequestToken }
+                jeton = new { nom = jetons.FormFieldName, valeur = jetons.RequestToken },
+                restaurant = j.Caisse != null && j.Caisse.EstRestaurant ? new
+                {
+                    type = j.Caisse.TypePointVente,
+                    imprimerBons = j.Caisse.ImprimerBons,
+                    salles = await Restaurant.PlanAsync(_context, j.CaisseId, true),
+                    urlPlan = $"/Pos/Plan?journee={j.Id}",
+                    urlCommande = $"/Pos/Commande?journee={j.Id}",
+                    urlEnregistrer = "/Pos/Enregistrer",
+                    urlEnvoyer = "/Pos/Envoyer",
+                    urlTransferer = "/Pos/Transferer",
+                    urlAddition = "/Pos/Addition/",
+                    urlBons = "/Pos/Bon?ids=",
+                    urlCuisine = $"/Cuisine/Index?caisse={j.CaisseId}"
+                } : null
             };
 
             // L'encodeur par défaut échappe < > & ' " : le JSON peut aller dans une balise <script>.
@@ -146,6 +160,16 @@ namespace EasytransitCaisse.Controllers
             public List<LigneSaisie> Lignes { get; set; } = new();
             public List<PaiementSaisi> Paiements { get; set; } = new();
             public RemiseSaisie? RemiseGlobale { get; set; }
+            // Restaurant / bar : pourboire et commande de table payée (reste : articles qui demeurent sur la table).
+            public decimal Pourboire { get; set; }
+            public OuverteSaisie? CommandeOuverte { get; set; }
+        }
+
+        private sealed class OuverteSaisie
+        {
+            public int Id { get; set; }
+            public int Version { get; set; }
+            public List<Restaurant.Ligne> Reste { get; set; } = new();
         }
 
         private sealed class RemiseSaisie
@@ -160,6 +184,7 @@ namespace EasytransitCaisse.Controllers
             public decimal Qte { get; set; }
             public decimal? Prix { get; set; }
             public decimal Remise { get; set; }
+            public string? Note { get; set; }
         }
 
         private sealed class PaiementSaisi
@@ -219,10 +244,12 @@ namespace EasytransitCaisse.Controllers
                 var total = Math.Round(qte * prix * (1 - remise / 100), 0, MidpointRounding.AwayFromZero);
                 ttc += total;
                 tva += total - total / (1 + p.TauxTVA / 100);
+                var note = (l.Note ?? "").Trim();
                 lignes.Add((p, new LigneCommandePos
                 {
                     TenantId = tenant, ProduitId = p.Id, Libelle = p.Nom, Quantite = qte,
-                    PrixUnitaire = prix, Remise = remise, TauxTVA = p.TauxTVA, TotalTTC = total
+                    PrixUnitaire = prix, Remise = remise, TauxTVA = p.TauxTVA, TotalTTC = total,
+                    Note = note == "" ? null : note.Length > 200 ? note[..200] : note
                 }));
             }
 
@@ -261,6 +288,9 @@ namespace EasytransitCaisse.Controllers
                     (taxesProduits.GetValueOrDefault(p.Id) ?? new List<Taxe>()).Select(t => ((int?)t.Id, t.Code, t.Taux)), ligne.TotalTTC);
             tva = Math.Round(tva, 0, MidpointRounding.AwayFromZero);
 
+            // Restaurant / bar : pourboire (en plus du total).
+            var pourboire = Math.Max(0, Math.Round(v.Pourboire, 0, MidpointRounding.AwayFromZero));
+
             // Règlements : seuls les espèces peuvent dépasser le reste à payer (monnaie rendue).
             var modes = await _context.ModesPaiement.Where(m => m.Actif && m.TenantId == tenant).ToListAsync();
             var paiements = new List<(ModePaiement Mode, decimal Recu)>();
@@ -276,9 +306,9 @@ namespace EasytransitCaisse.Controllers
                 if (EstEspeces(mode))
                     especes += montant;
             }
-            if (recu < ttc)
+            if (recu < ttc + pourboire)
                 return Erreur(400, "Le montant payé est inférieur au total.");
-            var rendu = recu - ttc;
+            var rendu = recu - ttc - pourboire;
             if (rendu > especes)
                 return Erreur(400, "Seule la monnaie sur les espèces peut être rendue : le montant payé par les autres modes dépasse le total.");
 
@@ -302,6 +332,40 @@ namespace EasytransitCaisse.Controllers
                         return Erreur(409, $"Stock insuffisant pour « {g.First().Produit.Nom} » : {disponible:0.##} disponible(s).");
                 }
             }
+            // Commande de table : payée en entier (table libérée) ou en partie (addition partagée : le
+            // reste des articles demeure sur la table).
+            string? tableNom = null;
+            int? couverts = null;
+            CommandeOuverte? restante = null;
+            if (v.CommandeOuverte != null)
+            {
+                var co = await _context.CommandesOuvertes
+                    .FromSqlInterpolated($"SELECT * FROM CommandesOuvertes WITH (UPDLOCK, ROWLOCK) WHERE Id = {v.CommandeOuverte.Id}")
+                    .FirstOrDefaultAsync();
+                if (co == null || co.JourneeCaisseId != j.Id || co.Version != v.CommandeOuverte.Version)
+                    return Erreur(409, "La commande de la table a été modifiée sur un autre appareil : rechargez la table puis recommencez.");
+                tableNom = co.TableId.HasValue ? (await _context.TablesRestaurant.FirstOrDefaultAsync(t => t.Id == co.TableId))?.Nom : null;
+                couverts = co.Couverts;
+                var avant = Restaurant.Lire(co.Contenu);
+                var reste = Restaurant.Nettoyer(new Restaurant.Contenu { Lignes = v.CommandeOuverte.Reste }, avant).Lignes;
+                if (!reste.Any())
+                {
+                    await DetacherBonsAsync(co.Id, null);
+                    _context.CommandesOuvertes.Remove(co);
+                }
+                else
+                {
+                    foreach (var r in reste)
+                        r.Envoye = Math.Min(r.Envoye, r.Qte);
+                    avant.Lignes = reste;
+                    co.Contenu = Restaurant.Ecrire(avant);
+                    co.Version++;
+                    co.DateMaj = DateTime.Now;
+                    co.AdditionImprimee = false;
+                    restante = co;
+                }
+            }
+
             var rang = await _context.CommandesPos.CountAsync(c => c.JourneeCaisseId == j.Id) + 1;
             var numero = $"POS-{j.Caisse?.ChkCode}-{j.DateJournee:yyyyMMdd}-{rang:0000}";
 
@@ -311,6 +375,7 @@ namespace EasytransitCaisse.Controllers
                 UtilisateurId = utilisateurId, DateCommande = DateTime.Now, TotalHT = ttc - tva, TotalTVA = tva,
                 TotalTTC = ttc, MontantRecu = recu, MonnaieRendue = rendu, Statut = "Payée",
                 RemiseGlobale = remiseGlobale, RemiseGlobaleTaux = tauxRemise,
+                TableNom = tableNom, Couverts = couverts, Pourboire = pourboire,
                 Lignes = lignes.Select(x => x.Ligne).ToList()
             };
             var motif = await _context.Motifs.FirstOrDefaultAsync(m => m.LibelleMotif == "Vente POS" && m.TenantId == tenant);
@@ -340,7 +405,8 @@ namespace EasytransitCaisse.Controllers
                     operation = new OperationCaisse
                     {
                         TenantId = tenant, JourneeCaisseId = j.Id, DateOperation = DateTime.Now,
-                        TypeOperation = "Encaissement", Montant = net, Libelle = "Vente POS " + numero,
+                        TypeOperation = "Encaissement", Montant = net,
+                        Libelle = "Vente POS " + numero + (pourboire > 0 ? " (dont pourboire " + pourboire.ToString("N0", System.Globalization.CultureInfo.GetCultureInfo("fr-FR")) + ")" : ""),
                         ClientId = clientId, MotifId = motif.ID, ModePaiementId = mode.Id,
                         UtilisateurId = utilisateurId, EstJustifie = true,
                         // Validé d'office : vente payée et justifiée par le ticket.
@@ -358,7 +424,7 @@ namespace EasytransitCaisse.Controllers
             await _context.SaveChangesAsync();
             await transaction.CommitAsync();
 
-            return Json(new { id = commande.Id, numero, rendu });
+            return Json(new { id = commande.Id, numero, rendu, commande = restante == null ? null : Restaurant.CommandeJson(restante) });
         }
 
         // Ticket de caisse 80 mm d'une vente (impression ou réimpression).
@@ -388,6 +454,230 @@ namespace EasytransitCaisse.Controllers
                 : null;
             ViewBag.Imprimer = imprimer;
             return View(commande);
+        }
+            // ---------------------------------------------------------------------------
+        // Restaurant / bar : commandes ouvertes sur les tables
+        // ---------------------------------------------------------------------------
+
+        private int UtilisateurId => int.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var id) ? id : 0;
+
+        private string Serveur => User.FindFirst(AppClaimTypes.NomComplet)?.Value is { Length: > 0 } n ? n : User.FindFirst(ClaimTypes.Name)?.Value ?? "";
+
+        // Journée ouverte d'une caisse restaurant / bar ; message d'erreur sinon.
+        private async Task<(JourneeCaisse? Journee, IActionResult? Erreur)> JourneeRestaurantAsync(int id)
+        {
+            var j = await _context.JourneesCaisses.Include(x => x.Caisse).FirstOrDefaultAsync(x => x.Id == id);
+            if (j == null)
+                return (null, Erreur(404, "Journée introuvable."));
+            if (j.Caisse == null || !j.Caisse.EstRestaurant)
+                return (null, Erreur(400, "Cette caisse n'est pas de type Restaurant ou Bar."));
+            if (j.Statut != "Ouverte")
+                return (null, Erreur(409, "Cette journée est clôturée : ouvrez une nouvelle journée pour servir."));
+            return (j, null);
+        }
+
+        private async Task<TableRestaurant?> TableAsync(int id, int caisseId) =>
+            await (from t in _context.TablesRestaurant
+                   join s in _context.Salles on t.SalleId equals s.Id
+                   where t.Id == id && s.CaisseId == caisseId && t.Actif
+                   select t).FirstOrDefaultAsync();
+
+        // Les bons gardent leur historique quand la commande disparaît (payée, vidée ou regroupée).
+        private async Task DetacherBonsAsync(int commandeId, int? vers) =>
+            await _context.Database.ExecuteSqlInterpolatedAsync($"UPDATE BonsPreparation SET CommandeOuverteId = {vers} WHERE CommandeOuverteId = {commandeId}");
+
+        private sealed class CommandeSaisie
+        {
+            public int JourneeId { get; set; }
+            public int TableId { get; set; }
+            public int Id { get; set; }
+            public int Version { get; set; }
+            public int Couverts { get; set; } = 1;
+            public int CibleId { get; set; }
+            public List<Restaurant.Ligne> Lignes { get; set; } = new();
+            public int? ClientId { get; set; }
+            public Restaurant.RemiseTicket? Remise { get; set; }
+        }
+
+        private static CommandeSaisie? LireSaisie(string? json)
+        {
+            try { return JsonSerializer.Deserialize<CommandeSaisie>(json ?? "", new JsonSerializerOptions { PropertyNameCaseInsensitive = true }); }
+            catch (JsonException) { return null; }
+        }
+
+        // État des tables (plan de salle), pour l'actualisation de l'écran de vente.
+        public async Task<IActionResult> Plan(int journee)
+        {
+            var (j, erreur) = await JourneeRestaurantAsync(journee);
+            if (erreur != null)
+                return erreur;
+            return Json(new { salles = await Restaurant.PlanAsync(_context, j!.CaisseId, true) });
+        }
+
+        // Commande en cours sur une table (null si la table est libre).
+        public async Task<IActionResult> Commande(int journee, int table)
+        {
+            var (j, erreur) = await JourneeRestaurantAsync(journee);
+            if (erreur != null)
+                return erreur;
+            var t = await TableAsync(table, j!.CaisseId);
+            if (t == null)
+                return Erreur(404, "Table introuvable.");
+            var co = await _context.CommandesOuvertes.FirstOrDefaultAsync(c => c.TableId == t.Id);
+            return Json(new { commande = co == null ? null : Restaurant.CommandeJson(co) });
+        }
+
+        // Enregistre la commande d'une table : création à la première ligne, mise à jour ensuite
+        // (refusée si la commande a changé entre-temps sur un autre appareil), suppression quand
+        // elle est vidée. Avec envoyer : bons de préparation des articles pas encore envoyés.
+        private async Task<IActionResult> EnregistrerCommandeAsync(string? commande, bool envoyer)
+        {
+            var c = LireSaisie(commande);
+            if (c == null)
+                return Erreur(400, "Commande illisible.");
+            var (j, erreur) = await JourneeRestaurantAsync(c.JourneeId);
+            if (erreur != null)
+                return erreur;
+            var table = await TableAsync(c.TableId, j!.CaisseId);
+            if (table == null)
+                return Erreur(404, "Table introuvable.");
+            var couverts = Math.Clamp(c.Couverts, 1, 99);
+
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+            var co = await _context.CommandesOuvertes
+                .FromSqlInterpolated($"SELECT * FROM CommandesOuvertes WITH (UPDLOCK, HOLDLOCK) WHERE TableId = {table.Id}")
+                .FirstOrDefaultAsync();
+            if (co != null && (co.Id != c.Id || co.Version != c.Version))
+                return StatusCode(409, new { erreur = $"La commande de {table.Nom} a été modifiée sur un autre appareil : elle a été rechargée.", commande = Restaurant.CommandeJson(co) });
+            if (co == null && c.Id > 0)
+                return StatusCode(409, new { erreur = $"La commande de {table.Nom} n'existe plus (encaissée ou transférée sur un autre appareil).", commande = (object?)null });
+
+            var avant = co == null ? new Restaurant.Contenu() : Restaurant.Lire(co.Contenu);
+            var contenu = Restaurant.Nettoyer(new Restaurant.Contenu { Lignes = c.Lignes, ClientId = c.ClientId, Remise = c.Remise }, avant);
+            if (co == null && !contenu.Lignes.Any())
+                return Json(new { commande = (object?)null, bons = Array.Empty<int>() });
+            if (co == null)
+            {
+                co = new CommandeOuverte
+                {
+                    TenantId = j.TenantId, CaisseId = j.CaisseId, JourneeCaisseId = j.Id, TableId = table.Id, Couverts = couverts,
+                    UtilisateurId = UtilisateurId, DateOuverture = DateTime.Now, DateMaj = DateTime.Now, Version = 0, Contenu = Restaurant.Ecrire(contenu)
+                };
+                _context.CommandesOuvertes.Add(co);
+                await _context.SaveChangesAsync();
+            }
+            var bons = new List<BonPreparation>();
+            // Commande vidée : annulation en préparation des articles déjà envoyés, puis table libérée.
+            if (!contenu.Lignes.Any())
+            {
+                bons = await Restaurant.EnvoyerAsync(_context, co, contenu, avant, table.Nom, Serveur);
+                await _context.SaveChangesAsync();
+                await DetacherBonsAsync(co.Id, null);
+                _context.CommandesOuvertes.Remove(co);
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return Json(new { commande = (object?)null, bons = bons.Select(b => b.Id) });
+            }
+            if (envoyer)
+                bons = await Restaurant.EnvoyerAsync(_context, co, contenu, avant, table.Nom, Serveur);
+            var json = Restaurant.Ecrire(contenu);
+            // L'addition imprimée n'est plus à jour quand les articles changent.
+            if (json != Restaurant.Ecrire(Restaurant.Lire(co.Contenu)) || co.Couverts != couverts)
+                co.AdditionImprimee = false;
+            co.Contenu = json;
+            co.Couverts = couverts;
+            co.Version++;
+            co.DateMaj = DateTime.Now;
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+            return Json(new { commande = Restaurant.CommandeJson(co), bons = bons.Select(b => b.Id) });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public Task<IActionResult> Enregistrer([FromForm] string? commande) => EnregistrerCommandeAsync(commande, false);
+
+        // Enregistre la commande et envoie les nouveaux articles en cuisine / au bar.
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public Task<IActionResult> Envoyer([FromForm] string? commande) => EnregistrerCommandeAsync(commande, true);
+
+        // Transfère la commande vers une autre table (regroupée avec sa commande si elle est occupée).
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Transferer([FromForm] string? commande)
+        {
+            var c = LireSaisie(commande);
+            if (c == null)
+                return Erreur(400, "Commande illisible.");
+            var (j, erreur) = await JourneeRestaurantAsync(c.JourneeId);
+            if (erreur != null)
+                return erreur;
+            var cible = await TableAsync(c.CibleId, j!.CaisseId);
+            if (cible == null)
+                return Erreur(404, "Table introuvable.");
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+            var co = await _context.CommandesOuvertes
+                .FromSqlInterpolated($"SELECT * FROM CommandesOuvertes WITH (UPDLOCK, ROWLOCK) WHERE Id = {c.Id}")
+                .FirstOrDefaultAsync();
+            if (co == null || co.CaisseId != j.CaisseId || co.Version != c.Version)
+                return Erreur(409, "La commande a été modifiée sur un autre appareil : rechargez la table puis recommencez.");
+            if (co.TableId == cible.Id)
+                return Json(new { commande = Restaurant.CommandeJson(co) });
+            var existante = await _context.CommandesOuvertes
+                .FromSqlInterpolated($"SELECT * FROM CommandesOuvertes WITH (UPDLOCK, HOLDLOCK) WHERE TableId = {cible.Id}")
+                .FirstOrDefaultAsync();
+            CommandeOuverte resultat;
+            if (existante != null)
+            {
+                // Regroupement : les lignes et les couverts s'ajoutent à la commande de la table choisie.
+                var a = Restaurant.Lire(existante.Contenu);
+                a.Lignes.AddRange(Restaurant.Lire(co.Contenu).Lignes);
+                existante.Contenu = Restaurant.Ecrire(a);
+                existante.Couverts += co.Couverts;
+                existante.Version++;
+                existante.DateMaj = DateTime.Now;
+                existante.AdditionImprimee = false;
+                await DetacherBonsAsync(co.Id, existante.Id);
+                _context.CommandesOuvertes.Remove(co);
+                resultat = existante;
+            }
+            else
+            {
+                co.TableId = cible.Id;
+                co.Version++;
+                co.DateMaj = DateTime.Now;
+                resultat = co;
+            }
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+            return Json(new { commande = Restaurant.CommandeJson(resultat) });
+        }
+
+        // Addition (note provisoire) d'une table, avant le paiement ; la table passe en « addition demandée ».
+        public async Task<IActionResult> Addition(int id)
+        {
+            var co = await _context.CommandesOuvertes.FirstOrDefaultAsync(c => c.Id == id);
+            if (co == null)
+                return NotFound();
+            co.AdditionImprimee = true;
+            await _context.SaveChangesAsync();
+            var societe = await _context.Tenants.FirstOrDefaultAsync(t => t.Id == co.TenantId);
+            ViewBag.Societe = societe?.Nom ?? "GesCaisse";
+            ViewBag.Logo = Images.UrlLogo(societe);
+            ViewBag.Coordonnees = Images.Coordonnees(societe);
+            ViewBag.Table = co.TableId.HasValue ? (await _context.TablesRestaurant.FirstOrDefaultAsync(t => t.Id == co.TableId))?.Nom : null;
+            ViewBag.Serveur = (await Restaurant.NomsAsync(_context, new[] { co.UtilisateurId })).Values.FirstOrDefault() ?? "";
+            ViewBag.Contenu = Restaurant.Lire(co.Contenu);
+            return View(co);
+        }
+
+        // Bons de préparation 80 mm (un par page), imprimés à l'envoi.
+        public async Task<IActionResult> Bon(string? ids)
+        {
+            var liste = (ids ?? "").Split(',').Select(x => int.TryParse(x, out var i) ? i : 0).Where(i => i > 0).ToList();
+            var bons = await _context.BonsPreparation.Include(b => b.Lignes).Where(b => liste.Contains(b.Id)).OrderBy(b => b.Id).ToListAsync();
+            return View(bons);
         }
     }
 }

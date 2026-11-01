@@ -1,4 +1,4 @@
-﻿using EasytransitCaisse.Data;
+using EasytransitCaisse.Data;
 using EasytransitCaisse.Models;
 using EasytransitCaisse.Models.ViewModels;
 using EasytransitCaisse.Services;
@@ -319,6 +319,18 @@ namespace EasytransitCaisse.Controllers
 
             if (journee.Statut == "Cloturee")
                 return RedirectToAction("Details", new { id });
+
+            // Restaurant / bar : les commandes encore ouvertes sur les tables doivent être encaissées.
+            var ouvertes = (from co in _context.CommandesOuvertes
+                            join t in _context.TablesRestaurant on co.TableId equals t.Id into ts
+                            from t in ts.DefaultIfEmpty()
+                            where co.JourneeCaisseId == id
+                            select t != null ? t.Nom : "?").ToList();
+            if (ouvertes.Any())
+            {
+                TempData["Error"] = $"Clôture impossible : {ouvertes.Count} table(s) ont encore une commande en cours ({string.Join(", ", ouvertes)}). Encaissez-les ou videz-les depuis le point de vente.";
+                return RedirectToAction("Details", new { id });
+            }
 
             var theoriques = GetTotauxParModePaiement(id);
 

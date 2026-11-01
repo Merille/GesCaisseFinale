@@ -50,10 +50,18 @@
         {
             <div>Client : @ViewBag.Client</div>
         }
+        @if (!string.IsNullOrEmpty(c.TableNom))
+        {
+            <div>Table  : @c.TableNom@(c.Couverts.HasValue ? $" · {c.Couverts} couvert(s)" : "")</div>
+        }
         <hr />
         @foreach (var l in c.Lignes.OrderBy(x => x.Id))
         {
             <div class="b">@l.Libelle</div>
+            @if (!string.IsNullOrEmpty(l.Note))
+            {
+                <div class="ind note">» @l.Note</div>
+            }
             <div class="r ind">
                 <span>@Qte(l.Quantite)@(Unite(l) != "Unité" ? " " + Unite(l) : "") x @Fcfa(l.PrixUnitaire)@(l.Remise > 0 ? " -" + Qte(l.Remise) + "%" : "")</span>
                 <span>@Fcfa(l.TotalTTC + l.RemiseGlobale)</span>
@@ -70,6 +78,11 @@
         @foreach (var t in taxes)
         {
             <div class="r"><span>@t.Key</span><span>@Fcfa(t.Value)</span></div>
+        }
+        @if (c.Pourboire > 0)
+        {
+            <div class="r"><span>Pourboire</span><span>@Fcfa(c.Pourboire)</span></div>
+            <div class="r b"><span>TOTAL PAYÉ</span><span>@Fcfa(c.TotalTTC + c.Pourboire) FCFA</span></div>
         }
         <hr />
         @foreach (var p in c.Paiements.OrderBy(x => x.Id))

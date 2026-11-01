@@ -1,0 +1,18 @@
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8" />
+    <title>Écran cuisine / bar - GesCaisse</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="~/css/cuisine.css" asp-append-version="true" />
+</head>
+<body class="cui-body">
+    <div id="cuisine" class="cui"></div>
+    <script id="cuisine-donnees" type="application/json">@Html.Raw(System.Text.Json.JsonSerializer.Serialize((object)ViewBag.Donnees))</script>
+    <script src="~/js/cuisine.js" asp-append-version="true"></script>
+</body>
+</html>
