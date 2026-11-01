@@ -63,6 +63,7 @@ namespace EasytransitCaisse.Controllers
                 .ToListAsync();
             // Variantes : seulement celles dont le modèle est actif.
             var modelesActifs = catalogue.Where(p => p.EstModele).Select(p => p.Id).ToHashSet();
+            var combos = await Combos.SocieteAsync(_context, tenant);
             var produits = catalogue
                 .Where(p => p.ParentId == null || modelesActifs.Contains(p.ParentId.Value))
                 .Select(p => new
@@ -81,7 +82,14 @@ namespace EasytransitCaisse.Controllers
                     image = Images.UrlImage(p),
                     parentId = p.ParentId,
                     modele = p.EstModele,
-                    variante = p.LibelleVariante
+                    variante = p.LibelleVariante,
+                    combo = p.EstCombo
+                        ? (combos.GetValueOrDefault(p.Id) ?? new()).Select(g => new
+                        {
+                            id = g.Id, nom = g.Nom, quantite = g.Quantite,
+                            choix = g.Choix.OrderBy(c => c.Ordre).ThenBy(c => c.Id).Select(c => new { produitId = c.ProduitId, supplement = c.Supplement })
+                        }).ToList()
+                        : null
                 })
                 .ToList();
             var categories = await _context.Categories
@@ -185,6 +193,7 @@ namespace EasytransitCaisse.Controllers
             public decimal? Prix { get; set; }
             public decimal Remise { get; set; }
             public string? Note { get; set; }
+            public List<Combos.Composant>? Composants { get; set; }
         }
 
         private sealed class PaiementSaisi
@@ -239,7 +248,18 @@ namespace EasytransitCaisse.Controllers
                     return Erreur(400, "Un article du ticket est introuvable, inactif ou de quantité nulle.");
                 if (p.EstModele)
                     return Erreur(400, $"Choisissez une variante de « {p.Nom} ».");
-                var prix = EstAdmin && l.Prix.HasValue ? Math.Max(0, Math.Round(l.Prix.Value, 2)) : p.PrixVente;
+                // Combo : composants contrôlés, prix du combo plus les suppléments des articles choisis.
+                List<Combos.Composant>? composants = null;
+                var prixCatalogue = p.PrixVente;
+                if (p.EstCombo)
+                {
+                    var (liste, supplements, erreurCombo) = await Combos.ControlerAsync(_context, p, l.Composants ?? new());
+                    if (erreurCombo != null)
+                        return Erreur(400, erreurCombo);
+                    composants = liste;
+                    prixCatalogue += supplements;
+                }
+                var prix = EstAdmin && l.Prix.HasValue ? Math.Max(0, Math.Round(l.Prix.Value, 2)) : prixCatalogue;
                 var remise = Math.Min(100, Math.Max(0, Math.Round(l.Remise, 2)));
                 var total = Math.Round(qte * prix * (1 - remise / 100), 0, MidpointRounding.AwayFromZero);
                 ttc += total;
@@ -249,7 +269,8 @@ namespace EasytransitCaisse.Controllers
                 {
                     TenantId = tenant, ProduitId = p.Id, Libelle = p.Nom, Quantite = qte,
                     PrixUnitaire = prix, Remise = remise, TauxTVA = p.TauxTVA, TotalTTC = total,
-                    Note = note == "" ? null : note.Length > 200 ? note[..200] : note
+                    Note = note == "" ? null : note.Length > 200 ? note[..200] : note,
+                    Composants = composants == null ? null : Combos.Ecrire(composants)
                 }));
             }
 
@@ -323,13 +344,18 @@ namespace EasytransitCaisse.Controllers
             var societe = await _context.Tenants.AsNoTracking().FirstOrDefaultAsync(t => t.Id == tenant);
             if (societe != null && !societe.PosVenteSansStock)
             {
-                foreach (var g in lignes.Where(x => x.Produit.SuiviStock).GroupBy(x => x.Produit.Id))
+                // Quantités par produit (les composants pour un combo).
+                var besoins = lignes.SelectMany(x => Combos.Lire(x.Ligne.Composants) is { Count: > 0 } comp
+                        ? comp.Select(c => (c.ProduitId, Qte: x.Ligne.Quantite * c.Qte))
+                        : new[] { (x.Produit.Id, Qte: x.Ligne.Quantite) })
+                    .GroupBy(x => x.Item1);
+                foreach (var g in besoins)
                 {
-                    var disponible = await _context.Produits
+                    var stock = await _context.Produits
                         .FromSqlInterpolated($"SELECT * FROM Produits WITH (UPDLOCK, ROWLOCK) WHERE Id = {g.Key}")
-                        .AsNoTracking().Select(p => p.StockActuel).FirstAsync();
-                    if (disponible < g.Sum(x => x.Ligne.Quantite) - 0.001m)
-                        return Erreur(409, $"Stock insuffisant pour « {g.First().Produit.Nom} » : {disponible:0.##} disponible(s).");
+                        .AsNoTracking().Select(p => new { p.Nom, p.StockActuel, p.SuiviStock }).FirstAsync();
+                    if (stock.SuiviStock && stock.StockActuel < g.Sum(x => x.Qte) - 0.001m)
+                        return Erreur(409, $"Stock insuffisant pour « {stock.Nom} » : {stock.StockActuel:0.##} disponible(s).");
                 }
             }
             // Commande de table : payée en entier (table libérée) ou en partie (addition partagée : le
@@ -387,7 +413,7 @@ namespace EasytransitCaisse.Controllers
             _context.CommandesPos.Add(commande);
             await _context.SaveChangesAsync();
             foreach (var (produit, ligne) in lignes)
-                await _context.MouvementAsync(produit.Id, -ligne.Quantite, "Vente", numero, commande.Id, utilisateurId);
+                await _context.MouvementLigneAsync(produit.Id, ligne.Composants, -ligne.Quantite, "Vente", numero, commande.Id, utilisateurId);
 
             var aRendre = rendu;
             foreach (var (mode, montantRecu) in paiements)

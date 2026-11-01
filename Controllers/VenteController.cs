@@ -212,7 +212,7 @@ namespace EasytransitCaisse.Controllers
                 {
                     TenantId = vente.TenantId, ProduitId = r.Origine.ProduitId, Libelle = r.Origine.Libelle,
                     Quantite = -r.Qte, PrixUnitaire = r.Origine.PrixUnitaire, Remise = r.Origine.Remise,
-                    TauxTVA = r.Origine.TauxTVA, TotalTTC = -r.Total, LigneOrigineId = r.Origine.Id,
+                    TauxTVA = r.Origine.TauxTVA, TotalTTC = -r.Total, LigneOrigineId = r.Origine.Id, Composants = r.Origine.Composants,
                     // Taxes de la ligne d'origine, avec les taux figés à la vente (montants négatifs).
                     Taxes = TaxesProduits.TaxesLigne(vente.TenantId, r.Origine.Taxes.Select(t => (t.TaxeId, t.Code, t.Taux)), -r.Total)
                 }).ToList()
@@ -236,7 +236,7 @@ namespace EasytransitCaisse.Controllers
             _context.OperationsCaisses.Add(operation);
             await _context.SaveChangesAsync();
             foreach (var r in lignesRetour.Where(r => r.Origine.ProduitId.HasValue))
-                await _context.MouvementAsync(r.Origine.ProduitId!.Value, r.Qte, "Retour", numero, retour.Id, UtilisateurId, motif);
+                await _context.MouvementLigneAsync(r.Origine.ProduitId!.Value, r.Origine.Composants, r.Qte, "Retour", numero, retour.Id, UtilisateurId, motif);
             _context.PaiementsPos.Add(new PaiementPos
             {
                 TenantId = vente.TenantId, CommandePosId = retour.Id, ModePaiementId = mode.Id, Libelle = mode.Libelle ?? "",
@@ -281,7 +281,7 @@ namespace EasytransitCaisse.Controllers
             }
             await using var transaction = await _context.Database.BeginTransactionAsync();
             foreach (var l in vente.Lignes.Where(l => l.ProduitId.HasValue))
-                await _context.MouvementAsync(l.ProduitId!.Value, l.Quantite, "Annulation", vente.Numero, vente.Id, UtilisateurId, motif);
+                await _context.MouvementLigneAsync(l.ProduitId!.Value, l.Composants, l.Quantite, "Annulation", vente.Numero, vente.Id, UtilisateurId, motif);
             await _context.SaveChangesAsync();
             await transaction.CommitAsync();
             return VersDetails(id, succes: $"Vente {vente.Numero} annulée : ses encaissements sont rejetés et le stock est remis.");

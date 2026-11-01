@@ -216,6 +216,68 @@ namespace EasytransitCaisse.Migrations
                     b.ToTable("Clients");
                 });
 
+            modelBuilder.Entity("EasytransitCaisse.Models.ComboChoix", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("GroupeId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Ordre")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ProduitId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Supplement")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GroupeId");
+
+                    b.HasIndex("ProduitId");
+
+                    b.ToTable("ComboChoix", (string)null);
+                });
+
+            modelBuilder.Entity("EasytransitCaisse.Models.ComboGroupe", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Nom")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("Ordre")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ProduitId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Quantite")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProduitId");
+
+                    b.ToTable("ComboGroupes", (string)null);
+                });
+
             modelBuilder.Entity("EasytransitCaisse.Models.CommandeOuverte", b =>
                 {
                     b.Property<int>("Id")
@@ -540,6 +602,9 @@ namespace EasytransitCaisse.Migrations
 
                     b.Property<int>("CommandePosId")
                         .HasColumnType("int");
+
+                    b.Property<string>("Composants")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Libelle")
                         .IsRequired()
@@ -896,6 +961,9 @@ namespace EasytransitCaisse.Migrations
                     b.Property<decimal?>("Cout")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<bool>("EstCombo")
+                        .HasColumnType("bit");
 
                     b.Property<bool>("EstModele")
                         .HasColumnType("bit");
@@ -1335,6 +1403,24 @@ namespace EasytransitCaisse.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("EasytransitCaisse.Models.ComboChoix", b =>
+                {
+                    b.HasOne("EasytransitCaisse.Models.ComboGroupe", null)
+                        .WithMany("Choix")
+                        .HasForeignKey("GroupeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("EasytransitCaisse.Models.ComboGroupe", b =>
+                {
+                    b.HasOne("EasytransitCaisse.Models.Produit", null)
+                        .WithMany()
+                        .HasForeignKey("ProduitId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("EasytransitCaisse.Models.CommandeOuverte", b =>
                 {
                     b.HasOne("EasytransitCaisse.Models.JourneeCaisse", null)
@@ -1595,6 +1681,11 @@ namespace EasytransitCaisse.Migrations
             modelBuilder.Entity("EasytransitCaisse.Models.BonPreparation", b =>
                 {
                     b.Navigation("Lignes");
+                });
+
+            modelBuilder.Entity("EasytransitCaisse.Models.ComboGroupe", b =>
+                {
+                    b.Navigation("Choix");
                 });
 
             modelBuilder.Entity("EasytransitCaisse.Models.CommandePos", b =>

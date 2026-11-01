@@ -37,6 +37,10 @@
         @foreach (var l in contenu.Lignes)
         {
             <div class="b">@l.Nom</div>
+            @foreach (var comp in l.Composants)
+            {
+                <div class="ind petit">· @Qte(comp.Qte) x @comp.Nom@(comp.Supplement > 0 ? " (+" + Fcfa(comp.Supplement) + ")" : "")</div>
+            }
             <div class="r ind">
                 <span>@Qte(l.Qte) x @Fcfa(l.Prix)@(l.Remise > 0 ? " -" + Qte(l.Remise) + "%" : "")</span>
                 <span>@Fcfa(Math.Round(l.Qte * l.Prix * (1 - l.Remise / 100), MidpointRounding.AwayFromZero))</span>

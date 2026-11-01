@@ -166,6 +166,18 @@ namespace EasytransitCaisse.Data
                 .OnDelete(DeleteBehavior.Cascade);
             modelBuilder.Entity<LigneBonPreparation>().ToTable("LignesBonPreparation");
 
+            // Combos : groupes de choix d'un produit combo. Pas de cascade depuis le produit choisi
+            // (SQL Server refuse deux chemins de cascade depuis Produits) : retiré par le code.
+            modelBuilder.Entity<ComboGroupe>().ToTable("ComboGroupes")
+                .HasQueryFilter(e => _currentTenantId == 0 || e.TenantId == _currentTenantId);
+            modelBuilder.Entity<ComboGroupe>()
+                .HasOne<Produit>().WithMany().HasForeignKey(g => g.ProduitId)
+                .OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<ComboGroupe>()
+                .HasMany(g => g.Choix).WithOne().HasForeignKey(c => c.GroupeId)
+                .OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<ComboChoix>().ToTable("ComboChoix").HasIndex(c => c.ProduitId);
+
             // Point de vente : unités de vente.
             modelBuilder.Entity<UniteVente>().ToTable("Unites")
                 .HasQueryFilter(e => _currentTenantId == 0 || e.TenantId == _currentTenantId);
@@ -306,6 +318,10 @@ namespace EasytransitCaisse.Data
         public DbSet<Taxe> Taxes { get; set; }
 
         public DbSet<UniteVente> Unites { get; set; }
+
+        public DbSet<ComboGroupe> ComboGroupes { get; set; }
+
+        public DbSet<ComboChoix> ComboChoix { get; set; }
 
         public DbSet<Salle> Salles { get; set; }
 

@@ -193,6 +193,10 @@ function produit_edit(): void
         if ($e = produit_erreur($produit, (int) $existant['Id']) ?? (is_string($image) ? $image : null)) {
             flash('danger', $e);
         } else {
+            // Un combo n'a pas de stock propre (ce sont ses composants qui sortent du stock).
+            if ($existant['EstCombo']) {
+                $produit['SuiviStock'] = 0;
+            }
             produit_mettre_a_jour($produit, (int) $existant['Id']);
             enregistrer_image('produit', (int) $existant['Id'], $image, (bool) post('SupprimerImage'));
             flash('success', 'Produit modifié.');

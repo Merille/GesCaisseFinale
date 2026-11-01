@@ -1,0 +1,31 @@
+@model EasytransitCaisse.Models.Produit
+@* Combo (menu, formule) : groupes de choix édités par combo.js (JSON envoyé dans « combo »). *@
+@{
+    var groupes = ViewBag.GroupesCombo ?? new List<object>();
+    var produits = ViewBag.ProduitsCombo ?? new List<object>();
+}
+<div class="card shadow-sm border-0" id="combo">
+    <div class="card-header bg-brand text-white d-flex align-items-center gap-2">
+        <h5 class="mb-0 flex-grow-1">Combo (menu, formule)</h5>
+        @if (Model.EstCombo)
+        {
+            <span class="badge bg-light text-dark">@(((System.Collections.ICollection)groupes).Count) groupe(s)</span>
+        }
+    </div>
+    <div class="card-body">
+        <p class="small text-muted">
+            Un combo se vend au prix du produit, avec un choix par groupe : par exemple <strong>Entrée</strong> (1 parmi Salade, Soupe),
+            <strong>Plat</strong> (1 parmi Poulet, Poisson + 500), <strong>Boisson</strong>. À la caisse, le serveur choisit les articles ; chacun part
+            sur le bon de son poste (cuisine, bar) et sort du stock. Le combo lui-même n'a pas de stock.
+        </p>
+        <form method="post" action="/Produit/Combo">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="@Model.Id" />
+            <input type="hidden" name="combo" id="combo-json" />
+            <div id="combo-editeur"></div>
+            <script id="combo-donnees" type="application/json">@Html.Raw(System.Text.Json.JsonSerializer.Serialize(new { produits, groupes }))</script>
+            <div class="mt-3"><button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-floppy-disk"></i> Enregistrer le combo</button></div>
+        </form>
+    </div>
+</div>
+<script src="~/js/combo.js" asp-append-version="true"></script>

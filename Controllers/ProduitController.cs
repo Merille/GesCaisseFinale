@@ -169,8 +169,91 @@ namespace EasytransitCaisse.Controllers
                 return RedirectToAction("Edit", new { id = produit.ParentId.Value });
             ChargerCategories();
             ChargerVariantes(id);
+            ChargerCombo(produit);
             ViewBag.TaxesCochees = _context.ProduitTaxes.Where(pt => pt.ProduitId == id).Select(pt => pt.TaxeId).ToArray();
             return View(produit);
+        }
+
+        // Groupes de choix du combo et produits proposables (actifs, ni modèle, ni combo, ni lui-même).
+        private void ChargerCombo(Produit produit)
+        {
+            ViewBag.GroupesCombo = _context.ComboGroupes.Include(g => g.Choix).Where(g => g.ProduitId == produit.Id)
+                .OrderBy(g => g.Ordre).ThenBy(g => g.Id).ToList()
+                .Select(g => new { id = g.Id, nom = g.Nom, quantite = g.Quantite, choix = g.Choix.OrderBy(c => c.Ordre).ThenBy(c => c.Id).Select(c => new { produitId = c.ProduitId, supplement = c.Supplement }) })
+                .ToList();
+            ViewBag.ProduitsCombo = ProduitsCombo(produit).Select(p => new { id = p.Id, nom = p.Nom, prix = p.PrixVente }).ToList();
+        }
+
+        private List<Produit> ProduitsCombo(Produit produit) =>
+            _context.Produits.IgnoreQueryFilters()
+                .Where(p => p.TenantId == produit.TenantId && p.Actif && !p.EstModele && !p.EstCombo && p.Id != produit.Id)
+                .OrderBy(p => p.Nom).ToList();
+
+        private sealed class ComboSaisi
+        {
+            public List<GroupeSaisi> Groupes { get; set; } = new();
+        }
+
+        private sealed class GroupeSaisi
+        {
+            public string? Nom { get; set; }
+            public int Quantite { get; set; } = 1;
+            public List<ChoixSaisi> Choix { get; set; } = new();
+        }
+
+        private sealed class ChoixSaisi
+        {
+            public int? ProduitId { get; set; }
+            public decimal Supplement { get; set; }
+        }
+
+        // Enregistre les groupes de choix du combo (envoyés en JSON par l'éditeur de la fiche).
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Combo(int id, string? combo)
+        {
+            var produit = await _context.Produits.FirstOrDefaultAsync(p => p.Id == id);
+            if (produit == null)
+                return NotFound();
+            IActionResult Retour(string cle, string message)
+            {
+                TempData[cle] = message;
+                return RedirectToAction("Edit", new { id });
+            }
+            if (produit.EstModele || produit.ParentId.HasValue)
+                return Retour("Error", "Un produit à variantes ne peut pas être un combo.");
+            ComboSaisi? saisi;
+            try { saisi = System.Text.Json.JsonSerializer.Deserialize<ComboSaisi>(combo ?? "", new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true }); }
+            catch (System.Text.Json.JsonException) { saisi = null; }
+            var permis = ProduitsCombo(produit).Select(p => p.Id).ToHashSet();
+            var groupes = new List<ComboGroupe>();
+            var n = 0;
+            foreach (var g in (saisi?.Groupes ?? new()).Take(12))
+            {
+                n++;
+                var nom = (g.Nom ?? "").Trim();
+                nom = nom.Length > 50 ? nom[..50] : nom;
+                var choix = g.Choix.Take(50).Where(c => c.ProduitId.HasValue && permis.Contains(c.ProduitId.Value))
+                    .GroupBy(c => c.ProduitId!.Value).Select(x => x.First())
+                    .Select((c, k) => new ComboChoix { ProduitId = c.ProduitId!.Value, Supplement = Math.Max(0, Math.Round(c.Supplement, 2)), Ordre = k })
+                    .ToList();
+                if (nom == "" && !choix.Any())
+                    continue;
+                if (nom == "" || !choix.Any())
+                    return Retour("Error", $"Chaque groupe du combo doit avoir un nom et au moins un produit proposé (groupe {n}).");
+                groupes.Add(new ComboGroupe { TenantId = produit.TenantId, ProduitId = produit.Id, Nom = nom, Quantite = Math.Clamp(g.Quantite, 1, 10), Ordre = groupes.Count, Choix = choix });
+            }
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+            _context.ComboGroupes.RemoveRange(_context.ComboGroupes.Where(g => g.ProduitId == produit.Id));
+            await _context.SaveChangesAsync();
+            _context.ComboGroupes.AddRange(groupes);
+            produit.EstCombo = groupes.Any();
+            // Le combo n'a pas de stock propre : ce sont ses composants qui sortent du stock.
+            if (produit.EstCombo)
+                produit.SuiviStock = false;
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+            return Retour("Success", groupes.Any() ? $"Combo enregistré : {groupes.Count} groupe(s) de choix." : "Ce produit n'est plus un combo.");
         }
 
         [HttpPost]
@@ -192,6 +275,7 @@ namespace EasytransitCaisse.Controllers
                 saisi.StockActuel = produit.StockActuel;
                 saisi.EstModele = produit.EstModele;
                 ChargerVariantes(id);
+                ChargerCombo(produit);
                 ViewBag.Erreur = erreur;
                 ChargerCategories();
                 ViewBag.TaxesCochees = taxes;
@@ -203,7 +287,8 @@ namespace EasytransitCaisse.Controllers
             produit.Nom = saisi.Nom;
             produit.CategorieId = saisi.CategorieId;
             produit.PrixVente = saisi.PrixVente;
-            produit.SuiviStock = saisi.SuiviStock;
+            // Un combo n'a pas de stock propre (ce sont ses composants qui sortent du stock).
+            produit.SuiviStock = !produit.EstCombo && saisi.SuiviStock;
             produit.SeuilAlerte = saisi.SeuilAlerte;
             produit.Actif = saisi.Actif;
             produit.Cout = saisi.Cout;
@@ -226,8 +311,10 @@ namespace EasytransitCaisse.Controllers
             var produit = _context.Produits.FirstOrDefault(p => p.Id == id);
             if (produit != null)
             {
-                // Un modèle emporte ses variantes (supprimées avant ses attributs).
+                // Un modèle emporte ses variantes (supprimées avant ses attributs) ; un produit retiré
+                // n'est plus proposé dans les combos.
                 _context.Produits.RemoveRange(_context.Produits.Where(v => v.ParentId == produit.Id));
+                _context.ComboChoix.RemoveRange(_context.ComboChoix.Where(c => c.ProduitId == produit.Id));
                 _context.SaveChanges();
                 _context.Produits.Remove(produit);
                 _context.SaveChanges();

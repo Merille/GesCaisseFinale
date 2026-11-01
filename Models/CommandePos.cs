@@ -107,6 +107,9 @@ namespace EasytransitCaisse.Models
         // Note de l'article (« sans oignon », « bien cuit »).
         public string? Note { get; set; }
 
+        // Combo vendu : composants choisis en JSON (produit, libellé, quantité par combo, supplément).
+        public string? Composants { get; set; }
+
         public List<LigneCommandePosTaxe> Taxes { get; set; } = new();
     }
 

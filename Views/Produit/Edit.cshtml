@@ -5,6 +5,8 @@
     var avecVariantes = Model.ParentId == null;
 }
 
+<partial name="_Messages" />
+
 <div class="@(avecVariantes ? "row g-4 align-items-start" : "")">
 <div class="@(avecVariantes ? "col-xl-7" : "")">
 <div class="card shadow-sm border-0" style="max-width: @(avecVariantes ? "100%" : "860px");">
@@ -26,7 +28,14 @@
 @if (avecVariantes)
 {
     <div class="col-xl-5">
-        <partial name="_Variantes" model="Model" />
+        @if (!Model.EstCombo)
+        {
+            <div class="mb-4"><partial name="_Variantes" model="Model" /></div>
+        }
+        @if (!Model.EstModele)
+        {
+            <partial name="_Combo" model="Model" />
+        }
     </div>
 }
 </div>

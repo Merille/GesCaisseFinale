@@ -116,7 +116,7 @@
                         {
                             var ret = retournees.GetValueOrDefault(l.Id);
                             <tr>
-                                <td>@l.Libelle@if (!string.IsNullOrEmpty(l.Note)) {<div class="small fst-italic text-muted">» @l.Note</div>}</td>
+                                <td>@l.Libelle@foreach (var comp in EasytransitCaisse.Data.Combos.Lire(l.Composants)) {<div class="small text-muted">· @Qte(comp.Qte) x @comp.Nom@(comp.Supplement > 0 ? " (+" + Fcfa(comp.Supplement) + ")" : "")</div>}@if (!string.IsNullOrEmpty(l.Note)) {<div class="small fst-italic text-muted">» @l.Note</div>}</td>
                                 <td class="text-end">@Qte(l.Quantite)</td>
                                 <td class="text-end">@Fcfa(l.PrixUnitaire)</td>
                                 <td class="text-end">@(l.Remise > 0 ? Qte(l.Remise) + " %" : "")</td>

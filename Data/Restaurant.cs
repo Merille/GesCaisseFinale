@@ -32,6 +32,8 @@ namespace EasytransitCaisse.Data
             public string? Note { get; set; }
             // Quantité déjà envoyée en préparation (toujours reprise de la version enregistrée).
             public decimal Envoye { get; set; }
+            // Combo : articles choisis (contrôlés à l'encaissement).
+            public List<Combos.Composant> Composants { get; set; } = new();
         }
 
         public class RemiseTicket
@@ -80,7 +82,12 @@ namespace EasytransitCaisse.Data
                         Tva = l.Tva,
                         Unite = Couper(l.Unite, 20),
                         Note = Couper((l.Note ?? "").Trim(), 200),
-                        Envoye = envoye.TryGetValue(uid, out var e) ? e : 0
+                        Envoye = envoye.TryGetValue(uid, out var e) ? e : 0,
+                        Composants = (l.Composants ?? new()).Take(30).Select(c => new Combos.Composant
+                        {
+                            ProduitId = c.ProduitId, GroupeId = c.GroupeId, Nom = Couper(c.Nom, 200),
+                            Qte = Math.Max(0, Math.Round(c.Qte, 2)), Supplement = Math.Max(0, Math.Round(c.Supplement, 2))
+                        }).ToList()
                     };
                 }).ToList();
             var remise = saisi.Remise is { Valeur: > 0 } r ? new RemiseTicket { Type = r.Type == "pct" ? "pct" : "montant", Valeur = r.Valeur } : null;
@@ -152,7 +159,8 @@ namespace EasytransitCaisse.Data
         public static async Task<List<BonPreparation>> EnvoyerAsync(AppDbContext context, CommandeOuverte co, Contenu contenu, Contenu avant,
             string tableNom, string serveur)
         {
-            var produitIds = contenu.Lignes.Select(l => l.ProduitId).Concat(avant.Lignes.Select(l => l.ProduitId)).Distinct().ToList();
+            var produitIds = contenu.Lignes.Concat(avant.Lignes)
+                .SelectMany(l => l.Composants.Select(c => c.ProduitId).Append(l.ProduitId)).Distinct().ToList();
             var postes = await (from p in context.Produits.IgnoreQueryFilters()
                                 join cat in context.Categories.IgnoreQueryFilters() on p.CategorieId equals cat.Id into cats
                                 from cat in cats.DefaultIfEmpty()
@@ -162,23 +170,31 @@ namespace EasytransitCaisse.Data
             string Poste(int id) => postes.TryGetValue(id, out var p) ? p : "Cuisine";
 
             var parPoste = new Dictionary<string, List<LigneBonPreparation>>();
-            void Ajouter(string poste, string libelle, decimal qte, string? note)
+            // Un combo part en préparation article par article, chacun vers son poste.
+            void Ajouter(Ligne ligne, decimal qte, string? note)
             {
-                if (poste == "Aucun") return;
-                if (!parPoste.TryGetValue(poste, out var l)) parPoste[poste] = l = new();
-                l.Add(new LigneBonPreparation { Libelle = libelle, Quantite = qte, Note = string.IsNullOrEmpty(note) ? null : note });
+                var articles = ligne.Composants.Any()
+                    ? ligne.Composants.Select(c => (c.ProduitId, Libelle: $"{c.Nom} ({ligne.Nom})", Qte: qte * c.Qte))
+                    : new[] { (ligne.ProduitId, Libelle: ligne.Nom, Qte: qte) };
+                foreach (var (id, libelle, q) in articles)
+                {
+                    var poste = Poste(id);
+                    if (poste == "Aucun") continue;
+                    if (!parPoste.TryGetValue(poste, out var l)) parPoste[poste] = l = new();
+                    l.Add(new LigneBonPreparation { Libelle = libelle.Length > 200 ? libelle[..200] : libelle, Quantite = q, Note = string.IsNullOrEmpty(note) ? null : note });
+                }
             }
             foreach (var l in contenu.Lignes)
             {
                 var delta = Math.Round(l.Qte - l.Envoye, 2);
                 if (Math.Abs(delta) >= 0.01m)
-                    Ajouter(Poste(l.ProduitId), l.Nom, delta, l.Note);
+                    Ajouter(l, delta, l.Note);
                 l.Envoye = l.Qte;
             }
             // Lignes supprimées après l'envoi : annulation.
             var actuelles = contenu.Lignes.Select(l => l.Uid).ToHashSet();
             foreach (var l in avant.Lignes.Where(l => !actuelles.Contains(l.Uid) && l.Envoye > 0))
-                Ajouter(Poste(l.ProduitId), l.Nom, -l.Envoye, null);
+                Ajouter(l, -l.Envoye, null);
 
             var bons = new List<BonPreparation>();
             var numero = await context.BonsPreparation.IgnoreQueryFilters().CountAsync(b => b.JourneeCaisseId == co.JourneeCaisseId);

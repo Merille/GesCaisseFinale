@@ -62,6 +62,10 @@ namespace EasytransitCaisse.Models
         [MaxLength(150)]
         public string? LibelleVariante { get; set; }
 
+        // Combo (menu, formule) : groupes de choix dans ComboGroupes ; pas de stock propre,
+        // ce sont les composants choisis qui sortent du stock.
+        public bool EstCombo { get; set; }
+
         public bool EnAlerteStock => SuiviStock && SeuilAlerte.HasValue && StockActuel <= SeuilAlerte.Value;
     }
 }

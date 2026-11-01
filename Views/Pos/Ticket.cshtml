@@ -58,6 +58,10 @@
         @foreach (var l in c.Lignes.OrderBy(x => x.Id))
         {
             <div class="b">@l.Libelle</div>
+            @foreach (var comp in EasytransitCaisse.Data.Combos.Lire(l.Composants))
+            {
+                <div class="ind petit">· @Qte(comp.Qte) x @comp.Nom@(comp.Supplement > 0 ? " (+" + Fcfa(comp.Supplement) + ")" : "")</div>
+            }
             @if (!string.IsNullOrEmpty(l.Note))
             {
                 <div class="ind note">» @l.Note</div>
