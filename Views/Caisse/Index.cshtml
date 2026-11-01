@@ -1,4 +1,4 @@
-﻿@model List<EasytransitCaisse.Models.CaisseViewModel>
+@model List<EasytransitCaisse.Models.CaisseViewModel>
 
 @{
     ViewData["Title"] = "Caisses";
@@ -27,6 +27,7 @@
                 <tr>
                     <th>Code</th>
                     <th>Description</th>
+                    <th>Type</th>
                     <th>StCode</th>
                     <th>Caissier par défaut</th>
                     <th style="text-align: center;" width="280">Actions</th>
@@ -39,6 +40,11 @@
                     <tr>
                         <td class="fw-semibold">@item.ChkCode</td>
                         <td>@item.ChkDescription</td>
+                        <td>
+                            <span class="badge @(item.TypePointVente == "Boutique" ? "bg-secondary" : item.TypePointVente == "Bar" ? "bg-info text-dark" : "bg-warning text-dark")">
+                                <i class="fas @(item.TypePointVente == "Boutique" ? "fa-store" : item.TypePointVente == "Bar" ? "fa-martini-glass" : "fa-utensils")"></i> @item.TypePointVente
+                            </span>
+                        </td>
                         <td>@item.StCode</td>
                         <td>
                             <span class="badge bg-info text-dark">
@@ -50,6 +56,10 @@
                                    class="btn btn-success btn-sm">
                                 Ouvrir
                             </a>
+                            @if (item.TypePointVente != "Boutique" && (User.HasClaim(EasytransitCaisse.Services.AppClaimTypes.Profil, "Admin") || User.HasClaim(EasytransitCaisse.Services.AppClaimTypes.Profil, "SuperAdmin")))
+                            {
+                                <a href="/Salle/Index?caisse=@item.ID" class="btn btn-info btn-sm"><i class="fas fa-chair"></i> Plan de salle</a>
+                            }
                             <a href="/Caisse/Edit/@item.ID" class="btn btn-warning btn-sm">
                                 Modifier
                             </a>
@@ -82,7 +92,7 @@
                 lengthMenu: [10, 25, 50, 100],
                 order: [[1, 'asc']],
                 columnDefs: [
-                    { orderable: false, targets: 4 }
+                    { orderable: false, targets: 5 }
                 ],
                 dom: '<"d-flex justify-content-between align-items-center mb-3"lf>rtip'
             });

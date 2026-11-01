@@ -1,4 +1,4 @@
-﻿@model EasytransitCaisse.Models.Caisse
+@model EasytransitCaisse.Models.Caisse
 @{
     ViewData["Title"] = "Caisses";
 }
@@ -55,6 +55,8 @@
                             }
                         </select>
                     </div>
+
+                    <partial name="_TypePointVente" model="Model ?? new EasytransitCaisse.Models.Caisse()" />
                 </div>
 
                 <div class="d-flex justify-content-end gap-2">

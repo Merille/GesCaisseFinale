@@ -1,4 +1,4 @@
-﻿using EasytransitCaisse.Data;
+using EasytransitCaisse.Data;
 
 namespace EasytransitCaisse.Models
 {
@@ -24,5 +24,14 @@ namespace EasytransitCaisse.Models
         public string? CompteComptable { get; set; }
 
         public int TenantId { get; set; }
+
+        // Boutique, Restaurant ou Bar : en restaurant / bar, l'écran de vente s'ouvre sur le
+        // plan de salle et les commandes restent sur les tables jusqu'au paiement.
+        public string TypePointVente { get; set; } = "Boutique";
+
+        // Impression d'un bon de préparation à chaque envoi en cuisine / au bar.
+        public bool ImprimerBons { get; set; } = true;
+
+        public bool EstRestaurant => TypePointVente is "Restaurant" or "Bar";
     }
 }

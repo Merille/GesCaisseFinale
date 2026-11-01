@@ -1,4 +1,4 @@
-﻿using EasytransitCaisse.Data;
+using EasytransitCaisse.Data;
 using EasytransitCaisse.Models;
 using EasytransitCaisse.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -17,6 +17,10 @@ namespace EasytransitCaisse.Controllers
         {
             _context = context;
         }
+
+        // Boutique : vente au comptoir. Restaurant / Bar : plan de salle, commandes sur les
+        // tables, bons de préparation envoyés en cuisine ou au bar.
+        public static readonly string[] Types = { "Boutique", "Restaurant", "Bar" };
 
         // LISTE
         public IActionResult Index()
@@ -37,6 +41,7 @@ namespace EasytransitCaisse.Controllers
                     ChkCode = x.c.ChkCode,
                     ChkDescription = x.c.ChkDescription,
                     StCode = x.c.StCode,
+                    TypePointVente = x.c.TypePointVente,
                     CashierName = u != null ? u.NomComplet : null
                 })
             .ToList();
@@ -69,6 +74,8 @@ namespace EasytransitCaisse.Controllers
             caisse.ChkCode ??= "";
             caisse.ChkDescription ??= "";
             caisse.StCode ??= "";
+            if (!Types.Contains(caisse.TypePointVente))
+                caisse.TypePointVente = "Boutique";
 
             ModelState.Clear();
 
@@ -126,6 +133,8 @@ namespace EasytransitCaisse.Controllers
             existing.CustomerDefaultCode = caisse.CustomerDefaultCode;
             existing.JournalDefaultCode = caisse.JournalDefaultCode;
             existing.CompteComptable = caisse.CompteComptable;
+            existing.TypePointVente = Types.Contains(caisse.TypePointVente) ? caisse.TypePointVente : "Boutique";
+            existing.ImprimerBons = caisse.ImprimerBons;
 
             _context.SaveChanges();
 

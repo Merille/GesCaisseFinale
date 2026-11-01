@@ -1,0 +1,14 @@
+@model string
+@* Badge du poste de préparation (liste des catégories). *@
+@switch (Model)
+{
+    case "Bar":
+        <span class="badge bg-info text-dark"><i class="fas fa-martini-glass"></i> Bar</span>
+        break;
+    case "Aucun":
+        <span class="text-muted">—</span>
+        break;
+    default:
+        <span class="badge bg-warning text-dark"><i class="fas fa-utensils"></i> Cuisine</span>
+        break;
+}

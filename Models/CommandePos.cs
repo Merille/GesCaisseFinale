@@ -57,6 +57,14 @@ namespace EasytransitCaisse.Models
         [Precision(5, 2)]
         public decimal? RemiseGlobaleTaux { get; set; }
 
+        // Vente servie à table : table, couverts et pourboire (en plus du total TTC).
+        public string? TableNom { get; set; }
+
+        public int? Couverts { get; set; }
+
+        [Precision(18, 2)]
+        public decimal Pourboire { get; set; }
+
         public List<LigneCommandePos> Lignes { get; set; } = new();
 
         public List<PaiementPos> Paiements { get; set; } = new();
@@ -95,6 +103,9 @@ namespace EasytransitCaisse.Models
         // Part de la remise globale du ticket (TotalTTC est net de cette part).
         [Precision(18, 2)]
         public decimal RemiseGlobale { get; set; }
+
+        // Note de l'article (« sans oignon », « bien cuit »).
+        public string? Note { get; set; }
 
         public List<LigneCommandePosTaxe> Taxes { get; set; } = new();
     }

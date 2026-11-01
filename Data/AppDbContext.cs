@@ -129,6 +129,43 @@ namespace EasytransitCaisse.Data
             modelBuilder.Entity<MouvementStock>().Property(m => m.Reference).HasMaxLength(100);
             modelBuilder.Entity<MouvementStock>().Property(m => m.Commentaire).HasMaxLength(300);
 
+            // Restaurant / bar : salles, tables, commandes ouvertes, bons de préparation.
+            modelBuilder.Entity<Caisse>().Property(c => c.TypePointVente).HasMaxLength(20).HasDefaultValue("Boutique");
+            modelBuilder.Entity<Categorie>().Property(c => c.Preparation).HasMaxLength(20).HasDefaultValue("Cuisine");
+            modelBuilder.Entity<CommandePos>().Property(c => c.TableNom).HasMaxLength(60);
+            modelBuilder.Entity<LigneCommandePos>().Property(l => l.Note).HasMaxLength(200);
+
+            modelBuilder.Entity<Salle>().ToTable("Salles")
+                .HasQueryFilter(e => _currentTenantId == 0 || e.TenantId == _currentTenantId);
+            modelBuilder.Entity<Salle>()
+                .HasOne<Caisse>().WithMany().HasForeignKey(s => s.CaisseId)
+                .OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<Salle>()
+                .HasMany(s => s.Tables).WithOne().HasForeignKey(t => t.SalleId)
+                .OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<TableRestaurant>().ToTable("TablesRestaurant")
+                .HasQueryFilter(e => _currentTenantId == 0 || e.TenantId == _currentTenantId);
+
+            modelBuilder.Entity<CommandeOuverte>().ToTable("CommandesOuvertes")
+                .HasQueryFilter(e => _currentTenantId == 0 || e.TenantId == _currentTenantId);
+            modelBuilder.Entity<CommandeOuverte>()
+                .HasOne<JourneeCaisse>().WithMany().HasForeignKey(c => c.JourneeCaisseId)
+                .OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<CommandeOuverte>()
+                .HasIndex(c => c.TableId).IsUnique().HasFilter("[TableId] IS NOT NULL");
+
+            modelBuilder.Entity<BonPreparation>().ToTable("BonsPreparation")
+                .HasQueryFilter(e => _currentTenantId == 0 || e.TenantId == _currentTenantId);
+            modelBuilder.Entity<BonPreparation>()
+                .HasOne<JourneeCaisse>().WithMany().HasForeignKey(b => b.JourneeCaisseId)
+                .OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<BonPreparation>()
+                .HasIndex(b => new { b.CaisseId, b.Statut });
+            modelBuilder.Entity<BonPreparation>()
+                .HasMany(b => b.Lignes).WithOne().HasForeignKey(l => l.BonPreparationId)
+                .OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<LigneBonPreparation>().ToTable("LignesBonPreparation");
+
             // Point de vente : unités de vente.
             modelBuilder.Entity<UniteVente>().ToTable("Unites")
                 .HasQueryFilter(e => _currentTenantId == 0 || e.TenantId == _currentTenantId);
@@ -269,6 +306,16 @@ namespace EasytransitCaisse.Data
         public DbSet<Taxe> Taxes { get; set; }
 
         public DbSet<UniteVente> Unites { get; set; }
+
+        public DbSet<Salle> Salles { get; set; }
+
+        public DbSet<TableRestaurant> TablesRestaurant { get; set; }
+
+        public DbSet<CommandeOuverte> CommandesOuvertes { get; set; }
+
+        public DbSet<BonPreparation> BonsPreparation { get; set; }
+
+        public DbSet<LigneBonPreparation> LignesBonPreparation { get; set; }
 
         public DbSet<ProduitTaxe> ProduitTaxes { get; set; }
 

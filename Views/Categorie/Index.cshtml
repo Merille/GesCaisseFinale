@@ -25,6 +25,7 @@
             <thead class="table-dark">
                 <tr>
                     <th>Catégorie</th>
+                    <th class="text-center">Préparation</th>
                     <th class="text-center">Ordre</th>
                     <th class="text-center">Produits</th>
                     <th class="text-center">Actions</th>
@@ -33,18 +34,19 @@
             <tbody>
                 @if (!Model.Any())
                 {
-                    <tr><td colspan="4" class="text-center text-muted py-4">Aucune catégorie. Créez-en une pour regrouper les produits sur l'écran de vente.</td></tr>
+                    <tr><td colspan="5" class="text-center text-muted py-4">Aucune catégorie. Créez-en une pour regrouper les produits sur l'écran de vente.</td></tr>
                 }
                 @foreach (var c in Model)
                 {
                     <tr>
                         <td><span class="pastille-categorie" style="background: @c.Couleur"></span> <span class="fw-semibold">@c.Nom</span></td>
+                        <td class="text-center"><partial name="_BadgePreparation" model="c.Preparation" /></td>
                         <td class="text-center">@c.Ordre</td>
                         <td class="text-center"><a href="/Produit/Index?categorie=@c.Id">@(nbProduits.TryGetValue(c.Id, out var n) ? n : 0)</a></td>
                         <td class="text-center">
                             <div class="d-inline-flex gap-1">
                                 <button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#modalCategorie"
-                                        data-id="@c.Id" data-nom="@c.Nom" data-couleur="@c.Couleur" data-ordre="@c.Ordre">Modifier</button>
+                                        data-id="@c.Id" data-nom="@c.Nom" data-couleur="@c.Couleur" data-ordre="@c.Ordre" data-preparation="@c.Preparation">Modifier</button>
                                 <form asp-action="Delete" asp-route-id="@c.Id" method="post" class="d-inline"
                                       onsubmit="return confirm('Supprimer cette catégorie ?')">
                                     <button type="submit" class="btn btn-danger btn-sm">Supprimer</button>
@@ -80,7 +82,7 @@
                     </div>
                     <div class="carte-actions px-3 py-2 d-flex gap-2 justify-content-end">
                         <button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#modalCategorie"
-                                data-id="@c.Id" data-nom="@c.Nom" data-couleur="@c.Couleur" data-ordre="@c.Ordre">Modifier</button>
+                                data-id="@c.Id" data-nom="@c.Nom" data-couleur="@c.Couleur" data-ordre="@c.Ordre" data-preparation="@c.Preparation">Modifier</button>
                         <form asp-action="Delete" asp-route-id="@c.Id" method="post" onsubmit="return confirm('Supprimer cette catégorie ?')">
                             <button type="submit" class="btn btn-danger btn-sm">Supprimer</button>
                         </form>
@@ -113,6 +115,14 @@
                         <label class="form-label" for="categorieOrdre">Ordre d'affichage</label>
                         <input type="number" id="categorieOrdre" name="Ordre" class="form-control" value="0" />
                     </div>
+                    <div class="col-12">
+                        <label class="form-label" for="categoriePreparation">Préparation (restaurant / bar)</label>
+                        <select id="categoriePreparation" name="Preparation" class="form-select">
+                            <option value="Cuisine">Cuisine : bon envoyé en cuisine</option>
+                            <option value="Bar">Bar : bon envoyé au bar</option>
+                            <option value="Aucun">Aucune préparation (pas de bon)</option>
+                        </select>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
@@ -133,6 +143,7 @@
             document.getElementById('categorieNom').value = d.nom || '';
             document.getElementById('categorieCouleur').value = d.couleur || '#195d84';
             document.getElementById('categorieOrdre').value = d.ordre || '0';
+            document.getElementById('categoriePreparation').value = d.preparation || 'Cuisine';
         });
     </script>
 }

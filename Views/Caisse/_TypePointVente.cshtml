@@ -1,0 +1,22 @@
+@model EasytransitCaisse.Models.Caisse
+@* Type de point de vente (Boutique, Restaurant, Bar) et impression des bons de préparation. *@
+<div class="col-md-6 mb-3">
+    <label class="form-label" for="TypePointVente">Type de point de vente</label>
+    <select class="form-select" id="TypePointVente" name="TypePointVente">
+        @foreach (var t in EasytransitCaisse.Controllers.CaisseController.Types)
+        {
+            <option value="@t" selected="@(Model.TypePointVente == t)">@t</option>
+        }
+    </select>
+    <div class="form-text">Restaurant / Bar : plan de salle, commandes sur les tables, bons cuisine / bar.</div>
+</div>
+<div class="col-md-6 mb-3 d-flex align-items-center">
+    <div class="form-check">
+        <input class="form-check-input" type="checkbox" value="true" id="ImprimerBons" name="ImprimerBons" checked="@Model.ImprimerBons" />
+        <input type="hidden" name="ImprimerBons" value="false" />
+        <label class="form-check-label" for="ImprimerBons">
+            Imprimer un bon de préparation à chaque envoi en cuisine / au bar
+            <span class="d-block small text-muted">Les bons s'affichent aussi sur l'écran cuisine / bar.</span>
+        </label>
+    </div>
+</div>

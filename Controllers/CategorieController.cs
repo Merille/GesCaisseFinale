@@ -30,6 +30,9 @@ namespace EasytransitCaisse.Controllers
             return View(categories);
         }
 
+        // Poste de préparation en restaurant / bar : Cuisine, Bar ou Aucun (pas de bon).
+        public static string NormaliserPreparation(string? poste) => poste is "Bar" or "Aucun" ? poste : "Cuisine";
+
         // Couleur au format #rrggbb, sinon la couleur de la marque.
         public static string NormaliserCouleur(string? couleur)
         {
@@ -54,6 +57,7 @@ namespace EasytransitCaisse.Controllers
 
             categorie.Nom = categorie.Nom.Trim();
             categorie.Couleur = NormaliserCouleur(categorie.Couleur);
+            categorie.Preparation = NormaliserPreparation(categorie.Preparation);
             _context.Categories.Add(categorie);
             _context.SaveChanges();
             TempData["Success"] = "Catégorie créée.";
@@ -76,6 +80,7 @@ namespace EasytransitCaisse.Controllers
             existante.Nom = categorie.Nom.Trim();
             existante.Couleur = NormaliserCouleur(categorie.Couleur);
             existante.Ordre = categorie.Ordre;
+            existante.Preparation = NormaliserPreparation(categorie.Preparation);
             _context.SaveChanges();
             TempData["Success"] = "Catégorie modifiée.";
             return RedirectToAction("Index");

@@ -1,0 +1,24 @@
+@model EasytransitCaisse.Models.Caisse
+@{
+    ViewData["Title"] = "Plan de salle";
+}
+
+<partial name="_Messages" />
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+        <h4 class="mb-0"><i class="fas @(Model.TypePointVente == "Bar" ? "fa-martini-glass" : "fa-utensils")"></i> Plan de salle · @Model.ChkCode</h4>
+        <div class="small text-muted">@Model.ChkDescription · @Model.TypePointVente</div>
+    </div>
+    <a href="/Caisse/Index" class="btn btn-outline-secondary"><i class="fas fa-arrow-left"></i> Caisses</a>
+</div>
+<p class="small text-muted">
+    Créez les salles (salle principale, terrasse…) puis placez les tables comme dans le restaurant. À la caisse,
+    le serveur choisit la table sur ce plan ; la commande y reste jusqu'au paiement.
+</p>
+<div class="card shadow-sm border-0"><div class="card-body" id="plan-salle"></div></div>
+<script id="plan-donnees" type="application/json">@Html.Raw(System.Text.Json.JsonSerializer.Serialize((object)ViewBag.Donnees))</script>
+
+@section Scripts {
+    <script src="~/js/plan-salle.js" asp-append-version="true"></script>
+}

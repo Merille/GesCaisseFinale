@@ -16,5 +16,8 @@ namespace EasytransitCaisse.Models
         public string Couleur { get; set; } = "#195d84";
 
         public int Ordre { get; set; }
+
+        // Poste de préparation des produits en restaurant / bar : Cuisine, Bar ou Aucun (pas de bon).
+        public string Preparation { get; set; } = "Cuisine";
     }
 }
