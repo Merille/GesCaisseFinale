@@ -18,7 +18,7 @@ require __DIR__ . '/_onglets.php';
     <div class="card shadow-sm border-0">
         <div class="card-body table-responsive">
             <p class="small text-muted">Saisissez la quantité comptée en rayon. Laissez vide les produits non comptés. Chaque écart devient un mouvement « Inventaire ».</p>
-            <table class="table align-middle mb-0">
+            <table class="table align-middle mb-0" data-pagination="20" data-libelle="Produits">
                 <thead class="table-dark"><tr><th>Code</th><th>Produit</th><th>Catégorie</th><th class="text-end">Stock théorique</th><th style="width:160px">Stock compté</th><th class="text-end" style="width:110px">Écart</th></tr></thead>
                 <tbody>
                 <?php foreach ($produits as $p): ?>
@@ -42,6 +42,7 @@ require __DIR__ . '/_onglets.php';
     </div>
 </form>
 <?php ob_start(); ?>
+<script src="<?= asset('assets/js/pagination-saisie.js') ?>"></script>
 <script>
     document.querySelectorAll('.compte').forEach(function (champ) {
         champ.addEventListener('input', function () {
