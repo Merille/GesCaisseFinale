@@ -106,6 +106,7 @@ $badge = $nbJourneesOuvertes > 0
             <?= $lien('vente/index', 'vente', 'fa-receipt', 'Ventes') ?>
             <?php if (is_admin()): ?>
                 <?= $lien('posrapport/index', 'posrapport', 'fa-chart-pie', 'Rapports ventes') ?>
+                <?= $lien('stock/index', 'stock', 'fa-warehouse', 'Stock') ?>
                 <?php $configurationActif = in_array($module, ['categorie', 'produit'], true); ?>
                 <button type="button" class="sb-link sb-parent <?= $configurationActif ? 'parent-actif' : '' ?>" title="Configuration"
                         aria-expanded="<?= $configurationActif ? 'true' : 'false' ?>" aria-controls="sbConfiguration" onclick="basculerSousMenu(this)">
@@ -115,7 +116,6 @@ $badge = $nbJourneesOuvertes > 0
                     <?= $lien('categorie/index', 'categorie', 'fa-tags', 'Catégories') ?>
                     <?= $lien('produit/index', 'produit', 'fa-box-open', 'Produits') ?>
                 </div>
-                <?= $lien('stock/index', 'stock', 'fa-warehouse', 'Stock') ?>
             <?php endif; ?>
         </div>
         <?php if (is_admin()): ?>

@@ -201,6 +201,10 @@
                         <i class="fas fa-chart-pie"></i>
                         <span class="sb-label">Rapports ventes</span>
                     </a>
+                    <a class="sb-link @(controller == "Stock" ? "active" : "")" href="/Stock/Index" title="Stock">
+                        <i class="fas fa-warehouse"></i>
+                        <span class="sb-label">Stock</span>
+                    </a>
                     var configurationActif = controller is "Categorie" or "Produit";
                     <button type="button" class="sb-link sb-parent @(configurationActif ? "parent-actif" : "")" title="Configuration"
                             aria-expanded="@(configurationActif ? "true" : "false")" aria-controls="sbConfiguration" onclick="basculerSousMenu(this)">
@@ -218,10 +222,6 @@
                             <span class="sb-label">Produits</span>
                         </a>
                     </div>
-                    <a class="sb-link @(controller == "Stock" ? "active" : "")" href="/Stock/Index" title="Stock">
-                        <i class="fas fa-warehouse"></i>
-                        <span class="sb-label">Stock</span>
-                    </a>
                 }
             </div>
 
