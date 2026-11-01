@@ -42,7 +42,7 @@
                         <td>@item.ChkDescription</td>
                         <td>
                             <span class="badge @(item.TypePointVente == "Boutique" ? "bg-secondary" : item.TypePointVente == "Bar" ? "bg-info text-dark" : "bg-warning text-dark")">
-                                <i class="fas @(item.TypePointVente == "Boutique" ? "fa-store" : item.TypePointVente == "Bar" ? "fa-martini-glass" : "fa-utensils")"></i> @item.TypePointVente
+                                <i class="fas @(item.TypePointVente == "Boutique" ? "fa-store" : item.TypePointVente == "Bar" ? "fa-martini-glass" : "fa-utensils")"></i> @EasytransitCaisse.Controllers.CaisseController.Libelle(item.TypePointVente)
                             </span>
                         </td>
                         <td>@item.StCode</td>

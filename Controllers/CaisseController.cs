@@ -18,9 +18,12 @@ namespace EasytransitCaisse.Controllers
             _context = context;
         }
 
-        // Boutique : vente au comptoir. Restaurant / Bar : plan de salle, commandes sur les
-        // tables, bons de préparation envoyés en cuisine ou au bar.
+        // Boutique (affiché « Vente en détail ») : vente au comptoir. Restaurant / Bar : plan de
+        // salle, commandes sur les tables, bons de préparation envoyés en cuisine ou au bar.
         public static readonly string[] Types = { "Boutique", "Restaurant", "Bar" };
+
+        // Libellé affiché du type de point de vente.
+        public static string Libelle(string? type) => type is null or "Boutique" ? "Vente en détail" : type;
 
         // LISTE
         public IActionResult Index()

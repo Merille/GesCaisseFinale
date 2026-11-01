@@ -1,9 +1,15 @@
 <?php
 // Caisses : liste, création, modification, suppression, détail (journées) et impression.
 
-// Boutique : vente au comptoir. Restaurant / Bar : plan de salle, commandes sur les tables,
-// bons de préparation envoyés en cuisine ou au bar.
+// Boutique (affiché « Vente en détail ») : vente au comptoir. Restaurant / Bar : plan de salle,
+// commandes sur les tables, bons de préparation envoyés en cuisine ou au bar.
 const CAISSE_TYPES = ['Boutique', 'Restaurant', 'Bar'];
+
+/** Libellé affiché du type de point de vente. */
+function caisse_type_libelle(?string $type): string
+{
+    return ($type ?? 'Boutique') === 'Boutique' ? 'Vente en détail' : (string) $type;
+}
 
 function caisse_charger(int $id): array
 {

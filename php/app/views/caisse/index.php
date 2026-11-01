@@ -19,7 +19,7 @@
                     <td><?= h($c['ChkDescription']) ?></td>
                     <td><?php $type = $c['TypePointVente'] ?? 'Boutique'; ?>
                         <span class="badge <?= $type === 'Boutique' ? 'bg-secondary' : ($type === 'Bar' ? 'bg-info text-dark' : 'bg-warning text-dark') ?>">
-                            <i class="fa <?= $type === 'Boutique' ? 'fa-store' : ($type === 'Bar' ? 'fa-martini-glass' : 'fa-utensils') ?>"></i> <?= h($type) ?></span></td>
+                            <i class="fa <?= $type === 'Boutique' ? 'fa-store' : ($type === 'Bar' ? 'fa-martini-glass' : 'fa-utensils') ?>"></i> <?= h(caisse_type_libelle($type)) ?></span></td>
                     <td><?= h($c['StCode']) ?></td>
                     <td><?= $c['Caissier'] ? h($c['Caissier']) : '<span class="text-muted">—</span>' ?></td>
                     <td><?= h($c['CompteComptable']) ?></td>

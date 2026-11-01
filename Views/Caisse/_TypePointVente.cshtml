@@ -1,11 +1,11 @@
 @model EasytransitCaisse.Models.Caisse
-@* Type de point de vente (Boutique, Restaurant, Bar) et impression des bons de préparation. *@
+@* Type de point de vente (Vente en détail, Restaurant, Bar) et impression des bons de préparation. *@
 <div class="col-md-6 mb-3">
     <label class="form-label" for="TypePointVente">Type de point de vente</label>
     <select class="form-select" id="TypePointVente" name="TypePointVente">
         @foreach (var t in EasytransitCaisse.Controllers.CaisseController.Types)
         {
-            <option value="@t" selected="@(Model.TypePointVente == t)">@t</option>
+            <option value="@t" selected="@(Model.TypePointVente == t)">@EasytransitCaisse.Controllers.CaisseController.Libelle(t)</option>
         }
     </select>
     <div class="form-text">Restaurant / Bar : plan de salle, commandes sur les tables, bons cuisine / bar.</div>

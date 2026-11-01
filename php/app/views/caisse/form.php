@@ -37,7 +37,7 @@ require __DIR__ . '/../partials/form_debut.php';
                     <label class="form-label" for="TypePointVente<?= !empty($modale) ? 'M' : '' ?>">Type de point de vente</label>
                     <select class="form-select" id="TypePointVente<?= !empty($modale) ? 'M' : '' ?>" name="TypePointVente">
                         <?php foreach (CAISSE_TYPES as $t): ?>
-                            <option value="<?= h($t) ?>" <?= ($caisse['TypePointVente'] ?? 'Boutique') === $t ? 'selected' : '' ?>><?= h($t) ?></option>
+                            <option value="<?= h($t) ?>" <?= ($caisse['TypePointVente'] ?? 'Boutique') === $t ? 'selected' : '' ?>><?= h(caisse_type_libelle($t)) ?></option>
                         <?php endforeach; ?>
                     </select>
                     <div class="form-text">Restaurant / Bar : plan de salle, commandes sur les tables, bons cuisine / bar.</div>
