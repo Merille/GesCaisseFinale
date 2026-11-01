@@ -5,6 +5,7 @@ const {
     Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, AlignmentType, HeadingLevel,
     BorderStyle, WidthType, ShadingType, LevelFormat, Header, Footer, PageNumber, PageBreak, TabStopType
 } = require('docx');
+const sectionGarde = require('./page_de_garde');
 
 const BLEU = '195D84', BLEU_CLAIR = 'E6F0F7', GRIS = '5A6B78';
 const LARGEUR = 9638;   // A4 (11906) moins 2 × 1134 de marge
@@ -53,14 +54,11 @@ const encadre = (titre, texte) => new Paragraph({
 });
 
 // ---------------------------------------------------------------------------
-// Page de garde
+// Page de garde : image pleine page (pages_de_garde/), voir page_de_garde.js
 // ---------------------------------------------------------------------------
-const garde = [
-    new Paragraph({ spacing: { before: 1800, after: 0 }, children: [t('M-ITECH AFRICA', { bold: true, color: GRIS, size: 24 })] }),
-    new Paragraph({ spacing: { before: 200, after: 120 }, border: { bottom: { style: BorderStyle.SINGLE, size: 18, color: BLEU, space: 6 } },
-        children: [t('CAHIER DES CHARGES', { bold: true, color: BLEU, size: 56 })] }),
-    new Paragraph({ spacing: { before: 200, after: 80 }, children: [t('GesCaisse', { bold: true, size: 44 })] }),
-    new Paragraph({ spacing: { after: 600 }, children: [t('Application de gestion de caisse, de point de vente et de restauration', { size: 28, color: GRIS })] }),
+// Fiche du document (la page de garde est une image : voir generer_pages_de_garde.js)
+const fiche = [
+    new Paragraph({ spacing: { before: 480, after: 160 }, children: [t('Informations du document', { bold: true, color: BLEU, size: 24 })] }),
     tableau(['Rubrique', 'Information'], [
         ['Projet', 'GesCaisse — gestion de caisse et point de vente (POS)'],
         ['Éditeur', 'M-ITECH AFRICA'],
@@ -68,9 +66,7 @@ const garde = [
         ['Version du document', '1.1'],
         ['Date', 'Novembre 2026'],
         ['Statut', 'Document de référence (fonctionnalités réalisées)']
-    ], [3000, 6638]),
-    new Paragraph({ spacing: { before: 1400 }, alignment: AlignmentType.LEFT,
-        children: [t('Document confidentiel — usage interne et client.', { italics: true, color: GRIS, size: 18 })] })
+    ], [3000, 6638])
 ];
 
 // ---------------------------------------------------------------------------
@@ -380,10 +376,7 @@ const doc = new Document({
         }]
     },
     sections: [
-        {   // Page de garde : sans en-tête ni pied de page
-            properties: { page: { margin: { top: 1134, right: 1134, bottom: 1134, left: 1134 } } },
-            children: garde
-        },
+        sectionGarde('garde_cahier.jpg', 'Cahier des charges GesCaisse'),
         {
             properties: { page: { margin: { top: 1134, right: 1134, bottom: 1134, left: 1134 }, pageNumbers: { start: 2 } } },
             headers: { default: new Header({ children: [new Paragraph({
@@ -396,7 +389,7 @@ const doc = new Document({
                 children: [t('Page ', { size: 17, color: GRIS }), new TextRun({ children: [PageNumber.CURRENT], font: POLICE, size: 17, color: GRIS }),
                     t(' / ', { size: 17, color: GRIS }), new TextRun({ children: [PageNumber.TOTAL_PAGES], font: POLICE, size: 17, color: GRIS })]
             })] }) },
-            children: [...sommaire, ...contenu]
+            children: [...sommaire, ...fiche, ...contenu]
         }
     ]
 });
