@@ -145,16 +145,6 @@ $badge = $nbJourneesOuvertes > 0
     </nav>
 
     <div class="sb-footer">
-        <div class="sb-user">
-            <span class="sb-avatar" title="<?= h($u['nom']) ?>"><?= h($initiales) ?></span>
-            <div class="sb-user-text">
-                <strong><?= h($u['nom']) ?></strong>
-                <small><?= h($libelleProfil) ?></small>
-            </div>
-            <a class="sb-logout" href="<?= h(url('auth/logout')) ?>" title="Se déconnecter" aria-label="Se déconnecter">
-                <i class="fas fa-right-from-bracket"></i>
-            </a>
-        </div>
         <button type="button" class="sb-toggle" onclick="basculerMenu()" aria-label="Réduire ou agrandir le menu">
             <i class="fas fa-angles-left" id="sbToggleIcone"></i>
             <span class="sb-toggle-texte">Réduire le menu</span>
@@ -174,6 +164,16 @@ $badge = $nbJourneesOuvertes > 0
             <div class="topbar-societe">Consultation : <strong><?= h($societeConsultee) ?></strong></div>
         <?php endif; ?>
         <span class="topbar-icone" title="Notifications"><i class="fas fa-bell"></i></span>
+        <div class="topbar-user">
+            <span class="topbar-avatar" title="<?= h($u['nom']) ?>"><?= h($initiales) ?></span>
+            <div class="topbar-user-text">
+                <strong><?= h($u['nom']) ?></strong>
+                <small><?= h($libelleProfil) ?></small>
+            </div>
+            <a class="topbar-logout" href="<?= h(url('auth/logout')) ?>" title="Se déconnecter" aria-label="Se déconnecter">
+                <i class="fas fa-right-from-bracket"></i>
+            </a>
+        </div>
     </header>
 
     <div class="page-content">

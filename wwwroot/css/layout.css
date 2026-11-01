@@ -193,68 +193,6 @@
     gap: 8px;
 }
 
-.sb-user {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px;
-    border-radius: 12px;
-    background: var(--brand-dark);
-}
-
-.sb-avatar {
-    width: 34px;
-    height: 34px;
-    flex-shrink: 0;
-    border-radius: 50%;
-    background: var(--brand-grey);
-    color: var(--brand-darker);
-    font-weight: 800;
-    font-size: 13px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-transform: uppercase;
-}
-
-.sb-user-text {
-    display: flex;
-    flex-direction: column;
-    flex-grow: 1;
-    min-width: 0;
-    line-height: 1.2;
-}
-
-.sb-user-text strong {
-    font-size: 13px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.sb-user-text small {
-    font-size: 11px;
-    color: #b9c9d4;
-}
-
-.sb-logout {
-    width: 34px;
-    height: 34px;
-    flex-shrink: 0;
-    border-radius: 8px;
-    border: 1px solid #2f6d92;
-    color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-decoration: none;
-}
-
-.sb-logout:hover {
-    background: rgba(255, 255, 255, .12);
-    color: #fff;
-}
-
 .sb-toggle {
     height: 34px;
     border: 0;
@@ -335,6 +273,69 @@
     justify-content: center;
 }
 
+/* Utilisateur connecté (initiales, nom, profil, déconnexion) dans la barre du haut. */
+.topbar-user {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 4px 4px 6px;
+    border-radius: 12px;
+    border: 1px solid #6f9fbd;
+    flex-shrink: 0;
+}
+
+.topbar-avatar {
+    width: 34px;
+    height: 34px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: var(--brand-grey);
+    color: var(--brand-darker);
+    font-weight: 800;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-transform: uppercase;
+}
+
+.topbar-user-text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+    max-width: 180px;
+}
+
+.topbar-user-text strong {
+    font-size: 13px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.topbar-user-text small {
+    font-size: 11px;
+    color: #cfe0ea;
+}
+
+.topbar-logout {
+    width: 34px;
+    height: 34px;
+    flex-shrink: 0;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, .12);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+}
+
+.topbar-logout:hover {
+    background: rgba(255, 255, 255, .25);
+    color: #fff;
+}
+
 .page-content {
     padding: 30px;
 }
@@ -352,8 +353,6 @@ html.sidebar-replie .sb-brand-text,
 html.sidebar-replie .sb-societe,
 html.sidebar-replie .sb-label,
 html.sidebar-replie .sb-badge,
-html.sidebar-replie .sb-user-text,
-html.sidebar-replie .sb-avatar,
 html.sidebar-replie .sb-toggle-texte {
     display: none;
 }
@@ -367,8 +366,7 @@ html.sidebar-replie .sb-section-title {
 }
 
 html.sidebar-replie .sb-brand,
-html.sidebar-replie .sb-link,
-html.sidebar-replie .sb-user {
+html.sidebar-replie .sb-link {
     justify-content: center;
 }
 
@@ -389,8 +387,6 @@ html.sidebar-replie .sb-link {
     .sb-societe,
     .sb-label,
     .sb-badge,
-    .sb-user-text,
-    .sb-avatar,
     .sb-toggle {
         display: none;
     }
@@ -404,8 +400,7 @@ html.sidebar-replie .sb-link {
     }
 
     .sb-brand,
-    .sb-link,
-    .sb-user {
+    .sb-link {
         justify-content: center;
     }
 
@@ -417,7 +412,8 @@ html.sidebar-replie .sb-link {
         padding: 10px 16px;
     }
 
-    .topbar-societe {
+    .topbar-societe,
+    .topbar-user-text {
         display: none;
     }
 
