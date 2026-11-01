@@ -24,7 +24,7 @@ $rubrique = match ($module) {
     'pos', 'vente', 'stock', 'posrapport', 'cuisine' => 'Point de vente',
     'salle' => 'Activité',
     'produit', 'categorie', 'combo' => 'Configuration',
-    'utilisateur', 'motif', 'modepaiement', 'taxe', 'unite' => 'Paramètres',
+    'utilisateur', 'motif', 'modepaiement', 'taxe', 'unite', 'societe' => 'Paramètres',
     'tenant' => 'Administration',
     default => null,
 };
@@ -128,12 +128,15 @@ $badge = $nbJourneesOuvertes > 0
         <?php if (is_admin()): ?>
         <div class="sb-section">
             <div class="sb-section-title">Administration</div>
-            <?php $parametresActif = in_array($module, ['utilisateur', 'motif', 'modepaiement', 'taxe', 'unite'], true); ?>
+            <?php $parametresActif = in_array($module, ['utilisateur', 'motif', 'modepaiement', 'taxe', 'unite', 'societe'], true); ?>
             <button type="button" class="sb-link sb-parent <?= $parametresActif ? 'parent-actif' : '' ?>" title="Paramètres"
                     aria-expanded="<?= $parametresActif ? 'true' : 'false' ?>" aria-controls="sbParametres" onclick="basculerSousMenu(this)">
                 <i class="fas fa-gear"></i><span class="sb-label">Paramètres</span><i class="fas fa-chevron-down sb-chevron"></i>
             </button>
             <div class="sb-sub <?= $parametresActif ? 'open' : '' ?>" id="sbParametres">
+                <?php if (tenant_id() > 0): ?>
+                    <?= $lien('societe/index', 'societe', 'fa-building-circle-check', 'Ma société') ?>
+                <?php endif; ?>
                 <?= $lien('utilisateur/index', 'utilisateur', 'fa-user-shield', 'Utilisateurs') ?>
                 <?= $lien('motif/index', 'motif', 'fa-list-ul', 'Motifs') ?>
                 <?= $lien('modepaiement/index', 'modepaiement', 'fa-money-check-dollar', 'Modes de paiement') ?>

@@ -39,7 +39,7 @@
         "Pos" or "Vente" or "Stock" or "PosRapport" or "Cuisine" => "Point de vente",
         "Salle" => "Activité",
         "Produit" or "Categorie" or "Combo" => "Configuration",
-        "Utilisateur" or "Motif" or "ModePaiement" or "Taxe" or "Unite" => "Paramètres",
+        "Utilisateur" or "Motif" or "ModePaiement" or "Taxe" or "Unite" or "Societe" => "Paramètres",
         "Tenant" => "Administration",
         _ => null
     };
@@ -251,7 +251,7 @@
             <div class="sb-section">
                 <div class="sb-section-title">Administration</div>
                 @{
-                    var parametresActif = controller is "Utilisateur" or "Motif" or "ModePaiement" or "Taxe" or "Unite";
+                    var parametresActif = controller is "Utilisateur" or "Motif" or "ModePaiement" or "Taxe" or "Unite" or "Societe";
                 }
                 <button type="button" class="sb-link sb-parent @(parametresActif ? "parent-actif" : "")" title="Paramètres"
                         aria-expanded="@(parametresActif ? "true" : "false")" aria-controls="sbParametres" onclick="basculerSousMenu(this)">
@@ -260,6 +260,13 @@
                     <i class="fas fa-chevron-down sb-chevron"></i>
                 </button>
                 <div class="sb-sub @(parametresActif ? "open" : "")" id="sbParametres">
+                    @if (TenantProvider.TenantId > 0)
+                    {
+                    <a class="sb-link @(controller == "Societe" ? "active" : "")" href="/Societe/Index" title="Ma société">
+                        <i class="fas fa-building-circle-check"></i>
+                        <span class="sb-label">Ma société</span>
+                    </a>
+                    }
                     <a class="sb-link @(controller == "Utilisateur" ? "active" : "")" href="/Utilisateur/Index" title="Utilisateurs">
                         <i class="fas fa-user-shield"></i>
                         <span class="sb-label">Utilisateurs</span>

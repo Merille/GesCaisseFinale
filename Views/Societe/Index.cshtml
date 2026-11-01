@@ -1,0 +1,50 @@
+@model EasytransitCaisse.Models.Tenant
+@{
+    ViewData["Title"] = "Ma société";
+}
+
+<partial name="_Messages" />
+@if (ViewBag.Erreur != null)
+{
+    <div class="alert alert-danger">@ViewBag.Erreur</div>
+}
+
+<div class="row g-4" style="max-width: 1100px;">
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-brand text-white"><h5 class="mb-0">Coordonnées de la société</h5></div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data">
+                    @Html.AntiForgeryToken()
+                    <partial name="~/Views/Tenant/_Coordonnees.cshtml" model="Model" />
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-floppy-disk"></i> Enregistrer</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-brand text-white"><h5 class="mb-0">Compte</h5></div>
+            <div class="card-body">
+                <dl class="mb-0">
+                    <dt class="small text-muted">Nom</dt><dd class="fw-semibold">@Model.Nom</dd>
+                    <dt class="small text-muted">Code</dt><dd>@Model.Code</dd>
+                    <dt class="small text-muted">Mode d'accès</dt><dd>@Model.ModeAcces</dd>
+                    <dt class="small text-muted">Expiration</dt><dd>@(Model.DateExpiration?.ToString("dd/MM/yyyy") ?? "Sans limite")</dd>
+                    <dt class="small text-muted">Point de vente</dt>
+                    <dd>
+                        @if (Model.ModulePointVente)
+                        {
+                            <span class="badge text-bg-success">Activé</span>
+                        }
+                        else
+                        {
+                            <span class="badge text-bg-secondary">Non activé</span>
+                        }
+                    </dd>
+                </dl>
+                <div class="form-text mt-3">Pour changer ces informations, contactez votre fournisseur (super-administrateur).</div>
+            </div>
+        </div>
+    </div>
+</div>

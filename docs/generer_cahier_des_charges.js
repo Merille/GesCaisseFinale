@@ -120,7 +120,7 @@ const contenu = [
         ['Analyse', "Rapports d'opérations, export Sage"],
         ['Point de vente', 'Vente, ventes (retours, annulations), écran cuisine / bar, rapports de ventes, stock'],
         ['Configuration', 'Catégories, produits (variantes, combos), combos'],
-        ['Paramètres', 'Utilisateurs, motifs, modes de paiement, taxes, unités de vente'],
+        ['Paramètres', 'Ma société, utilisateurs, motifs, modes de paiement, taxes, unités de vente'],
         ['Administration', 'Sociétés et licences (super-administrateur)']
     ], [2600, 7038]),
     espace(),
@@ -135,7 +135,7 @@ const contenu = [
     p('Chaque utilisateur appartient à une société (sauf le super-administrateur) et possède un profil :'),
     tableau(['Profil', 'Rôle', 'Accès principaux'], [
         ['SuperAdmin', 'Administrateur de la plateforme', 'Toutes les sociétés (choix de la « société consultée »), création des sociétés, prolongation des licences, toutes les fonctions'],
-        ['Admin', 'Responsable de la société', 'Catalogue, stock, paramètres, utilisateurs, plan de salle, rapports de ventes, retours et annulations, modification des prix au point de vente'],
+        ['Admin', 'Responsable de la société', 'Coordonnées et logo de sa société, catalogue, stock, paramètres, utilisateurs, plan de salle, rapports de ventes, retours et annulations, modification des prix au point de vente'],
         ['Caissier', 'Tenue de caisse', 'Journées de caisse, opérations, point de vente, ventes ; validation des opérations si le droit lui est accordé'],
         ['Vendeur', 'Vente au comptoir ou en salle', 'Point de vente, écran cuisine / bar, consultation des ventes']
     ], [1700, 2500, 5438]),
@@ -144,6 +144,8 @@ const contenu = [
     p('Attribuable à un caissier ou un vendeur, il autorise la validation des opérations de caisse, la remise globale sur un ticket, les retours et les annulations de ventes.'),
     h3('Licence de la société'),
     p("Chaque société a une date d'expiration de licence, prolongée par le super-administrateur (de 1 à 120 mois). À l'expiration, les utilisateurs de la société sont redirigés vers une page « compte suspendu »."),
+    h3('Ma société (Paramètres)'),
+    p("L'administrateur modifie lui-même les coordonnées de sa société (adresse, ville, pays, e-mail, téléphone, NIF) et son logo, repris en en-tête des tickets, factures et impressions. Le nom, le code, la licence et les modules sont affichés en lecture seule : ils restent gérés par le super-administrateur."),
     h3('Module Point de vente optionnel'),
     p("À la création (ou en modification) d'une société, le super-administrateur choisit si elle dispose du module Point de vente. Sans ce module, la société n'a que la gestion de caisse (journées, opérations, tiers, factures, rapports) : les menus Point de vente, Configuration, Taxes et Unités de vente sont masqués et leurs pages refusées, même par leur adresse."),
 
