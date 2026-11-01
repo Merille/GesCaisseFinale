@@ -18,13 +18,15 @@ $routes = [
     'tenant'      => ['index', 'create', 'edit', 'prolonger', 'consulter'],
     'rapport'     => ['operations', 'preview', 'sage'],
     'facture'     => ['index', 'create', 'edit', 'ligne', 'supprimerligne', 'valider', 'print'],
-    'pos'         => ['index', 'vendre', 'ticket'],
+    'pos'         => ['index', 'vendre', 'ticket', 'plan', 'commande', 'enregistrer', 'envoyer', 'transferer', 'addition', 'bon'],
+    'cuisine'     => ['index', 'bons', 'statut'],
     'vente'       => ['index', 'details', 'facture', 'retour', 'annuler'],
     'stock'       => ['index', 'entree', 'inventaire', 'option'],
     'posrapport'  => ['index', 'preview', 'excel'],
     'image'       => ['produit', 'societe'],
     'produit'     => ['index', 'create', 'edit', 'delete', 'export', 'import', 'genvariantes', 'majvariantes'],
     'categorie'   => ['index', 'save', 'delete'],
+    'salle'       => ['index', 'enregistrer'],
 ];
 
 $route = (string) ($_GET['r'] ?? (user() ? 'dashboard/index' : 'auth/login'));
@@ -43,7 +45,7 @@ if ($module !== 'auth') {
 csrf_check();
 
 // Modules d'administration (et catalogue du point de vente) réservés aux profils Admin et SuperAdmin.
-if (in_array($module, ['utilisateur', 'motif', 'modepaiement', 'taxe', 'unite', 'produit', 'categorie', 'stock', 'posrapport'], true)) {
+if (in_array($module, ['utilisateur', 'motif', 'modepaiement', 'taxe', 'unite', 'produit', 'categorie', 'stock', 'posrapport', 'salle'], true)) {
     require_admin();
 }
 

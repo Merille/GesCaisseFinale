@@ -1,6 +1,10 @@
 <?php
 // Caisses : liste, création, modification, suppression, détail (journées) et impression.
 
+// Boutique : vente au comptoir. Restaurant / Bar : plan de salle, commandes sur les tables,
+// bons de préparation envoyés en cuisine ou au bar.
+const CAISSE_TYPES = ['Boutique', 'Restaurant', 'Bar'];
+
 function caisse_charger(int $id): array
 {
     $c = q1('SELECT * FROM Caisses WHERE ID = ? AND ' . tf(), [$id]);
@@ -33,16 +37,18 @@ function caisse_valeurs(): array
         post('StCode', ''),
         int_or_null(post('CashierDefault')),
         post('CompteComptable') ?: null,
+        in_array(post('TypePointVente'), CAISSE_TYPES, true) ? post('TypePointVente') : 'Boutique',
+        post('ImprimerBons') ? 1 : 0,
     ];
 }
 
 function caisse_create(): void
 {
     if (is_post()) {
-        [$code, $desc, $st, $caissier, $compte] = caisse_valeurs();
+        [$code, $desc, $st, $caissier, $compte, $type, $bons] = caisse_valeurs();
         run(
-            'INSERT INTO Caisses (ChkCode, ChkDescription, StCode, CashierDefault, CompteComptable, TenantId) VALUES (?, ?, ?, ?, ?, ?)',
-            [$code, $desc, $st, $caissier, $compte, tenant_insert()]
+            'INSERT INTO Caisses (ChkCode, ChkDescription, StCode, CashierDefault, CompteComptable, TypePointVente, ImprimerBons, TenantId) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            [$code, $desc, $st, $caissier, $compte, $type, $bons, tenant_insert()]
         );
         flash('success', 'Caisse créée.');
         redirect('caisse/index');
@@ -54,10 +60,10 @@ function caisse_edit(): void
 {
     $caisse = caisse_charger((int) get('id'));
     if (is_post()) {
-        [$code, $desc, $st, $caissier, $compte] = caisse_valeurs();
+        [$code, $desc, $st, $caissier, $compte, $type, $bons] = caisse_valeurs();
         run(
-            'UPDATE Caisses SET ChkCode = ?, ChkDescription = ?, StCode = ?, CashierDefault = ?, CompteComptable = ? WHERE ID = ?',
-            [$code, $desc, $st, $caissier, $compte, $caisse['ID']]
+            'UPDATE Caisses SET ChkCode = ?, ChkDescription = ?, StCode = ?, CashierDefault = ?, CompteComptable = ?, TypePointVente = ?, ImprimerBons = ? WHERE ID = ?',
+            [$code, $desc, $st, $caissier, $compte, $type, $bons, $caisse['ID']]
         );
         flash('success', 'Caisse modifiée.');
         redirect('caisse/index');

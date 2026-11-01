@@ -153,6 +153,13 @@ function journee_cloturer(): void
     if ($journee['Statut'] === 'Cloturee') {
         redirect('journee/details', ['id' => $journee['Id']]);
     }
+    // Restaurant / bar : les commandes encore ouvertes sur les tables doivent être encaissées.
+    $ouvertes = q('SELECT t.Nom FROM CommandesOuvertes co LEFT JOIN TablesRestaurant t ON t.Id = co.TableId WHERE co.JourneeCaisseId = ?', [$journee['Id']]);
+    if ($ouvertes) {
+        flash('danger', 'Clôture impossible : ' . count($ouvertes) . ' table(s) ont encore une commande en cours (' . implode(', ', array_map(fn($o) => $o['Nom'] ?? '?', $ouvertes))
+            . '). Encaissez-les ou videz-les depuis le point de vente.');
+        redirect('journee/details', ['id' => $journee['Id']]);
+    }
 
     $theoriques = [];
     foreach (totaux_par_mode((int) $journee['Id']) as $t) {

@@ -1,0 +1,36 @@
+/* Écran cuisine / bar (commun aux versions .NET et PHP). */
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body.cui-body { background: #1d2a33; color: #1d2a33; font-family: "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif; }
+.cui { min-height: 100vh; display: flex; flex-direction: column; }
+.cui-top { display: flex; align-items: center; gap: 14px; padding: 10px 18px; background: #195d84; color: #fff; position: sticky; top: 0; z-index: 2; }
+.cui-logo { width: 40px; height: 40px; border-radius: 10px; background: #fff; color: #195d84; display: grid; place-items: center; font-size: 20px; }
+.cui-titre { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.cui-titre strong { font-size: 18px; }
+.cui-titre small { opacity: .85; }
+.cui-postes { display: flex; gap: 6px; }
+.cui-postes button, .cui-retour { border: 1px solid rgba(255, 255, 255, .5); background: transparent; color: #fff; border-radius: 20px; padding: 6px 14px; font-size: 14px; cursor: pointer; text-decoration: none; }
+.cui-postes button.on { background: #fff; color: #195d84; font-weight: 600; }
+.cui-erreur { background: #b8323a; color: #fff; padding: 8px 18px; }
+.cui-grille { flex: 1; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; padding: 16px 18px; align-content: start; }
+.cui-vide { grid-column: 1 / -1; color: #c8d3db; text-align: center; padding: 80px 0; font-size: 20px; }
+.cui-vide i { display: block; font-size: 48px; margin-bottom: 12px; opacity: .6; }
+.cui-bon { background: #fff; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; border-top: 8px solid #198754; box-shadow: 0 4px 14px rgba(0, 0, 0, .25); }
+.cui-bon.attente { border-top-color: #f0a500; }
+.cui-bon.retard { border-top-color: #b8323a; }
+.cui-bon header { display: flex; justify-content: space-between; align-items: baseline; padding: 10px 14px 2px; }
+.cui-bon header strong { font-size: 20px; }
+.cui-bon header span { color: #5a6b78; font-weight: 600; }
+.cui-info { display: flex; gap: 14px; padding: 0 14px; color: #5a6b78; font-size: 13px; }
+.cui-serveur { padding: 2px 14px 6px; color: #5a6b78; font-size: 13px; }
+.cui-bon ul { list-style: none; margin: 0; padding: 8px 14px; border-top: 1px dashed #d5dee6; flex: 1; }
+.cui-bon li { font-size: 17px; padding: 4px 0; }
+.cui-bon li.annule { color: #b8323a; text-decoration: line-through; }
+.cui-bon li em { font-style: normal; font-weight: 700; text-decoration: none; display: inline-block; }
+.cui-bon .note { font-size: 14px; font-style: italic; color: #8a5a00; padding-left: 18px; }
+.cui-bon > button { border: 0; background: #198754; color: #fff; font-size: 18px; font-weight: 600; padding: 14px; cursor: pointer; }
+.cui-bon > button:disabled { opacity: .6; }
+.cui-prets { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 18px 16px; color: #c8d3db; }
+.cui-prets button { border: 1px solid #5a6b78; background: #2a3a45; color: #e6edf2; border-radius: 16px; padding: 4px 12px; cursor: pointer; }
+.cui-choix { max-width: 640px; margin: 60px auto; background: #fff; border-radius: 12px; padding: 24px; }
+.cui-choix a { display: block; padding: 12px 16px; margin-top: 8px; border: 1px solid #d5dee6; border-radius: 10px; color: #195d84; text-decoration: none; font-weight: 600; }

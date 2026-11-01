@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <title>Écran cuisine / bar - GesCaisse</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="<?= asset('assets/css/cuisine.css') ?>">
+</head>
+<body class="cui-body">
+<div class="cui-choix">
+    <h2><i class="fas fa-fire-burner"></i> Écran cuisine / bar</h2>
+    <?php if (!$caisses): ?>
+        <p>Aucune caisse de type Restaurant ou Bar. Changez le type d'une caisse dans <a href="<?= h(url('caisse/index')) ?>" style="display:inline;padding:0;border:0">Caisses</a>.</p>
+    <?php else: ?>
+        <p>Choisissez la caisse dont vous préparez les commandes :</p>
+        <?php foreach ($caisses as $c): ?>
+            <a href="<?= h(url('cuisine/index', ['caisse' => $c['ID']])) ?>"><i class="fas <?= $c['TypePointVente'] === 'Bar' ? 'fa-martini-glass' : 'fa-utensils' ?>"></i>
+                <?= h($c['ChkCode']) ?> · <?= h($c['ChkDescription']) ?></a>
+        <?php endforeach; ?>
+    <?php endif; ?>
+    <a href="<?= h(url('dashboard/index')) ?>"><i class="fas fa-arrow-left"></i> Retour</a>
+</div>
+</body>
+</html>

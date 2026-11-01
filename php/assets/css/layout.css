@@ -520,3 +520,93 @@ html.sidebar-replie .sb-sub {
     --bs-table-hover-bg: var(--brand, #195d84);
     --bs-table-hover-color: #fff;
 }
+
+/* ---------- Plan de salle (restaurant / bar) : éditeur ---------- */
+.plan-zone {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 10 / 6;
+    background-color: #f4f7fa;
+    background-image: linear-gradient(rgba(25, 93, 132, .07) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(25, 93, 132, .07) 1px, transparent 1px);
+    background-size: 5% 8.333%;
+    border: 1px solid #d5dee6;
+    border-radius: 10px;
+    overflow: hidden;
+    touch-action: none;
+    user-select: none;
+}
+
+.plan-zone-vide {
+    aspect-ratio: auto;
+    min-height: 220px;
+}
+
+.plan-vide {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #6c7a86;
+}
+
+.plan-table {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    background: #fff;
+    border: 2px solid var(--brand);
+    border-radius: 10px;
+    color: var(--brand);
+    cursor: grab;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, .08);
+    font-size: .85rem;
+    overflow: hidden;
+}
+
+.plan-table.ronde {
+    border-radius: 50%;
+}
+
+.plan-table.sel {
+    border-color: #f0a500;
+    box-shadow: 0 0 0 3px rgba(240, 165, 0, .35);
+}
+
+.plan-table .nom {
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 90%;
+}
+
+.plan-table .places {
+    font-size: .75rem;
+    color: #6c7a86;
+}
+
+.plan-table .poignee {
+    position: absolute;
+    right: 2px;
+    bottom: 2px;
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    background: #f0a500;
+    cursor: nwse-resize;
+}
+
+.btn-pulse {
+    box-shadow: 0 0 0 0 rgba(25, 135, 84, .6);
+    animation: pulse-enregistrer 1.6s infinite;
+}
+
+@keyframes pulse-enregistrer {
+    70% { box-shadow: 0 0 0 10px rgba(25, 135, 84, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(25, 135, 84, 0); }
+}

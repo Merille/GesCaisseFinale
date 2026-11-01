@@ -29,6 +29,9 @@ $peutAnnuler = $peutRembourser && !$estRetour && $vente['Statut'] === 'Payée' &
     <div class="col-md-3"><div class="card h-100 border-0 shadow-sm"><div class="card-body">
         <div class="small text-muted">Vendeur</div><div class="fw-bold"><?= h($vente['Vendeur']) ?></div>
         <div class="small text-muted mt-2">Client</div><div><?= $vente['Client'] ? h($vente['Client']) : '—' ?></div>
+        <?php if (!empty($vente['TableNom'])): ?>
+            <div class="small text-muted mt-2">Table</div><div><i class="fa fa-utensils"></i> <?= h($vente['TableNom']) ?><?= $vente['Couverts'] ? ' · ' . (int) $vente['Couverts'] . ' couvert(s)' : '' ?></div>
+        <?php endif; ?>
     </div></div></div>
     <div class="col-md-3"><div class="card h-100 border-0 shadow-sm"><div class="card-body">
         <div class="small text-muted">Total TTC</div>
@@ -73,7 +76,7 @@ $peutAnnuler = $peutRembourser && !$estRetour && $vente['Statut'] === 'Payée' &
                     <tbody>
                     <?php foreach ($lignes as $l): ?>
                         <tr>
-                            <td><?= h($l['Libelle']) ?></td>
+                            <td><?= h($l['Libelle']) ?><?php if (!empty($l['Note'])): ?><div class="small fst-italic text-muted">» <?= h($l['Note']) ?></div><?php endif; ?></td>
                             <td class="text-end"><?= quantite_fr($l['Quantite']) ?></td>
                             <td class="text-end"><?= fcfa($l['PrixUnitaire']) ?></td>
                             <td class="text-end"><?= (float) $l['Remise'] > 0 ? quantite_fr($l['Remise']) . ' %' : '' ?></td>
@@ -94,6 +97,9 @@ $peutAnnuler = $peutRembourser && !$estRetour && $vente['Statut'] === 'Payée' &
                 <?php endforeach; ?>
                 <?php if ((float) $vente['MonnaieRendue'] > 0): ?>
                     <li class="list-group-item d-flex justify-content-between text-muted"><span>Monnaie rendue</span><span><?= fcfa($vente['MonnaieRendue']) ?></span></li>
+                <?php endif; ?>
+                <?php if ((float) ($vente['Pourboire'] ?? 0) > 0): ?>
+                    <li class="list-group-item d-flex justify-content-between"><span><i class="fa fa-hand-holding-heart"></i> Pourboire</span><span class="fw-semibold"><?= fcfa($vente['Pourboire']) ?></span></li>
                 <?php endif; ?>
             </ul>
         </div>

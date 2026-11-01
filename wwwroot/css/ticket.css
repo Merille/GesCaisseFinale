@@ -16,3 +16,10 @@ hr { border: 0; border-top: 1px dashed #000; margin: 2mm 0; }
     body { padding: 12px 0; }
     .ticket { background: #fff; padding: 5mm 4mm 7mm; box-shadow: 0 6px 24px rgba(0, 0, 0, .18); }
 }
+/* Restaurant / bar : notes d'articles, bons de préparation (un par page), addition. */
+.note { font-style: italic; }
+.tres-grand { font-size: 18px; }
+.bon-ligne { font-size: 15px; font-weight: bold; margin: 1mm 0; }
+.bon-ligne.annule { text-decoration: line-through; }
+.saut { break-after: page; }
+@media screen { .saut { margin-bottom: 12px; } }

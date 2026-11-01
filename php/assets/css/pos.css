@@ -185,3 +185,49 @@ body.pos-body { margin: 0; background: var(--pos-bg); color: #1d2a35; font-famil
     .pos-modes, .pos-droite2, .pos-fin { width: auto; }
     .pos-apercu { min-height: 60vh; }
 }
+
+/* Restaurant / bar : plan de salle */
+.pos-plan-zone { flex-grow: 1; min-height: 0; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.pos-plan { position: relative; flex-grow: 1; min-height: 0; width: 100%; max-height: 100%; aspect-ratio: 10 / 6; margin: 0 auto; background: #fff;
+    background-image: linear-gradient(rgba(25, 93, 132, .05) 1px, transparent 1px), linear-gradient(90deg, rgba(25, 93, 132, .05) 1px, transparent 1px);
+    background-size: 5% 8.333%; border: 1px solid #d6dee5; border-radius: 14px; }
+.pos-tablepl { position: absolute; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border-radius: 12px;
+    border: 2px solid #b7c6d1; background: #f7f9fb; color: #33444f; cursor: pointer; padding: 4px; overflow: hidden; box-shadow: 0 2px 6px rgba(0, 0, 0, .06); }
+.pos-tablepl.ronde { border-radius: 50%; }
+.pos-tablepl:hover { transform: scale(1.03); }
+.pos-tablepl .n { font-weight: 800; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 92%; }
+.pos-tablepl .t { font-weight: 700; font-size: 14px; }
+.pos-tablepl .d { font-size: 12px; opacity: .85; }
+.pos-tablepl.occupee { background: var(--pos-brand); border-color: var(--pos-brand-dark); color: #fff; }
+.pos-tablepl.addition { background: var(--pos-warn); border-color: #b86a1d; color: #fff; }
+.pos-tablepl .pastille, .pos-plan-legende .pastille { width: 12px; height: 12px; border-radius: 50%; background: #e04848; border: 2px solid #fff; }
+.pos-tablepl .pastille { position: absolute; top: 8%; right: 12%; }
+.pos-plan-vide { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #6c7a86; }
+.pos-plan-vide.seul { position: static; flex-direction: column; gap: 10px; text-align: center; padding: 60px 20px; background: #fff; border-radius: 14px; line-height: 1.6; }
+.pos-plan-vide.seul i { font-size: 40px; opacity: .5; }
+.pos-plan-legende { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 13px; color: #5a6b78; }
+.pos-plan-legende span:not(.pastille) { width: 16px; height: 16px; border-radius: 4px; border: 2px solid #b7c6d1; background: #f7f9fb; margin-left: 6px; }
+.pos-plan-legende span.occupee { background: var(--pos-brand); border-color: var(--pos-brand-dark); }
+.pos-plan-legende span.addition { background: var(--pos-warn); border-color: #b86a1d; }
+.pos-plan-legende .pastille { display: inline-block; margin-left: 6px; border-color: #eef2f5; }
+.pos-tab.plan { background: rgba(255, 255, 255, .2); color: #fff; font-weight: 600; }
+
+/* Restaurant / bar : commande de table */
+.pos-actions.resto { padding-top: 0; }
+.pos-act.envoyer.actif { background: #fff4e5; border-color: var(--pos-warn); color: #8a4b0f; font-weight: 600; }
+.pos-act.envoyer b { background: var(--pos-warn); color: #fff; border-radius: 10px; padding: 0 7px; margin-left: 4px; }
+.pos-ligne .note { font-size: 12px; font-style: italic; color: #8a5a00; margin-top: 2px; }
+.pos-ligne .envoye { color: #1e8a4c; }
+.pos-couverts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 14px 18px 0; }
+.pos-couverts button { padding: 14px 0; font-size: 20px; font-weight: 700; border-radius: 10px; border: 1px solid #cfd8df; background: #f7f9fb; cursor: pointer; }
+.pos-couverts button:hover { background: var(--pos-brand); color: #fff; }
+.pos-notes { display: flex; flex-wrap: wrap; gap: 6px; margin: 14px 18px 0; }
+.pos-notes button { padding: 7px 11px; border-radius: 16px; border: 1px solid #cfd8df; background: #f7f9fb; font-size: 13px; cursor: pointer; }
+.pos-partage { display: flex; align-items: center; gap: 8px; padding: 8px; border-bottom: 1px solid #eef2f5; }
+.pos-partage .n { flex: 1; min-width: 0; font-weight: 600; }
+.pos-partage .n small { display: block; font-weight: 400; color: #6c7a86; }
+.pos-partage button { width: 38px; height: 38px; border-radius: 9px; border: 1px solid #cfd8df; background: #f7f9fb; font-size: 18px; cursor: pointer; }
+.pos-partage button.tout { width: auto; padding: 0 10px; font-size: 13px; }
+.pos-partage b { min-width: 28px; text-align: center; font-size: 17px; }
+.pos-transfert-salle { padding: 10px 8px 4px; font-size: 12px; font-weight: 700; text-transform: uppercase; color: #6c7a86; }
+.pos-mode.pourboire { margin-top: auto; border-style: dashed; }

@@ -21,7 +21,8 @@ $nbJourneesOuvertes = (int) qv("SELECT COUNT(*) FROM JourneesCaisses WHERE Statu
 $rubrique = match ($module) {
     'dashboard', 'caisse', 'journee', 'client', 'facture' => 'Activité',
     'rapport' => 'Analyse',
-    'pos', 'vente', 'stock', 'posrapport' => 'Point de vente',
+    'pos', 'vente', 'stock', 'posrapport', 'cuisine' => 'Point de vente',
+    'salle' => 'Activité',
     'produit', 'categorie' => 'Configuration',
     'utilisateur', 'motif', 'modepaiement', 'taxe', 'unite' => 'Paramètres',
     'tenant' => 'Administration',
@@ -104,6 +105,9 @@ $badge = $nbJourneesOuvertes > 0
             <div class="sb-section-title">Point de vente</div>
             <?= $lien('pos/index', 'pos', 'fa-store', 'Vendre') ?>
             <?= $lien('vente/index', 'vente', 'fa-receipt', 'Ventes') ?>
+            <?php if (qv("SELECT COUNT(*) FROM Caisses WHERE TypePointVente IN ('Restaurant', 'Bar') AND " . tf())): ?>
+                <?= $lien('cuisine/index', 'cuisine', 'fa-fire-burner', 'Écran cuisine / bar') ?>
+            <?php endif; ?>
             <?php if (is_admin()): ?>
                 <?= $lien('posrapport/index', 'posrapport', 'fa-chart-pie', 'Rapports ventes') ?>
                 <?= $lien('stock/index', 'stock', 'fa-warehouse', 'Stock') ?>

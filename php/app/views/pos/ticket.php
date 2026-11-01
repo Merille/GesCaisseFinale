@@ -27,9 +27,11 @@ $c = $commande;
     <div>Date   : <?= date_fr($c['DateCommande'], 'd/m/Y H:i') ?></div>
     <div>Caisse : <?= h($c['ChkCode']) ?> · Vendeur : <?= h($c['Vendeur']) ?></div>
     <?php if ($c['Client']): ?><div>Client : <?= h($c['Client']) ?></div><?php endif; ?>
+    <?php if (!empty($c['TableNom'])): ?><div>Table  : <?= h($c['TableNom']) ?><?= $c['Couverts'] ? ' · ' . (int) $c['Couverts'] . ' couvert(s)' : '' ?></div><?php endif; ?>
     <hr>
     <?php foreach ($lignes as $l): ?>
         <div class="b"><?= h($l['Libelle']) ?></div>
+        <?php if (!empty($l['Note'])): ?><div class="ind note">» <?= h($l['Note']) ?></div><?php endif; ?>
         <div class="r ind">
             <span><?= quantite_fr($l['Quantite']) ?><?= ($l['Unite'] ?? 'Unité') !== 'Unité' ? ' ' . h($l['Unite']) : '' ?> x <?= fcfa($l['PrixUnitaire']) ?><?= (float) $l['Remise'] > 0 ? ' -' . quantite_fr($l['Remise']) . '%' : '' ?></span>
             <span><?= fcfa((float) $l['TotalTTC'] + (float) $l['RemiseGlobale']) ?></span>
@@ -45,6 +47,10 @@ $c = $commande;
     <?php foreach ($taxes as $libelle => $montant): ?>
         <div class="r"><span><?= h($libelle) ?></span><span><?= fcfa($montant) ?></span></div>
     <?php endforeach; ?>
+    <?php if ((float) ($c['Pourboire'] ?? 0) > 0): ?>
+        <div class="r"><span>Pourboire</span><span><?= fcfa($c['Pourboire']) ?></span></div>
+        <div class="r b"><span>TOTAL PAYÉ</span><span><?= fcfa((float) $c['TotalTTC'] + (float) $c['Pourboire']) ?> FCFA</span></div>
+    <?php endif; ?>
     <hr>
     <?php foreach ($paiements as $p): ?>
         <div class="r"><span><?= $c['CommandeOrigineId'] ? 'Remboursé · ' : '' ?><?= h($p['Libelle']) ?></span><span><?= fcfa($p['MontantRecu']) ?></span></div>

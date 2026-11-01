@@ -1,6 +1,9 @@
 <?php
 // Catégories de produits du point de vente (couleur des tuiles, ordre d'affichage).
 
+// Poste de préparation des produits en restaurant / bar (bon envoyé en cuisine, au bar, ou aucun bon).
+const CATEGORIE_PREPARATIONS = ['Cuisine', 'Bar', 'Aucun'];
+
 function categorie_index(): void
 {
     $categories = q(
@@ -8,6 +11,16 @@ function categorie_index(): void
          FROM Categories c WHERE ' . tf('c') . ' ORDER BY c.Ordre, c.Nom'
     );
     render('categorie/index', ['categories' => $categories]);
+}
+
+/** Badge du poste de préparation (liste des catégories). */
+function categorie_badge_preparation(string $poste): string
+{
+    return match ($poste) {
+        'Bar' => '<span class="badge bg-info text-dark"><i class="fa fa-martini-glass"></i> Bar</span>',
+        'Aucun' => '<span class="text-muted">—</span>',
+        default => '<span class="badge bg-warning text-dark"><i class="fa fa-utensils"></i> Cuisine</span>',
+    };
 }
 
 /** Couleur au format #rrggbb, sinon la couleur de la marque. */
@@ -26,16 +39,17 @@ function categorie_save(): void
             flash('danger', 'Le nom de la catégorie est obligatoire.');
             redirect('categorie/index');
         }
-        $valeurs = [$nom, categorie_couleur(post('Couleur')), (int) post('Ordre', 0)];
+        $preparation = in_array(post('Preparation'), CATEGORIE_PREPARATIONS, true) ? post('Preparation') : 'Cuisine';
+        $valeurs = [$nom, categorie_couleur(post('Couleur')), (int) post('Ordre', 0), $preparation];
         $id = int_or_null(post('Id'));
         if ($id) {
             if (!q1('SELECT Id FROM Categories WHERE Id = ? AND ' . tf(), [$id])) {
                 not_found('Catégorie introuvable.');
             }
-            run('UPDATE Categories SET Nom = ?, Couleur = ?, Ordre = ? WHERE Id = ?', [...$valeurs, $id]);
+            run('UPDATE Categories SET Nom = ?, Couleur = ?, Ordre = ?, Preparation = ? WHERE Id = ?', [...$valeurs, $id]);
             flash('success', 'Catégorie modifiée.');
         } else {
-            run('INSERT INTO Categories (Nom, Couleur, Ordre, TenantId) VALUES (?, ?, ?, ?)', [...$valeurs, tenant_insert()]);
+            run('INSERT INTO Categories (Nom, Couleur, Ordre, Preparation, TenantId) VALUES (?, ?, ?, ?, ?)', [...$valeurs, tenant_insert()]);
             flash('success', 'Catégorie créée.');
         }
     }

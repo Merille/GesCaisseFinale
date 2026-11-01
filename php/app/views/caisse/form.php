@@ -33,5 +33,21 @@ require __DIR__ . '/../partials/form_debut.php';
                     <label class="form-label" for="CompteComptable">Compte comptable (Sage)</label>
                     <input class="form-control" id="CompteComptable" name="CompteComptable" value="<?= $v('CompteComptable') ?>" placeholder="ex. 571000">
                 </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="TypePointVente<?= !empty($modale) ? 'M' : '' ?>">Type de point de vente</label>
+                    <select class="form-select" id="TypePointVente<?= !empty($modale) ? 'M' : '' ?>" name="TypePointVente">
+                        <?php foreach (CAISSE_TYPES as $t): ?>
+                            <option value="<?= h($t) ?>" <?= ($caisse['TypePointVente'] ?? 'Boutique') === $t ? 'selected' : '' ?>><?= h($t) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <div class="form-text">Restaurant / Bar : plan de salle, commandes sur les tables, bons cuisine / bar.</div>
+                </div>
+                <div class="col-md-8 d-flex align-items-center">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" value="1" id="ImprimerBons<?= !empty($modale) ? 'M' : '' ?>" name="ImprimerBons" <?= ($caisse['ImprimerBons'] ?? 1) ? 'checked' : '' ?>>
+                        <label class="form-check-label" for="ImprimerBons<?= !empty($modale) ? 'M' : '' ?>">Imprimer un bon de préparation à chaque envoi en cuisine / au bar
+                            <span class="d-block small text-muted">Les bons s'affichent aussi sur l'écran cuisine / bar.</span></label>
+                    </div>
+                </div>
             </div>
 <?php require __DIR__ . '/../partials/form_fin.php'; ?>

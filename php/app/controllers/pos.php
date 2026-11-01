@@ -1,6 +1,10 @@
 <?php
 // Point de vente : choix de la journée ouverte, puis écran de vente plein écran.
-// Les tickets en cours sont gardés dans le navigateur jusqu'au paiement.
+// Boutique : les tickets en cours sont gardés dans le navigateur jusqu'au paiement.
+// Restaurant / bar : plan de salle ; la commande de chaque table est gardée sur le serveur
+// (partagée entre serveurs et appareils) jusqu'au paiement.
+
+require_once __DIR__ . '/../restaurant.php';
 
 function pos_index(): void
 {
@@ -11,7 +15,7 @@ function pos_index(): void
     }
 
     $journee = q1(
-        'SELECT j.*, c.ChkCode, c.ChkDescription
+        'SELECT j.*, c.ChkCode, c.ChkDescription, c.TypePointVente, c.ImprimerBons
          FROM JourneesCaisses j JOIN Caisses c ON c.ID = j.CaisseId
          WHERE j.Id = ? AND ' . tf('j'),
         [$id]
@@ -79,6 +83,19 @@ function pos_index(): void
         'urlVentes' => url('vente/index', ['journee' => $journee['Id']]),
         'venteSansStock' => vente_sans_stock($tenant),
         'jeton' => ['nom' => '_csrf', 'valeur' => csrf_token()],
+        'restaurant' => caisse_est_restaurant($journee) ? [
+            'type' => $journee['TypePointVente'],
+            'imprimerBons' => (bool) $journee['ImprimerBons'],
+            'salles' => restaurant_plan((int) $journee['CaisseId'], (int) $journee['Id']),
+            'urlPlan' => url('pos/plan', ['journee' => $journee['Id']]),
+            'urlCommande' => url('pos/commande', ['journee' => $journee['Id']]),
+            'urlEnregistrer' => url('pos/enregistrer'),
+            'urlEnvoyer' => url('pos/envoyer'),
+            'urlTransferer' => url('pos/transferer'),
+            'urlAddition' => url('pos/addition') . '&id=',
+            'urlBons' => url('pos/bon') . '&ids=',
+            'urlCuisine' => url('cuisine/index', ['caisse' => $journee['CaisseId']]),
+        ] : null,
     ];
     render('pos/ecran', ['donnees' => $donnees], false);
 }
@@ -120,7 +137,7 @@ function pos_vendre(): void
     $cle = substr(preg_replace('/[^A-Za-z0-9-]/', '', (string) $v['cle']), 0, 64);
 
     $journee = q1(
-        'SELECT j.*, c.ChkCode FROM JourneesCaisses j JOIN Caisses c ON c.ID = j.CaisseId WHERE j.Id = ? AND ' . tf('j'),
+        'SELECT j.*, c.ChkCode, c.TypePointVente FROM JourneesCaisses j JOIN Caisses c ON c.ID = j.CaisseId WHERE j.Id = ? AND ' . tf('j'),
         [(int) ($v['journeeId'] ?? 0)]
     );
     if (!$journee) {
@@ -156,7 +173,8 @@ function pos_vendre(): void
         $taux = (float) $p['TauxTVA'];
         $ttc += $total;
         $tva += $total - $total / (1 + $taux / 100);
-        $lignes[] = ['produit' => $p, 'qte' => $qte, 'prix' => $prix, 'remise' => $remise, 'taux' => $taux, 'total' => $total, 'part' => 0.0];
+        $note = mb_substr(trim((string) ($l['note'] ?? '')), 0, 200) ?: null;
+        $lignes[] = ['produit' => $p, 'qte' => $qte, 'prix' => $prix, 'remise' => $remise, 'taux' => $taux, 'total' => $total, 'part' => 0.0, 'note' => $note];
     }
 
     // Remise globale (administrateurs et utilisateurs autorisés à valider) : en % ou en montant,
@@ -191,6 +209,12 @@ function pos_vendre(): void
     }
     $tva = round($tva);
 
+    // Restaurant / bar : pourboire (en plus du total), table et couverts de la commande servie.
+    $pourboire = max(0, round((float) ($v['pourboire'] ?? 0)));
+    $ouverte = is_array($v['commandeOuverte'] ?? null) ? $v['commandeOuverte'] : null;
+    $tableNom = null;
+    $couverts = null;
+
     // Règlements : seuls les espèces peuvent dépasser le reste à payer (monnaie rendue).
     $modes = [];
     foreach (q('SELECT Id, Code, Libelle FROM ModesPaiement WHERE Actif = 1 AND TenantId = ?', [$tenant]) as $m) {
@@ -210,10 +234,10 @@ function pos_vendre(): void
             $especes += $montant;
         }
     }
-    if ($recu < $ttc) {
+    if ($recu < $ttc + $pourboire) {
         pos_json(['erreur' => 'Le montant payé est inférieur au total.'], 400);
     }
-    $rendu = $recu - $ttc;
+    $rendu = $recu - $ttc - $pourboire;
     if ($rendu > $especes) {
         pos_json(['erreur' => 'Seule la monnaie sur les espèces peut être rendue : le montant payé par les autres modes dépasse le total.'], 400);
     }
@@ -244,20 +268,49 @@ function pos_vendre(): void
                 }
             }
         }
+        // Commande de table : payée en entier (table libérée) ou en partie (addition partagée : le
+        // reste des articles demeure sur la table).
+        $commandeRestante = null;
+        if ($ouverte) {
+            $co = q1('SELECT co.*, t.Nom AS TableNom FROM CommandesOuvertes co LEFT JOIN TablesRestaurant t ON t.Id = co.TableId
+                      WHERE co.Id = ? AND co.JourneeCaisseId = ? FOR UPDATE', [(int) ($ouverte['id'] ?? 0), $journee['Id']]);
+            if (!$co || (int) $co['Version'] !== (int) ($ouverte['version'] ?? 0)) {
+                db()->rollBack();
+                pos_json(['erreur' => 'La commande de la table a été modifiée sur un autre appareil : rechargez la table puis recommencez.'], 409);
+            }
+            $tableNom = $co['TableNom'];
+            $couverts = (int) $co['Couverts'];
+            $avant = restaurant_contenu($co['Contenu']);
+            $reste = restaurant_lignes_saisies((array) ($ouverte['reste'] ?? []), $avant['lignes']);
+            if (!$reste) {
+                run('UPDATE BonsPreparation SET CommandeOuverteId = NULL WHERE CommandeOuverteId = ?', [$co['Id']]);
+                run('DELETE FROM CommandesOuvertes WHERE Id = ?', [$co['Id']]);
+            } else {
+                foreach ($reste as &$r) {
+                    $r['envoye'] = min($r['envoye'], $r['qte']);
+                }
+                unset($r);
+                $avant['lignes'] = $reste;
+                run('UPDATE CommandesOuvertes SET Contenu = ?, Version = Version + 1, DateMaj = NOW(), AdditionImprimee = 0 WHERE Id = ?',
+                    [json_encode($avant, JSON_UNESCAPED_UNICODE), $co['Id']]);
+                $commandeRestante = (int) $co['Id'];
+            }
+        }
+
         $rang = (int) qv('SELECT COUNT(*) FROM CommandesPos WHERE JourneeCaisseId = ?', [$journee['Id']]) + 1;
         $numero = sprintf('POS-%s-%s-%04d', $journee['ChkCode'], date('Ymd', strtotime($journee['DateJournee'])), $rang);
 
         $commandeId = run(
             "INSERT INTO CommandesPos (TenantId, Numero, CleClient, JourneeCaisseId, ClientId, UtilisateurId, DateCommande,
-                TotalHT, TotalTVA, TotalTTC, MontantRecu, MonnaieRendue, Statut, RemiseGlobale, RemiseGlobaleTaux)
-             VALUES (?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?, ?, 'Payée', ?, ?)",
-            [$tenant, $numero, $cle, $journee['Id'], $client, user()['id'], $ttc - $tva, $tva, $ttc, $recu, $rendu, $remiseGlobale, $tauxRemise]
+                TotalHT, TotalTVA, TotalTTC, MontantRecu, MonnaieRendue, Statut, RemiseGlobale, RemiseGlobaleTaux, TableNom, Couverts, Pourboire)
+             VALUES (?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?, ?, 'Payée', ?, ?, ?, ?, ?)",
+            [$tenant, $numero, $cle, $journee['Id'], $client, user()['id'], $ttc - $tva, $tva, $ttc, $recu, $rendu, $remiseGlobale, $tauxRemise, $tableNom, $couverts, $pourboire]
         );
         foreach ($lignes as $l) {
             $ligneId = run(
-                'INSERT INTO LignesCommandePos (TenantId, CommandePosId, ProduitId, Libelle, Quantite, PrixUnitaire, Remise, TauxTVA, TotalTTC, RemiseGlobale)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                [$tenant, $commandeId, $l['produit']['Id'], $l['produit']['Nom'], $l['qte'], $l['prix'], $l['remise'], $l['taux'], $l['total'], $l['part']]
+                'INSERT INTO LignesCommandePos (TenantId, CommandePosId, ProduitId, Libelle, Quantite, PrixUnitaire, Remise, TauxTVA, TotalTTC, RemiseGlobale, Note)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                [$tenant, $commandeId, $l['produit']['Id'], $l['produit']['Nom'], $l['qte'], $l['prix'], $l['remise'], $l['taux'], $l['total'], $l['part'], $l['note']]
             );
             ligne_enregistrer_taxes($ligneId, produit_taxes((int) $l['produit']['Id']), $l['total'], $tenant);
             mouvement_stock((int) $l['produit']['Id'], -$l['qte'], 'Vente', $numero, $commandeId);
@@ -280,7 +333,7 @@ function pos_vendre(): void
                     "INSERT INTO OperationsCaisses (TenantId, JourneeCaisseId, DateOperation, TypeOperation, Montant, Libelle,
                         ClientId, MotifId, ModePaiementId, UtilisateurId, EstJustifie, StatutValidation, Valideur)
                      VALUES (?, ?, NOW(), 'Encaissement', ?, ?, ?, ?, ?, ?, 1, 'Validé', 'Point de vente')",
-                    [$tenant, $journee['Id'], $net, 'Vente POS ' . $numero, $client, $motif, $pm['mode']['Id'], user()['id']]
+                    [$tenant, $journee['Id'], $net, 'Vente POS ' . $numero . ($pourboire > 0 ? ' (dont pourboire ' . fcfa($pourboire) . ')' : ''), $client, $motif, $pm['mode']['Id'], user()['id']]
                 );
             }
             run(
@@ -296,7 +349,8 @@ function pos_vendre(): void
         pos_json(['erreur' => "La vente n'a pas pu être enregistrée. Réessayez."], 500);
     }
 
-    pos_json(['id' => $commandeId, 'numero' => $numero, 'rendu' => $rendu]);
+    pos_json(['id' => $commandeId, 'numero' => $numero, 'rendu' => $rendu,
+              'commande' => !empty($commandeRestante) ? restaurant_commande_json(q1('SELECT * FROM CommandesOuvertes WHERE Id = ?', [$commandeRestante])) : null]);
 }
 
 /** Ticket de caisse 80 mm d'une vente (impression ou réimpression). */
@@ -332,4 +386,232 @@ function pos_ticket(): void
         'coordonnees' => societe_coordonnees($societe),
         'imprimer' => get('imprimer') === '1',
     ], false);
+}
+
+// ---------------------------------------------------------------------------
+// Restaurant / bar : commandes ouvertes sur les tables
+// ---------------------------------------------------------------------------
+
+/** Journée ouverte d'une caisse restaurant / bar (réponse JSON d'erreur sinon). */
+function pos_journee_restaurant(int $id): array
+{
+    $journee = q1('SELECT j.*, c.ChkCode, c.TypePointVente, c.ImprimerBons FROM JourneesCaisses j JOIN Caisses c ON c.ID = j.CaisseId
+                   WHERE j.Id = ? AND ' . tf('j'), [$id]);
+    if (!$journee) {
+        pos_json(['erreur' => 'Journée introuvable.'], 404);
+    }
+    if (!caisse_est_restaurant($journee)) {
+        pos_json(['erreur' => "Cette caisse n'est pas de type Restaurant ou Bar."], 400);
+    }
+    if ($journee['Statut'] !== 'Ouverte') {
+        pos_json(['erreur' => 'Cette journée est clôturée : ouvrez une nouvelle journée pour servir.'], 409);
+    }
+    return $journee;
+}
+
+/** Table d'une caisse (réponse JSON d'erreur sinon). */
+function pos_table(int $id, int $caisseId): array
+{
+    $table = q1('SELECT t.* FROM TablesRestaurant t JOIN Salles s ON s.Id = t.SalleId WHERE t.Id = ? AND s.CaisseId = ? AND t.Actif = 1', [$id, $caisseId]);
+    if (!$table) {
+        pos_json(['erreur' => 'Table introuvable.'], 404);
+    }
+    return $table;
+}
+
+/** Données JSON envoyées par l'écran de vente (champ « commande »). */
+function pos_saisie(): array
+{
+    if (!is_post()) {
+        pos_json(['erreur' => 'Requête invalide.'], 405);
+    }
+    $c = json_decode((string) ($_POST['commande'] ?? ''), true);
+    if (!is_array($c)) {
+        pos_json(['erreur' => 'Commande illisible.'], 400);
+    }
+    return $c;
+}
+
+function pos_serveur(): string
+{
+    $u = user();
+    return (string) ($u['nomComplet'] ?: $u['nom']);
+}
+
+/** État des tables (plan de salle), pour l'actualisation de l'écran de vente. */
+function pos_plan(): void
+{
+    $journee = pos_journee_restaurant((int) get('journee'));
+    pos_json(['salles' => restaurant_plan((int) $journee['CaisseId'], (int) $journee['Id'])]);
+}
+
+/** Commande en cours sur une table (null si la table est libre). */
+function pos_commande(): void
+{
+    $journee = pos_journee_restaurant((int) get('journee'));
+    $table = pos_table((int) get('table'), (int) $journee['CaisseId']);
+    $co = q1('SELECT * FROM CommandesOuvertes WHERE TableId = ?', [$table['Id']]);
+    pos_json(['commande' => $co ? restaurant_commande_json($co) : null]);
+}
+
+/**
+ * Enregistre la commande d'une table : création à la première ligne, mise à jour ensuite
+ * (refusée si la commande a changé entre-temps sur un autre appareil), suppression quand
+ * elle est vidée. Avec $envoyer : bons de préparation des articles pas encore envoyés.
+ * Renvoie [commande à jour ou null, Id des bons].
+ */
+function pos_enregistrer_commande(array $c, bool $envoyer): array
+{
+    $journee = pos_journee_restaurant((int) ($c['journeeId'] ?? 0));
+    $table = pos_table((int) ($c['tableId'] ?? 0), (int) $journee['CaisseId']);
+    $couverts = max(1, min(99, (int) ($c['couverts'] ?? 1)));
+    $bons = [];
+    db()->beginTransaction();
+    try {
+        $co = q1('SELECT * FROM CommandesOuvertes WHERE TableId = ? FOR UPDATE', [$table['Id']]);
+        $id = (int) ($c['id'] ?? 0);
+        if ($co && ((int) $co['Id'] !== $id || (int) $co['Version'] !== (int) ($c['version'] ?? 0))) {
+            db()->rollBack();
+            pos_json(['erreur' => 'La commande de ' . $table['Nom'] . ' a été modifiée sur un autre appareil : elle a été rechargée.',
+                      'commande' => restaurant_commande_json($co)], 409);
+        }
+        if (!$co && $id > 0) {
+            db()->rollBack();
+            pos_json(['erreur' => 'La commande de ' . $table['Nom'] . " n'existe plus (encaissée ou transférée sur un autre appareil).", 'commande' => null], 409);
+        }
+        $avant = $co ? restaurant_contenu($co['Contenu']) : ['lignes' => []];
+        $contenu = restaurant_contenu(restaurant_contenu_saisi($c, $avant));
+        $vide = !$contenu['lignes'];
+        if (!$co && $vide) {
+            db()->commit();
+            return [null, []];
+        }
+        if (!$co) {
+            $id = run(
+                'INSERT INTO CommandesOuvertes (TenantId, CaisseId, JourneeCaisseId, TableId, Couverts, UtilisateurId, DateOuverture, DateMaj, Version, Contenu)
+                 VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW(), 0, ?)',
+                [$journee['TenantId'], $journee['CaisseId'], $journee['Id'], $table['Id'], $couverts, user()['id'], json_encode($contenu, JSON_UNESCAPED_UNICODE)]
+            );
+            $co = q1('SELECT * FROM CommandesOuvertes WHERE Id = ?', [$id]);
+        }
+        // Commande vidée : annulation en préparation des articles déjà envoyés, puis table libérée.
+        if ($vide) {
+            $bons = restaurant_envoyer($co, $contenu, $avant['lignes'], $table['Nom'], pos_serveur());
+            run('UPDATE BonsPreparation SET CommandeOuverteId = NULL WHERE CommandeOuverteId = ?', [$co['Id']]);
+            run('DELETE FROM CommandesOuvertes WHERE Id = ?', [$co['Id']]);
+            db()->commit();
+            return [null, $bons];
+        }
+        if ($envoyer) {
+            $bons = restaurant_envoyer($co, $contenu, $avant['lignes'], $table['Nom'], pos_serveur());
+        }
+        $json = json_encode($contenu, JSON_UNESCAPED_UNICODE);
+        // L'addition imprimée n'est plus à jour quand les articles changent.
+        $addition = $json === json_encode(restaurant_contenu($co['Contenu']), JSON_UNESCAPED_UNICODE) && (int) $co['Couverts'] === $couverts ? (int) $co['AdditionImprimee'] : 0;
+        run('UPDATE CommandesOuvertes SET Contenu = ?, Couverts = ?, Version = Version + 1, DateMaj = NOW(), AdditionImprimee = ? WHERE Id = ?',
+            [$json, $couverts, $addition, $co['Id']]);
+        db()->commit();
+    } catch (Throwable $e) {
+        if (db()->inTransaction()) {
+            db()->rollBack();
+        }
+        throw $e;
+    }
+    return [restaurant_commande_json(q1('SELECT * FROM CommandesOuvertes WHERE Id = ?', [$co['Id']])), $bons];
+}
+
+function pos_enregistrer(): void
+{
+    [$commande] = pos_enregistrer_commande(pos_saisie(), false);
+    pos_json(['commande' => $commande]);
+}
+
+/** Enregistre la commande et envoie les nouveaux articles en cuisine / au bar. */
+function pos_envoyer(): void
+{
+    [$commande, $bons] = pos_enregistrer_commande(pos_saisie(), true);
+    pos_json(['commande' => $commande, 'bons' => $bons]);
+}
+
+/** Transfère la commande vers une autre table (fusionnée avec sa commande si elle est occupée). */
+function pos_transferer(): void
+{
+    $c = pos_saisie();
+    $journee = pos_journee_restaurant((int) ($c['journeeId'] ?? 0));
+    $cible = pos_table((int) ($c['cibleId'] ?? 0), (int) $journee['CaisseId']);
+    db()->beginTransaction();
+    try {
+        $co = q1('SELECT * FROM CommandesOuvertes WHERE Id = ? AND CaisseId = ? FOR UPDATE', [(int) ($c['id'] ?? 0), $journee['CaisseId']]);
+        if (!$co || (int) $co['Version'] !== (int) ($c['version'] ?? 0)) {
+            db()->rollBack();
+            pos_json(['erreur' => 'La commande a été modifiée sur un autre appareil : rechargez la table puis recommencez.'], 409);
+        }
+        if ((int) $co['TableId'] === (int) $cible['Id']) {
+            db()->rollBack();
+            pos_json(['commande' => restaurant_commande_json($co)]);
+        }
+        $existante = q1('SELECT * FROM CommandesOuvertes WHERE TableId = ? FOR UPDATE', [$cible['Id']]);
+        if ($existante) {
+            // Fusion : les lignes et les couverts s'ajoutent à la commande de la table choisie.
+            $a = restaurant_contenu($existante['Contenu']);
+            $b = restaurant_contenu($co['Contenu']);
+            $a['lignes'] = array_merge($a['lignes'], $b['lignes']);
+            run('UPDATE CommandesOuvertes SET Contenu = ?, Couverts = Couverts + ?, Version = Version + 1, DateMaj = NOW(), AdditionImprimee = 0 WHERE Id = ?',
+                [json_encode($a, JSON_UNESCAPED_UNICODE), $co['Couverts'], $existante['Id']]);
+            run('UPDATE BonsPreparation SET CommandeOuverteId = ? WHERE CommandeOuverteId = ?', [$existante['Id'], $co['Id']]);
+            run('DELETE FROM CommandesOuvertes WHERE Id = ?', [$co['Id']]);
+            $id = (int) $existante['Id'];
+        } else {
+            run('UPDATE CommandesOuvertes SET TableId = ?, Version = Version + 1, DateMaj = NOW() WHERE Id = ?', [$cible['Id'], $co['Id']]);
+            $id = (int) $co['Id'];
+        }
+        db()->commit();
+    } catch (Throwable $e) {
+        if (db()->inTransaction()) {
+            db()->rollBack();
+        }
+        throw $e;
+    }
+    pos_json(['commande' => restaurant_commande_json(q1('SELECT * FROM CommandesOuvertes WHERE Id = ?', [$id]))]);
+}
+
+/** Addition (note provisoire) d'une table, avant le paiement ; la table passe en « addition demandée ». */
+function pos_addition(): void
+{
+    $co = q1('SELECT co.*, t.Nom AS TableNom, u.NomComplet AS Serveur, c.ChkCode, c.ChkDescription,
+                     s.Nom AS Societe, s.Adresse, s.Ville, s.Pays, s.Email AS EmailSociete, s.Telephone, s.NIF, s.LogoMaj
+              FROM CommandesOuvertes co
+              JOIN Caisses c ON c.ID = co.CaisseId
+              LEFT JOIN TablesRestaurant t ON t.Id = co.TableId
+              LEFT JOIN Utilisateurs u ON u.Id = co.UtilisateurId
+              LEFT JOIN Tenants s ON s.Id = co.TenantId
+              WHERE co.Id = ? AND ' . tf('co'), [(int) get('id')]);
+    if (!$co) {
+        not_found('Commande introuvable.');
+    }
+    run('UPDATE CommandesOuvertes SET AdditionImprimee = 1 WHERE Id = ?', [$co['Id']]);
+    $contenu = restaurant_contenu($co['Contenu']);
+    $societe = ['Id' => $co['TenantId'], 'LogoMaj' => $co['LogoMaj'], 'Adresse' => $co['Adresse'], 'Ville' => $co['Ville'],
+                'Pays' => $co['Pays'], 'Email' => $co['EmailSociete'], 'Telephone' => $co['Telephone'], 'NIF' => $co['NIF']];
+    render('pos/addition', [
+        'co' => $co,
+        'lignes' => $contenu['lignes'],
+        'total' => restaurant_total($contenu),
+        'brut' => restaurant_total(['lignes' => $contenu['lignes']]),
+        'logo' => url_logo($societe),
+        'coordonnees' => societe_coordonnees($societe),
+    ], false);
+}
+
+/** Bons de préparation 80 mm (un par page), imprimés à l'envoi. */
+function pos_bon(): void
+{
+    $ids = array_values(array_filter(array_map('intval', explode(',', (string) get('ids'))))) ?: [0];
+    $marques = implode(',', array_fill(0, count($ids), '?'));
+    $bons = q("SELECT * FROM BonsPreparation WHERE Id IN ($marques) AND " . tf() . ' ORDER BY Id', $ids);
+    foreach ($bons as &$b) {
+        $b['lignes'] = q('SELECT * FROM LignesBonPreparation WHERE BonPreparationId = ? ORDER BY Id', [$b['Id']]);
+    }
+    unset($b);
+    render('pos/bon', ['bons' => $bons], false);
 }
