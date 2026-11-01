@@ -26,6 +26,7 @@ $routes = [
     'image'       => ['produit', 'societe'],
     'produit'     => ['index', 'create', 'edit', 'delete', 'export', 'import', 'genvariantes', 'majvariantes', 'combo'],
     'categorie'   => ['index', 'save', 'delete'],
+    'combo'       => ['index', 'create', 'edit', 'delete'],
     'salle'       => ['index', 'enregistrer'],
 ];
 
@@ -45,7 +46,7 @@ if ($module !== 'auth') {
 csrf_check();
 
 // Modules d'administration (et catalogue du point de vente) réservés aux profils Admin et SuperAdmin.
-if (in_array($module, ['utilisateur', 'motif', 'modepaiement', 'taxe', 'unite', 'produit', 'categorie', 'stock', 'posrapport', 'salle'], true)) {
+if (in_array($module, ['utilisateur', 'motif', 'modepaiement', 'taxe', 'unite', 'produit', 'categorie', 'stock', 'posrapport', 'salle', 'combo'], true)) {
     require_admin();
 }
 

@@ -206,31 +206,30 @@ function produit_edit(): void
     render('produit/form', ['produit' => $produit, 'edition' => true, 'categories' => produit_categories(), 'taxes' => taxes_liste(),
         'attributs' => produit_attributs((int) $existant['Id']), 'variantes' => produit_variantes((int) $existant['Id']),
         'nomsAttributs' => array_column(q('SELECT DISTINCT a.Nom FROM ProduitAttributs a JOIN Produits p ON p.Id = a.ProduitId WHERE ' . tf('p') . ' ORDER BY a.Nom'), 'Nom'),
-        'groupesCombo' => produit_groupes_combo((int) $existant['Id']),
-        'produitsCombo' => produit_choix_combo((int) $existant['TenantId'], (int) $existant['Id'])]);
+        'combosDisponibles' => produit_combos_disponibles((int) $existant['TenantId']),
+        'combosChoisis' => produit_combos_choisis((int) $existant['Id'])]);
 }
 
-/** Groupes de choix d'un combo : [{ nom, quantite, choix: [{ produitId, supplement }] }]. */
-function produit_groupes_combo(int $produitId): array
+/** Combos de la société, pour la fiche produit : [{ id, nom, quantite, resume }]. */
+function produit_combos_disponibles(int $tenant): array
 {
-    $groupes = [];
-    foreach (q('SELECT * FROM ComboGroupes WHERE ProduitId = ? ORDER BY Ordre, Id', [$produitId]) as $g) {
-        $groupes[] = ['id' => (int) $g['Id'], 'nom' => $g['Nom'], 'quantite' => (int) $g['Quantite'], 'choix' => array_map(
-            fn($c) => ['produitId' => (int) $c['ProduitId'], 'supplement' => (float) $c['Supplement']],
-            q('SELECT * FROM ComboChoix WHERE GroupeId = ? ORDER BY Ordre, Id', [$g['Id']])
-        )];
+    $noms = [];
+    foreach (q('SELECT Id, Nom FROM Produits WHERE TenantId = ?', [$tenant]) as $p) {
+        $noms[(int) $p['Id']] = $p['Nom'];
     }
-    return $groupes;
+    return array_values(array_map(fn($c) => [
+        'id' => $c['id'], 'nom' => $c['nom'], 'quantite' => $c['quantite'],
+        'resume' => implode(', ', array_map(fn($ch) => ($noms[$ch['produitId']] ?? '?') . ($ch['supplement'] > 0 ? ' (+' . fcfa($ch['supplement']) . ')' : ''), $c['choix'])),
+    ], combos_liste($tenant)));
 }
 
-/** Produits proposables dans un combo : actifs, ni modèle, ni combo, ni le combo lui-même. */
-function produit_choix_combo(int $tenant, int $exclu): array
+/** Combos qui composent le produit (Id, dans l'ordre). */
+function produit_combos_choisis(int $produitId): array
 {
-    return array_map(fn($p) => ['id' => (int) $p['Id'], 'nom' => $p['Nom'], 'prix' => (float) $p['PrixVente']],
-        q('SELECT Id, Nom, PrixVente FROM Produits WHERE TenantId = ? AND Actif = 1 AND EstModele = 0 AND EstCombo = 0 AND Id <> ? ORDER BY Nom', [$tenant, $exclu]));
+    return array_map('intval', array_column(q('SELECT ComboId FROM ProduitCombos WHERE ProduitId = ? ORDER BY Ordre', [$produitId]), 'ComboId'));
 }
 
-/** Enregistre les groupes de choix du combo (envoyés en JSON par l'éditeur de la fiche). */
+/** Enregistre la liste des combos qui composent le produit (envoyée en JSON par la fiche). */
 function produit_combo(): void
 {
     $p = produit_charger((int) post('id'));
@@ -238,43 +237,22 @@ function produit_combo(): void
     if ($p['EstModele'] || $p['ParentId']) {
         $retour('danger', 'Un produit à variantes ne peut pas être un combo.');
     }
-    $saisi = json_decode((string) post('combo', ''), true);
-    $permis = array_column(produit_choix_combo((int) $p['TenantId'], (int) $p['Id']), null, 'id');
-    $groupes = [];
-    foreach (array_slice((array) ($saisi['groupes'] ?? []), 0, 12) as $i => $g) {
-        $nom = mb_substr(trim((string) ($g['nom'] ?? '')), 0, 50);
-        $choix = [];
-        foreach (array_slice((array) ($g['choix'] ?? []), 0, 50) as $c) {
-            $pid = (int) ($c['produitId'] ?? 0);
-            if (isset($permis[$pid]) && !isset($choix[$pid])) {
-                $choix[$pid] = ['produitId' => $pid, 'supplement' => max(0, round((float) ($c['supplement'] ?? 0), 2))];
-            }
-        }
-        if ($nom === '' && !$choix) {
-            continue;
-        }
-        if ($nom === '' || !$choix) {
-            $retour('danger', 'Chaque groupe du combo doit avoir un nom et au moins un produit proposé (groupe ' . ($i + 1) . ').');
-        }
-        $groupes[] = ['nom' => $nom, 'quantite' => max(1, min(10, (int) ($g['quantite'] ?? 1))), 'choix' => array_values($choix)];
-    }
+    $existants = array_map('intval', array_column(q('SELECT Id FROM Combos WHERE TenantId = ?', [$p['TenantId']]), 'Id'));
+    $ids = array_values(array_unique(array_filter(array_map('intval', (array) json_decode((string) post('combos', '[]'), true)), fn($id) => in_array($id, $existants, true))));
     db()->beginTransaction();
     try {
-        run('DELETE FROM ComboGroupes WHERE ProduitId = ?', [$p['Id']]);
-        foreach ($groupes as $ordre => $g) {
-            $gid = run('INSERT INTO ComboGroupes (TenantId, ProduitId, Nom, Quantite, Ordre) VALUES (?, ?, ?, ?, ?)', [$p['TenantId'], $p['Id'], $g['nom'], $g['quantite'], $ordre]);
-            foreach ($g['choix'] as $k => $c) {
-                run('INSERT INTO ComboChoix (GroupeId, ProduitId, Supplement, Ordre) VALUES (?, ?, ?, ?)', [$gid, $c['produitId'], $c['supplement'], $k]);
-            }
+        run('DELETE FROM ProduitCombos WHERE ProduitId = ?', [$p['Id']]);
+        foreach (array_slice($ids, 0, 12) as $ordre => $id) {
+            run('INSERT INTO ProduitCombos (ProduitId, ComboId, Ordre) VALUES (?, ?, ?)', [$p['Id'], $id, $ordre]);
         }
         // Le combo n'a pas de stock propre : ce sont ses composants qui sortent du stock.
-        run('UPDATE Produits SET EstCombo = ?, SuiviStock = IF(? = 1, 0, SuiviStock) WHERE Id = ?', [$groupes ? 1 : 0, $groupes ? 1 : 0, $p['Id']]);
+        run('UPDATE Produits SET EstCombo = ?, SuiviStock = IF(? = 1, 0, SuiviStock) WHERE Id = ?', [$ids ? 1 : 0, $ids ? 1 : 0, $p['Id']]);
         db()->commit();
     } catch (Throwable $e) {
         db()->rollBack();
         throw $e;
     }
-    $retour('success', $groupes ? 'Combo enregistré : ' . count($groupes) . ' groupe(s) de choix.' : 'Ce produit n\'est plus un combo.');
+    $retour('success', $ids ? 'Produit combo enregistré : ' . count($ids) . ' combo(s) à choisir.' : "Ce produit n'est plus un combo.");
 }
 
 function produit_delete(): void

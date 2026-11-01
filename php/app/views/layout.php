@@ -23,7 +23,7 @@ $rubrique = match ($module) {
     'rapport' => 'Analyse',
     'pos', 'vente', 'stock', 'posrapport', 'cuisine' => 'Point de vente',
     'salle' => 'Activité',
-    'produit', 'categorie' => 'Configuration',
+    'produit', 'categorie', 'combo' => 'Configuration',
     'utilisateur', 'motif', 'modepaiement', 'taxe', 'unite' => 'Paramètres',
     'tenant' => 'Administration',
     default => null,
@@ -111,7 +111,7 @@ $badge = $nbJourneesOuvertes > 0
             <?php if (is_admin()): ?>
                 <?= $lien('posrapport/index', 'posrapport', 'fa-chart-pie', 'Rapports ventes') ?>
                 <?= $lien('stock/index', 'stock', 'fa-warehouse', 'Stock') ?>
-                <?php $configurationActif = in_array($module, ['categorie', 'produit'], true); ?>
+                <?php $configurationActif = in_array($module, ['categorie', 'produit', 'combo'], true); ?>
                 <button type="button" class="sb-link sb-parent <?= $configurationActif ? 'parent-actif' : '' ?>" title="Configuration"
                         aria-expanded="<?= $configurationActif ? 'true' : 'false' ?>" aria-controls="sbConfiguration" onclick="basculerSousMenu(this)">
                     <i class="fas fa-sliders"></i><span class="sb-label">Configuration</span><i class="fas fa-chevron-down sb-chevron"></i>
@@ -119,6 +119,7 @@ $badge = $nbJourneesOuvertes > 0
                 <div class="sb-sub <?= $configurationActif ? 'open' : '' ?>" id="sbConfiguration">
                     <?= $lien('categorie/index', 'categorie', 'fa-tags', 'Catégories') ?>
                     <?= $lien('produit/index', 'produit', 'fa-box-open', 'Produits') ?>
+                    <?= $lien('combo/index', 'combo', 'fa-layer-group', 'Combos') ?>
                 </div>
             <?php endif; ?>
         </div>

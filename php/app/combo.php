@@ -2,22 +2,31 @@
 // Combos (menus, formules) : groupes de choix d'un produit combo, contrôle des composants choisis
 // à la vente, stock des composants. Commun au point de vente et aux retours.
 
-/** Groupes de choix des combos d'une société, par produit : [produitId => [{ id, nom, quantite, choix }]]. */
-function combos_societe(int $tenant): array
+/** Choix de chaque combo d'une société : [comboId => { id, nom, quantite, choix: [{ produitId, supplement }] }]. */
+function combos_liste(int $tenant): array
 {
-    $groupes = [];
-    foreach (q('SELECT g.* FROM ComboGroupes g JOIN Produits p ON p.Id = g.ProduitId WHERE p.TenantId = ? ORDER BY g.Ordre, g.Id', [$tenant]) as $g) {
-        $groupes[(int) $g['Id']] = ['id' => (int) $g['Id'], 'produitId' => (int) $g['ProduitId'], 'nom' => $g['Nom'], 'quantite' => (int) $g['Quantite'], 'choix' => []];
+    $combos = [];
+    foreach (q('SELECT * FROM Combos WHERE TenantId = ? ORDER BY Ordre, Nom, Id', [$tenant]) as $c) {
+        $combos[(int) $c['Id']] = ['id' => (int) $c['Id'], 'nom' => $c['Nom'], 'quantite' => (int) $c['Quantite'], 'choix' => []];
     }
-    if ($groupes) {
-        $marques = implode(',', array_fill(0, count($groupes), '?'));
-        foreach (q("SELECT * FROM ComboChoix WHERE GroupeId IN ($marques) ORDER BY Ordre, Id", array_keys($groupes)) as $c) {
-            $groupes[(int) $c['GroupeId']]['choix'][] = ['produitId' => (int) $c['ProduitId'], 'supplement' => (float) $c['Supplement']];
+    if ($combos) {
+        $marques = implode(',', array_fill(0, count($combos), '?'));
+        foreach (q("SELECT * FROM ComboChoix WHERE ComboId IN ($marques) ORDER BY Ordre, Id", array_keys($combos)) as $ch) {
+            $combos[(int) $ch['ComboId']]['choix'][] = ['produitId' => (int) $ch['ProduitId'], 'supplement' => (float) $ch['Supplement']];
         }
     }
+    return $combos;
+}
+
+/** Combos qui composent chaque produit combo d'une société : [produitId => [combo, …]] (dans l'ordre). */
+function combos_societe(int $tenant): array
+{
+    $combos = combos_liste($tenant);
     $parProduit = [];
-    foreach ($groupes as $g) {
-        $parProduit[$g['produitId']][] = $g;
+    foreach (q('SELECT pc.* FROM ProduitCombos pc JOIN Produits p ON p.Id = pc.ProduitId WHERE p.TenantId = ? ORDER BY pc.Ordre', [$tenant]) as $l) {
+        if (isset($combos[(int) $l['ComboId']])) {
+            $parProduit[(int) $l['ProduitId']][] = $combos[(int) $l['ComboId']];
+        }
     }
     return $parProduit;
 }
@@ -31,7 +40,7 @@ function combo_composants(array $combo, array $saisis): array|string
 {
     $groupes = combos_societe((int) $combo['TenantId'])[(int) $combo['Id']] ?? [];
     if (!$groupes) {
-        return 'Le combo « ' . $combo['Nom'] . " n'a plus de groupes de choix.";
+        return 'Le produit « ' . $combo['Nom'] . " n'est plus composé d'aucun combo.";
     }
     $composants = [];
     $supplements = 0.0;

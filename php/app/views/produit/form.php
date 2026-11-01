@@ -204,18 +204,18 @@ require __DIR__ . '/../partials/form_debut.php';
 <div class="card shadow-sm border-0" id="combo">
     <div class="card-header bg-brand text-white d-flex align-items-center gap-2">
         <h5 class="mb-0 flex-grow-1">Combo (menu, formule)</h5>
-        <?php if (!empty($produit['EstCombo'])): ?><span class="badge bg-light text-dark"><?= count($groupesCombo ?? []) ?> groupe(s)</span><?php endif; ?>
+        <?php if (!empty($produit['EstCombo'])): ?><span class="badge bg-light text-dark"><?= count($combosChoisis ?? []) ?> combo(s)</span><?php endif; ?>
     </div>
     <div class="card-body">
-        <p class="small text-muted">Un combo se vend au prix du produit, avec un choix par groupe : par exemple <strong>Entrée</strong> (1 parmi Salade, Soupe),
-            <strong>Plat</strong> (1 parmi Poulet, Poisson + 500), <strong>Boisson</strong>. À la caisse, le serveur choisit les articles ; chacun part
-            sur le bon de son poste (cuisine, bar) et sort du stock. Le combo lui-même n'a pas de stock.</p>
+        <p class="small text-muted">Comme dans Odoo, un produit combo (ex. <strong>Menu midi</strong>) se compose de combos créés dans
+            <a href="<?= h(url('combo/index')) ?>">Configuration › Combos</a> (ex. <strong>Plats</strong>, <strong>Boissons</strong>). À la caisse, le serveur
+            choisit un article dans chaque combo ; le prix est celui du produit plus les suppléments. Le produit combo n'a pas de stock propre.</p>
         <form method="post" action="<?= h(url('produit/combo')) ?>">
             <?= csrf_field() ?><input type="hidden" name="id" value="<?= (int) $produit['Id'] ?>">
-            <input type="hidden" name="combo" id="combo-json">
-            <div id="combo-editeur"></div>
-            <script id="combo-donnees" type="application/json"><?= json_encode(['produits' => $produitsCombo ?? [], 'groupes' => $groupesCombo ?? []], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) ?></script>
-            <div class="mt-3"><button class="btn btn-primary btn-sm"><i class="fa fa-floppy-disk"></i> Enregistrer le combo</button></div>
+            <input type="hidden" name="combos" id="produit-combos-json">
+            <div id="produit-combos"></div>
+            <script id="produit-combos-donnees" type="application/json"><?= json_encode(['combos' => $combosDisponibles ?? [], 'choisis' => $combosChoisis ?? []], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) ?></script>
+            <div class="mt-3"><button class="btn btn-primary btn-sm"><i class="fa fa-floppy-disk"></i> Enregistrer</button></div>
         </form>
     </div>
 </div>
