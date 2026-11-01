@@ -31,6 +31,9 @@ $c = $commande;
     <hr>
     <?php foreach ($lignes as $l): ?>
         <div class="b"><?= h($l['Libelle']) ?></div>
+        <?php foreach (ligne_composants($l['Composants'] ?? null) as $comp): ?>
+            <div class="ind petit">· <?= quantite_fr($comp['qte']) ?> x <?= h($comp['nom']) ?><?= (float) $comp['supplement'] > 0 ? ' (+' . fcfa($comp['supplement']) . ')' : '' ?></div>
+        <?php endforeach; ?>
         <?php if (!empty($l['Note'])): ?><div class="ind note">» <?= h($l['Note']) ?></div><?php endif; ?>
         <div class="r ind">
             <span><?= quantite_fr($l['Quantite']) ?><?= ($l['Unite'] ?? 'Unité') !== 'Unité' ? ' ' . h($l['Unite']) : '' ?> x <?= fcfa($l['PrixUnitaire']) ?><?= (float) $l['Remise'] > 0 ? ' -' . quantite_fr($l['Remise']) . '%' : '' ?></span>

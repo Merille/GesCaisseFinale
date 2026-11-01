@@ -129,7 +129,8 @@ require __DIR__ . '/../partials/form_debut.php';
     $lignesAttributs = $attributs ?: [['Nom' => '', 'valeurs' => []]]; ?>
 </div>
 <div class="col-xl-5">
-<div class="card shadow-sm border-0" id="variantes">
+<?php if (empty($produit['EstCombo'])): ?>
+<div class="card shadow-sm border-0 mb-4" id="variantes">
     <div class="card-header bg-brand text-white d-flex align-items-center gap-2">
         <h5 class="mb-0 flex-grow-1">Variantes</h5>
         <?php if ($variantes): ?><span class="badge bg-light text-dark"><?= count(array_filter($variantes, fn($v) => $v['Actif'])) ?> active(s)</span><?php endif; ?>
@@ -198,8 +199,30 @@ require __DIR__ . '/../partials/form_debut.php';
         <?php endif; ?>
     </div>
 </div>
+<?php endif; ?>
+<?php if (empty($produit['EstModele'])): ?>
+<div class="card shadow-sm border-0" id="combo">
+    <div class="card-header bg-brand text-white d-flex align-items-center gap-2">
+        <h5 class="mb-0 flex-grow-1">Combo (menu, formule)</h5>
+        <?php if (!empty($produit['EstCombo'])): ?><span class="badge bg-light text-dark"><?= count($groupesCombo ?? []) ?> groupe(s)</span><?php endif; ?>
+    </div>
+    <div class="card-body">
+        <p class="small text-muted">Un combo se vend au prix du produit, avec un choix par groupe : par exemple <strong>Entrée</strong> (1 parmi Salade, Soupe),
+            <strong>Plat</strong> (1 parmi Poulet, Poisson + 500), <strong>Boisson</strong>. À la caisse, le serveur choisit les articles ; chacun part
+            sur le bon de son poste (cuisine, bar) et sort du stock. Le combo lui-même n'a pas de stock.</p>
+        <form method="post" action="<?= h(url('produit/combo')) ?>">
+            <?= csrf_field() ?><input type="hidden" name="id" value="<?= (int) $produit['Id'] ?>">
+            <input type="hidden" name="combo" id="combo-json">
+            <div id="combo-editeur"></div>
+            <script id="combo-donnees" type="application/json"><?= json_encode(['produits' => $produitsCombo ?? [], 'groupes' => $groupesCombo ?? []], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) ?></script>
+            <div class="mt-3"><button class="btn btn-primary btn-sm"><i class="fa fa-floppy-disk"></i> Enregistrer le combo</button></div>
+        </form>
+    </div>
+</div>
+<?php endif; ?>
 </div>
 </div>
+<script src="<?= asset('assets/js/combo.js') ?>"></script>
 <script>
     function ajouterAttribut() {
         const corps = document.querySelector('#tableAttributs tbody');

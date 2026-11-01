@@ -30,6 +30,7 @@ function pos_index(): void
 
     // Catalogue de la société de la journée (aussi pour le SuperAdmin en mode « toutes »).
     $tenant = (int) $journee['TenantId'];
+    $combos = combos_societe($tenant);
     $produits = array_map(fn($p) => [
         'id' => (int) $p['Id'],
         'code' => $p['Code'],
@@ -46,6 +47,7 @@ function pos_index(): void
         'parentId' => $p['ParentId'] === null ? null : (int) $p['ParentId'],
         'modele' => (bool) $p['EstModele'],
         'variante' => $p['LibelleVariante'],
+        'combo' => $p['EstCombo'] ? array_map(fn($g) => ['id' => $g['id'], 'nom' => $g['nom'], 'quantite' => $g['quantite'], 'choix' => $g['choix']], $combos[(int) $p['Id']] ?? []) : null,
     ], q('SELECT p.* FROM Produits p LEFT JOIN Produits m ON m.Id = p.ParentId
           WHERE p.Actif = 1 AND p.TenantId = ? AND (p.ParentId IS NULL OR m.Actif = 1) ORDER BY p.Nom', [$tenant]));
 
@@ -167,14 +169,26 @@ function pos_vendre(): void
         if ($p['EstModele']) {
             pos_json(['erreur' => 'Choisissez une variante de « ' . $p['Nom'] . ' ».'], 400);
         }
-        $prix = is_admin() ? max(0, round((float) ($l['prix'] ?? $p['PrixVente']), 2)) : (float) $p['PrixVente'];
+        // Combo : composants contrôlés, prix du combo plus les suppléments des articles choisis.
+        $composants = null;
+        $prixCatalogue = (float) $p['PrixVente'];
+        if ($p['EstCombo']) {
+            $r = combo_composants($p, (array) ($l['composants'] ?? []));
+            if (is_string($r)) {
+                pos_json(['erreur' => $r], 400);
+            }
+            [$composants, $supplements] = $r;
+            $prixCatalogue += $supplements;
+        }
+        $prix = is_admin() && isset($l['prix']) ? max(0, round((float) $l['prix'], 2)) : $prixCatalogue;
         $remise = min(100, max(0, round((float) ($l['remise'] ?? 0), 2)));
         $total = round($qte * $prix * (1 - $remise / 100));
         $taux = (float) $p['TauxTVA'];
         $ttc += $total;
         $tva += $total - $total / (1 + $taux / 100);
         $note = mb_substr(trim((string) ($l['note'] ?? '')), 0, 200) ?: null;
-        $lignes[] = ['produit' => $p, 'qte' => $qte, 'prix' => $prix, 'remise' => $remise, 'taux' => $taux, 'total' => $total, 'part' => 0.0, 'note' => $note];
+        $lignes[] = ['produit' => $p, 'qte' => $qte, 'prix' => $prix, 'remise' => $remise, 'taux' => $taux, 'total' => $total, 'part' => 0.0, 'note' => $note,
+                     'composants' => $composants];
     }
 
     // Remise globale (administrateurs et utilisateurs autorisés à valider) : en % ou en montant,
@@ -256,13 +270,13 @@ function pos_vendre(): void
         if (!vente_sans_stock($tenant)) {
             $parProduit = [];
             foreach ($lignes as $l) {
-                if ($l['produit']['SuiviStock']) {
-                    $parProduit[(int) $l['produit']['Id']] = ($parProduit[(int) $l['produit']['Id']] ?? 0) + $l['qte'];
+                foreach ($l['composants'] ?: [['produitId' => (int) $l['produit']['Id'], 'qte' => 1]] as $c) {
+                    $parProduit[(int) $c['produitId']] = ($parProduit[(int) $c['produitId']] ?? 0) + $l['qte'] * (float) $c['qte'];
                 }
             }
             foreach ($parProduit as $pid => $qte) {
-                $p = q1('SELECT Nom, StockActuel FROM Produits WHERE Id = ? FOR UPDATE', [$pid]);
-                if ((float) $p['StockActuel'] < $qte - 0.001) {
+                $p = q1('SELECT Nom, StockActuel, SuiviStock FROM Produits WHERE Id = ? FOR UPDATE', [$pid]);
+                if ($p['SuiviStock'] && (float) $p['StockActuel'] < $qte - 0.001) {
                     db()->rollBack();
                     pos_json(['erreur' => 'Stock insuffisant pour « ' . $p['Nom'] . ' » : ' . quantite_fr($p['StockActuel']) . ' disponible(s).'], 409);
                 }
@@ -308,12 +322,13 @@ function pos_vendre(): void
         );
         foreach ($lignes as $l) {
             $ligneId = run(
-                'INSERT INTO LignesCommandePos (TenantId, CommandePosId, ProduitId, Libelle, Quantite, PrixUnitaire, Remise, TauxTVA, TotalTTC, RemiseGlobale, Note)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                [$tenant, $commandeId, $l['produit']['Id'], $l['produit']['Nom'], $l['qte'], $l['prix'], $l['remise'], $l['taux'], $l['total'], $l['part'], $l['note']]
+                'INSERT INTO LignesCommandePos (TenantId, CommandePosId, ProduitId, Libelle, Quantite, PrixUnitaire, Remise, TauxTVA, TotalTTC, RemiseGlobale, Note, Composants)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                [$tenant, $commandeId, $l['produit']['Id'], $l['produit']['Nom'], $l['qte'], $l['prix'], $l['remise'], $l['taux'], $l['total'], $l['part'], $l['note'],
+                 $l['composants'] ? json_encode($l['composants'], JSON_UNESCAPED_UNICODE) : null]
             );
             ligne_enregistrer_taxes($ligneId, produit_taxes((int) $l['produit']['Id']), $l['total'], $tenant);
-            mouvement_stock((int) $l['produit']['Id'], -$l['qte'], 'Vente', $numero, $commandeId);
+            ligne_mouvement_stock(['ProduitId' => $l['produit']['Id'], 'Composants' => $l['composants'] ? json_encode($l['composants']) : null], -$l['qte'], 'Vente', $numero, $commandeId);
         }
 
         $motif = qv("SELECT ID FROM Motifs WHERE LibelleMotif = 'Vente POS' AND TenantId = ?", [$tenant])

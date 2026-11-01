@@ -105,6 +105,7 @@
 
     function ajouterProduit(p) {
         if (p.modele) { choisirVariante(p); return; }
+        if (p.combo && p.combo.length) { choisirCombo(p); return; }
         const t = ticket();
         if (stockBloque(p, quantiteAuTicket(p.id) + 1)) {
             message('Stock épuisé pour « ' + p.nom + ' » : ' + qte(Math.max(0, p.stock)) + ' disponible(s).', true);
@@ -243,7 +244,7 @@
         if (!pay || !pay.partage) return [];
         return ticket().lignes.map(l => Object.assign({}, l, { qte: Math.round((l.qte - (pay.partage[l.uid] || 0)) * 100) / 100 }))
             .filter(l => l.qte > 0)
-            .map(l => ({ uid: l.uid, produitId: l.produitId, nom: l.nom, qte: l.qte, prix: l.prix, remise: l.remise || 0, tva: l.tva, unite: l.unite, note: l.note || '' }));
+            .map(l => ({ uid: l.uid, produitId: l.produitId, nom: l.nom, qte: l.qte, prix: l.prix, remise: l.remise || 0, tva: l.tva, unite: l.unite, note: l.note || '', composants: l.composants || [] }));
     }
 
     // ------------------------------------------------------------------
@@ -252,7 +253,7 @@
     function donneesCommande() {
         return {
             journeeId: D.journee.id, tableId: cmd.tableId, id: cmd.id, version: cmd.version, couverts: cmd.couverts,
-            lignes: cmd.lignes.map(l => ({ uid: l.uid, produitId: l.produitId, nom: l.nom, qte: l.qte, prix: l.prix, remise: l.remise || 0, tva: l.tva, unite: l.unite, note: l.note || '' })),
+            lignes: cmd.lignes.map(l => ({ uid: l.uid, produitId: l.produitId, nom: l.nom, qte: l.qte, prix: l.prix, remise: l.remise || 0, tva: l.tva, unite: l.unite, note: l.note || '', composants: l.composants || [] })),
             clientId: cmd.clientId, remise: cmd.remise || null
         };
     }
@@ -731,7 +732,7 @@
             cle: t.cle,
             journeeId: D.journee.id,
             clientId: t.clientId,
-            lignes: lignesAPayer().map(l => ({ produitId: l.produitId, qte: l.qte, prix: l.prix, remise: l.remise || 0, note: l.note || '' })),
+            lignes: lignesAPayer().map(l => ({ produitId: l.produitId, qte: l.qte, prix: l.prix, remise: l.remise || 0, note: l.note || '', composants: l.composants || null })),
             remiseGlobale: pay.partage ? null : (t.remise || null),
             pourboire: pay.pourboire || 0,
             commandeOuverte: cmd ? { id: cmd.id, version: cmd.version, reste: resteApresPaiement() } : null,
@@ -889,7 +890,9 @@
             const c = categories.get(p.categorieId);
             const couleur = c ? c.couleur : '#5a6b78';
             let stock = '<div class="stock">Service</div>';
-            if (p.modele) {
+            if (p.combo && p.combo.length) {
+                stock = '<div class="stock combo"><i class="fas fa-utensils"></i> Combo · ' + p.combo.length + ' choix</div>';
+            } else if (p.modele) {
                 const vs = variantes(p);
                 const reste = vs.reduce((s, v) => s + (v.suivi ? v.stock - quantiteAuTicket(v.id) : 0), 0);
                 stock = '<div class="stock">' + vs.length + ' variante' + (vs.length > 1 ? 's' : '') + (p.suivi ? ' · stock ' + qte(reste) : '') + '</div>';
@@ -917,7 +920,8 @@
             + '<div class="detail">' + qte(l.qte) + (l.unite && l.unite !== 'Unité' ? ' ' + echap(l.unite) : '') + ' × ' + fcfa(l.prix)
             + (l.remise ? ' · <span class="remise">remise ' + qte(l.remise) + ' %</span>' : '')
             + (cmd && l.envoye > 0 ? ' · <span class="envoye"><i class="fas fa-fire-burner"></i> ' + (l.envoye >= l.qte ? 'envoyé' : qte(l.envoye) + ' envoyé(s)') + '</span>' : '')
-            + '</div>' + (l.note ? '<div class="note">» ' + echap(l.note) + '</div>' : '') + '</div>'
+            + '</div>' + (l.composants || []).map(c => '<div class="compo">· ' + qte(c.qte) + ' × ' + echap(c.nom) + (c.supplement > 0 ? ' (+' + fcfa(c.supplement) + ')' : '') + '</div>').join('')
+            + (l.note ? '<div class="note">» ' + echap(l.note) + '</div>' : '') + '</div>'
             + '<div class="tot">' + fcfa(totalLigne(l)) + '</div></div>').join('');
     }
 
@@ -1065,6 +1069,77 @@
         });
         fond.addEventListener('keydown', e => { if (e.key === 'Escape') fermer(); });
         fond.querySelector('.pos-variante').focus();
+    }
+
+    // ------------------------------------------------------------------
+    // Combo (menu, formule) : un ou plusieurs articles à choisir par groupe
+    // ------------------------------------------------------------------
+    function choisirCombo(p) {
+        const groupes = p.combo.map(g => ({ id: g.id, nom: g.nom, quantite: g.quantite, choix: g.choix.filter(c => produits.has(c.produitId)) }));
+        const choix = {};   // groupeId -> { produitId: quantité }
+        groupes.forEach(g => { choix[g.id] = {}; });
+        const nb = g => Object.values(choix[g.id]).reduce((a, b) => a + b, 0);
+        const supplements = () => groupes.reduce((s, g) => s + g.choix.reduce((t, c) => t + (choix[g.id][c.produitId] || 0) * c.supplement, 0), 0);
+        const complet = () => groupes.every(g => nb(g) === g.quantite);
+        const fond = document.createElement('div');
+        fond.className = 'pos-modal-fond';
+        fond.innerHTML = '<div class="pos-modal pos-modal-combo" role="dialog" aria-modal="true" aria-label="Composer le combo">'
+            + '<div class="pos-modal-tete">' + echap(p.nom) + '<button type="button" data-close aria-label="Fermer">×</button></div>'
+            + '<div class="pos-combo-corps"></div>'
+            + '<div class="pos-combo-pied"><span class="total"></span><button type="button" class="pos-big" data-ajouter>Ajouter</button></div></div>';
+        document.body.appendChild(fond);
+        const corps = fond.querySelector('.pos-combo-corps');
+        const remplir = () => {
+            corps.innerHTML = groupes.map(g => '<div class="pos-combo-groupe"><h4>' + echap(g.nom)
+                + ' <small class="' + (nb(g) === g.quantite ? 'ok' : '') + '">' + nb(g) + ' / ' + g.quantite + '</small></h4><div class="pos-combo-choix">'
+                + (g.choix.length ? g.choix.map(c => {
+                    const pr = produits.get(c.produitId);
+                    const n = choix[g.id][c.produitId] || 0;
+                    return '<button type="button" class="pos-combo-article' + (n ? ' sel' : '') + '" data-g="' + g.id + '" data-p="' + c.produitId + '">'
+                        + '<span class="n">' + echap(pr.nom) + '</span>'
+                        + (c.supplement > 0 ? '<span class="s">+' + fcfa(c.supplement) + '</span>' : '')
+                        + (pr.suivi && pr.stock <= 0 ? '<span class="r">Rupture</span>' : '')
+                        + (n > 1 ? '<span class="q">× ' + n + '</span>' : '')
+                        + (n ? '<span class="x" data-moins title="Retirer">−</span>' : '') + '</button>';
+                }).join('') : '<div class="pos-aide">Aucun article actif dans ce groupe.</div>')
+                + '</div></div>').join('');
+            fond.querySelector('.total').innerHTML = 'Total : <b>' + fcfa(p.prix + supplements()) + ' FCFA</b>';
+            fond.querySelector('[data-ajouter]').disabled = !complet();
+        };
+        const fermer = () => fond.remove();
+        remplir();
+        fond.addEventListener('click', e => {
+            if (e.target === fond || e.target.closest('[data-close]')) { fermer(); return; }
+            const b = e.target.closest('[data-g]');
+            if (b) {
+                const g = groupes.find(x => x.id === Number(b.dataset.g));
+                const pid = Number(b.dataset.p);
+                const sel = choix[g.id];
+                if (e.target.closest('[data-moins]')) { sel[pid] = (sel[pid] || 0) - 1; if (sel[pid] <= 0) delete sel[pid]; }
+                else if (g.quantite === 1) { choix[g.id] = { [pid]: 1 }; }
+                else if (nb(g) < g.quantite) { sel[pid] = (sel[pid] || 0) + 1; }
+                else { message('Déjà ' + g.quantite + ' article(s) choisi(s) dans « ' + g.nom + ' » : retirez-en un d\'abord.'); return; }
+                remplir();
+                return;
+            }
+            if (e.target.closest('[data-ajouter]') && complet()) {
+                const composants = [];
+                groupes.forEach(g => g.choix.forEach(c => {
+                    const n = choix[g.id][c.produitId];
+                    if (n) composants.push({ produitId: c.produitId, groupeId: g.id, nom: produits.get(c.produitId).nom, qte: n, supplement: c.supplement });
+                }));
+                const t = ticket();
+                t.lignes.push({ uid: identifiant(), produitId: p.id, nom: p.nom, qte: 1, prix: p.prix + supplements(), remise: 0, tva: p.tva, unite: p.unite, note: '', envoye: 0, composants: composants });
+                t.choisie = t.lignes.length - 1;
+                mode = 'qte';
+                saisie = null;
+                fermer();
+                enregistrer();
+                afficher();
+            }
+        });
+        fond.addEventListener('keydown', e => { if (e.key === 'Escape') fermer(); });
+        fond.querySelector('button').focus();
     }
 
     // ------------------------------------------------------------------

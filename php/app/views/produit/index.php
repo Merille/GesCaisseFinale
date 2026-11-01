@@ -39,7 +39,7 @@
                 // Modèle à variantes : stock total de ses variantes actives.
                 if ($p['EstModele']) { $p['StockActuel'] = $p['StockVariantes']; }
                 $alerte = !$p['EstModele'] && $p['SuiviStock'] && $p['SeuilAlerte'] !== null && (float) $p['StockActuel'] <= (float) $p['SeuilAlerte'];
-                $badgeVariantes = $p['EstModele'] ? ' <span class="badge text-bg-light border">' . (int) $p['NbVariantes'] . ' variante' . ((int) $p['NbVariantes'] > 1 ? 's' : '') . '</span>' : ''; ?>
+                $badgeVariantes = $p['EstModele'] ? ' <span class="badge text-bg-light border">' . (int) $p['NbVariantes'] . ' variante' . ((int) $p['NbVariantes'] > 1 ? 's' : '') . '</span>' : '' . (!empty($p['EstCombo']) ? ' <span class="badge text-bg-warning"><i class="fa fa-utensils"></i> Combo</span>' : ''); ?>
                 <tr>
                     <td class="fw-semibold"><?= h($p['Code']) ?></td>
                     <td><div class="d-flex align-items-center gap-2"><?php if ($img = url_image_produit($p)): ?><img src="<?= h($img) ?>" alt="" class="vignette-image vignette-petite" loading="lazy"><?php endif; ?><span><?= h($p['Nom']) ?><?= $badgeVariantes ?></span></div></td>
@@ -72,7 +72,7 @@
         <?php foreach ($produits as $p):
             if ($p['EstModele']) { $p['StockActuel'] = $p['StockVariantes']; }
             $alerte = !$p['EstModele'] && $p['SuiviStock'] && $p['SeuilAlerte'] !== null && (float) $p['StockActuel'] <= (float) $p['SeuilAlerte'];
-            $badgeVariantes = $p['EstModele'] ? ' <span class="badge text-bg-light border">' . (int) $p['NbVariantes'] . ' variante' . ((int) $p['NbVariantes'] > 1 ? 's' : '') . '</span>' : ''; ?>
+            $badgeVariantes = $p['EstModele'] ? ' <span class="badge text-bg-light border">' . (int) $p['NbVariantes'] . ' variante' . ((int) $p['NbVariantes'] > 1 ? 's' : '') . '</span>' : '' . (!empty($p['EstCombo']) ? ' <span class="badge text-bg-warning"><i class="fa fa-utensils"></i> Combo</span>' : ''); ?>
             <div class="col">
                 <article class="carte-liste h-100 d-flex flex-column" style="--couleur: <?= h($p['Couleur'] ?: '#999997') ?>">
                     <div class="p-3 d-flex flex-column gap-2 flex-grow-1">

@@ -24,7 +24,7 @@ $routes = [
     'stock'       => ['index', 'entree', 'inventaire', 'option'],
     'posrapport'  => ['index', 'preview', 'excel'],
     'image'       => ['produit', 'societe'],
-    'produit'     => ['index', 'create', 'edit', 'delete', 'export', 'import', 'genvariantes', 'majvariantes'],
+    'produit'     => ['index', 'create', 'edit', 'delete', 'export', 'import', 'genvariantes', 'majvariantes', 'combo'],
     'categorie'   => ['index', 'save', 'delete'],
     'salle'       => ['index', 'enregistrer'],
 ];

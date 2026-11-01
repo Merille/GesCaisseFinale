@@ -23,6 +23,9 @@
     <?php foreach ($lignes as $l):
         $total = round((float) $l['qte'] * (float) $l['prix'] * (1 - (float) $l['remise'] / 100)); ?>
         <div class="b"><?= h($l['nom']) ?></div>
+        <?php foreach ((array) ($l['composants'] ?? []) as $comp): ?>
+            <div class="ind petit">· <?= quantite_fr($comp['qte']) ?> x <?= h($comp['nom']) ?><?= (float) ($comp['supplement'] ?? 0) > 0 ? ' (+' . fcfa($comp['supplement']) . ')' : '' ?></div>
+        <?php endforeach; ?>
         <div class="r ind">
             <span><?= quantite_fr($l['qte']) ?> x <?= fcfa($l['prix']) ?><?= (float) $l['remise'] > 0 ? ' -' . quantite_fr($l['remise']) . '%' : '' ?></span>
             <span><?= fcfa($total) ?></span>

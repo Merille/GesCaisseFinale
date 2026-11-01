@@ -231,3 +231,26 @@ body.pos-body { margin: 0; background: var(--pos-bg); color: #1d2a35; font-famil
 .pos-partage b { min-width: 28px; text-align: center; font-size: 17px; }
 .pos-transfert-salle { padding: 10px 8px 4px; font-size: 12px; font-weight: 700; text-transform: uppercase; color: #6c7a86; }
 .pos-mode.pourboire { margin-top: auto; border-style: dashed; }
+
+/* Combo : choix des articles par groupe */
+.pos-modal-combo { width: 680px; }
+.pos-combo-corps { overflow-y: auto; padding: 6px 18px 0; }
+.pos-combo-groupe h4 { margin: 12px 0 8px; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+.pos-combo-groupe h4 small { font-size: 12px; padding: 2px 8px; border-radius: 10px; background: #fdecea; color: var(--pos-danger); }
+.pos-combo-groupe h4 small.ok { background: #e6f4ec; color: var(--pos-ok); }
+.pos-combo-choix { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+.pos-combo-article { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 3px; padding: 10px 12px; min-height: 58px;
+    border-radius: 10px; border: 1px solid #cfd8df; background: #f7f9fb; text-align: left; cursor: pointer; font-size: 14px; }
+.pos-combo-article.sel { border: 2px solid var(--pos-brand); background: #e6f0f7; }
+.pos-combo-article .n { font-weight: 600; }
+.pos-combo-article .s { font-size: 12px; color: var(--pos-warn); font-weight: 600; }
+.pos-combo-article .r { font-size: 11px; color: var(--pos-danger); }
+.pos-combo-article .q { position: absolute; right: 8px; bottom: 6px; font-weight: 700; color: var(--pos-brand); }
+.pos-combo-article .x { position: absolute; top: 4px; right: 6px; width: 22px; height: 22px; border-radius: 50%; background: var(--pos-brand); color: #fff;
+    display: flex; align-items: center; justify-content: center; font-weight: 700; }
+.pos-combo-pied { display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-top: 1px solid #edf1f4; margin-top: 10px; }
+.pos-combo-pied .total { flex: 1; font-size: 16px; }
+.pos-combo-pied .pos-big { margin-top: 0; padding: 13px 26px; font-size: 17px; }
+.pos-combo-pied .pos-big:disabled { opacity: .5; cursor: not-allowed; }
+.pos-ligne .compo { font-size: 12px; color: #5a6b78; margin-top: 1px; }
+.pos-tuile .stock.combo { color: var(--pos-warn); font-weight: 600; }

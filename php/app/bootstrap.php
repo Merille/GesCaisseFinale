@@ -695,6 +695,8 @@ function mouvement_stock(int $produitId, float $quantite, string $type, ?string 
     );
 }
 
+require_once __DIR__ . '/combo.php';
+
 /** Option de la société : vente autorisée quand le stock est épuisé ? */
 function vente_sans_stock(int $tenant): bool
 {

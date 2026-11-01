@@ -76,7 +76,7 @@ $peutAnnuler = $peutRembourser && !$estRetour && $vente['Statut'] === 'Payée' &
                     <tbody>
                     <?php foreach ($lignes as $l): ?>
                         <tr>
-                            <td><?= h($l['Libelle']) ?><?php if (!empty($l['Note'])): ?><div class="small fst-italic text-muted">» <?= h($l['Note']) ?></div><?php endif; ?></td>
+                            <td><?= h($l['Libelle']) ?><?php foreach (ligne_composants($l['Composants'] ?? null) as $comp): ?><div class="small text-muted">· <?= quantite_fr($comp['qte']) ?> x <?= h($comp['nom']) ?><?= (float) $comp['supplement'] > 0 ? ' (+' . fcfa($comp['supplement']) . ')' : '' ?></div><?php endforeach; ?><?php if (!empty($l['Note'])): ?><div class="small fst-italic text-muted">» <?= h($l['Note']) ?></div><?php endif; ?></td>
                             <td class="text-end"><?= quantite_fr($l['Quantite']) ?></td>
                             <td class="text-end"><?= fcfa($l['PrixUnitaire']) ?></td>
                             <td class="text-end"><?= (float) $l['Remise'] > 0 ? quantite_fr($l['Remise']) . ' %' : '' ?></td>

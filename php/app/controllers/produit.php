@@ -201,7 +201,76 @@ function produit_edit(): void
     }
     render('produit/form', ['produit' => $produit, 'edition' => true, 'categories' => produit_categories(), 'taxes' => taxes_liste(),
         'attributs' => produit_attributs((int) $existant['Id']), 'variantes' => produit_variantes((int) $existant['Id']),
-        'nomsAttributs' => array_column(q('SELECT DISTINCT a.Nom FROM ProduitAttributs a JOIN Produits p ON p.Id = a.ProduitId WHERE ' . tf('p') . ' ORDER BY a.Nom'), 'Nom')]);
+        'nomsAttributs' => array_column(q('SELECT DISTINCT a.Nom FROM ProduitAttributs a JOIN Produits p ON p.Id = a.ProduitId WHERE ' . tf('p') . ' ORDER BY a.Nom'), 'Nom'),
+        'groupesCombo' => produit_groupes_combo((int) $existant['Id']),
+        'produitsCombo' => produit_choix_combo((int) $existant['TenantId'], (int) $existant['Id'])]);
+}
+
+/** Groupes de choix d'un combo : [{ nom, quantite, choix: [{ produitId, supplement }] }]. */
+function produit_groupes_combo(int $produitId): array
+{
+    $groupes = [];
+    foreach (q('SELECT * FROM ComboGroupes WHERE ProduitId = ? ORDER BY Ordre, Id', [$produitId]) as $g) {
+        $groupes[] = ['id' => (int) $g['Id'], 'nom' => $g['Nom'], 'quantite' => (int) $g['Quantite'], 'choix' => array_map(
+            fn($c) => ['produitId' => (int) $c['ProduitId'], 'supplement' => (float) $c['Supplement']],
+            q('SELECT * FROM ComboChoix WHERE GroupeId = ? ORDER BY Ordre, Id', [$g['Id']])
+        )];
+    }
+    return $groupes;
+}
+
+/** Produits proposables dans un combo : actifs, ni modèle, ni combo, ni le combo lui-même. */
+function produit_choix_combo(int $tenant, int $exclu): array
+{
+    return array_map(fn($p) => ['id' => (int) $p['Id'], 'nom' => $p['Nom'], 'prix' => (float) $p['PrixVente']],
+        q('SELECT Id, Nom, PrixVente FROM Produits WHERE TenantId = ? AND Actif = 1 AND EstModele = 0 AND EstCombo = 0 AND Id <> ? ORDER BY Nom', [$tenant, $exclu]));
+}
+
+/** Enregistre les groupes de choix du combo (envoyés en JSON par l'éditeur de la fiche). */
+function produit_combo(): void
+{
+    $p = produit_charger((int) post('id'));
+    $retour = fn(string $type, string $msg) => [flash($type, $msg), redirect('produit/edit', ['id' => $p['Id']])];
+    if ($p['EstModele'] || $p['ParentId']) {
+        $retour('danger', 'Un produit à variantes ne peut pas être un combo.');
+    }
+    $saisi = json_decode((string) post('combo', ''), true);
+    $permis = array_column(produit_choix_combo((int) $p['TenantId'], (int) $p['Id']), null, 'id');
+    $groupes = [];
+    foreach (array_slice((array) ($saisi['groupes'] ?? []), 0, 12) as $i => $g) {
+        $nom = mb_substr(trim((string) ($g['nom'] ?? '')), 0, 50);
+        $choix = [];
+        foreach (array_slice((array) ($g['choix'] ?? []), 0, 50) as $c) {
+            $pid = (int) ($c['produitId'] ?? 0);
+            if (isset($permis[$pid]) && !isset($choix[$pid])) {
+                $choix[$pid] = ['produitId' => $pid, 'supplement' => max(0, round((float) ($c['supplement'] ?? 0), 2))];
+            }
+        }
+        if ($nom === '' && !$choix) {
+            continue;
+        }
+        if ($nom === '' || !$choix) {
+            $retour('danger', 'Chaque groupe du combo doit avoir un nom et au moins un produit proposé (groupe ' . ($i + 1) . ').');
+        }
+        $groupes[] = ['nom' => $nom, 'quantite' => max(1, min(10, (int) ($g['quantite'] ?? 1))), 'choix' => array_values($choix)];
+    }
+    db()->beginTransaction();
+    try {
+        run('DELETE FROM ComboGroupes WHERE ProduitId = ?', [$p['Id']]);
+        foreach ($groupes as $ordre => $g) {
+            $gid = run('INSERT INTO ComboGroupes (TenantId, ProduitId, Nom, Quantite, Ordre) VALUES (?, ?, ?, ?, ?)', [$p['TenantId'], $p['Id'], $g['nom'], $g['quantite'], $ordre]);
+            foreach ($g['choix'] as $k => $c) {
+                run('INSERT INTO ComboChoix (GroupeId, ProduitId, Supplement, Ordre) VALUES (?, ?, ?, ?)', [$gid, $c['produitId'], $c['supplement'], $k]);
+            }
+        }
+        // Le combo n'a pas de stock propre : ce sont ses composants qui sortent du stock.
+        run('UPDATE Produits SET EstCombo = ?, SuiviStock = IF(? = 1, 0, SuiviStock) WHERE Id = ?', [$groupes ? 1 : 0, $groupes ? 1 : 0, $p['Id']]);
+        db()->commit();
+    } catch (Throwable $e) {
+        db()->rollBack();
+        throw $e;
+    }
+    $retour('success', $groupes ? 'Combo enregistré : ' . count($groupes) . ' groupe(s) de choix.' : 'Ce produit n\'est plus un combo.');
 }
 
 function produit_delete(): void
@@ -209,8 +278,9 @@ function produit_delete(): void
     if (is_post()) {
         // Étapes suivantes : refuser la suppression d'un produit déjà vendu (le désactiver à la place).
         $produit = produit_charger((int) post('id'));
-        // Un modèle emporte ses variantes.
+        // Un modèle emporte ses variantes ; un produit retiré n'est plus proposé dans les combos.
         run('DELETE FROM Produits WHERE ParentId = ?', [$produit['Id']]);
+        run('DELETE FROM ComboChoix WHERE ProduitId = ?', [$produit['Id']]);
         run('DELETE FROM Produits WHERE Id = ?', [$produit['Id']]);
         flash('success', 'Produit supprimé.');
     }

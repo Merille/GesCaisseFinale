@@ -119,6 +119,12 @@ function restaurant_lignes_saisies(array $lignes, array $avant): array
             'unite' => mb_substr((string) ($l['unite'] ?? ''), 0, 20),
             'note' => mb_substr(trim((string) ($l['note'] ?? '')), 0, 200),
             'envoye' => $envoye[$uid] ?? 0.0,
+            // Combo : articles choisis (contrôlés à l'encaissement).
+            'composants' => array_values(array_map(fn($c) => [
+                'produitId' => (int) ($c['produitId'] ?? 0), 'groupeId' => (int) ($c['groupeId'] ?? 0),
+                'nom' => mb_substr((string) ($c['nom'] ?? ''), 0, 200), 'qte' => max(0, round((float) ($c['qte'] ?? 1), 2)),
+                'supplement' => max(0, round((float) ($c['supplement'] ?? 0), 2)),
+            ], array_slice(array_filter((array) ($l['composants'] ?? []), 'is_array'), 0, 30))),
         ];
     }
     return $resultat;
@@ -163,24 +169,38 @@ function restaurant_envoyer(array $co, array &$contenu, array $avant, string $ta
         $actuelles[$l['uid']] = true;
     }
     $parPoste = [];
-    $postes = restaurant_postes(array_unique(array_merge(
-        array_map(fn($l) => (int) $l['produitId'], $contenu['lignes']),
-        array_map(fn($l) => (int) ($l['produitId'] ?? 0), $avant)
-    )));
+    $ids = [];
+    foreach (array_merge($contenu['lignes'], $avant) as $l) {
+        $ids[] = (int) ($l['produitId'] ?? 0);
+        foreach ((array) ($l['composants'] ?? []) as $c) {
+            $ids[] = (int) ($c['produitId'] ?? 0);
+        }
+    }
+    $postes = restaurant_postes(array_values(array_unique($ids)));
+    // Un combo part en préparation article par article, chacun vers son poste.
+    $ajouter = function (array $l, float $qte, ?string $note) use (&$parPoste, $postes): void {
+        $articles = !empty($l['composants'])
+            ? array_map(fn($c) => ['id' => (int) $c['produitId'], 'libelle' => $c['nom'] . ' (' . $l['nom'] . ')', 'qte' => $qte * (float) $c['qte']], $l['composants'])
+            : [['id' => (int) $l['produitId'], 'libelle' => $l['nom'], 'qte' => $qte]];
+        foreach ($articles as $a) {
+            $poste = $postes[$a['id']] ?? 'Cuisine';
+            if ($poste !== 'Aucun') {
+                $parPoste[$poste][] = ['libelle' => mb_substr($a['libelle'], 0, 200), 'qte' => $a['qte'], 'note' => $note];
+            }
+        }
+    };
     foreach ($contenu['lignes'] as &$l) {
         $delta = round($l['qte'] - $l['envoye'], 2);
-        $poste = $postes[$l['produitId']] ?? 'Cuisine';
-        if (abs($delta) >= 0.01 && $poste !== 'Aucun') {
-            $parPoste[$poste][] = ['libelle' => $l['nom'], 'qte' => $delta, 'note' => $l['note'] ?: null];
+        if (abs($delta) >= 0.01) {
+            $ajouter($l, $delta, $l['note'] ?: null);
         }
         $l['envoye'] = $l['qte'];
     }
     unset($l);
     // Lignes supprimées après l'envoi : annulation.
     foreach ($avant as $l) {
-        $poste = $postes[(int) ($l['produitId'] ?? 0)] ?? 'Cuisine';
-        if (!isset($actuelles[$l['uid'] ?? '']) && (float) ($l['envoye'] ?? 0) > 0 && $poste !== 'Aucun') {
-            $parPoste[$poste][] = ['libelle' => $l['nom'], 'qte' => -(float) $l['envoye'], 'note' => null];
+        if (!isset($actuelles[$l['uid'] ?? '']) && (float) ($l['envoye'] ?? 0) > 0) {
+            $ajouter($l, -(float) $l['envoye'], null);
         }
     }
     $ids = [];

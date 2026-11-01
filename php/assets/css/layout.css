@@ -606,3 +606,12 @@ html.sidebar-replie .sb-sub {
     70% { box-shadow: 0 0 0 10px rgba(25, 135, 84, 0); }
     100% { box-shadow: 0 0 0 0 rgba(25, 135, 84, 0); }
 }
+
+/* ---------- Combo (fiche produit) ---------- */
+.combo-groupe {
+    border: 1px solid #dfe6ec;
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+    background: #fafcfd;
+}
