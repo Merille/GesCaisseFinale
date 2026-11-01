@@ -166,17 +166,23 @@ namespace EasytransitCaisse.Data
                 .OnDelete(DeleteBehavior.Cascade);
             modelBuilder.Entity<LigneBonPreparation>().ToTable("LignesBonPreparation");
 
-            // Combos : groupes de choix d'un produit combo. Pas de cascade depuis le produit choisi
-            // (SQL Server refuse deux chemins de cascade depuis Produits) : retiré par le code.
-            modelBuilder.Entity<ComboGroupe>().ToTable("ComboGroupes")
+            // Combos (Configuration › Combos) et combos qui composent chaque produit combo. Pas de
+            // cascade depuis le produit choisi (SQL Server refuse deux chemins de cascade depuis
+            // Produits) : les choix sont retirés par le code à la suppression du produit.
+            modelBuilder.Entity<Combo>().ToTable("Combos")
                 .HasQueryFilter(e => _currentTenantId == 0 || e.TenantId == _currentTenantId);
-            modelBuilder.Entity<ComboGroupe>()
-                .HasOne<Produit>().WithMany().HasForeignKey(g => g.ProduitId)
-                .OnDelete(DeleteBehavior.Cascade);
-            modelBuilder.Entity<ComboGroupe>()
-                .HasMany(g => g.Choix).WithOne().HasForeignKey(c => c.GroupeId)
+            modelBuilder.Entity<Combo>()
+                .HasMany(c => c.Choix).WithOne().HasForeignKey(c => c.ComboId)
                 .OnDelete(DeleteBehavior.Cascade);
             modelBuilder.Entity<ComboChoix>().ToTable("ComboChoix").HasIndex(c => c.ProduitId);
+            modelBuilder.Entity<ProduitCombo>().ToTable("ProduitCombos")
+                .HasKey(pc => new { pc.ProduitId, pc.ComboId });
+            modelBuilder.Entity<ProduitCombo>()
+                .HasOne<Produit>().WithMany().HasForeignKey(pc => pc.ProduitId)
+                .OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<ProduitCombo>()
+                .HasOne<Combo>().WithMany().HasForeignKey(pc => pc.ComboId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             // Point de vente : unités de vente.
             modelBuilder.Entity<UniteVente>().ToTable("Unites")
@@ -319,7 +325,9 @@ namespace EasytransitCaisse.Data
 
         public DbSet<UniteVente> Unites { get; set; }
 
-        public DbSet<ComboGroupe> ComboGroupes { get; set; }
+        public DbSet<Combo> Combos { get; set; }
+
+        public DbSet<ProduitCombo> ProduitCombos { get; set; }
 
         public DbSet<ComboChoix> ComboChoix { get; set; }
 

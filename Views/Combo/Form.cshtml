@@ -1,0 +1,44 @@
+@model EasytransitCaisse.Models.Combo
+@{
+    var titre = Model.Id == 0 ? "Nouveau combo" : "Modifier le combo";
+    ViewData["Title"] = titre;
+}
+
+<div class="card shadow-sm border-0" style="max-width: 760px;">
+    <div class="card-header bg-brand text-white"><h5 class="mb-0">@titre</h5></div>
+    <div class="card-body">
+        @if (ViewBag.Erreur != null)
+        {
+            <div class="alert alert-danger">@ViewBag.Erreur</div>
+        }
+        <form method="post" action="/Combo/Save">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="@Model.Id" />
+            <div class="row g-3">
+                <div class="col-md-8">
+                    <label class="form-label" for="Nom">Nom du combo</label>
+                    <input class="form-control" id="Nom" name="Nom" maxlength="50" value="@Model.Nom" placeholder="Ex : Plats, Boissons, Desserts" required />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="Quantite">Articles à choisir</label>
+                    <input class="form-control" id="Quantite" name="Quantite" type="number" min="1" max="10" value="@Model.Quantite" />
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Produits proposés</label>
+                    <input type="hidden" name="choix" id="combo-json" />
+                    <div id="combo-editeur"></div>
+                    <script id="combo-donnees" type="application/json">@Html.Raw(System.Text.Json.JsonSerializer.Serialize((object)ViewBag.Donnees))</script>
+                    <div class="form-text">Le supplément s'ajoute au prix du produit combo quand ce produit est choisi.</div>
+                </div>
+            </div>
+            <div class="mt-4 d-flex gap-2">
+                <button type="submit" class="btn btn-primary">Enregistrer</button>
+                <a href="/Combo/Index" class="btn btn-outline-secondary">Annuler</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/combo.js" asp-append-version="true"></script>
+}

@@ -1,0 +1,60 @@
+@model List<EasytransitCaisse.Models.Combo>
+@{
+    ViewData["Title"] = "Combos";
+    var choix = (Dictionary<int, string>)ViewBag.Choix;
+    var produits = (Dictionary<int, List<string>>)ViewBag.Produits;
+}
+
+<partial name="_Messages" />
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">Combos</h4>
+    <a href="/Combo/Create" class="btn btn-primary"><i class="fas fa-plus"></i> Nouveau combo</a>
+</div>
+<p class="small text-muted">
+    Comme dans Odoo, un combo regroupe les produits proposés au choix (ex. <strong>Plats</strong> : Poulet, Poisson + 500 ;
+    <strong>Boissons</strong> : Coca, Eau). Un produit combo (ex. <strong>Menu midi</strong>) se compose ensuite de plusieurs combos, choisis sur sa fiche
+    (Configuration › Produits). À la caisse, le serveur choisit un article dans chaque combo.
+</p>
+
+<div class="card shadow-sm border-0">
+    <div class="card-body">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-dark">
+                <tr><th>Combo</th><th class="text-center">À choisir</th><th>Produits proposés</th><th>Utilisé dans</th><th class="text-center">Actions</th></tr>
+            </thead>
+            <tbody>
+                @if (!Model.Any())
+                {
+                    <tr><td colspan="5" class="text-center text-muted py-4">Aucun combo. Créez-en un, par exemple « Plats » ou « Boissons ».</td></tr>
+                }
+                @foreach (var c in Model)
+                {
+                    <tr>
+                        <td class="fw-semibold">@c.Nom</td>
+                        <td class="text-center">@c.Quantite</td>
+                        <td>@choix[c.Id]</td>
+                        <td>
+                            @if (produits[c.Id].Any())
+                            {
+                                @string.Join(", ", produits[c.Id])
+                            }
+                            else
+                            {
+                                <span class="text-muted">—</span>
+                            }
+                        </td>
+                        <td class="text-center">
+                            <div class="d-inline-flex gap-1">
+                                <a href="/Combo/Edit/@c.Id" class="btn btn-warning btn-sm">Modifier</a>
+                                <form asp-action="Delete" asp-route-id="@c.Id" method="post" class="d-inline" onsubmit="return confirm('Supprimer ce combo ?')">
+                                    <button type="submit" class="btn btn-danger btn-sm">Supprimer</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

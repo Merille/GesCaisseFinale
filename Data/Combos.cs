@@ -19,11 +19,19 @@ namespace EasytransitCaisse.Data
             public string? Groupe { get; set; }
         }
 
-        // Groupes de choix des combos d'une société, par produit.
-        public static async Task<Dictionary<int, List<ComboGroupe>>> SocieteAsync(AppDbContext context, int tenantId) =>
-            (await context.ComboGroupes.IgnoreQueryFilters().Include(g => g.Choix)
-                .Where(g => g.TenantId == tenantId).OrderBy(g => g.Ordre).ThenBy(g => g.Id).ToListAsync())
-            .GroupBy(g => g.ProduitId).ToDictionary(x => x.Key, x => x.ToList());
+        // Combos qui composent chaque produit combo d'une société (dans l'ordre), par produit.
+        public static async Task<Dictionary<int, List<Combo>>> SocieteAsync(AppDbContext context, int tenantId)
+        {
+            var combos = await context.Combos.IgnoreQueryFilters().Include(c => c.Choix)
+                .Where(c => c.TenantId == tenantId).ToDictionaryAsync(c => c.Id);
+            var liens = await (from pc in context.ProduitCombos
+                               join p in context.Produits.IgnoreQueryFilters() on pc.ProduitId equals p.Id
+                               where p.TenantId == tenantId
+                               orderby pc.Ordre
+                               select pc).ToListAsync();
+            return liens.Where(l => combos.ContainsKey(l.ComboId)).GroupBy(l => l.ProduitId)
+                .ToDictionary(g => g.Key, g => g.Select(l => combos[l.ComboId]).ToList());
+        }
 
         // Composants choisis pour un combo, contrôlés : chaque groupe doit avoir exactement le nombre
         // d'articles prévu, parmi ses produits proposés. Renvoie les composants et le total des
@@ -33,7 +41,7 @@ namespace EasytransitCaisse.Data
         {
             var groupes = (await SocieteAsync(context, combo.TenantId)).GetValueOrDefault(combo.Id) ?? new();
             if (!groupes.Any())
-                return (null, 0, $"Le combo « {combo.Nom} » n'a plus de groupes de choix.");
+                return (null, 0, $"Le produit « {combo.Nom} » n'est plus composé d'aucun combo.");
             var liste = saisis.ToList();
             var composants = new List<Composant>();
             decimal supplements = 0;

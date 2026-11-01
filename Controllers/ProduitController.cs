@@ -174,43 +174,26 @@ namespace EasytransitCaisse.Controllers
             return View(produit);
         }
 
-        // Groupes de choix du combo et produits proposables (actifs, ni modèle, ni combo, ni lui-même).
+        // Combos de la société (avec le résumé de leurs produits) et combos qui composent le produit.
         private void ChargerCombo(Produit produit)
         {
-            ViewBag.GroupesCombo = _context.ComboGroupes.Include(g => g.Choix).Where(g => g.ProduitId == produit.Id)
-                .OrderBy(g => g.Ordre).ThenBy(g => g.Id).ToList()
-                .Select(g => new { id = g.Id, nom = g.Nom, quantite = g.Quantite, choix = g.Choix.OrderBy(c => c.Ordre).ThenBy(c => c.Id).Select(c => new { produitId = c.ProduitId, supplement = c.Supplement }) })
-                .ToList();
-            ViewBag.ProduitsCombo = ProduitsCombo(produit).Select(p => new { id = p.Id, nom = p.Nom, prix = p.PrixVente }).ToList();
+            var noms = _context.Produits.IgnoreQueryFilters().Where(p => p.TenantId == produit.TenantId).ToDictionary(p => p.Id, p => p.Nom);
+            var fr = System.Globalization.CultureInfo.GetCultureInfo("fr-FR");
+            ViewBag.CombosDisponibles = _context.Combos.IgnoreQueryFilters().Include(c => c.Choix).Where(c => c.TenantId == produit.TenantId)
+                .OrderBy(c => c.Ordre).ThenBy(c => c.Nom).ToList()
+                .Select(c => new
+                {
+                    id = c.Id, nom = c.Nom, quantite = c.Quantite,
+                    resume = string.Join(", ", c.Choix.OrderBy(x => x.Ordre).ThenBy(x => x.Id)
+                        .Select(x => (noms.TryGetValue(x.ProduitId, out var n) ? n : "?") + (x.Supplement > 0 ? $" (+{x.Supplement.ToString("N0", fr)})" : "")))
+                }).ToList();
+            ViewBag.CombosChoisis = _context.ProduitCombos.Where(pc => pc.ProduitId == produit.Id).OrderBy(pc => pc.Ordre).Select(pc => pc.ComboId).ToList();
         }
 
-        private List<Produit> ProduitsCombo(Produit produit) =>
-            _context.Produits.IgnoreQueryFilters()
-                .Where(p => p.TenantId == produit.TenantId && p.Actif && !p.EstModele && !p.EstCombo && p.Id != produit.Id)
-                .OrderBy(p => p.Nom).ToList();
-
-        private sealed class ComboSaisi
-        {
-            public List<GroupeSaisi> Groupes { get; set; } = new();
-        }
-
-        private sealed class GroupeSaisi
-        {
-            public string? Nom { get; set; }
-            public int Quantite { get; set; } = 1;
-            public List<ChoixSaisi> Choix { get; set; } = new();
-        }
-
-        private sealed class ChoixSaisi
-        {
-            public int? ProduitId { get; set; }
-            public decimal Supplement { get; set; }
-        }
-
-        // Enregistre les groupes de choix du combo (envoyés en JSON par l'éditeur de la fiche).
+        // Enregistre la liste des combos qui composent le produit (envoyée en JSON par la fiche).
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Combo(int id, string? combo)
+        public async Task<IActionResult> Combo(int id, string? combos)
         {
             var produit = await _context.Produits.FirstOrDefaultAsync(p => p.Id == id);
             if (produit == null)
@@ -222,38 +205,22 @@ namespace EasytransitCaisse.Controllers
             }
             if (produit.EstModele || produit.ParentId.HasValue)
                 return Retour("Error", "Un produit à variantes ne peut pas être un combo.");
-            ComboSaisi? saisi;
-            try { saisi = System.Text.Json.JsonSerializer.Deserialize<ComboSaisi>(combo ?? "", new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true }); }
-            catch (System.Text.Json.JsonException) { saisi = null; }
-            var permis = ProduitsCombo(produit).Select(p => p.Id).ToHashSet();
-            var groupes = new List<ComboGroupe>();
-            var n = 0;
-            foreach (var g in (saisi?.Groupes ?? new()).Take(12))
-            {
-                n++;
-                var nom = (g.Nom ?? "").Trim();
-                nom = nom.Length > 50 ? nom[..50] : nom;
-                var choix = g.Choix.Take(50).Where(c => c.ProduitId.HasValue && permis.Contains(c.ProduitId.Value))
-                    .GroupBy(c => c.ProduitId!.Value).Select(x => x.First())
-                    .Select((c, k) => new ComboChoix { ProduitId = c.ProduitId!.Value, Supplement = Math.Max(0, Math.Round(c.Supplement, 2)), Ordre = k })
-                    .ToList();
-                if (nom == "" && !choix.Any())
-                    continue;
-                if (nom == "" || !choix.Any())
-                    return Retour("Error", $"Chaque groupe du combo doit avoir un nom et au moins un produit proposé (groupe {n}).");
-                groupes.Add(new ComboGroupe { TenantId = produit.TenantId, ProduitId = produit.Id, Nom = nom, Quantite = Math.Clamp(g.Quantite, 1, 10), Ordre = groupes.Count, Choix = choix });
-            }
+            List<int> saisis;
+            try { saisis = System.Text.Json.JsonSerializer.Deserialize<List<int>>(combos ?? "[]") ?? new(); }
+            catch (System.Text.Json.JsonException) { saisis = new(); }
+            var existants = await _context.Combos.IgnoreQueryFilters().Where(c => c.TenantId == produit.TenantId).Select(c => c.Id).ToListAsync();
+            var ids = saisis.Where(existants.Contains).Distinct().Take(12).ToList();
             await using var transaction = await _context.Database.BeginTransactionAsync();
-            _context.ComboGroupes.RemoveRange(_context.ComboGroupes.Where(g => g.ProduitId == produit.Id));
+            _context.ProduitCombos.RemoveRange(_context.ProduitCombos.Where(pc => pc.ProduitId == produit.Id));
             await _context.SaveChangesAsync();
-            _context.ComboGroupes.AddRange(groupes);
-            produit.EstCombo = groupes.Any();
-            // Le combo n'a pas de stock propre : ce sont ses composants qui sortent du stock.
+            _context.ProduitCombos.AddRange(ids.Select((c, i) => new ProduitCombo { ProduitId = produit.Id, ComboId = c, Ordre = i }));
+            produit.EstCombo = ids.Any();
+            // Le produit combo n'a pas de stock propre : ce sont ses composants qui sortent du stock.
             if (produit.EstCombo)
                 produit.SuiviStock = false;
             await _context.SaveChangesAsync();
             await transaction.CommitAsync();
-            return Retour("Success", groupes.Any() ? $"Combo enregistré : {groupes.Count} groupe(s) de choix." : "Ce produit n'est plus un combo.");
+            return Retour("Success", ids.Any() ? $"Produit combo enregistré : {ids.Count} combo(s) à choisir." : "Ce produit n'est plus un combo.");
         }
 
         [HttpPost]

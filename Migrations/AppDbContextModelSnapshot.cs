@@ -216,37 +216,7 @@ namespace EasytransitCaisse.Migrations
                     b.ToTable("Clients");
                 });
 
-            modelBuilder.Entity("EasytransitCaisse.Models.ComboChoix", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("GroupeId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Ordre")
-                        .HasColumnType("int");
-
-                    b.Property<int>("ProduitId")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("Supplement")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("GroupeId");
-
-                    b.HasIndex("ProduitId");
-
-                    b.ToTable("ComboChoix", (string)null);
-                });
-
-            modelBuilder.Entity("EasytransitCaisse.Models.ComboGroupe", b =>
+            modelBuilder.Entity("EasytransitCaisse.Models.Combo", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -262,9 +232,6 @@ namespace EasytransitCaisse.Migrations
                     b.Property<int>("Ordre")
                         .HasColumnType("int");
 
-                    b.Property<int>("ProduitId")
-                        .HasColumnType("int");
-
                     b.Property<int>("Quantite")
                         .HasColumnType("int");
 
@@ -273,9 +240,37 @@ namespace EasytransitCaisse.Migrations
 
                     b.HasKey("Id");
 
+                    b.ToTable("Combos", (string)null);
+                });
+
+            modelBuilder.Entity("EasytransitCaisse.Models.ComboChoix", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ComboId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Ordre")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ProduitId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Supplement")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ComboId");
+
                     b.HasIndex("ProduitId");
 
-                    b.ToTable("ComboGroupes", (string)null);
+                    b.ToTable("ComboChoix", (string)null);
                 });
 
             modelBuilder.Entity("EasytransitCaisse.Models.CommandeOuverte", b =>
@@ -1081,6 +1076,24 @@ namespace EasytransitCaisse.Migrations
                     b.ToTable("ProduitAttributValeurs");
                 });
 
+            modelBuilder.Entity("EasytransitCaisse.Models.ProduitCombo", b =>
+                {
+                    b.Property<int>("ProduitId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ComboId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Ordre")
+                        .HasColumnType("int");
+
+                    b.HasKey("ProduitId", "ComboId");
+
+                    b.HasIndex("ComboId");
+
+                    b.ToTable("ProduitCombos", (string)null);
+                });
+
             modelBuilder.Entity("EasytransitCaisse.Models.ProduitImage", b =>
                 {
                     b.Property<int>("ProduitId")
@@ -1405,18 +1418,9 @@ namespace EasytransitCaisse.Migrations
 
             modelBuilder.Entity("EasytransitCaisse.Models.ComboChoix", b =>
                 {
-                    b.HasOne("EasytransitCaisse.Models.ComboGroupe", null)
+                    b.HasOne("EasytransitCaisse.Models.Combo", null)
                         .WithMany("Choix")
-                        .HasForeignKey("GroupeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("EasytransitCaisse.Models.ComboGroupe", b =>
-                {
-                    b.HasOne("EasytransitCaisse.Models.Produit", null)
-                        .WithMany()
-                        .HasForeignKey("ProduitId")
+                        .HasForeignKey("ComboId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
@@ -1603,6 +1607,21 @@ namespace EasytransitCaisse.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("EasytransitCaisse.Models.ProduitCombo", b =>
+                {
+                    b.HasOne("EasytransitCaisse.Models.Combo", null)
+                        .WithMany()
+                        .HasForeignKey("ComboId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("EasytransitCaisse.Models.Produit", null)
+                        .WithMany()
+                        .HasForeignKey("ProduitId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("EasytransitCaisse.Models.ProduitImage", b =>
                 {
                     b.HasOne("EasytransitCaisse.Models.Produit", null)
@@ -1683,7 +1702,7 @@ namespace EasytransitCaisse.Migrations
                     b.Navigation("Lignes");
                 });
 
-            modelBuilder.Entity("EasytransitCaisse.Models.ComboGroupe", b =>
+            modelBuilder.Entity("EasytransitCaisse.Models.Combo", b =>
                 {
                     b.Navigation("Choix");
                 });
