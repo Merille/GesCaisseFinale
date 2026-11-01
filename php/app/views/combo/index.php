@@ -1,7 +1,7 @@
 <?php $titre = 'Combos'; ?>
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h4 class="mb-0">Combos</h4>
-    <a href="<?= h(url('combo/create')) ?>" class="btn btn-primary"><i class="fa fa-plus"></i> Nouveau combo</a>
+    <a href="<?= h(url('combo/create')) ?>" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalCreation"><i class="fa fa-plus"></i> Nouveau combo</a>
 </div>
 <p class="small text-muted">Comme dans Odoo, un combo regroupe les produits proposés au choix (ex. <strong>Plats</strong> : Poulet, Poisson + 500 ;
     <strong>Boissons</strong> : Coca, Eau). Un produit combo (ex. <strong>Menu midi</strong>) se compose ensuite de plusieurs combos, choisis sur sa fiche
@@ -31,3 +31,8 @@
         </table>
     </div>
 </div>
+
+<?= partial('combo/form', ['combo' => null, 'valeurs' => ['Nom' => '', 'Quantite' => 1], 'donnees' => ['produits' => $produits, 'choix' => []], 'modale' => true]) ?>
+<?php ob_start(); ?>
+<script src="<?= asset('assets/js/combo.js') ?>"></script>
+<?php $scripts = ob_get_clean(); ?>

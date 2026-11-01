@@ -6,14 +6,13 @@
 
 function combo_index(): void
 {
-    $tenant = tenant_id();
     $combos = q('SELECT c.*, (SELECT COUNT(*) FROM ProduitCombos pc WHERE pc.ComboId = c.Id) AS NbProduits FROM Combos c WHERE ' . tf('c') . ' ORDER BY c.Ordre, c.Nom, c.Id');
     foreach ($combos as &$c) {
         $c['choix'] = q('SELECT p.Nom, ch.Supplement FROM ComboChoix ch JOIN Produits p ON p.Id = ch.ProduitId WHERE ch.ComboId = ? ORDER BY ch.Ordre, ch.Id', [$c['Id']]);
         $c['produits'] = array_column(q('SELECT p.Nom FROM ProduitCombos pc JOIN Produits p ON p.Id = pc.ProduitId WHERE pc.ComboId = ? ORDER BY p.Nom', [$c['Id']]), 'Nom');
     }
     unset($c);
-    render('combo/index', ['combos' => $combos]);
+    render('combo/index', ['combos' => $combos, 'produits' => combo_produits(tenant_id())]);
 }
 
 function combo_charger(int $id): array

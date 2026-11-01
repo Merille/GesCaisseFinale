@@ -35,6 +35,12 @@ namespace EasytransitCaisse.Controllers
                 .Select(x => (noms.TryGetValue(x.ProduitId, out var n) ? n : "?") + (x.Supplement > 0 ? $" (+{x.Supplement.ToString("N0", fr)})" : ""))));
             ViewBag.Produits = combos.ToDictionary(c => c.Id, c => liens.Where(l => l.ComboId == c.Id)
                 .Select(l => noms.TryGetValue(l.ProduitId, out var n) ? n : "?").OrderBy(n => n).ToList());
+            // Formulaire de création en fenêtre modale.
+            ViewBag.Donnees = new
+            {
+                produits = (await ProduitsAsync(_tenant.TenantId)).Select(p => new { id = p.Id, nom = p.Nom, prix = p.PrixVente }),
+                choix = Array.Empty<object>()
+            };
             return View(combos);
         }
 

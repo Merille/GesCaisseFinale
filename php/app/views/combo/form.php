@@ -3,6 +3,7 @@ $titre = $combo ? 'Modifier le combo' : 'Nouveau combo';
 $entete = $titre;
 $largeur = '760px';
 $retour = url('combo/index');
+$action = !empty($modale) ? url('combo/create') : null;
 require __DIR__ . '/../partials/form_debut.php';
 ?>
             <div class="row g-3">
@@ -19,6 +20,8 @@ require __DIR__ . '/../partials/form_debut.php';
                 </div>
             </div>
 <?php require __DIR__ . '/../partials/form_fin.php'; ?>
+<?php if (empty($modale)): ?>
 <?php ob_start(); ?>
 <script src="<?= asset('assets/js/combo.js') ?>"></script>
 <?php $scripts = ob_get_clean(); ?>
+<?php endif; ?>

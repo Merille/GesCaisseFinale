@@ -9,7 +9,7 @@
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h4 class="mb-0">Combos</h4>
-    <a href="/Combo/Create" class="btn btn-primary"><i class="fas fa-plus"></i> Nouveau combo</a>
+    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalCombo"><i class="fas fa-plus"></i> Nouveau combo</button>
 </div>
 <p class="small text-muted">
     Comme dans Odoo, un combo regroupe les produits proposés au choix (ex. <strong>Plats</strong> : Poulet, Poisson + 500 ;
@@ -58,3 +58,43 @@
         </table>
     </div>
 </div>
+
+<div class="modal fade" id="modalCombo" tabindex="-1" aria-labelledby="comboTitre" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <form class="modal-content" method="post" action="/Combo/Save">
+            <div class="modal-header bg-brand text-white">
+                <h5 class="modal-title" id="comboTitre">Nouveau combo</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="0" />
+                <div class="row g-3">
+                    <div class="col-md-8">
+                        <label class="form-label" for="Nom">Nom du combo</label>
+                        <input class="form-control" id="Nom" name="Nom" maxlength="50" placeholder="Ex : Plats, Boissons, Desserts" required />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" for="Quantite">Articles à choisir</label>
+                        <input class="form-control" id="Quantite" name="Quantite" type="number" min="1" max="10" value="1" />
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Produits proposés</label>
+                        <input type="hidden" name="choix" id="combo-json" />
+                        <div id="combo-editeur"></div>
+                        <script id="combo-donnees" type="application/json">@Html.Raw(System.Text.Json.JsonSerializer.Serialize((object)ViewBag.Donnees))</script>
+                        <div class="form-text">Le supplément s'ajoute au prix du produit combo quand ce produit est choisi.</div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button type="submit" class="btn btn-primary">Enregistrer</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/combo.js" asp-append-version="true"></script>
+}
