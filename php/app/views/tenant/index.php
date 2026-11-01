@@ -20,7 +20,7 @@
                             </div>
                         </div>
                     </td>
-                    <td><?= h($t['ModeAcces']) ?></td>
+                    <td><?= h($t['ModeAcces']) ?><?php if ($t['ModulePointVente'] ?? 1): ?> <span class="badge text-bg-light border"><i class="fa fa-store"></i> Point de vente</span><?php endif; ?></td>
                     <td><?= $t['DateExpiration'] ? date_fr($t['DateExpiration']) : '<span class="text-muted">Illimitée</span>' ?></td>
                     <td>
                         <?php if (!$t['Actif']): ?><span class="badge bg-secondary">Inactive</span>
@@ -44,4 +44,4 @@
     </div>
 </div>
 
-<?= partial('tenant/form', ['t' => ['Actif' => 1, 'ModeAcces' => 'Licence'], 'edition' => false, 'modale' => true]) ?>
+<?= partial('tenant/form', ['t' => ['Actif' => 1, 'ModeAcces' => 'Licence', 'ModulePointVente' => 1], 'edition' => false, 'modale' => true]) ?>

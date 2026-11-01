@@ -1,7 +1,10 @@
 @model List<EasytransitCaisse.Models.CaisseViewModel>
+@inject EasytransitCaisse.Data.AppDbContext DbContext
+@inject EasytransitCaisse.Services.ITenantProvider TenantProvider
 
 @{
     ViewData["Title"] = "Caisses";
+    var modulePointVente = await EasytransitCaisse.Services.ModulePointVenteFilter.ActifAsync(DbContext, TenantProvider.TenantId);
 }
 <div class="container mt-4">
     <div class="d-flex justify-content-between mb-3">
@@ -56,7 +59,7 @@
                                    class="btn btn-success btn-sm">
                                 Ouvrir
                             </a>
-                            @if (item.TypePointVente != "Boutique" && (User.HasClaim(EasytransitCaisse.Services.AppClaimTypes.Profil, "Admin") || User.HasClaim(EasytransitCaisse.Services.AppClaimTypes.Profil, "SuperAdmin")))
+                            @if (item.TypePointVente != "Boutique" && modulePointVente && (User.HasClaim(EasytransitCaisse.Services.AppClaimTypes.Profil, "Admin") || User.HasClaim(EasytransitCaisse.Services.AppClaimTypes.Profil, "SuperAdmin")))
                             {
                                 <a href="/Salle/Index?caisse=@item.ID" class="btn btn-info btn-sm"><i class="fas fa-chair"></i> Plan de salle</a>
                             }

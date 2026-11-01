@@ -29,6 +29,13 @@ require __DIR__ . '/../partials/form_debut.php';
                     </div>
                 </div>
             </div>
+            <h6 class="text-muted text-uppercase small mt-4 mb-3">Modules</h6>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" value="1" id="ModulePointVente<?= !empty($modale) ? 'M' : '' ?>" name="ModulePointVente" <?= !empty($t['ModulePointVente']) ? 'checked' : '' ?>>
+                <label class="form-check-label" for="ModulePointVente<?= !empty($modale) ? 'M' : '' ?>"><strong>Point de vente</strong>
+                    <span class="d-block small text-muted">Vente au comptoir, catalogue (catégories, produits, combos), stock, restaurant et bar, rapports de ventes,
+                        taxes et unités de vente. Sans ce module, la société n'a que la gestion de caisse (journées, opérations, tiers, factures, rapports).</span></label>
+            </div>
             <h6 class="text-muted text-uppercase small mt-4 mb-3">Coordonnées (en-tête des tickets, factures et impressions)</h6>
             <div class="row g-3">
                 <div class="col-12"><label class="form-label" for="Adresse">Adresse</label><input class="form-control" id="Adresse" name="Adresse" value="<?= $v('Adresse') ?>" placeholder="Ex : Boulevard Triomphal, BP 1234" maxlength="250"></div>

@@ -33,6 +33,7 @@ require __DIR__ . '/../partials/form_debut.php';
                     <label class="form-label" for="CompteComptable">Compte comptable (Sage)</label>
                     <input class="form-control" id="CompteComptable" name="CompteComptable" value="<?= $v('CompteComptable') ?>" placeholder="ex. 571000">
                 </div>
+                <?php if (module_pos_actif()): ?>
                 <div class="col-md-4">
                     <label class="form-label" for="TypePointVente<?= !empty($modale) ? 'M' : '' ?>">Type de point de vente</label>
                     <select class="form-select" id="TypePointVente<?= !empty($modale) ? 'M' : '' ?>" name="TypePointVente">
@@ -49,5 +50,9 @@ require __DIR__ . '/../partials/form_debut.php';
                             <span class="d-block small text-muted">Les bons s'affichent aussi sur l'écran cuisine / bar.</span></label>
                     </div>
                 </div>
+                <?php else: ?>
+                <input type="hidden" name="TypePointVente" value="<?= h($caisse['TypePointVente'] ?? 'Boutique') ?>">
+                <?php if ($caisse['ImprimerBons'] ?? 1): ?><input type="hidden" name="ImprimerBons" value="1"><?php endif; ?>
+                <?php endif; ?>
             </div>
 <?php require __DIR__ . '/../partials/form_fin.php'; ?>

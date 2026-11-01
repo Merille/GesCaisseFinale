@@ -50,6 +50,7 @@ builder.Services.AddControllersWithViews(options =>
 {
     options.Filters.Add(new AuthorizeFilter());
     options.Filters.Add<TenantStatusFilter>();
+    options.Filters.Add<ModulePointVenteFilter>();
 });
 
 // Connexion SQL Server

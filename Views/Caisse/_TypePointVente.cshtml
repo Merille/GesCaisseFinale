@@ -1,5 +1,14 @@
 @model EasytransitCaisse.Models.Caisse
-@* Type de point de vente (Vente en détail, Restaurant, Bar) et impression des bons de préparation. *@
+@inject EasytransitCaisse.Data.AppDbContext DbContext
+@inject EasytransitCaisse.Services.ITenantProvider TenantProvider
+@* Type de point de vente (Vente en détail, Restaurant, Bar) et impression des bons de préparation ;
+   masqués (valeurs conservées) quand la société n'a pas le module Point de vente. *@
+@if (!await EasytransitCaisse.Services.ModulePointVenteFilter.ActifAsync(DbContext, Model.TenantId != 0 ? Model.TenantId : TenantProvider.TenantId))
+{
+    <input type="hidden" name="TypePointVente" value="@Model.TypePointVente" />
+    <input type="hidden" name="ImprimerBons" value="@(Model.ImprimerBons ? "true" : "false")" />
+    return;
+}
 <div class="col-md-6 mb-3">
     <label class="form-label" for="TypePointVente">Type de point de vente</label>
     <select class="form-select" id="TypePointVente" name="TypePointVente">

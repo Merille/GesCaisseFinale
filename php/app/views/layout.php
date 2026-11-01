@@ -101,6 +101,7 @@ $badge = $nbJourneesOuvertes > 0
             <div class="sb-section-title">Analyse</div>
             <?= $lien('rapport/operations', 'rapport', 'fa-chart-column', 'Rapports') ?>
         </div>
+        <?php if (module_pos_actif()): ?>
         <div class="sb-section">
             <div class="sb-section-title">Point de vente</div>
             <?= $lien('pos/index', 'pos', 'fa-store', 'Vendre') ?>
@@ -123,6 +124,7 @@ $badge = $nbJourneesOuvertes > 0
                 </div>
             <?php endif; ?>
         </div>
+        <?php endif; ?>
         <?php if (is_admin()): ?>
         <div class="sb-section">
             <div class="sb-section-title">Administration</div>
@@ -135,8 +137,10 @@ $badge = $nbJourneesOuvertes > 0
                 <?= $lien('utilisateur/index', 'utilisateur', 'fa-user-shield', 'Utilisateurs') ?>
                 <?= $lien('motif/index', 'motif', 'fa-list-ul', 'Motifs') ?>
                 <?= $lien('modepaiement/index', 'modepaiement', 'fa-money-check-dollar', 'Modes de paiement') ?>
-                <?= $lien('taxe/index', 'taxe', 'fa-percent', 'Taxes') ?>
-                <?= $lien('unite/index', 'unite', 'fa-scale-balanced', 'Unités de vente') ?>
+                <?php if (module_pos_actif()): ?>
+                    <?= $lien('taxe/index', 'taxe', 'fa-percent', 'Taxes') ?>
+                    <?= $lien('unite/index', 'unite', 'fa-scale-balanced', 'Unités de vente') ?>
+                <?php endif; ?>
             </div>
             <?php if (is_super_admin()): ?>
                 <?= $lien('tenant/index', 'tenant', 'fa-building', 'Sociétés') ?>

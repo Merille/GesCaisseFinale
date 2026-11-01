@@ -1275,6 +1275,9 @@ namespace EasytransitCaisse.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<bool>("ModulePointVente")
+                        .HasColumnType("bit");
+
                     b.Property<string>("NIF")
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");

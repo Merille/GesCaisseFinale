@@ -144,6 +144,8 @@ const contenu = [
     p('Attribuable à un caissier ou un vendeur, il autorise la validation des opérations de caisse, la remise globale sur un ticket, les retours et les annulations de ventes.'),
     h3('Licence de la société'),
     p("Chaque société a une date d'expiration de licence, prolongée par le super-administrateur (de 1 à 120 mois). À l'expiration, les utilisateurs de la société sont redirigés vers une page « compte suspendu »."),
+    h3('Module Point de vente optionnel'),
+    p("À la création (ou en modification) d'une société, le super-administrateur choisit si elle dispose du module Point de vente. Sans ce module, la société n'a que la gestion de caisse (journées, opérations, tiers, factures, rapports) : les menus Point de vente, Configuration, Taxes et Unités de vente sont masqués et leurs pages refusées, même par leur adresse."),
 
     // 3
     h1('3. Exigences fonctionnelles — gestion de caisse'),
@@ -244,7 +246,7 @@ const contenu = [
         ['Modes de paiement', 'Code, libellé, actif', 'Suppression refusée s\'il est utilisé ; « Espèces » reconnu pour la monnaie'],
         ['Taxes', 'Code, libellé, taux, cochée par défaut', 'TVA 18 % et CSS 1 % créées pour chaque société ; modifier un taux met à jour les produits'],
         ['Unités de vente', 'Nom court, libellé, active', '14 unités de départ ; renommer met à jour les produits ; suppression refusée si utilisée'],
-        ['Sociétés', 'Nom, code, logo, adresse, ville, pays, e-mail, téléphone, NIF, licence', 'Réservé au super-administrateur']
+        ['Sociétés', 'Nom, code, logo, adresse, ville, pays, e-mail, téléphone, NIF, licence, module Point de vente', 'Réservé au super-administrateur ; module Point de vente activé ou non par société']
     ], [1900, 3900, 3838]),
 
     // 7

@@ -24,6 +24,10 @@ namespace EasytransitCaisse.Models
         // Point de vente : vente autorisée quand le stock est épuisé (avec avertissement).
         public bool PosVenteSansStock { get; set; } = true;
 
+        // Module Point de vente (choisi par le SuperAdmin) : sans lui, la société n'a que la gestion
+        // de caisse (journées, opérations, tiers, factures, rapports).
+        public bool ModulePointVente { get; set; } = true;
+
         // Coordonnées (en-tête des tickets, factures et impressions).
         [MaxLength(250)]
         public string? Adresse { get; set; }

@@ -54,6 +54,11 @@ require __DIR__ . '/app/controllers/' . $module . '.php';
 
 try {
     schema_a_jour();
+    // Société sans le module Point de vente : ses pages restent inaccessibles, même par leur adresse.
+    if (in_array($module, MODULES_POINT_VENTE, true) && !module_pos_actif()) {
+        flash('warning', "Le module Point de vente n'est pas activé pour cette société.");
+        redirect('dashboard/index');
+    }
     ($module . '_' . $action)();
 } catch (PDOException $e) {
     error_log('[GesCaisse] ' . $e->getMessage());

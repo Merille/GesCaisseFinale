@@ -9,6 +9,8 @@
     var action = ViewContext.RouteData.Values["action"]?.ToString();
     var isSuperAdmin = User.HasClaim(AppClaimTypes.Profil, "SuperAdmin");
     var isAdmin = isSuperAdmin || User.HasClaim(AppClaimTypes.Profil, "Admin");
+    // Module Point de vente de la société consultée (toujours oui pour « toutes les sociétés »).
+    var modulePointVente = await EasytransitCaisse.Services.ModulePointVenteFilter.ActifAsync(DbContext, TenantProvider.TenantId);
     var nomUtilisateur = User.Identity?.Name;
     var nomSociete = User.FindFirst(AppClaimTypes.TenantName)?.Value;
 
@@ -189,6 +191,8 @@
                 </a>
             </div>
 
+            @if (modulePointVente)
+            {
             <div class="sb-section">
                 <div class="sb-section-title">Point de vente</div>
                 <a class="sb-link @(controller == "Pos" ? "active" : "")" href="/Pos/Index" title="Vendre">
@@ -239,6 +243,7 @@
                     </div>
                 }
             </div>
+            }
 
             @if (isAdmin)
             {
@@ -267,6 +272,8 @@
                         <i class="fas fa-money-check-dollar"></i>
                         <span class="sb-label">Modes de paiement</span>
                     </a>
+                    @if (modulePointVente)
+                    {
                     <a class="sb-link @(controller == "Taxe" ? "active" : "")" href="/Taxe/Index" title="Taxes">
                         <i class="fas fa-percent"></i>
                         <span class="sb-label">Taxes</span>
@@ -275,6 +282,7 @@
                         <i class="fas fa-scale-balanced"></i>
                         <span class="sb-label">Unités de vente</span>
                     </a>
+                    }
                 </div>
                 @if (isSuperAdmin)
                 {

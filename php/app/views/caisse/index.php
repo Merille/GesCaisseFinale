@@ -25,7 +25,7 @@
                     <td><?= h($c['CompteComptable']) ?></td>
                     <td class="text-center table-actions">
                         <a href="<?= h(url('caisse/details', ['id' => $c['ID']])) ?>" class="btn btn-primary btn-sm">Journées</a>
-                        <?php if (($c['TypePointVente'] ?? 'Boutique') !== 'Boutique' && is_admin()): ?>
+                        <?php if (($c['TypePointVente'] ?? 'Boutique') !== 'Boutique' && is_admin() && module_pos_actif()): ?>
                             <a href="<?= h(url('salle/index', ['caisse' => $c['ID']])) ?>" class="btn btn-info btn-sm"><i class="fa fa-chair"></i> Plan de salle</a>
                         <?php endif; ?>
                         <a href="<?= h(url('caisse/edit', ['id' => $c['ID']])) ?>" class="btn btn-warning btn-sm">Modifier</a>

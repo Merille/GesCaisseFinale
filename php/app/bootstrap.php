@@ -147,6 +147,21 @@ function tenant_id(): int
     return (int) (user()['tenantId'] ?? 0);
 }
 
+// Modules du point de vente (vente, catalogue, stock, restaurant, taxes, unités) : accessibles
+// seulement si la société a le module Point de vente.
+const MODULES_POINT_VENTE = ['pos', 'vente', 'stock', 'posrapport', 'produit', 'categorie', 'combo', 'salle', 'cuisine', 'taxe', 'unite'];
+
+/** La société courante a-t-elle le module Point de vente ? (toujours oui pour « toutes les sociétés »). */
+function module_pos_actif(): bool
+{
+    static $cache = [];
+    $t = tenant_id();
+    if ($t === 0) {
+        return true;
+    }
+    return $cache[$t] ??= (bool) (qv('SELECT ModulePointVente FROM Tenants WHERE Id = ?', [$t]) ?? 1);
+}
+
 /**
  * Condition SQL qui limite une table à la société courante.
  * Ex. : "SELECT ... FROM Caisses c WHERE " . tf('c')

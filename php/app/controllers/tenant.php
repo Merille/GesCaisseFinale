@@ -17,7 +17,7 @@ function tenant_index(): void
 }
 
 // Champs enregistrés : identification, accès et coordonnées (en-tête des tickets et factures).
-const TENANT_CHAMPS = ['Nom', 'Code', 'Actif', 'ModeAcces', 'DateExpiration', 'Adresse', 'Ville', 'Pays', 'Email', 'Telephone', 'NIF'];
+const TENANT_CHAMPS = ['Nom', 'Code', 'Actif', 'ModeAcces', 'DateExpiration', 'Adresse', 'Ville', 'Pays', 'Email', 'Telephone', 'NIF', 'ModulePointVente'];
 
 function tenant_valeurs(): array
 {
@@ -35,6 +35,7 @@ function tenant_valeurs(): array
         'Email' => $texte('Email'),
         'Telephone' => $texte('Telephone'),
         'NIF' => $texte('NIF'),
+        'ModulePointVente' => post('ModulePointVente') ? 1 : 0,
     ];
 }
 
@@ -53,7 +54,7 @@ function tenant_erreur(array $v, array|string|null $logo): ?string
 function tenant_create(): void
 {
     require_super_admin();
-    $t = ['Actif' => 1, 'ModeAcces' => 'Licence'];
+    $t = ['Actif' => 1, 'ModeAcces' => 'Licence', 'ModulePointVente' => 1];
     if (is_post()) {
         $t = tenant_valeurs();
         $logo = image_televersee('Logo');

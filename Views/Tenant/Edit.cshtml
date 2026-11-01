@@ -57,6 +57,18 @@
 
                 </div>
 
+
+                <h6 class="text-muted text-uppercase small mt-2 mb-3">Modules</h6>
+                <div class="form-check mb-3">
+                    <input type="checkbox" name="ModulePointVente" value="true" id="ModulePointVente" class="form-check-input" checked="@(Model.ModulePointVente)" />
+                    <input type="hidden" name="ModulePointVente" value="false" />
+                    <label class="form-check-label" for="ModulePointVente">
+                        <strong>Point de vente</strong>
+                        <span class="d-block small text-muted">Vente au comptoir, catalogue (catégories, produits, combos), stock, restaurant et bar, rapports de ventes,
+                            taxes et unités de vente. Sans ce module, la société n'a que la gestion de caisse (journées, opérations, tiers, factures, rapports).</span>
+                    </label>
+                </div>
+
                 <partial name="_Coordonnees" model="Model ?? new EasytransitCaisse.Models.Tenant()" />
 
                 <div class="text-end">

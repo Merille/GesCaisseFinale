@@ -104,6 +104,7 @@ namespace EasytransitCaisse.Controllers
             existing.Code = tenant.Code;
             existing.Actif = tenant.Actif;
             existing.ModeAcces = tenant.ModeAcces;
+            existing.ModulePointVente = tenant.ModulePointVente;
             existing.DateExpiration = tenant.DateExpiration;
             existing.Adresse = tenant.Adresse;
             existing.Ville = tenant.Ville;
