@@ -1,6 +1,6 @@
 // Flyers GesCaisse (A4) : généraliste, restaurants et bars, commerces — PDF vectoriels prêts à imprimer.
 // Usage : node docs/flyers/generer_flyers.js   (nécessite Playwright et Chromium)
-// Produit docs/flyers/Flyer_GesCaisse_*.pdf ; captures : docs/manuel_images, logo : docs/logo_mitech_africa.png.
+// Produit docs/flyers/Flyer_GesCaisse_*.pdf, images/*.png (300 dpi) et images/*.jpg (1240 px, partage) ; captures : docs/manuel_images, logo : docs/logo_mitech_africa.png.
 const { chromium } = require('playwright'); const fs = require('fs'); const path = require('path'); const os = require('os');
 const D = __dirname, IMG = path.join(D, '..', 'manuel_images') + '/';
 const FA = 'file://' + path.join(D, 'fontawesome', 'css', 'all.min.css');
@@ -94,8 +94,8 @@ commerce: `<style>${base}
 .tag{position:absolute;left:56px;top:150px;font-size:14px;letter-spacing:4px;color:${G};font-weight:700}
 h1{position:absolute;left:56px;top:176px;font-size:50px;line-height:1.06;font-weight:800;color:${BF};letter-spacing:-1px;width:430px}
 .sous{position:absolute;left:56px;top:330px;font-size:17px;line-height:1.55;color:#45586a;width:420px}
-.ticket{position:absolute;left:510px;top:120px;width:236px;height:420px;border-radius:4px;box-shadow:0 30px 60px rgba(15,59,87,.25);transform:rotate(4deg);overflow:hidden;background:#fff}
-.ticket img{position:absolute;width:1060px;left:-225px;top:-54px}
+.ticket{position:absolute;z-index:2;left:505px;top:110px;width:240px;border-radius:4px;box-shadow:0 30px 60px rgba(15,59,87,.25);transform:rotate(4deg);overflow:hidden;background:#fff}
+.ticket img{display:block;width:100%}
 .dash{position:absolute;left:56px;top:470px;width:470px;border-radius:12px;border:6px solid #fff;box-shadow:0 26px 50px rgba(15,59,87,.25)}
 .chiffre{position:absolute;left:556px;top:575px;width:184px;background:${B};color:#fff;border-radius:16px;padding:16px 18px}
 .chiffre b{display:block;font-size:22px;margin:4px 0}.chiffre span{font-size:12.5px;color:#d4e5f1}
@@ -108,8 +108,8 @@ h1{position:absolute;left:56px;top:176px;font-size:50px;line-height:1.06;font-we
 <img class="logo" src="${logo}">
 <div class="tag">GESCAISSE · COMMERCES</div>
 <h1>Vendez plus vite. Comptez juste.</h1>
-<div class="sous">Boutiques, supérettes, pharmacies ou quincailleries : un point de vente simple pour vos caissiers, et des chiffres clairs pour vous.</div>
-<div class="ticket"><img src="${im('22_pos_ticket')}"></div>
+<div class="sous">Boutiques, supérettes, pharmacies ou quincailleries&nbsp;: un point de vente simple pour vos caissiers, et des chiffres clairs pour vous.</div>
+<div class="ticket"><img src="${uri(path.join(D, 'ticket_demo.jpg'))}"></div>
 <img class="dash" src="${im('02_tableau_de_bord')}">
 <div class="chiffre"><i class="fas fa-bolt"></i><b>Temps réel</b><span>Solde de caisse, ventes et alertes, où que vous soyez.</span></div>
 <div class="av">
@@ -141,6 +141,18 @@ const noms = { generaliste: 'Flyer_GesCaisse_General', restaurant: 'Flyer_GesCai
     await p.evaluate(() => document.fonts.ready);
     await p.pdf({ path: path.join(D, noms[k] + '.pdf'), width: '210mm', height: '297mm', printBackground: true, margin: { top: 0, right: 0, bottom: 0, left: 0 }, pageRanges: '1' });
     console.log('ok', noms[k] + '.pdf');
+  }
+  // Images : PNG 300 dpi (2481 × 3509 px) pour l'impression, JPEG 1240 px pour WhatsApp / réseaux sociaux.
+  fs.mkdirSync(path.join(D, 'images'), { recursive: true });
+  for (const [echelle, ext, opts] of [[3.125, 'png', {}], [1.5617, 'jpg', { type: 'jpeg', quality: 88 }]]) {
+    const pi = await b.newPage({ viewport: { width: 794, height: 1123 }, deviceScaleFactor: echelle });
+    for (const k of Object.keys(flyers)) {
+      await pi.goto('file://' + path.join(tmp, k + '.html'), { waitUntil: 'networkidle' });
+      await pi.evaluate(() => document.fonts.ready);
+      await pi.screenshot({ path: path.join(D, 'images', noms[k] + '.' + ext), ...opts });
+      console.log('ok', 'images/' + noms[k] + '.' + ext);
+    }
+    await pi.close();
   }
   await b.close();
   fs.rmSync(tmp, { recursive: true, force: true });
