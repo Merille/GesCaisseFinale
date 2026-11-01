@@ -277,6 +277,10 @@
 }
 
 .topbar {
+    /* Barre fixée en haut de l'écran pendant le défilement de la page. */
+    position: sticky;
+    top: 0;
+    z-index: 1020;
     background: var(--brand);
     color: #fff;
     min-height: 72px;
