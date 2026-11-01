@@ -8,7 +8,7 @@ function combo_index(): void
 {
     $combos = q('SELECT c.*, (SELECT COUNT(*) FROM ProduitCombos pc WHERE pc.ComboId = c.Id) AS NbProduits FROM Combos c WHERE ' . tf('c') . ' ORDER BY c.Ordre, c.Nom, c.Id');
     foreach ($combos as &$c) {
-        $c['choix'] = q('SELECT p.Nom, ch.Supplement FROM ComboChoix ch JOIN Produits p ON p.Id = ch.ProduitId WHERE ch.ComboId = ? ORDER BY ch.Ordre, ch.Id', [$c['Id']]);
+        $c['choix'] = q('SELECT ch.ProduitId, p.Nom, ch.Supplement FROM ComboChoix ch JOIN Produits p ON p.Id = ch.ProduitId WHERE ch.ComboId = ? ORDER BY ch.Ordre, ch.Id', [$c['Id']]);
         $c['produits'] = array_column(q('SELECT p.Nom FROM ProduitCombos pc JOIN Produits p ON p.Id = pc.ProduitId WHERE pc.ComboId = ? ORDER BY p.Nom', [$c['Id']]), 'Nom');
     }
     unset($c);

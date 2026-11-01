@@ -3,6 +3,12 @@
     ViewData["Title"] = "Combos";
     var choix = (Dictionary<int, string>)ViewBag.Choix;
     var produits = (Dictionary<int, List<string>>)ViewBag.Produits;
+    // Données du bouton « Modifier » : la fenêtre modale sert aussi à la modification.
+    var edition = Model.ToDictionary(c => c.Id, c => System.Text.Json.JsonSerializer.Serialize(new
+    {
+        id = c.Id, action = "/Combo/Save", nom = c.Nom, quantite = c.Quantite,
+        choix = c.Choix.OrderBy(x => x.Ordre).ThenBy(x => x.Id).Select(x => new { produitId = x.ProduitId, supplement = x.Supplement })
+    }));
 }
 
 <partial name="_Messages" />
@@ -46,7 +52,8 @@
                         </td>
                         <td class="text-center">
                             <div class="d-inline-flex gap-1">
-                                <a href="/Combo/Edit/@c.Id" class="btn btn-warning btn-sm">Modifier</a>
+                                <a href="/Combo/Edit/@c.Id" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#modalCombo"
+                                   data-combo="@edition[c.Id]">Modifier</a>
                                 <form asp-action="Delete" asp-route-id="@c.Id" method="post" class="d-inline" onsubmit="return confirm('Supprimer ce combo ?')">
                                     <button type="submit" class="btn btn-danger btn-sm">Supprimer</button>
                                 </form>

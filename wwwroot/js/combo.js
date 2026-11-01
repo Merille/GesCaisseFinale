@@ -1,5 +1,5 @@
 // Combos comme dans le point de vente Odoo (commun aux versions .NET et PHP).
-// - Page d'un combo (#combo-editeur) : produits proposés et suppléments, envoyés en JSON dans
+// - Page ou fenêtre modale d'un combo (#combo-editeur) : produits proposés et suppléments, envoyés en JSON dans
 //   le champ caché #combo-json. Données : <script id="combo-donnees"> { produits, choix }.
 // - Fiche d'un produit (#produit-combos) : liste ordonnée des combos qui le composent, envoyée
 //   dans #produit-combos-json. Données : <script id="produit-combos-donnees"> { combos, choisis }.
@@ -50,6 +50,30 @@
         editeur.addEventListener('input', saisir);
         editeur.addEventListener('change', saisir);
         afficher();
+
+        // Fenêtre modale (liste des combos) : la même fenêtre sert à la création et à la
+        // modification. Le bouton « Modifier » porte le combo dans data-combo
+        // { id, action, nom, quantite, choix } ; « Nouveau combo » n'en porte pas.
+        const modale = editeur.closest('.modal');
+        if (modale) {
+            const form = modale.querySelector('form');
+            const titre = modale.querySelector('.modal-title');
+            const actionCreation = form.getAttribute('action');
+            const titreCreation = titre.textContent;
+            modale.addEventListener('show.bs.modal', e => {
+                const b = e.relatedTarget;
+                const d = b && b.dataset.combo ? JSON.parse(b.dataset.combo) : null;
+                form.setAttribute('action', d ? d.action : actionCreation);
+                titre.textContent = d ? 'Modifier le combo' : titreCreation;
+                if (form.elements.id) form.elements.id.value = d ? d.id : 0;
+                form.elements.Nom.value = d ? d.nom : '';
+                form.elements.Quantite.value = d ? d.quantite : 1;
+                choix = d ? d.choix.map(c => ({ produitId: c.produitId, supplement: c.supplement })) : [];
+                if (!choix.length) choix.push({ produitId: null, supplement: 0 });
+                afficher();
+            });
+            modale.addEventListener('shown.bs.modal', () => form.elements.Nom.focus());
+        }
     }
 
     // ------------------------------------------------------------------

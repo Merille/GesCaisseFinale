@@ -19,7 +19,10 @@
                     <td><?= h(implode(', ', array_map(fn($ch) => $ch['Nom'] . ((float) $ch['Supplement'] > 0 ? ' (+' . fcfa($ch['Supplement']) . ')' : ''), $c['choix']))) ?></td>
                     <td><?= $c['produits'] ? h(implode(', ', $c['produits'])) : '<span class="text-muted">—</span>' ?></td>
                     <td class="text-center table-actions">
-                        <a href="<?= h(url('combo/edit', ['id' => $c['Id']])) ?>" class="btn btn-warning btn-sm">Modifier</a>
+                        <?php $edition = ['id' => (int) $c['Id'], 'action' => url('combo/edit', ['id' => $c['Id']]), 'nom' => $c['Nom'], 'quantite' => (int) $c['Quantite'],
+                            'choix' => array_map(fn($ch) => ['produitId' => (int) $ch['ProduitId'], 'supplement' => (float) $ch['Supplement']], $c['choix'])]; ?>
+                        <a href="<?= h($edition['action']) ?>" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#modalCreation"
+                           data-combo="<?= h(json_encode($edition, JSON_UNESCAPED_UNICODE)) ?>">Modifier</a>
                         <form method="post" action="<?= h(url('combo/delete')) ?>" onsubmit="return confirm('Supprimer ce combo ?');">
                             <?= csrf_field() ?><input type="hidden" name="id" value="<?= (int) $c['Id'] ?>">
                             <button class="btn btn-danger btn-sm">Supprimer</button>
