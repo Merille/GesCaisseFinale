@@ -21,7 +21,8 @@ $nbJourneesOuvertes = (int) qv("SELECT COUNT(*) FROM JourneesCaisses WHERE Statu
 $rubrique = match ($module) {
     'dashboard', 'caisse', 'journee', 'client', 'facture' => 'Activité',
     'rapport' => 'Analyse',
-    'pos', 'vente', 'produit', 'categorie', 'stock', 'posrapport' => 'Point de vente',
+    'pos', 'vente', 'stock', 'posrapport' => 'Point de vente',
+    'produit', 'categorie' => 'Configuration',
     'utilisateur', 'motif', 'modepaiement', 'taxe', 'unite' => 'Paramètres',
     'tenant' => 'Administration',
     default => null,
@@ -104,8 +105,15 @@ $badge = $nbJourneesOuvertes > 0
             <?= $lien('pos/index', 'pos', 'fa-store', 'Vendre') ?>
             <?= $lien('vente/index', 'vente', 'fa-receipt', 'Ventes') ?>
             <?php if (is_admin()): ?>
-                <?= $lien('produit/index', 'produit', 'fa-box-open', 'Produits') ?>
-                <?= $lien('categorie/index', 'categorie', 'fa-tags', 'Catégories') ?>
+                <?php $configurationActif = in_array($module, ['categorie', 'produit'], true); ?>
+                <button type="button" class="sb-link sb-parent <?= $configurationActif ? 'parent-actif' : '' ?>" title="Configuration"
+                        aria-expanded="<?= $configurationActif ? 'true' : 'false' ?>" aria-controls="sbConfiguration" onclick="basculerSousMenu(this)">
+                    <i class="fas fa-sliders"></i><span class="sb-label">Configuration</span><i class="fas fa-chevron-down sb-chevron"></i>
+                </button>
+                <div class="sb-sub <?= $configurationActif ? 'open' : '' ?>" id="sbConfiguration">
+                    <?= $lien('categorie/index', 'categorie', 'fa-tags', 'Catégories') ?>
+                    <?= $lien('produit/index', 'produit', 'fa-box-open', 'Produits') ?>
+                </div>
                 <?= $lien('stock/index', 'stock', 'fa-warehouse', 'Stock') ?>
                 <?= $lien('posrapport/index', 'posrapport', 'fa-chart-pie', 'Rapports ventes') ?>
             <?php endif; ?>
