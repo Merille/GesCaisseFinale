@@ -3,6 +3,8 @@
 // affiche son formulaire dans une modale. Le formulaire est envoyé normalement :
 // en cas d'erreur de saisie, le serveur affiche la page de création complète.
 // Les éléments marqués « hors-modale » (ex. lien Annuler) sont masqués dans la modale.
+// Mise en forme identique aux modales de la version PHP : champs dans le corps, boutons
+// Annuler / Enregistrer alignés à droite dans le pied de la modale.
 (function () {
     let modale = null;
 
@@ -20,7 +22,6 @@
             '      <h5 class="modal-title" id="modalCreationTitre"></h5>' +
             '      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>' +
             '    </div>' +
-            '    <div class="modal-body"></div>' +
             '  </div>' +
             '</div>';
         document.body.appendChild(div);
@@ -45,23 +46,39 @@
         // Sans attribut action, le formulaire doit être envoyé à la page de création.
         if (!form.getAttribute('action')) form.setAttribute('action', adresse);
 
-        // Bouton Annuler qui ferme la modale, placé avant le bouton d'envoi.
-        const envoi = form.querySelector('button[type=submit], button:not([type])');
+        const formModale = document.importNode(form, true);
+        formModale.classList.add('d-flex', 'flex-column', 'overflow-hidden');
+        formModale.style.minHeight = '0';
+
+        // Le bloc du bouton d'envoi devient le pied de la modale, précédé d'un bouton Annuler.
+        const envoi = formModale.querySelector('button[type=submit], button:not([type])');
+        const pied = envoi ? envoi.parentNode : null;
         if (envoi) {
             const annuler = document.createElement('button');
             annuler.type = 'button';
-            annuler.className = 'btn btn-outline-secondary me-2';
+            annuler.className = 'btn btn-outline-secondary';
             annuler.setAttribute('data-bs-dismiss', 'modal');
             annuler.textContent = 'Annuler';
             envoi.parentNode.insertBefore(annuler, envoi);
+        }
+        const corps = document.createElement('div');
+        corps.className = 'modal-body';
+        Array.from(formModale.childNodes).forEach(function (n) {
+            if (n !== pied) corps.appendChild(n);
+        });
+        formModale.prepend(corps);
+        if (pied && pied !== formModale) {
+            pied.className = 'modal-footer';
+            formModale.appendChild(pied);
         }
 
         const entete = contenu.querySelector('.card-header');
         modale = modale || creerModale();
         modale.querySelector('.modal-title').textContent =
             (entete ? entete.textContent : lien.textContent).replace(/\s+/g, ' ').trim();
-        const corps = modale.querySelector('.modal-body');
-        corps.replaceChildren(document.importNode(form, true));
+        const ancien = modale.querySelector('.modal-content > form');
+        if (ancien) ancien.remove();
+        modale.querySelector('.modal-content').appendChild(formModale);
         bootstrap.Modal.getOrCreateInstance(modale).show();
     }
 

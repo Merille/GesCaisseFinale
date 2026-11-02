@@ -25,7 +25,13 @@
                         <?php if (($c['TypePointVente'] ?? 'Boutique') !== 'Boutique' && is_admin() && module_pos_actif()): ?>
                             <a href="<?= h(url('salle/index', ['caisse' => $c['ID']])) ?>" class="btn btn-info btn-sm"><i class="fa fa-chair"></i> Plan de salle</a>
                         <?php endif; ?>
-                        <a href="<?= h(url('caisse/edit', ['id' => $c['ID']])) ?>" class="btn btn-warning btn-sm">Modifier</a>
+                        <a href="<?= h(url('caisse/edit', ['id' => $c['ID']])) ?>" class="btn btn-warning btn-sm"
+                           data-caisse="<?= h(json_encode([
+                               'action' => url('caisse/edit', ['id' => $c['ID']]),
+                               'ChkCode' => $c['ChkCode'], 'ChkDescription' => $c['ChkDescription'], 'StCode' => $c['StCode'],
+                               'CashierDefault' => $c['CashierDefault'], 'CompteComptable' => $c['CompteComptable'],
+                               'TypePointVente' => $c['TypePointVente'] ?? 'Boutique', 'ImprimerBons' => (bool) ($c['ImprimerBons'] ?? 1),
+                           ])) ?>">Modifier</a>
                         <form method="post" action="<?= h(url('caisse/delete')) ?>" onsubmit="return confirm('Supprimer cette caisse ?');">
                             <?= csrf_field() ?><input type="hidden" name="id" value="<?= (int) $c['ID'] ?>">
                             <button class="btn btn-danger btn-sm">Supprimer</button>
@@ -39,6 +45,7 @@
 </div>
 
 <?= partial('caisse/form', ['caisse' => [], 'utilisateurs' => $utilisateurs, 'modale' => true]) ?>
+<?= partial('caisse/form', ['caisse' => [], 'utilisateurs' => $utilisateurs, 'modale' => true, 'modification' => true]) ?>
 <?php ob_start(); ?>
 <script>
     listeDataTable('#caissesTable', {
@@ -46,6 +53,28 @@
         lengthMenu: [10, 25, 50, 100],
         order: [[1, 'asc']],
         columnDefs: [{ orderable: false, targets: -1 }]
+    });
+
+    // « Modifier » : ouvre la modale de modification, remplie avec la caisse de la ligne.
+    document.addEventListener('click', function (e) {
+        const lien = e.target.closest('a[data-caisse]');
+        if (!lien || e.ctrlKey || e.metaKey || e.shiftKey || e.button !== 0) return;
+        e.preventDefault();
+        const c = JSON.parse(lien.dataset.caisse);
+        const modale = document.getElementById('modalModification');
+        const form = modale.querySelector('form');
+        form.action = c.action;
+        ['ChkCode', 'ChkDescription', 'StCode', 'CashierDefault', 'CompteComptable', 'TypePointVente'].forEach(function (nom) {
+            const champ = form.elements[nom];
+            if (champ) champ.value = c[nom] == null ? '' : c[nom];
+        });
+        const bons = form.querySelector('[name="ImprimerBons"]');
+        if (bons && bons.type === 'checkbox') bons.checked = c.ImprimerBons;
+        else if (bons) bons.disabled = !c.ImprimerBons;
+        bootstrap.Modal.getOrCreateInstance(modale).show();
+    });
+    document.getElementById('modalModification').addEventListener('shown.bs.modal', function () {
+        document.getElementById('ChkCodeE').focus();
     });
 </script>
 <?php $scripts = ($scripts ?? '') . ob_get_clean(); ?>

@@ -47,7 +47,7 @@
                             {
                                 <a href="/Salle/Index?caisse=@item.ID" class="btn btn-info btn-sm"><i class="fas fa-chair"></i> Plan de salle</a>
                             }
-                            <a href="/Caisse/Edit/@item.ID" class="btn btn-warning btn-sm">Modifier</a>
+                            <a href="/Caisse/Edit/@item.ID" class="btn btn-warning btn-sm" data-modale>Modifier</a>
                             <form asp-action="Delete" asp-route-id="@item.ID" method="post" onsubmit="return confirm('Supprimer cette caisse ?');">
                                 <button class="btn btn-danger btn-sm">Supprimer</button>
                             </form>
