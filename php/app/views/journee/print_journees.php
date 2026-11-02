@@ -1,4 +1,4 @@
-<?php $titreImpression = 'Journées ' . $caisse['ChkCode']; require __DIR__ . '/../partials/print_debut.php'; ?>
+<?php $republique = true; $titreImpression = 'Journées ' . $caisse['ChkCode']; require __DIR__ . '/../partials/print_debut.php'; ?>
 <h1>Journées de caisse — <?= h($caisse['ChkDescription'] . ' - ' . $caisse['ChkCode']) ?></h1>
 <table>
     <tr><th>Date</th><th>N° journée</th><th class="r">Solde initial</th><th class="r">Encaissé</th><th class="r">Décaissé</th><th class="r">Solde</th><th>Statut</th></tr>

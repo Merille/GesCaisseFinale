@@ -6,6 +6,7 @@ public class RapportOperationsVM
     public DateTime? DateFin { get; set; }
     public int? CaisseId { get; set; }
     public string? TypeOperation { get; set; }
+    public string? CaisseLibelle { get; set; }
 
     public List<OperationCaisse> Operations { get; set; } = new();
 

@@ -1,101 +1,42 @@
-﻿@model EasytransitCaisse.Models.ViewModels.PrintOperationsVM
-    @{
-    Layout = "_PdfLayout";
+@model EasytransitCaisse.Models.ViewModels.PrintOperationsVM
+@using EasytransitCaisse.Data
+@{
+    Layout = "_ImpressionLayout";
+    ViewData["Pdf"] = true;
+    ViewData["Republique"] = true;
+    ViewData["TitreImpression"] = "Opérations " + Model.NumeroJournee;
 }
-<style>
-    body { font-family: Arial; }
-    table { border-collapse: collapse; }
-    th { background: #195d84; color: white; }
-</style>
-<div style="display:flex; justify-content:space-between; margin-bottom:20px;">
-
-    <!-- Gauche : logo et coordonnées de la société -->
-    <partial name="_EnTeteSociete" model="(int?)null" />
-
-    <!-- Droite -->
-    <div style="text-align:right;">
-        <h4 style="margin:0;">
-            RÉPUBLIQUE GABONAISE
-        </h4>
-        <p style="margin:0;">Union - Travail - Justice</p>
-    </div>
-
-</div>
-
-<hr />
-
-<h2>Opérations de Caisse — Journée @Model.NumeroJournee</h2>
-
-<table border="1" width="100%" cellpadding="5">
-
-    <tr>
-        <th>Solde Initial</th>
-        <th style="text-align:right;">Encaissements</th>
-        <th style="text-align:right;">Décaissements</th>
-        <th style="text-align:right;">Solde Actuel</th>
-    </tr>
-    <tr>
-        <td style="text-align:right;">@Model.SoldeInitial.ToString("N0")</td>
-        <td style="text-align:right;">@Model.TotalEncaisse.ToString("N0")</td>
-        <td style="text-align:right;">@Model.TotalDecaisse.ToString("N0")</td>
-        <td style="text-align:right;">@Model.SoldeActuel.ToString("N0")</td>
-    </tr>
-
+<h1>Opérations de caisse — Journée @Model.NumeroJournee</h1>
+<p class="muted">@(Model.CaisseCode + " · " + Model.CaisseDescription) — @Model.DateJournee.ToString("dd/MM/yyyy") — @(Model.Statut == "Ouverte" ? "Ouverte" : "Clôturée")</p>
+<table>
+    <tr><th class="r">Solde initial</th><th class="r">Encaissements</th><th class="r">Décaissements</th><th class="r">Solde actuel</th></tr>
+    <tr><td class="r">@Model.SoldeInitial.ToString("N0")</td><td class="r">@Model.TotalEncaisse.ToString("N0")</td><td class="r">@Model.TotalDecaisse.ToString("N0")</td><td class="r">@Model.SoldeActuel.ToString("N0")</td></tr>
 </table>
 
-<h2 style="margin-top:30px;">Totaux par mode de paiement</h2>
-
-<table border="1" width="100%" cellpadding="5">
-
-    <tr>
-        <th>Mode de paiement</th>
-        <th style="text-align:right;">Encaissements</th>
-        <th style="text-align:right;">Décaissements</th>
-        <th style="text-align:right;">Net</th>
-    </tr>
-
+<h2>Totaux par mode de paiement</h2>
+<table>
+    <tr><th>Mode de paiement</th><th class="r">Encaissements</th><th class="r">Décaissements</th><th class="r">Net</th></tr>
     @foreach (var t in Model.TotauxParModePaiement)
     {
-        <tr>
-            <td>@t.Libelle</td>
-            <td style="text-align:right;">@t.Encaisse.ToString("N0")</td>
-            <td style="text-align:right;">@t.Decaisse.ToString("N0")</td>
-            <td style="text-align:right;">@t.Net.ToString("N0")</td>
-        </tr>
+        <tr><td>@t.Libelle</td><td class="r">@t.Encaisse.ToString("N0")</td><td class="r">@t.Decaisse.ToString("N0")</td><td class="r">@t.Net.ToString("N0")</td></tr>
     }
-
 </table>
 
-<table border="1" width="100%" cellpadding="5" style="margin-top:20px;">
-
-    <tr>
-        <th>Date</th>
-        <th>Type</th>
-        @* <th>Motif</th> *@
-        <th>Libellé</th>
-        <th>Mode de paiement</th>
-        <th style="text-align:right;">Montant</th>
-    </tr>
-
+<h2>Détail des opérations</h2>
+<table>
+    <tr><th>Date</th><th>Type</th><th>Libellé</th><th>Mode de paiement</th><th>Statut</th><th class="r">Montant</th></tr>
     @foreach (var o in Model.Operations)
     {
         <tr>
             <td>@o.DateOperation.ToString("dd/MM/yyyy HH:mm")</td>
             <td>@o.TypeOperation</td>
-            @* <td>@o.MotifLibelle</td> *@
             <td>@o.Libelle</td>
             <td>@(o.ModePaiement?.Libelle ?? "-")</td>
-            <td style="text-align:right;">
-                @if (o.StatutValidation == "Rejeté")
-                {
-                    <s>@o.Montant.ToString("N0")</s> <small>(rejetée, exclue des totaux)</small>
-                }
-                else
-                {
-                    @o.Montant.ToString("N0")
-                }
-            </td>
+            <td>@o.StatutValidation</td>
+            <td class="r">@if (o.StatutValidation == OperationCaisseQueries.StatutRejete)
+            {<s>@o.Montant.ToString("N0")</s> <small>(rejetée, exclue des totaux)</small>}
+            else
+            {@o.Montant.ToString("N0")}</td>
         </tr>
     }
-
 </table>

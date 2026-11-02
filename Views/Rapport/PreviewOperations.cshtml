@@ -1,209 +1,38 @@
-﻿@model EasytransitCaisse.Models.ViewModels.RapportOperationsVM
-
+@model EasytransitCaisse.Models.ViewModels.RapportOperationsVM
+@using EasytransitCaisse.Data
 @{
-    ViewData["Title"] = "Aperçu du rapport des opérations";
+    Layout = "_ImpressionLayout";
+    ViewData["Pdf"] = false;
+    ViewData["TitreImpression"] = "Rapport des opérations";
 }
-
-<div class="container-fluid">
-
-    <div class="no-print mb-3">
-
-        <button class="btn btn-primary"
-                onclick="window.print()">
-
-            <i class="fa fa-print"></i>
-
-            Imprimer
-
-        </button>
-
-        <a asp-action="Operations"
-           class="btn btn-secondary">
-
-            Retour
-
-        </a>
-
-    </div>
-
-    <div class="card">
-
-        <div class="card-body">
-
-            <div class="text-center">
-
-                <h2>EASY TRANSIT CAISSE</h2>
-
-                <h4>RAPPORT DES OPERATIONS</h4>
-
-            </div>
-
-            <hr />
-
-            <table class="table table-bordered">
-
-                <thead class="table-dark">
-
-                    <tr>
-
-                        <th>Date</th>
-
-                        <th>Journée</th>
-
-                        <th>Type</th>
-
-                        <th>Libellé</th>
-
-                        <th>Client</th>
-
-                        <th>Utilisateur</th>
-
-                        <th class="text-end">Montant</th>
-
-                    </tr>
-
-                </thead>
-
-                <tbody>
-
-                @foreach(var item in Model.Operations)
-                {
-
-                    <tr>
-
-                        <td>
-
-                            @item.DateOperation.ToString("dd/MM/yyyy HH:mm")
-
-                        </td>
-
-                        <td>
-
-                            @item.JourneeCaisse.NumeroJournee
-
-                        </td>
-
-                        <td>
-
-                            @item.TypeOperation
-
-                        </td>
-
-                        <td>
-
-                            @item.Libelle
-
-                        </td>
-
-                        <td>
-
-                            @(item.Client?.NomSociete)
-
-                        </td>
-
-                        <td>
-
-                            @item.Utilisateur.NomComplet
-
-                        </td>
-
-                        <td class="text-end">
-
-                            @if (item.StatutValidation == "Rejeté")
-                        {
-                            <s class="text-muted" title="Opération rejetée : exclue des totaux">@item.Montant.ToString("N0")</s> <small class="text-muted">(rejetée)</small>
-                        }
-                        else
-                        {
-                            @item.Montant.ToString("N0")
-                        }
-
-                        </td>
-
-                    </tr>
-
-                }
-
-                </tbody>
-
-                <tfoot>
-
-                    <tr>
-
-                        <th colspan="6">
-
-                            Total Encaissements
-
-                        </th>
-
-                        <th class="text-end">
-
-                            @Model.TotalEntrees.ToString("N0")
-
-                        </th>
-
-                    </tr>
-
-                    <tr>
-
-                        <th colspan="6">
-
-                            Total Décaissements
-
-                        </th>
-
-                        <th class="text-end">
-
-                            @Model.TotalSorties.ToString("N0")
-
-                        </th>
-
-                    </tr>
-
-                    <tr>
-
-                        <th colspan="6">
-
-                            Solde
-
-                        </th>
-
-                        <th class="text-end">
-
-                            @((Model.TotalEntrees-Model.TotalSorties).ToString("N0"))
-
-                        </th>
-
-                    </tr>
-                     <tr class="table-warning">
-
-                    <th colspan="6">
-                        Montant initial des journées
-                    </th>
-
-                    <th class="text-end">
-                        @Model.MontantInitialJournees.ToString("N0")
-                    </th>
-
-                </tr>
-                <tr class="table-info">
-
-                    <th colspan="6">
-                        Solde théorique
-                    </th>
-
-                    <th class="text-end">
-                        @((Model.MontantInitialJournees + Model.TotalEntrees - Model.TotalSorties).ToString("N0"))
-                    </th>
-
-                </tr>
-
-                </tfoot>
-
-            </table>
-
-        </div>
-
-    </div>
-
-</div>
+<h1>Rapport des opérations</h1>
+<p class="muted">
+    Période : @(Model.DateDebut?.ToString("dd/MM/yyyy") ?? "début") au @(Model.DateFin?.ToString("dd/MM/yyyy") ?? "aujourd'hui")
+    — Caisse : @(Model.CaisseLibelle ?? "toutes")
+    — Type : @(string.IsNullOrEmpty(Model.TypeOperation) ? "tous" : Model.TypeOperation)
+</p>
+<table>
+    <tr><th>Date</th><th>Journée</th><th>Type</th><th>Libellé</th><th>Tiers</th><th>Caissier</th><th class="r">Montant</th></tr>
+    @foreach (var o in Model.Operations)
+    {
+        <tr>
+            <td>@o.DateOperation.ToString("dd/MM/yyyy HH:mm")</td>
+            <td>@o.JourneeCaisse?.NumeroJournee</td>
+            <td>@o.TypeOperation</td>
+            <td>@o.Libelle</td>
+            <td>@o.Client?.NomSociete</td>
+            <td>@o.Utilisateur?.NomComplet</td>
+            <td class="r">@if (o.StatutValidation == OperationCaisseQueries.StatutRejete)
+            {<s>@o.Montant.ToString("N0")</s> @:(rejetée)
+            }
+            else
+            {@o.Montant.ToString("N0")}</td>
+        </tr>
+    }
+    <tr class="total"><td colspan="6">Total encaissements</td><td class="r">@Model.TotalEntrees.ToString("N0")</td></tr>
+    <tr class="total"><td colspan="6">Total décaissements</td><td class="r">@Model.TotalSorties.ToString("N0")</td></tr>
+    <tr class="total"><td colspan="6">Solde de la période</td><td class="r">@((Model.TotalEntrees - Model.TotalSorties).ToString("N0"))</td></tr>
+    <tr class="total"><td colspan="6">Montant initial des journées</td><td class="r">@Model.MontantInitialJournees.ToString("N0")</td></tr>
+    <tr class="total"><td colspan="6">Solde en caisse</td><td class="r">@((Model.MontantInitialJournees + Model.TotalEntrees - Model.TotalSorties).ToString("N0"))</td></tr>
+</table>
+<p class="muted">Les opérations rejetées sont listées mais exclues des totaux.</p>

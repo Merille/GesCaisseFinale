@@ -1,48 +1,21 @@
-﻿@model List<EasytransitCaisse.Models.Caisse>
-
-    @{
-    Layout = "_PdfLayout";
+@model List<EasytransitCaisse.Models.ViewModels.CaisseImpressionVM>
+@{
+    Layout = "_ImpressionLayout";
+    ViewData["Pdf"] = true;
+    ViewData["Republique"] = true;
+    ViewData["TitreImpression"] = "Liste des caisses";
 }
-
-<style>
-    body { font-family: Arial; }
-    table { border-collapse: collapse; }
-    th { background: #195d84; color: white; }
-</style>
-
-<div style="display:flex; justify-content:space-between; margin-bottom:20px;">
-
-    <!-- Gauche : logo et coordonnées de la société -->
-    <partial name="_EnTeteSociete" model="(int?)null" />
-
-    <!-- Droite -->
-    <div style="text-align:right;">
-        <h4 style="margin:0;">
-            RÉPUBLIQUE GABONAISE
-        </h4>
-        <p style="margin:0;">Union - Travail - Justice</p>
-    </div>
-
-</div>
-
-<hr />
-<h2>Liste des Caisses</h2>
-
-<table border="1" width="100%" cellpadding="5">
-
-    <tr>
-        <th>Code</th>
-        <th>Description</th>
-        <th>Caissier</th>
-    </tr>
-
-    @foreach (var c in Model)
+<h1>Liste des caisses</h1>
+<table>
+    <tr><th>Code</th><th>Description</th><th>StCode</th><th>Caissier par défaut</th><th>Compte comptable</th></tr>
+    @foreach (var l in Model)
     {
         <tr>
-            <td>@c.ChkCode</td>
-            <td>@c.ChkDescription</td>
-            <td>@c.CashierDefault</td>
+            <td>@l.Caisse.ChkCode</td>
+            <td>@l.Caisse.ChkDescription</td>
+            <td>@l.Caisse.StCode</td>
+            <td>@l.Caissier</td>
+            <td>@l.Caisse.CompteComptable</td>
         </tr>
     }
-
 </table>

@@ -2,6 +2,7 @@
 // En-tête commun des pages imprimables (remplacent les PDF Rotativa de la version .NET).
 // Le bouton « Imprimer / PDF » ouvre l'impression du navigateur, qui permet aussi
 // d'enregistrer la page au format PDF.
+// $republique = true : en-tête officiel « République gabonaise » (journées, opérations, caisses, facture).
 $infosSociete = $infosSociete ?? societe_courante();
 $societe = $infosSociete['Nom'] ?? (user()['tenantNom'] ?? '');
 $logoSociete = url_logo($infosSociete);
@@ -42,6 +43,10 @@ $logoSociete = url_logo($infosSociete);
         </div>
     </div>
     <div style="text-align:right;">
+        <?php if (!empty($republique)): ?>
+            <span style="font-weight:bold;">RÉPUBLIQUE GABONAISE</span><br>
+            <span>Union - Travail - Justice</span><br><br>
+        <?php endif; ?>
         Édité le <?= date('d/m/Y à H:i') ?><br>
         par <?= h(user()['nomComplet'] ?? '') ?>
     </div>

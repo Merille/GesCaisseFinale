@@ -3,6 +3,10 @@ namespace EasytransitCaisse.Models.ViewModels;
 public class PrintOperationsVM
 {
     public string NumeroJournee { get; set; } = "";
+    public string CaisseCode { get; set; } = "";
+    public string CaisseDescription { get; set; } = "";
+    public DateTime DateJournee { get; set; }
+    public string Statut { get; set; } = "";
     public decimal SoldeInitial { get; set; }
     public decimal TotalEncaisse { get; set; }
     public decimal TotalDecaisse { get; set; }

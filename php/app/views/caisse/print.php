@@ -1,4 +1,4 @@
-<?php $titreImpression = 'Liste des caisses'; require __DIR__ . '/../partials/print_debut.php'; ?>
+<?php $republique = true; $titreImpression = 'Liste des caisses'; require __DIR__ . '/../partials/print_debut.php'; ?>
 <h1>Liste des caisses</h1>
 <table>
     <tr><th>Code</th><th>Description</th><th>StCode</th><th>Caissier par défaut</th><th>Compte comptable</th></tr>

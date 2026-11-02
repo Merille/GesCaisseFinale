@@ -3,6 +3,7 @@ namespace EasytransitCaisse.Models.ViewModels;
 public class JourneeLigneVM
 {
     public DateTime DateJournee { get; set; }
+    public string NumeroJournee { get; set; } = "";
     public decimal SoldeInitial { get; set; }
     public decimal Encaisse { get; set; }
     public decimal Decaisse { get; set; }
@@ -13,5 +14,6 @@ public class JourneeLigneVM
 public class PrintJourneesVM
 {
     public string CaisseName { get; set; } = "";
+    public string CaisseCode { get; set; } = "";
     public List<JourneeLigneVM> Journees { get; set; } = new();
 }

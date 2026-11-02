@@ -1,182 +1,82 @@
-﻿@model EasytransitCaisse.Models.Facture
+@model EasytransitCaisse.Models.Facture
 @{
-    ViewData["Title"] = "Factures";
+    ViewData["Title"] = "Facture " + Model.Numero;
+    var lignes = (ViewBag.Lignes as List<EasytransitCaisse.Models.LigneFacture>) ?? new();
+    var brouillon = Model.Statut == "Brouillon";
+    var inv = System.Globalization.CultureInfo.InvariantCulture;
 }
-<div class="container mt-4">
-    <div class="d-flex justify-content-between mb-3">
-        <h3>Détail facture</h3>
-
-    </div>
-    @* <a href="/Facture/Print/@Model.Id"
-           class="btn btn-dark">
-        Imprimer PDF
-    </a> *@
-    <a asp-action="Preview"
-       asp-route-id="@Model.Id"
-       class="btn btn-primary">
-        <i class="fa fa-eye"></i> Aperçu
-    </a>
-    <a href="/Facture/Index">
-        <button class="btn btn-outline-primary">
-            Liste des factures
-        </button>
-    </a>
-    
-    <br /><br />
-    <div class="card shadow-lg">
-        
-        <div class="card-header bg-primary text-white">
-            Facture @Model.Numero
-        </div>
-
-        <div class="card-body">
-
-            <div class="row">
-
-                <div class="col-md-3">
-                    <label>Montant HT</label>
-                    <input class="form-control"
-                           readonly
-                           value="@Model.MontantHT.ToString("N0")" />
-                </div>
-
-                <div class="col-md-3">
-                    <label>TVA</label>
-                    <input class="form-control"
-                           readonly
-                           value="@Model.TauxTVA.ToString("N0")" />
-                </div>
-
-                <div class="col-md-3">
-                    <label>TTC</label>
-                    <input class="form-control"
-                           readonly
-                           value="@Model.MontantTTC.ToString("N0")" />
-                </div>
-
-                <div class="col-md-3">
-                    <label>Statut</label>
-                    <input class="form-control"
-                           readonly
-                           value="@Model.Statut" />
-                </div>
-
-            </div>
-
-        </div>
-
-    </div>
-
-    <div class="card shadow-lg mt-4">
-
-        <div class="card-header bg-success text-white">
-            Ajouter une ligne
-        </div>
-
-        <div class="card-body">
-
-            <form method="post"
-                  asp-action="AjouterLigne">
-
-                <input type="hidden"
-                       name="factureId"
-                       value="@Model.Id" />
-
-                <div class="row">
-
-                    <div class="col-md-5">
-                        <label>Désignation</label>
-                        <input name="designation"
-                               class="form-control" />
-                    </div>
-
-                    <div class="col-md-2">
-                        <label>Qté</label>
-                        <input name="quantite"
-                               class="form-control" />
-                    </div>
-
-                    <div class="col-md-2">
-                        <label>PU</label>
-                        <input name="prixUnitaire"
-                               class="form-control" />
-                    </div>
-
-                    <div class="col-md-3 d-flex align-items-end">
-
-                        <button class="btn btn-success w-100">
-                            Ajouter
-                        </button>
-
-                    </div>
-
-                </div>
-
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <h4 class="mb-0">Facture @Model.Numero
+        <span class="badge @(brouillon ? "bg-secondary" : "bg-success") fs-6 align-middle">@Model.Statut</span></h4>
+    <div class="d-flex gap-2">
+        @if (brouillon)
+        {
+            <form method="post" asp-action="ValiderFacture" onsubmit="return confirm('Valider la facture ? Elle ne pourra plus être modifiée.');">
+                <input type="hidden" name="factureId" value="@Model.Id">
+                <button class="btn btn-success">Valider la facture</button>
             </form>
-
-        </div>
-
+        }
+        <a asp-action="Print" asp-route-id="@Model.Id" class="btn btn-outline-primary" target="_blank"><i class="fa fa-print"></i> Imprimer / PDF</a>
+        <a asp-action="Index" class="btn btn-dark">Retour</a>
     </div>
+</div>
 
-    <div class="card shadow-lg mt-4">
+<div class="row g-3 mb-3">
+    <div class="col-md-6"><div class="card h-100"><div class="card-body">
+        <div class="small text-muted">Client</div>
+        <div class="fw-bold">@Model.Client?.NomSociete</div>
+        <div class="small">@Model.Client?.Adresse</div>
+    </div></div></div>
+    <div class="col-md-6"><div class="card h-100"><div class="card-body">
+        <div class="d-flex justify-content-between"><span class="text-muted">Date</span><span>@Model.DateFacture.ToString("dd/MM/yyyy")</span></div>
+        <div class="d-flex justify-content-between"><span class="text-muted">Taux de TVA</span><span>@Model.TauxTVA.ToString("0.####", inv) %</span></div>
+    </div></div></div>
+</div>
 
-        <div class="card-header bg-brand text-white">
-            Lignes de facture
-        </div>
-
-        <div class="card-body p-0">
-
-            <table class="table table-hover mb-0">
-
-                <thead>
-                    <tr>
-                        <th>Désignation</th>
-                        <th>Qté</th>
-                        <th>PU</th>
-                        <th>Total</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-
-                <tbody>
-
-                    @foreach (var ligne in ViewBag.Lignes)
+<div class="card shadow-sm border-0">
+    <div class="card-header bg-brand text-white">Lignes</div>
+    <div class="card-body">
+        <table class="table align-middle">
+            <thead><tr><th>Désignation</th><th class="text-end">Quantité</th><th class="text-end">Prix unitaire</th><th class="text-end">Total</th>@if (brouillon) {<th></th>}</tr></thead>
+            <tbody>
+            @if (!lignes.Any())
+            {
+                <tr><td colspan="5" class="text-muted text-center">Aucune ligne.</td></tr>
+            }
+            @foreach (var l in lignes)
+            {
+                <tr>
+                    <td>@l.Designation</td>
+                    <td class="text-end">@l.Quantite.ToString("0.####", inv)</td>
+                    <td class="text-end">@l.PrixUnitaire.ToString("N0")</td>
+                    <td class="text-end">@l.TotalLigne.ToString("N0")</td>
+                    @if (brouillon)
                     {
-                        <tr>
-                            <td>@ligne.Designation</td>
-                            <td>@ligne.Quantite</td>
-                            <td>@ligne.PrixUnitaire.ToString("N0")</td>
-                            <td>@ligne.TotalLigne.ToString("N0")</td>
-                            <td>
-                                <form asp-action="SupprimerLigne" asp-route-id="@ligne.Id" method="post" class="d-inline"
-                                      onsubmit="return confirm('Voulez-vous supprimer cette ligne ?');">
-                                    @Html.AntiForgeryToken()
-                                    <button type="submit" class="btn btn-sm btn-danger">
-                                        <i class="fa fa-trash"></i>
-                                    </button>
-                                </form>
-                            </td>
-                        </tr>
+                        <td class="text-end">
+                            <form method="post" asp-action="SupprimerLigne" asp-route-id="@l.Id" onsubmit="return confirm('Supprimer cette ligne ?');">
+                                <button class="btn btn-outline-danger btn-sm" aria-label="Supprimer la ligne"><i class="fa fa-trash"></i></button>
+                            </form>
+                        </td>
                     }
+                </tr>
+            }
+            </tbody>
+            <tfoot>
+                <tr><th colspan="3" class="text-end">Montant HT</th><th class="text-end">@Model.MontantHT.ToString("N0")</th>@if (brouillon) {<th></th>}</tr>
+                <tr><th colspan="3" class="text-end">TVA</th><th class="text-end">@Model.MontantTVA.ToString("N0")</th>@if (brouillon) {<th></th>}</tr>
+                <tr class="table-primary"><th colspan="3" class="text-end">Montant TTC</th><th class="text-end">@Model.MontantTTC.ToString("N0")</th>@if (brouillon) {<th></th>}</tr>
+            </tfoot>
+        </table>
 
-                </tbody>
-
-            </table>
-
-        </div>
-
+        @if (brouillon)
+        {
+            <form method="post" asp-action="AjouterLigne" class="row g-2 align-items-end border-top pt-3">
+                <input type="hidden" name="factureId" value="@Model.Id">
+                <div class="col-md-6"><label class="form-label" for="designation">Désignation</label><input class="form-control" id="designation" name="designation" required></div>
+                <div class="col-md-2"><label class="form-label" for="quantite">Quantité</label><input class="form-control" id="quantite" name="quantite" inputmode="decimal" value="1" required></div>
+                <div class="col-md-2"><label class="form-label" for="prixUnitaire">Prix unitaire</label><input class="form-control" id="prixUnitaire" name="prixUnitaire" inputmode="decimal" required></div>
+                <div class="col-md-2"><button class="btn btn-primary w-100">Ajouter</button></div>
+            </form>
+        }
     </div>
-    <br />
-    <form method="post"
-          asp-action="ValiderFacture">
-
-        <input type="hidden"
-               name="factureId"
-               value="@Model.Id" />
-
-        <button class="btn btn-primary">
-            Valider la facture
-        </button>
-
-    </form>
 </div>

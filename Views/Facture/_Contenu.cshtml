@@ -1,0 +1,38 @@
+@model EasytransitCaisse.Models.ViewModels.FacturePrintViewModel
+@{
+    var f = Model.Facture;
+    var inv = System.Globalization.CultureInfo.InvariantCulture;
+}
+<table style="margin-top:24px;">
+    <tr>
+        <td style="border:0; padding:0; vertical-align:top;">
+            <h1 style="margin:0;">FACTURE</h1>
+            <div>N° <strong>@f.Numero</strong></div>
+            <div>Date : @f.DateFacture.ToString("dd/MM/yyyy")</div>
+            @if (f.Statut != "Validée")
+            {
+                <div class="muted">Brouillon (non validée)</div>
+            }
+        </td>
+        <td style="border:0; padding:0; vertical-align:top; width:300px;">
+            <div style="border:1px solid #999; padding:10px 14px;">
+                <div class="muted">Client</div>
+                <strong>@f.Client?.NomSociete</strong><br>
+                @f.Client?.Adresse<br>
+                @f.Client?.Telephone @f.Client?.Email
+            </div>
+        </td>
+    </tr>
+</table>
+<table style="margin-top:24px;">
+    <tr><th>Désignation</th><th class="r">Qté</th><th class="r">Prix unitaire</th><th class="r">Total</th></tr>
+    @foreach (var l in Model.Lignes)
+    {
+        <tr><td>@l.Designation</td><td class="r">@l.Quantite.ToString("0.####", inv)</td><td class="r">@l.PrixUnitaire.ToString("N0")</td><td class="r">@l.TotalLigne.ToString("N0")</td></tr>
+    }
+</table>
+<table style="width:320px; margin:16px 0 0 auto;">
+    <tr><td>Montant HT</td><td class="r">@f.MontantHT.ToString("N0")</td></tr>
+    <tr><td>TVA (@f.TauxTVA.ToString("0.####", inv) %)</td><td class="r">@f.MontantTVA.ToString("N0")</td></tr>
+    <tr class="total"><td>Montant TTC (FCFA)</td><td class="r">@f.MontantTTC.ToString("N0")</td></tr>
+</table>

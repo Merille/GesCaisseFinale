@@ -72,6 +72,7 @@ namespace EasytransitCaisse.Controllers
         public IActionResult Edit(int id)
         {
             var facture = _context.Factures
+                .Include(f => f.Client)
                 .FirstOrDefault(f => f.Id == id);
 
             if (facture == null)
@@ -79,20 +80,38 @@ namespace EasytransitCaisse.Controllers
 
             ViewBag.Lignes = _context.LignesFactures
                 .Where(x => x.FactureId == id)
+                .OrderBy(x => x.Id)
                 .ToList();
 
             return View(facture);
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public IActionResult AjouterLigne(
     int factureId,
     string designation,
     string quantite,
     string prixUnitaire)
         {
+            var facture = _context.Factures.FirstOrDefault(f => f.Id == factureId);
+            if (facture == null)
+                return NotFound();
+
+            if (facture.Statut != "Brouillon")
+            {
+                TempData["Error"] = "Une facture validée ne peut plus être modifiée.";
+                return RedirectToAction(nameof(Edit), new { id = factureId });
+            }
+
             var quantiteMontant = MontantHelper.Parse(quantite);
             var prixUnitaireMontant = MontantHelper.Parse(prixUnitaire);
+
+            if (string.IsNullOrWhiteSpace(designation) || quantiteMontant <= 0)
+            {
+                TempData["Error"] = "Indiquez une désignation et une quantité supérieure à zéro.";
+                return RedirectToAction(nameof(Edit), new { id = factureId });
+            }
 
             using var transaction = _context.Database.BeginTransaction();
 
@@ -104,7 +123,7 @@ namespace EasytransitCaisse.Controllers
                     Designation = designation,
                     Quantite = quantiteMontant,
                     PrixUnitaire = prixUnitaireMontant,
-                    TotalLigne = quantiteMontant * prixUnitaireMontant
+                    TotalLigne = Math.Round(quantiteMontant * prixUnitaireMontant, 2)
                 };
 
                 _context.LignesFactures.Add(ligne);
@@ -143,14 +162,23 @@ namespace EasytransitCaisse.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public IActionResult ValiderFacture(int factureId)
         {
-            var facture = _context.Factures
-                .First(x => x.Id == factureId);
+            var facture = _context.Factures.FirstOrDefault(x => x.Id == factureId);
+            if (facture == null)
+                return NotFound();
 
-            facture.Statut = "Validée";
-
-            _context.SaveChanges();
+            if (!_context.LignesFactures.Any(l => l.FactureId == factureId))
+            {
+                TempData["Error"] = "Ajoutez au moins une ligne avant de valider la facture.";
+            }
+            else
+            {
+                facture.Statut = "Validée";
+                _context.SaveChanges();
+                TempData["Success"] = "Facture validée.";
+            }
 
             return RedirectToAction("Edit",
                 new { id = factureId });
@@ -159,6 +187,7 @@ namespace EasytransitCaisse.Controllers
         public IActionResult Print(int id)
         {
             var facture = _context.Factures
+                .Include(f => f.Client)
                 .FirstOrDefault(x => x.Id == id);
 
             if (facture == null)
@@ -169,6 +198,7 @@ namespace EasytransitCaisse.Controllers
                 Facture = facture,
                 Lignes = _context.LignesFactures
                     .Where(x => x.FactureId == id)
+                    .OrderBy(x => x.Id)
                     .ToList()
             };
 
@@ -194,6 +224,7 @@ namespace EasytransitCaisse.Controllers
                 Facture = facture,
                 Lignes = _context.LignesFactures
                     .Where(x => x.FactureId == id)
+                    .OrderBy(x => x.Id)
                     .ToList()
             };
 
@@ -210,6 +241,13 @@ namespace EasytransitCaisse.Controllers
                 return NotFound();
 
             int factureId = ligne.FactureId;
+            var facture = _context.Factures.First(f => f.Id == factureId);
+
+            if (facture.Statut != "Brouillon")
+            {
+                TempData["Error"] = "Une facture validée ne peut plus être modifiée.";
+                return RedirectToAction(nameof(Edit), new { id = factureId });
+            }
 
             _context.LignesFactures.Remove(ligne);
 

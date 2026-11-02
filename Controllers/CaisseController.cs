@@ -299,7 +299,14 @@ namespace EasytransitCaisse.Controllers
 
         public IActionResult PrintCaisses()
         {
-            var caisses = _context.Caisses.ToList();
+            var caissiers = _context.Utilisateurs.ToDictionary(u => u.Id, u => u.NomComplet);
+            var caisses = _context.Caisses.OrderBy(c => c.ChkCode).ToList()
+                .Select(c => new EasytransitCaisse.Models.ViewModels.CaisseImpressionVM
+                {
+                    Caisse = c,
+                    Caissier = c.CashierDefault.HasValue && caissiers.TryGetValue(c.CashierDefault.Value, out var nom) ? nom : null
+                })
+                .ToList();
 
             return new ViewAsPdf("PrintCaisses", caisses)
             {

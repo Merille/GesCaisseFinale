@@ -1,82 +1,27 @@
-﻿@model EasytransitCaisse.Models.ViewModels.PrintJourneesVM
-
+@model EasytransitCaisse.Models.ViewModels.PrintJourneesVM
 @{
-    Layout = "_PdfLayout";
+    Layout = "_ImpressionLayout";
+    ViewData["Pdf"] = true;
+    ViewData["Republique"] = true;
+    ViewData["TitreImpression"] = "Journées " + Model.CaisseCode;
+    decimal ti = 0, te = 0, td = 0;
 }
-<style>
-    body { font-family: Arial; }
-    table { border-collapse: collapse; }
-    th { background: #195d84; color: white; }
-</style>
-
-<div style="display:flex; justify-content:space-between; margin-bottom:20px;">
-
-    <!-- Gauche : logo et coordonnées de la société -->
-    <partial name="_EnTeteSociete" model="(int?)null" />
-
-    <!-- Droite -->
-    <div style="text-align:right;">
-        <h4 style="margin:0;">
-            RÉPUBLIQUE GABONAISE
-        </h4>
-        <p style="margin:0;">Union - Travail - Justice</p>
-    </div>
-
-</div>
-
-<hr />
-<!-- TITRE CAISSE -->
-<h2 style="text-align:center;">
-    CAISSE : @Model.CaisseName
-</h2>
-
-<br />
-
-<table border="1" width="100%" cellpadding="6">
-
-    <thead>
-        <tr>
-            <th>Date</th>
-            <th>Montant Initial</th>
-            <th>Encaisse</th>
-            <th>Décaisse</th>
-            <th>Solde</th>
-            <th>Statut</th>
-        </tr>
-    </thead>
-
-    <tbody>
-
-    @foreach(var j in Model.Journees)
+<h1>Journées de caisse — @Model.CaisseName</h1>
+<table>
+    <tr><th>Date</th><th>N° journée</th><th class="r">Solde initial</th><th class="r">Encaissé</th><th class="r">Décaissé</th><th class="r">Solde</th><th>Statut</th></tr>
+    @foreach (var j in Model.Journees)
     {
+        ti += j.SoldeInitial; te += j.Encaisse; td += j.Decaisse;
         <tr>
             <td>@j.DateJournee.ToString("dd/MM/yyyy")</td>
-            <td>@j.SoldeInitial</td>
-            <td>@j.Encaisse</td>
-            <td>@j.Decaisse</td>
-            <td>@j.Solde</td>
-            <td>@j.Statut</td>
+            <td>@j.NumeroJournee</td>
+            <td class="r">@j.SoldeInitial.ToString("N0")</td>
+            <td class="r">@j.Encaisse.ToString("N0")</td>
+            <td class="r">@j.Decaisse.ToString("N0")</td>
+            <td class="r">@j.Solde.ToString("N0")</td>
+            <td>@(j.Statut == "Ouverte" ? "Ouverte" : "Clôturée")</td>
         </tr>
     }
-
-    </tbody>
-
-    @{
-        var totalSoldeInitial = Model.Journees.Sum(j => j.SoldeInitial);
-        var totalEncaisse = Model.Journees.Sum(j => j.Encaisse);
-        var totalDecaisse = Model.Journees.Sum(j => j.Decaisse);
-        var soldeActuel = totalSoldeInitial + totalEncaisse - totalDecaisse;
-    }
-
-    <tfoot>
-        <tr style="font-weight:bold; background:#eee;">
-            <td>Totaux</td>
-            <td>@totalSoldeInitial.ToString("N0")</td>
-            <td>@totalEncaisse.ToString("N0")</td>
-            <td>@totalDecaisse.ToString("N0")</td>
-            <td>@soldeActuel.ToString("N0")</td>
-            <td></td>
-        </tr>
-    </tfoot>
-
+    <tr class="total"><td colspan="2">Total</td><td class="r">@ti.ToString("N0")</td><td class="r">@te.ToString("N0")</td><td class="r">@td.ToString("N0")</td><td class="r">@((ti + te - td).ToString("N0"))</td><td></td></tr>
 </table>
+<p class="muted">Les opérations rejetées sont exclues des montants.</p>

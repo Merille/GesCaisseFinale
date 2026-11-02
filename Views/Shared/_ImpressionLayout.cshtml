@@ -1,0 +1,75 @@
+@inject EasytransitCaisse.Data.AppDbContext Db
+@inject EasytransitCaisse.Services.ITenantProvider TenantCourant
+@using EasytransitCaisse.Data
+@using Microsoft.EntityFrameworkCore
+@* Mise en page des impressions (PDF et aperçus), identique à php/app/views/partials/print_debut.php.
+   ViewData : TitreImpression, SocieteId (sinon la société courante), Republique (en-tête officiel),
+   Pdf (true : document PDF, sans la barre « Imprimer »). Rotativa ne transmet pas le ViewBag :
+   ces valeurs sont posées dans la vue elle-même. *@
+@{
+    var id = ViewData["SocieteId"] as int? ?? TenantCourant.TenantId;
+    var societe = id > 0 ? Db.Tenants.AsNoTracking().FirstOrDefault(t => t.Id == id) : null;
+    var logo = societe?.LogoMaj != null ? Db.LogoIntegre(societe.Id) : null;
+    var pdf = ViewData["Pdf"] as bool? ?? false;
+    var nomUtilisateur = User.FindFirst(EasytransitCaisse.Services.AppClaimTypes.NomComplet)?.Value ?? "";
+}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <title>@(ViewData["TitreImpression"] ?? "Impression") - GesCaisse</title>
+    <style>
+        body { font-family: Arial, sans-serif; font-size: 13px; color: #111; margin: 24px; }
+        h1 { font-size: 20px; margin: 18px 0 12px; }
+        h2 { font-size: 16px; margin: 24px 0 8px; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #999; padding: 5px 7px; }
+        th { background: #195d84; color: #fff; text-align: left; }
+        .r { text-align: right; }
+        /* En-tête en tableau (et non en flexbox) : le moteur PDF wkhtmltopdf ne gère pas flexbox. */
+        .entete { border-bottom: 3px solid #999997; padding-bottom: 10px; }
+        table.entete td { border: 0; padding: 0; vertical-align: middle; }
+        .entete strong { font-size: 18px; color: #195d84; }
+        .barre { margin-bottom: 16px; }
+        .barre button { background: #195d84; color: #fff; border: 0; padding: 8px 16px; border-radius: 6px; cursor: pointer; }
+        .total td { font-weight: bold; background: #eef1f6; }
+        .muted { color: #666; }
+        .republique { font-weight: bold; }
+        @@media print { .barre { display: none; } body { margin: 0; } }
+    </style>
+</head>
+<body>
+@if (!pdf)
+{
+    <div class="barre">
+        <button type="button" onclick="window.print()">Imprimer / enregistrer en PDF</button>
+        <a href="javascript:history.back()" style="margin-left:10px;">Retour</a>
+    </div>
+}
+<table class="entete">
+    <tr>
+        @if (logo != null)
+        {
+            <td style="width:1%; padding-right:12px;"><img src="@logo" alt="" style="max-height:64px; max-width:140px;" /></td>
+        }
+        <td>
+            <strong>@(string.IsNullOrEmpty(societe?.Nom) ? "GesCaisse" : societe!.Nom)</strong><br>
+            @foreach (var ligne in Images.Coordonnees(societe))
+            {
+                <span class="muted">@ligne</span><br>
+            }
+        </td>
+        <td style="text-align:right;">
+            @if (ViewData["Republique"] as bool? == true)
+            {
+                <span class="republique">RÉPUBLIQUE GABONAISE</span><br>
+                <span>Union - Travail - Justice</span><br><br>
+            }
+            Édité le @DateTime.Now.ToString("dd/MM/yyyy 'à' HH:mm")<br>
+            par @nomUtilisateur
+        </td>
+    </tr>
+</table>
+@RenderBody()
+</body>
+</html>

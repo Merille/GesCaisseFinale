@@ -57,6 +57,22 @@ namespace EasytransitCaisse.Controllers
             return Json(data);
         }
 
+        // Fond de départ de la période : solde initial de la PREMIÈRE journée de chaque caisse
+        // (les journées suivantes repartent du solde de la veille : les additionner compterait
+        // plusieurs fois le même argent). Même calcul que la version PHP.
+        private decimal FondInitial(DateTime? dateDebut, DateTime? dateFin, int? caisseId)
+        {
+            return _context.JourneesCaisses
+                .Where(j =>
+                    (!dateDebut.HasValue || j.DateJournee >= dateDebut.Value.Date) &&
+                    (!dateFin.HasValue || j.DateJournee <= dateFin.Value.Date) &&
+                    (!caisseId.HasValue || j.CaisseId == caisseId.Value))
+                .OrderBy(j => j.DateJournee).ThenBy(j => j.DateOuverture).ThenBy(j => j.Id)
+                .ToList()
+                .GroupBy(j => j.CaisseId)
+                .Sum(g => g.First().SoldeInitial);
+        }
+
         #region RAPPORT CAISSES
         public IActionResult Operations(DateTime? dateDebut,
                                    DateTime? dateFin,
@@ -88,7 +104,7 @@ namespace EasytransitCaisse.Controllers
                 CaisseId = caisseId,
                 TypeOperation = typeOperation,
                 Operations = query
-                    .OrderByDescending(x => x.DateOperation)
+                    .OrderByDescending(x => x.DateOperation).ThenByDescending(x => x.Id)
                     .ToList()
             };
 
@@ -102,12 +118,7 @@ namespace EasytransitCaisse.Controllers
                 .Where(x => x.TypeOperation == "Décaissement")
                 .Sum(x => x.Montant);
 
-            model.MontantInitialJournees = _context.JourneesCaisses
-                .Where(j =>
-                    (!dateDebut.HasValue || j.DateJournee >= dateDebut.Value) &&
-                    (!dateFin.HasValue || j.DateJournee <= dateFin.Value) &&
-                    (!caisseId.HasValue || j.CaisseId == caisseId.Value))
-                .Sum(j => (decimal?)j.SoldeInitial) ?? 0;
+            model.MontantInitialJournees = FondInitial(dateDebut, dateFin, caisseId);
 
             ViewBag.Caisses = _context.Caisses.OrderBy(c => c.ChkDescription).ToList();
 
@@ -143,7 +154,7 @@ namespace EasytransitCaisse.Controllers
                 DateFin = dateFin,
                 CaisseId = caisseId,
                 TypeOperation = typeOperation,
-                Operations = query.OrderByDescending(x => x.DateOperation).ToList()
+                Operations = query.OrderByDescending(x => x.DateOperation).ThenByDescending(x => x.Id).ToList()
             };
 
             model.TotalEntrees = model.Operations
@@ -156,12 +167,10 @@ namespace EasytransitCaisse.Controllers
                 .Where(x => x.TypeOperation == "Décaissement")
                 .Sum(x => x.Montant);
 
-            model.MontantInitialJournees = _context.JourneesCaisses
-                .Where(j =>
-                    (!dateDebut.HasValue || j.DateJournee >= dateDebut.Value) &&
-                    (!dateFin.HasValue || j.DateJournee <= dateFin.Value) &&
-                    (!caisseId.HasValue || j.CaisseId == caisseId.Value))
-                .Sum(j => (decimal?)j.SoldeInitial) ?? 0;
+            model.MontantInitialJournees = FondInitial(dateDebut, dateFin, caisseId);
+
+            var caisse = caisseId.HasValue ? _context.Caisses.FirstOrDefault(c => c.ID == caisseId.Value) : null;
+            model.CaisseLibelle = caisse == null ? null : caisse.ChkCode + " - " + caisse.ChkDescription;
 
             return View(model);
         }

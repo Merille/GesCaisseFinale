@@ -1,4 +1,4 @@
-<?php $titreImpression = 'Opérations ' . $journee['NumeroJournee']; require __DIR__ . '/../partials/print_debut.php'; ?>
+<?php $republique = true; $titreImpression = 'Opérations ' . $journee['NumeroJournee']; require __DIR__ . '/../partials/print_debut.php'; ?>
 <h1>Opérations de caisse — Journée <?= h($journee['NumeroJournee']) ?></h1>
 <p class="muted"><?= h($journee['ChkCode'] . ' · ' . $journee['ChkDescription']) ?> — <?= date_fr($journee['DateJournee']) ?> — <?= $journee['Statut'] === 'Ouverte' ? 'Ouverte' : 'Clôturée' ?></p>
 <table>

@@ -431,11 +431,13 @@ namespace EasytransitCaisse.Controllers
 
             var journees = _context.JourneesCaisses
                 .Where(x => x.CaisseId == caisseId)
+                .OrderBy(x => x.DateJournee).ThenBy(x => x.Id)
                 .ToList();
 
             var lignes = journees.Select(j => new JourneeLigneVM
             {
                 DateJournee = j.DateJournee,
+                NumeroJournee = j.NumeroJournee,
                 SoldeInitial = j.SoldeInitial,
 
                 Encaisse = _context.OperationsCaisses
@@ -472,6 +474,7 @@ namespace EasytransitCaisse.Controllers
             var model = new PrintJourneesVM
             {
                 CaisseName = caisse.ChkDescription + " - " + caisse.ChkCode,
+                CaisseCode = caisse.ChkCode ?? "",
                 Journees = lignes
             };
 
@@ -492,7 +495,10 @@ namespace EasytransitCaisse.Controllers
             var ops = _context.OperationsCaisses
                 .Include(x => x.ModePaiement)
                 .Where(x => x.JourneeCaisseId == journeeId)
+                .OrderBy(x => x.DateOperation).ThenBy(x => x.Id)
                 .ToList();
+
+            var caisse = _context.Caisses.FirstOrDefault(c => c.ID == journee.CaisseId);
 
             var totalEncaisse = ops
                 .NonRejetees()
@@ -509,6 +515,10 @@ namespace EasytransitCaisse.Controllers
             var model = new PrintOperationsVM
             {
                 NumeroJournee = journee.NumeroJournee,
+                CaisseCode = caisse?.ChkCode ?? "",
+                CaisseDescription = caisse?.ChkDescription ?? "",
+                DateJournee = journee.DateJournee,
+                Statut = journee.Statut,
                 SoldeInitial = journee.SoldeInitial,
                 TotalEncaisse = totalEncaisse,
                 TotalDecaisse = totalDecaisse,
