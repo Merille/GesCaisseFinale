@@ -15,7 +15,7 @@ $options = function () use ($produits): string {
 <?php elseif (!$produits): ?>
     <div class="alert alert-info">Aucun produit avec suivi de stock. Cochez « Suivre le stock » dans la fiche d'un produit.</div>
 <?php else: ?>
-<form method="post" class="card border-0 shadow-sm" style="max-width: 900px;">
+<form method="post" class="card border-0 shadow-sm">
     <div class="card-header bg-brand text-white">Marchandises transférées</div>
     <div class="card-body">
         <?= csrf_field() ?>

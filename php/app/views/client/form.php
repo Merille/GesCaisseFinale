@@ -14,7 +14,6 @@ if ($modification) {
     $idModale = 'modalModification';
 }
 $entete = $titre;
-$largeur = '900px';
 $tailleModale = 'modal-xl';
 $action = !empty($modale) ? ($modification ? url('client/index') : url('client/create')) : null;
 $retour = url('client/index');

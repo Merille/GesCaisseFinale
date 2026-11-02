@@ -1,7 +1,7 @@
 <?php
 // Ouverture d'un formulaire de saisie, affiché en carte (page) ou en fenêtre modale.
 // Variables : $modale (bool), $entete, $action (adresse d'envoi, obligatoire en modale),
-// $largeur (carte), $tailleModale, $attrsForm, $idModale.
+// $tailleModale, $attrsForm, $idModale. En page, la carte occupe toute la largeur.
 $modale = !empty($modale);
 $idModale = $idModale ?? 'modalCreation';
 ?>
@@ -15,7 +15,7 @@ $idModale = $idModale ?? 'modalCreation';
             </div>
             <div class="modal-body">
 <?php else: ?>
-<div class="card shadow-sm border-0" style="max-width: <?= h($largeur ?? '760px') ?>;">
+<div class="card shadow-sm border-0">
     <div class="card-header bg-brand text-white"><h5 class="mb-0"><?= h($entete) ?></h5></div>
     <div class="card-body">
         <form method="post" <?= isset($action) ? 'action="' . h($action) . '"' : '' ?> <?= $attrsForm ?? '' ?>>

@@ -3,7 +3,6 @@ $titre = $edition ? 'Modifier le produit' : 'Nouveau produit';
 $entete = $titre;
 $avecVariantes = $edition && empty($modale) && empty($produit['ParentId']);
 // En modification, la fiche est à gauche et les variantes à droite (l'une sous l'autre sur écran étroit).
-$largeur = $avecVariantes ? '100%' : '860px';
 $action = !empty($modale) ? url('produit/create') : null;
 $retour = url('produit/index');
 $attrsForm = 'enctype="multipart/form-data"';

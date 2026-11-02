@@ -1,7 +1,6 @@
 <?php
 $titre = 'Ouvrir une journée';
 $entete = 'Nouvelle journée — ' . $caisse['ChkCode'] . ' · ' . $caisse['ChkDescription'];
-$largeur = '560px';
 $tailleModale = '';
 $action = url('journee/create', ['id' => $caisse['ID']]);
 $retour = url('caisse/details', ['id' => $caisse['ID']]);

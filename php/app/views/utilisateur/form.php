@@ -1,7 +1,6 @@
 <?php
 $titre = $edition ? "Modifier l'utilisateur" : 'Nouvel utilisateur';
 $entete = $titre;
-$largeur = '720px';
 $attrsForm = 'autocomplete="off"';
 $action = !empty($modale) ? url('utilisateur/create') : null;
 $retour = url('utilisateur/index');

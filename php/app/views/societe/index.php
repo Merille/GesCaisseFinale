@@ -4,7 +4,7 @@ $v = fn(string $k) => h($t[$k] ?? '');
 $logo = url_logo($t);
 $expiration = $t['DateExpiration'] ? date('d/m/Y', strtotime($t['DateExpiration'])) : 'Sans limite';
 ?>
-<div class="row g-4" style="max-width: 1100px;">
+<div class="row g-4">
     <div class="col-lg-8">
         <div class="card shadow-sm border-0">
             <div class="card-header bg-brand text-white"><h5 class="mb-0">Coordonnées de la société</h5></div>

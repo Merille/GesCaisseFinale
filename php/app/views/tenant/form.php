@@ -1,7 +1,6 @@
 <?php
 $titre = $edition ? 'Modifier la société' : 'Nouvelle société';
 $entete = $titre;
-$largeur = '720px';
 $action = !empty($modale) ? url('tenant/create') : null;
 $retour = url('tenant/index');
 $attrsForm = 'enctype="multipart/form-data"';

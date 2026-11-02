@@ -1,7 +1,6 @@
 <?php
 $titre = 'Nouvelle facture';
 $entete = $titre;
-$largeur = '640px';
 $tailleModale = '';
 $action = !empty($modale) ? url('facture/create') : null;
 $retour = url('facture/index');

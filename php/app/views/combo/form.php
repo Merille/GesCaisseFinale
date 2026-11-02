@@ -1,7 +1,6 @@
 <?php
 $titre = $combo ? 'Modifier le combo' : 'Nouveau combo';
 $entete = $titre;
-$largeur = '760px';
 $retour = url('combo/index');
 $action = !empty($modale) ? url('combo/create') : null;
 require __DIR__ . '/../partials/form_debut.php';

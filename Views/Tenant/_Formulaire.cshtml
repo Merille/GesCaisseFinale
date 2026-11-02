@@ -5,7 +5,7 @@
     var titre = edition ? "Modifier la société" : "Nouvelle société";
     var logo = EasytransitCaisse.Data.Images.UrlLogo(Model);
 }
-<div class="card shadow-sm border-0" style="max-width: 720px;">
+<div class="card shadow-sm border-0">
     <div class="card-header bg-brand text-white"><h5 class="mb-0">@titre</h5></div>
     <div class="card-body">
         <form method="post" action="@(edition ? "/Tenant/Edit/" + Model.Id : "/Tenant/Create")" enctype="multipart/form-data">
