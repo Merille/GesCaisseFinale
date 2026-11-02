@@ -2,7 +2,7 @@
 -- Les noms de tables et de colonnes reprennent ceux de la version .NET
 -- (SQL Server) pour faciliter une éventuelle reprise des données.
 --
--- Base à jour : intègre toutes les migrations de sql/migrations (001 à 012),
+-- Base à jour : intègre toutes les migrations de sql/migrations (001 à 013),
 -- notées comme appliquées dans MigrationsAppliquees.
 --
 -- Utilisation (NOUVELLE installation uniquement) : créer une base VIDE (ex. gescaisse),
@@ -56,12 +56,15 @@ CREATE TABLE `Caisses` (
   `TenantId` int NOT NULL DEFAULT '0',
   `TypePointVente` varchar(20) NOT NULL DEFAULT 'Boutique',
   `ImprimerBons` tinyint(1) NOT NULL DEFAULT '1',
+  `DepotId` int DEFAULT NULL,
   PRIMARY KEY (`ID`),
-  KEY `IX_Caisses_Tenant` (`TenantId`)
+  KEY `IX_Caisses_Tenant` (`TenantId`),
+  KEY `IX_Caisses_DepotId` (`DepotId`),
+  CONSTRAINT `FK_Caisses_Depots` FOREIGN KEY (`DepotId`) REFERENCES `Depots` (`Id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
-INSERT INTO `Caisses` (`ID`, `ChkCode`, `ChkDescription`, `StCode`, `SalesPersonDefault`, `CashierDefault`, `CustomerDefaultCode`, `JournalDefaultCode`, `CompteComptable`, `TenantId`, `TypePointVente`, `ImprimerBons`) VALUES (1,'CASH1','Caisse principale','ST01',NULL,NULL,'CUST001','JRN01',NULL,1,'Boutique',1);
+INSERT INTO `Caisses` (`ID`, `ChkCode`, `ChkDescription`, `StCode`, `SalesPersonDefault`, `CashierDefault`, `CustomerDefaultCode`, `JournalDefaultCode`, `CompteComptable`, `TenantId`, `TypePointVente`, `ImprimerBons`, `DepotId`) VALUES (1,'CASH1','Caisse principale','ST01',NULL,NULL,'CUST001','JRN01',NULL,1,'Boutique',1,1);
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `Categories` (
@@ -197,6 +200,23 @@ CREATE TABLE `ComptagesCloture` (
 
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `Depots` (
+  `Id` int NOT NULL AUTO_INCREMENT,
+  `TenantId` int NOT NULL,
+  `Code` varchar(20) NOT NULL,
+  `Nom` varchar(100) NOT NULL,
+  `Adresse` varchar(200) DEFAULT NULL,
+  `Responsable` varchar(100) DEFAULT NULL,
+  `Actif` tinyint(1) NOT NULL DEFAULT '1',
+  `ParDefaut` tinyint(1) NOT NULL DEFAULT '0',
+  PRIMARY KEY (`Id`),
+  UNIQUE KEY `IX_Depots_TenantId_Code` (`TenantId`,`Code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+INSERT INTO `Depots` (`Id`, `TenantId`, `Code`, `Nom`, `Adresse`, `Responsable`, `Actif`, `ParDefaut`) VALUES (1,1,'DEP01','Dépôt principal',NULL,NULL,1,1);
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `Factures` (
   `Id` int NOT NULL AUTO_INCREMENT,
   `TenantId` int NOT NULL DEFAULT '0',
@@ -329,6 +349,7 @@ INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('009_resta
 INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('010_combos.sql','2026-11-02 00:15:20');
 INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('011_combos_odoo.sql','2026-11-02 00:15:20');
 INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('012_module_point_vente.sql','2026-11-02 00:15:20');
+INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('013_depots.sql','2026-11-02 00:15:20');
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `ModesPaiement` (
@@ -369,9 +390,12 @@ CREATE TABLE `MouvementsStock` (
   `CommandePosId` int DEFAULT NULL,
   `UtilisateurId` int DEFAULT NULL,
   `Commentaire` varchar(300) DEFAULT NULL,
+  `DepotId` int DEFAULT NULL,
   PRIMARY KEY (`Id`),
   KEY `IX_MouvementsStock_Produit` (`ProduitId`,`DateMouvement`),
   KEY `IX_MouvementsStock_Tenant` (`TenantId`,`DateMouvement`),
+  KEY `IX_MouvementsStock_DepotId` (`DepotId`),
+  CONSTRAINT `FK_MouvementsStock_Depots` FOREIGN KEY (`DepotId`) REFERENCES `Depots` (`Id`),
   CONSTRAINT `FK_MouvementsStock_Produits` FOREIGN KEY (`ProduitId`) REFERENCES `Produits` (`Id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -527,6 +551,18 @@ CREATE TABLE `Salles` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `StocksDepots` (
+  `DepotId` int NOT NULL,
+  `ProduitId` int NOT NULL,
+  `Quantite` decimal(18,2) NOT NULL DEFAULT '0.00',
+  PRIMARY KEY (`DepotId`,`ProduitId`),
+  KEY `IX_StocksDepots_ProduitId` (`ProduitId`),
+  CONSTRAINT `FK_StocksDepots_Depots` FOREIGN KEY (`DepotId`) REFERENCES `Depots` (`Id`),
+  CONSTRAINT `FK_StocksDepots_Produits` FOREIGN KEY (`ProduitId`) REFERENCES `Produits` (`Id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `TablesRestaurant` (

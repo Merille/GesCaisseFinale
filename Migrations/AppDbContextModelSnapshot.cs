@@ -104,6 +104,9 @@ namespace EasytransitCaisse.Migrations
                     b.Property<string>("CustomerDefaultCode")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int?>("DepotId")
+                        .HasColumnType("int");
+
                     b.Property<bool>("ImprimerBons")
                         .HasColumnType("bit");
 
@@ -127,6 +130,8 @@ namespace EasytransitCaisse.Migrations
                         .HasDefaultValue("Boutique");
 
                     b.HasKey("ID");
+
+                    b.HasIndex("DepotId");
 
                     b.ToTable("Caisses");
                 });
@@ -457,6 +462,49 @@ namespace EasytransitCaisse.Migrations
                     b.HasIndex("ModePaiementId");
 
                     b.ToTable("ComptagesCloture");
+                });
+
+            modelBuilder.Entity("EasytransitCaisse.Models.Depot", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Actif")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Adresse")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Nom")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<bool>("ParDefaut")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Responsable")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "Code")
+                        .IsUnique();
+
+                    b.ToTable("Depots");
                 });
 
             modelBuilder.Entity("EasytransitCaisse.Models.Facture", b =>
@@ -790,6 +838,9 @@ namespace EasytransitCaisse.Migrations
                     b.Property<DateTime>("DateMouvement")
                         .HasColumnType("datetime2");
 
+                    b.Property<int?>("DepotId")
+                        .HasColumnType("int");
+
                     b.Property<int>("ProduitId")
                         .HasColumnType("int");
 
@@ -817,6 +868,8 @@ namespace EasytransitCaisse.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("DepotId");
 
                     b.HasIndex("ProduitId", "DateMouvement");
 
@@ -1157,6 +1210,25 @@ namespace EasytransitCaisse.Migrations
                     b.ToTable("Salles", (string)null);
                 });
 
+            modelBuilder.Entity("EasytransitCaisse.Models.StockDepot", b =>
+                {
+                    b.Property<int>("DepotId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ProduitId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Quantite")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("DepotId", "ProduitId");
+
+                    b.HasIndex("ProduitId");
+
+                    b.ToTable("StocksDepots", (string)null);
+                });
+
             modelBuilder.Entity("EasytransitCaisse.Models.TableRestaurant", b =>
                 {
                     b.Property<int>("Id")
@@ -1419,6 +1491,14 @@ namespace EasytransitCaisse.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("EasytransitCaisse.Models.Caisse", b =>
+                {
+                    b.HasOne("EasytransitCaisse.Models.Depot", null)
+                        .WithMany()
+                        .HasForeignKey("DepotId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
             modelBuilder.Entity("EasytransitCaisse.Models.ComboChoix", b =>
                 {
                     b.HasOne("EasytransitCaisse.Models.Combo", null)
@@ -1527,11 +1607,18 @@ namespace EasytransitCaisse.Migrations
 
             modelBuilder.Entity("EasytransitCaisse.Models.MouvementStock", b =>
                 {
+                    b.HasOne("EasytransitCaisse.Models.Depot", "Depot")
+                        .WithMany()
+                        .HasForeignKey("DepotId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("EasytransitCaisse.Models.Produit", "Produit")
                         .WithMany()
                         .HasForeignKey("ProduitId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Depot");
 
                     b.Navigation("Produit");
                 });
@@ -1654,6 +1741,21 @@ namespace EasytransitCaisse.Migrations
                     b.HasOne("EasytransitCaisse.Models.Caisse", null)
                         .WithMany()
                         .HasForeignKey("CaisseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("EasytransitCaisse.Models.StockDepot", b =>
+                {
+                    b.HasOne("EasytransitCaisse.Models.Depot", null)
+                        .WithMany()
+                        .HasForeignKey("DepotId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EasytransitCaisse.Models.Produit", null)
+                        .WithMany()
+                        .HasForeignKey("ProduitId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

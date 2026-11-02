@@ -4,7 +4,7 @@
 -- 151 ventes réparties sur les 14 derniers jours (une journée clôturée par jour).
 --
 -- À exécuter UNE SEULE FOIS, sur la base LOCALE de test (jamais en production),
--- après avoir lancé une fois l'application (elle crée les tables des taxes).
+-- après avoir lancé une fois l'application (elle crée les tables des taxes et des dépôts).
 -- Société : EASYTECH AFRICA GABON - LBV (pour en choisir une autre, modifiez le nom dans la ligne « SET @t = ... »).
 -- Tout est fait dans une transaction : en cas d'erreur, rien n'est enregistré.
 -- Pour retirer ces données : script demo_pos_supprimer_sqlserver.sql.
@@ -3251,6 +3251,24 @@ INSERT INTO PaiementsPos (TenantId, CommandePosId, ModePaiementId, Libelle, Mont
     SELECT @t, @cmd, Id, COALESCE(Libelle, Code, N'Espèces'), 2000, 1500, @op FROM ModesPaiement WHERE Id = @esp;
 UPDATE JourneesCaisses SET SoldeFinal = SoldeInitial + COALESCE((SELECT SUM(o.Montant) FROM OperationsCaisses o
     WHERE o.JourneeCaisseId = @j AND o.TypeOperation = 'Encaissement' AND o.StatutValidation <> N'Rejeté'), 0), EcartCloture = 0 WHERE Id = @j;
+
+-- Dépôts de stockage : le stock de démonstration est rangé dans le dépôt par défaut de la société
+-- (écart entre le stock total de chaque produit et la somme de ses dépôts), avec les mouvements
+-- et les caisses sans dépôt.
+IF NOT EXISTS (SELECT 1 FROM Depots WHERE TenantId = @t)
+    INSERT INTO Depots (TenantId, Code, Nom, Actif, ParDefaut) VALUES (@t, 'DEP01', N'Dépôt principal', 1, 1);
+DECLARE @dep INT = (SELECT TOP 1 Id FROM Depots WHERE TenantId = @t ORDER BY ParDefaut DESC, Id);
+UPDATE s SET s.Quantite = s.Quantite + e.Ecart
+    FROM StocksDepots s JOIN (SELECT p.Id, p.StockActuel - COALESCE((SELECT SUM(x.Quantite) FROM StocksDepots x WHERE x.ProduitId = p.Id), 0) AS Ecart
+                              FROM Produits p WHERE p.TenantId = @t) e ON e.Id = s.ProduitId
+    WHERE s.DepotId = @dep AND ABS(e.Ecart) > 0.001;
+INSERT INTO StocksDepots (DepotId, ProduitId, Quantite)
+    SELECT @dep, p.Id, p.StockActuel - COALESCE((SELECT SUM(x.Quantite) FROM StocksDepots x WHERE x.ProduitId = p.Id), 0)
+    FROM Produits p WHERE p.TenantId = @t
+      AND NOT EXISTS (SELECT 1 FROM StocksDepots x WHERE x.ProduitId = p.Id AND x.DepotId = @dep)
+      AND ABS(p.StockActuel - COALESCE((SELECT SUM(x.Quantite) FROM StocksDepots x WHERE x.ProduitId = p.Id), 0)) > 0.001;
+UPDATE MouvementsStock SET DepotId = @dep WHERE TenantId = @t AND DepotId IS NULL;
+UPDATE Caisses SET DepotId = @dep WHERE TenantId = @t AND DepotId IS NULL;
 
 COMMIT;
 SET @societe = (SELECT Nom FROM Tenants WHERE Id = @t);

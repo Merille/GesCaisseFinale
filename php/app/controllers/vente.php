@@ -228,7 +228,7 @@ function vente_retour(): void
             // Taxes de la ligne d'origine, avec les taux figés à la vente (montants négatifs).
             ligne_enregistrer_taxes($ligneId, q('SELECT TaxeId, Code, Taux FROM LignesCommandePosTaxes WHERE LigneCommandePosId = ?', [$l['Id']]), -$r['total'], (int) $vente['TenantId']);
             if ($l['ProduitId']) {
-                ligne_mouvement_stock($l, $r['qte'], 'Retour', $numero, $retourId, $motif);
+                ligne_mouvement_stock($l, $r['qte'], 'Retour', $numero, $retourId, $motif, depot_caisse((int) $journee['CaisseId']));
             }
         }
         $motifId = qv("SELECT ID FROM Motifs WHERE LibelleMotif = 'Retour POS' AND TenantId = ?", [$vente['TenantId']])
@@ -288,7 +288,7 @@ function vente_annuler(): void
         );
         foreach (vente_lignes((int) $vente['Id']) as $l) {
             if ($l['ProduitId']) {
-                ligne_mouvement_stock($l, (float) $l['Quantite'], 'Annulation', $vente['Numero'], (int) $vente['Id'], $motif);
+                ligne_mouvement_stock($l, (float) $l['Quantite'], 'Annulation', $vente['Numero'], (int) $vente['Id'], $motif, depot_caisse((int) $vente['CaisseId']));
             }
         }
         db()->commit();

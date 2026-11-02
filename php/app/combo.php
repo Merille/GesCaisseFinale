@@ -76,15 +76,16 @@ function ligne_composants(?string $json): array
     return is_array($c) ? array_values(array_filter($c, 'is_array')) : [];
 }
 
-/** Mouvement de stock d'une ligne vendue : le produit, ou les composants d'un combo. */
-function ligne_mouvement_stock(array $ligne, float $qte, string $type, ?string $reference, ?int $commandeId, ?string $commentaire = null): void
+/** Mouvement de stock d'une ligne vendue (dans le dépôt donné) : le produit, ou les composants d'un combo. */
+function ligne_mouvement_stock(array $ligne, float $qte, string $type, ?string $reference, ?int $commandeId,
+                               ?string $commentaire = null, ?int $depotId = null): void
 {
     $composants = ligne_composants($ligne['Composants'] ?? null);
     if (!$composants) {
-        mouvement_stock((int) $ligne['ProduitId'], $qte, $type, $reference, $commandeId, $commentaire);
+        mouvement_stock((int) $ligne['ProduitId'], $qte, $type, $reference, $commandeId, $commentaire, $depotId);
         return;
     }
     foreach ($composants as $c) {
-        mouvement_stock((int) $c['produitId'], $qte * (float) $c['qte'], $type, $reference, $commandeId, $commentaire);
+        mouvement_stock((int) $c['produitId'], $qte * (float) $c['qte'], $type, $reference, $commandeId, $commentaire, $depotId);
     }
 }

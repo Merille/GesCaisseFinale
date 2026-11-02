@@ -7,6 +7,7 @@
 {
     <input type="hidden" name="TypePointVente" value="@Model.TypePointVente" />
     <input type="hidden" name="ImprimerBons" value="@(Model.ImprimerBons ? "true" : "false")" />
+    <input type="hidden" name="DepotId" value="@Model.DepotId" />
     return;
 }
 <div class="col-md-4">
@@ -19,7 +20,21 @@
     </select>
     <div class="form-text">Restaurant / Bar : plan de salle, commandes sur les tables, bons cuisine / bar.</div>
 </div>
-<div class="col-md-8 d-flex align-items-center">
+@{
+    // Dépôts actifs de la société ; une nouvelle caisse vend par défaut depuis le dépôt par défaut.
+    var depots = DbContext.Depots.Where(d => d.Actif).OrderByDescending(d => d.ParDefaut).ThenBy(d => d.Code).ToList();
+}
+<div class="col-md-8">
+    <label class="form-label" for="DepotId">Dépôt de stock</label>
+    <select class="form-select" id="DepotId" name="DepotId">
+        @foreach (var d in depots)
+        {
+            <option value="@d.Id" selected="@(Model.DepotId.HasValue ? Model.DepotId == d.Id : d.ParDefaut)">@(d.Code + " · " + d.Nom)</option>
+        }
+    </select>
+    <div class="form-text">Les ventes et les retours de la caisse sortent du stock de ce dépôt (et y reviennent).</div>
+</div>
+<div class="col-12 d-flex align-items-center">
     <div class="form-check">
         <input class="form-check-input" type="checkbox" value="true" id="ImprimerBons" name="ImprimerBons" checked="@Model.ImprimerBons" />
         <input type="hidden" name="ImprimerBons" value="false" />

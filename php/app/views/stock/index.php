@@ -3,7 +3,7 @@ $titre = 'Stock';
 $onglet = 'index';
 require __DIR__ . '/_onglets.php';
 $badge = ['Entrée' => 'bg-success', 'Retour' => 'bg-info text-dark', 'Annulation' => 'bg-info text-dark', 'Vente' => 'bg-primary',
-          'Inventaire' => 'bg-warning text-dark', 'Stock initial' => 'bg-secondary'];
+          'Inventaire' => 'bg-warning text-dark', 'Stock initial' => 'bg-secondary', 'Transfert' => 'bg-dark'];
 ?>
 <div class="row g-3 mb-3">
     <div class="col-lg-8">
@@ -56,6 +56,11 @@ $badge = ['Entrée' => 'bg-success', 'Retour' => 'bg-info text-dark', 'Annulatio
             <option value="">Tous les produits</option>
             <?php foreach ($produits as $p): ?><option value="<?= (int) $p['Id'] ?>" <?= $filtres['produit'] === (int) $p['Id'] ? 'selected' : '' ?>><?= h($p['Code'] . ' · ' . $p['Nom']) ?></option><?php endforeach; ?>
         </select></div>
+    <div><label class="form-label small mb-1" for="fDepot">Dépôt</label>
+        <select id="fDepot" name="depot" class="form-select">
+            <option value="">Tous les dépôts</option>
+            <?php foreach ($depots as $d): ?><option value="<?= (int) $d['Id'] ?>" <?= $filtres['depot'] === (int) $d['Id'] ? 'selected' : '' ?>><?= h($d['Code'] . ' · ' . $d['Nom']) ?></option><?php endforeach; ?>
+        </select></div>
     <div><label class="form-label small mb-1" for="fType">Type</label>
         <select id="fType" name="type" class="form-select">
             <option value="">Tous les types</option>
@@ -69,12 +74,13 @@ $badge = ['Entrée' => 'bg-success', 'Retour' => 'bg-info text-dark', 'Annulatio
 <div class="card shadow-sm border-0">
     <div class="card-body table-responsive">
         <table id="mouvementsTable" class="table table-hover align-middle mb-0">
-            <thead class="table-dark"><tr><th>Date</th><th>Produit</th><th>Type</th><th class="text-end">Quantité</th><th class="text-end">Stock après</th><th>Référence</th><th>Par</th><th>Commentaire</th></tr></thead>
+            <thead class="table-dark"><tr><th>Date</th><th>Produit</th><th>Dépôt</th><th>Type</th><th class="text-end">Quantité</th><th class="text-end" title="Stock du produit dans le dépôt après le mouvement">Stock après</th><th>Référence</th><th>Par</th><th>Commentaire</th></tr></thead>
             <tbody>
             <?php foreach ($mouvements as $m): $q = (float) $m['Quantite']; ?>
                 <tr>
                     <td class="text-nowrap" data-order="<?= h($m['DateMouvement']) ?>-<?= sprintf('%09d', $m['Id']) ?>"><?= date_fr($m['DateMouvement'], 'd/m/Y H:i') ?></td>
                     <td><?= h($m['Code'] . ' · ' . $m['Nom']) ?></td>
+                    <td title="<?= h($m['DepotNom'] ?? '') ?>"><?= h($m['DepotCode'] ?? '') ?></td>
                     <td><span class="badge <?= $badge[$m['TypeMouvement']] ?? 'bg-secondary' ?>"><?= h($m['TypeMouvement']) ?></span></td>
                     <td class="text-end fw-semibold <?= $q < 0 ? 'text-danger' : 'text-success' ?>" data-order="<?= $q ?>"><?= ($q > 0 ? '+' : '') . quantite_fr($q) ?></td>
                     <td class="text-end"><?= quantite_fr($m['StockApres']) ?></td>

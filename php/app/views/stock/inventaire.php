@@ -5,6 +5,9 @@ require __DIR__ . '/_onglets.php';
 ?>
 <form method="get" action="index.php" class="d-flex gap-2 mb-3">
     <input type="hidden" name="r" value="stock/inventaire">
+    <select name="depot" class="form-select" style="width:auto;" onchange="this.form.submit()" aria-label="Dépôt">
+        <?php foreach ($depots as $d): ?><option value="<?= (int) $d['Id'] ?>" <?= $depot === (int) $d['Id'] ? 'selected' : '' ?>><?= h($d['Code'] . ' · ' . $d['Nom']) ?></option><?php endforeach; ?>
+    </select>
     <select name="categorie" class="form-select" style="width:auto;" onchange="this.form.submit()" aria-label="Catégorie">
         <option value="">Toutes les catégories</option>
         <?php foreach ($categories as $c): ?><option value="<?= (int) $c['Id'] ?>" <?= $categorie === (int) $c['Id'] ? 'selected' : '' ?>><?= h($c['Nom']) ?></option><?php endforeach; ?>
@@ -15,9 +18,10 @@ require __DIR__ . '/_onglets.php';
 <?php else: ?>
 <form method="post" onsubmit="return confirm('Enregistrer l\'inventaire ? Les écarts mettront le stock à jour.');">
     <?= csrf_field() ?>
+    <input type="hidden" name="depot" value="<?= (int) $depot ?>">
     <div class="card shadow-sm border-0">
         <div class="card-body table-responsive">
-            <p class="small text-muted">Saisissez la quantité comptée en rayon. Laissez vide les produits non comptés. Chaque écart devient un mouvement « Inventaire ».</p>
+            <p class="small text-muted">Saisissez la quantité comptée dans le dépôt choisi. Laissez vide les produits non comptés. Chaque écart devient un mouvement « Inventaire ».</p>
             <table class="table align-middle mb-0" data-pagination="20" data-libelle="Produits">
                 <thead class="table-dark"><tr><th>Code</th><th>Produit</th><th>Catégorie</th><th class="text-end">Stock théorique</th><th style="width:160px">Stock compté</th><th class="text-end" style="width:110px">Écart</th></tr></thead>
                 <tbody>
@@ -26,9 +30,9 @@ require __DIR__ . '/_onglets.php';
                         <td class="fw-semibold"><?= h($p['Code']) ?></td>
                         <td><?= h($p['Nom']) ?></td>
                         <td><?= h($p['Categorie']) ?></td>
-                        <td class="text-end"><?= quantite_fr($p['StockActuel']) ?></td>
+                        <td class="text-end"><?= quantite_fr($p['StockDepot']) ?></td>
                         <td><input class="form-control form-control-sm text-end compte" name="compte[<?= (int) $p['Id'] ?>]" inputmode="decimal"
-                                   data-theorique="<?= h((string) (float) $p['StockActuel']) ?>" aria-label="Stock compté : <?= h($p['Nom']) ?>"></td>
+                                   data-theorique="<?= h((string) (float) $p['StockDepot']) ?>" aria-label="Stock compté : <?= h($p['Nom']) ?>"></td>
                         <td class="text-end fw-semibold ecart"></td>
                     </tr>
                 <?php endforeach; ?>

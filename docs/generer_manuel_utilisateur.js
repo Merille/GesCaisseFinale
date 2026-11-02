@@ -98,7 +98,7 @@ const fiche = [
         ['Application', 'GesCaisse — gestion de caisse et point de vente (POS)'],
         ['Éditeur', 'M-ITECH AFRICA'],
         ['Public', 'Administrateurs, caissiers, vendeurs et serveurs des sociétés clientes'],
-        ['Version du document', '1.1'],
+        ['Version du document', '1.2'],
         ['Date', 'Novembre 2026']
     ], [3000, 6638])
 ];
@@ -206,6 +206,7 @@ const contenu = [
     pt('Compte comptable', 'compte de trésorerie utilisé comme contrepartie dans l’export Sage (ex. 571100).'),
     pt('Type de point de vente', '**Vente en détail** (comptoir classique), **Restaurant** ou **Bar** (plan de salle et commandes par table, voir chapitre 10).'),
     pt('Imprimer les bons de préparation', 'pour un restaurant ou un bar : impression automatique des bons envoyés en cuisine.'),
+    pt('Dépôt de stock', 'dépôt d’où sortent les ventes de la caisse et où reviennent ses retours (voir 8 et 12.7). Une nouvelle caisse prend le dépôt par défaut.'),
     p('Les boutons de chaque ligne permettent d’ouvrir les **Journées** de la caisse, de la **Modifier** ou de la **Supprimer**. Une caisse qui a déjà des journées ne peut pas être supprimée. Le bouton **Imprimer**, en haut de la liste, édite la liste des caisses (code, description, StCode, caissier par défaut, compte comptable).'),
     h2('3.2 Ouvrir une journée'),
     ...etapes([
@@ -315,7 +316,7 @@ const contenu = [
     ...figure('22_pos_ticket', 'Vente terminée et ticket de caisse'),
     h2('6.7 Quitter le point de vente'),
     p('Le bouton **Ventes** ouvre la liste des ventes ; le bouton **Fermer** revient à l’application. La journée reste ouverte : seule la clôture (3.5) la termine.'),
-    attention('Si votre société interdit la vente sans stock (voir 8.4), un article épuisé est refusé. Sinon, la vente est acceptée avec un avertissement.'),
+    attention('Si votre société interdit la vente sans stock (voir 8.6), un article épuisé dans le dépôt de la caisse est refusé. Sinon, la vente est acceptée avec un avertissement.'),
 
     // 7 ------------------------------------------------------------------
     h1('7. Ventes, retours et annulations'),
@@ -338,23 +339,38 @@ const contenu = [
 
     // 8 ------------------------------------------------------------------
     h1('8. Stock'),
-    p('Menu **Stock** (administrateurs). Chaque produit suivi en stock a une quantité qui évolue à chaque entrée, vente, retour, annulation ou inventaire.'),
+    p('Menu **Stock** (administrateurs). Le stock de chaque produit suivi est tenu **par dépôt** (magasin, entrepôt, réserve… voir 12.7). Il évolue à chaque entrée, vente, retour, annulation, inventaire ou transfert. Le stock d’un produit affiché dans les listes et sur sa fiche est le total de tous les dépôts.'),
+    pt('Ventes et retours', 'ils sortent du dépôt de la caisse (et y reviennent). L’écran de vente affiche le stock de ce dépôt.'),
+    pt('Entrées, inventaires et transferts', 'ils se font dans le dépôt choisi sur la page.'),
+    pt('Nouveaux produits', 'leur stock initial est placé dans le dépôt par défaut.'),
     h2('8.1 Mouvements et alertes'),
-    p('La page affiche les produits au niveau ou sous leur seuil d’alerte, puis l’historique des mouvements, filtrable par produit, type et période.'),
+    p('La page affiche les produits au niveau ou sous leur seuil d’alerte (stock total), puis l’historique des mouvements, filtrable par produit, **dépôt**, type et période. La colonne **Stock après** donne le stock du produit dans le dépôt du mouvement.'),
     ...figure('25_stock', 'Stock : alertes et historique des mouvements'),
     h2('8.2 Entrée de marchandises'),
     ...etapes([
         'Cliquez sur **Entrée de marchandises**.',
-        'Indiquez la référence du bon de livraison ou de la facture fournisseur, la date et un commentaire.',
+        'Choisissez le **dépôt qui reçoit** les marchandises, puis indiquez la référence du bon de livraison ou de la facture fournisseur et un commentaire.',
         'Ajoutez une ligne par produit avec la **quantité reçue** (**+ Ajouter une ligne** pour en ajouter).',
-        'Cliquez sur **Enregistrer l’entrée** : le stock de chaque produit augmente.'
+        'Cliquez sur **Enregistrer l’entrée** : le stock de chaque produit augmente dans ce dépôt.'
     ]),
     ...figure('26_entree_stock', 'Entrée de marchandises'),
-    h2('8.3 Inventaire'),
-    p('Cliquez sur **Inventaire**, filtrez au besoin par catégorie, puis saisissez le **stock compté** de chaque produit. L’écart avec le stock théorique est calculé. Vous pouvez changer de page ou rechercher sans perdre vos saisies. Cliquez sur **Enregistrer l’inventaire** : les écarts deviennent des mouvements d’inventaire.'),
+    h2('8.3 Stock par dépôt'),
+    p('L’onglet **Stock par dépôt** présente, pour chaque produit suivi, la quantité dans chaque dépôt et le total. Le total est en rouge quand il atteint le seuil d’alerte.'),
+    ...figure('29_stock_depots', 'Stock par dépôt'),
+    h2('8.4 Transfert entre dépôts'),
+    ...etapes([
+        'Cliquez sur **Transfert**.',
+        'Choisissez le **dépôt de départ** : la liste des produits indique leur quantité dans ce dépôt. Choisissez ensuite le **dépôt d’arrivée**.',
+        'Indiquez au besoin une référence (sinon « TRF-date-heure ») et un commentaire.',
+        'Ajoutez une ligne par produit avec la quantité transférée, puis cliquez sur **Enregistrer le transfert**.'
+    ]),
+    ...figure('29b_transfert', 'Transfert entre dépôts'),
+    p('Chaque produit sort du dépôt de départ et entre dans le dépôt d’arrivée (deux mouvements « Transfert ») ; le stock total ne change pas. Un transfert supérieur à la quantité du dépôt de départ est refusé.'),
+    h2('8.5 Inventaire'),
+    p('Cliquez sur **Inventaire**, choisissez le **dépôt** compté, filtrez au besoin par catégorie, puis saisissez le **stock compté** de chaque produit. L’écart avec le stock théorique du dépôt est calculé. Vous pouvez changer de page ou rechercher sans perdre vos saisies. Cliquez sur **Enregistrer l’inventaire** : les écarts deviennent des mouvements d’inventaire.'),
     ...figure('27_inventaire', 'Inventaire'),
-    h2('8.4 Vente sans stock'),
-    p('L’option de la page Stock détermine ce qui se passe quand un article est épuisé : vente **autorisée, avec un avertissement**, ou **interdite** (le point de vente refuse l’article).'),
+    h2('8.6 Vente sans stock'),
+    p('L’option de la page Stock détermine ce qui se passe quand un article est épuisé dans le dépôt de la caisse : vente **autorisée, avec un avertissement**, ou **interdite** (le point de vente refuse l’article).'),
 
     // 9 ------------------------------------------------------------------
     h1('9. Rapports de ventes'),
@@ -478,7 +494,14 @@ const contenu = [
     h2('12.6 Unités de vente'),
     p('Unités proposées sur les fiches produits (Unité, Kilogramme, Litre, Carton…). Vous pouvez en ajouter, les modifier, les activer ou les désactiver. Renommer une unité met à jour les produits qui l’utilisent ; une unité utilisée ne peut pas être supprimée.'),
     ...figure('45_unites', 'Unités de vente'),
-    h2('12.7 Sociétés (super-administrateur)'),
+    h2('12.7 Dépôts'),
+    p('Menu **Paramètres** › **Dépôts**. Un dépôt est un lieu de stockage : magasin, entrepôt, réserve… Chaque société a au moins un dépôt, le **Dépôt principal**, créé automatiquement : il a reçu tout le stock existant lors de la mise à jour.'),
+    ...figure('46_depots', 'Dépôts de stockage'),
+    p('Cliquez sur **Nouveau dépôt** (ou **Modifier** sur une ligne) et renseignez le **code**, le **nom**, l’adresse et le responsable. La liste indique pour chaque dépôt le nombre de produits en stock et de caisses rattachées.'),
+    pt('Par défaut', 'le dépôt par défaut reçoit le stock initial des nouveaux produits et sert aux caisses sans dépôt choisi. Il ne peut être ni désactivé ni supprimé : choisissez d’abord un autre dépôt par défaut.'),
+    pt('Désactiver', 'un dépôt désactivé n’est plus proposé pour les caisses ni les mouvements de stock. Un dépôt rattaché à une caisse ne peut pas être désactivé.'),
+    pt('Supprimer', 'seul un dépôt sans mouvement de stock ni caisse peut être supprimé ; sinon, désactivez-le.'),
+    h2('12.8 Sociétés (super-administrateur)'),
     p('Le super-administrateur crée les sociétés, choisit leurs modules (point de vente activé ou non), fixe leur mode d’accès (licence ou abonnement) et prolonge leur date d’expiration. Le bloc **Société** du menu lui permet de consulter les données d’une société en particulier.'),
 
     // 13 -----------------------------------------------------------------
@@ -489,7 +512,7 @@ const contenu = [
         ['Le bouton Prix du pavé est refusé.', 'La modification du prix à la caisse est réservée aux administrateurs.'],
         ['La remise globale, le retour ou l’annulation sont refusés.', 'Ces actions demandent le profil Admin ou le droit « Peut valider ».'],
         ['Je ne peux pas clôturer la journée.', 'Dans un restaurant, encaissez ou transférez d’abord les commandes des tables.'],
-        ['Un article épuisé est refusé à la caisse.', 'La vente sans stock est interdite (8.4) : enregistrez une entrée de marchandises ou un inventaire.'],
+        ['Un article épuisé est refusé à la caisse.', 'La vente sans stock est interdite (8.6) et l’article est épuisé dans le dépôt de la caisse : enregistrez une entrée, un transfert ou un inventaire dans ce dépôt.'],
         ['Mon ticket a disparu après une coupure.', 'Rouvrez le point de vente sur le même poste et le même navigateur : les tickets en cours y sont conservés.'],
         ['Le ticket n’affiche pas notre logo ou notre adresse.', 'Complétez Paramètres › Ma société (12.1).'],
         ['La page indique « compte suspendu ».', 'La licence de la société a expiré : contactez votre fournisseur.'],

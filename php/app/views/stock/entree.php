@@ -7,7 +7,7 @@ $options = function (int $selection) use ($produits): string {
     $html = '<option value="">-- Produit --</option>';
     foreach ($produits as $p) {
         $html .= '<option value="' . (int) $p['Id'] . '"' . ($selection === (int) $p['Id'] ? ' selected' : '') . '>'
-            . h($p['Code'] . ' · ' . $p['Nom'] . ' (stock ' . quantite_fr($p['StockActuel']) . ')') . '</option>';
+            . h($p['Code'] . ' · ' . $p['Nom'] . ' (stock total ' . quantite_fr($p['StockActuel']) . ')') . '</option>';
     }
     return $html;
 };
@@ -20,8 +20,12 @@ $options = function (int $selection) use ($produits): string {
     <div class="card-body">
         <?= csrf_field() ?>
         <div class="row g-3 mb-3">
-            <div class="col-md-5"><label class="form-label" for="reference">Référence (bon de livraison, facture fournisseur)</label><input class="form-control" id="reference" name="reference" placeholder="Ex : BL-2026-118"></div>
-            <div class="col-md-7"><label class="form-label" for="commentaire">Commentaire</label><input class="form-control" id="commentaire" name="commentaire" placeholder="Ex : livraison du fournisseur SODIBA"></div>
+            <div class="col-md-4"><label class="form-label" for="depot">Dépôt qui reçoit</label>
+                <select class="form-select" id="depot" name="depot" required>
+                    <?php foreach ($depots as $d): ?><option value="<?= (int) $d['Id'] ?>"><?= h($d['Code'] . ' · ' . $d['Nom']) ?></option><?php endforeach; ?>
+                </select></div>
+            <div class="col-md-4"><label class="form-label" for="reference">Référence (bon de livraison, facture fournisseur)</label><input class="form-control" id="reference" name="reference" placeholder="Ex : BL-2026-118"></div>
+            <div class="col-md-4"><label class="form-label" for="commentaire">Commentaire</label><input class="form-control" id="commentaire" name="commentaire" placeholder="Ex : livraison du fournisseur SODIBA"></div>
         </div>
         <table class="table align-middle" id="lignesEntree">
             <thead><tr><th>Produit</th><th style="width:160px">Quantité reçue</th><th style="width:50px"></th></tr></thead>

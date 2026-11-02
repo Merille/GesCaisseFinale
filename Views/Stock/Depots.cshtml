@@ -1,0 +1,64 @@
+@model List<EasytransitCaisse.Models.Produit>
+@using System.Globalization
+@{
+    ViewData["Title"] = "Stock par dépôt";
+    var depots = (List<EasytransitCaisse.Models.Depot>)ViewBag.Depots;
+    var quantites = (Dictionary<(int, int), decimal>)ViewBag.Quantites;
+    var categories = (List<EasytransitCaisse.Models.Categorie>)ViewBag.Categories;
+    var categorie = (int)ViewBag.Categorie;
+    var fr = CultureInfo.GetCultureInfo("fr-FR");
+    string Qte(decimal n) => n.ToString("#,0.##", fr);
+}
+
+<partial name="_Onglets" model="@("Depots")" />
+
+<form method="get" action="/Stock/Depots" class="d-flex gap-2 mb-3">
+    <select name="categorie" class="form-select" style="width:auto;" onchange="this.form.submit()" aria-label="Catégorie">
+        <option value="0">Toutes les catégories</option>
+        @foreach (var c in categories)
+        {
+            <option value="@c.Id" selected="@(categorie == c.Id)">@c.Nom</option>
+        }
+    </select>
+</form>
+<div class="card shadow-sm border-0">
+    <div class="card-body table-responsive">
+        <table id="stockDepotsTable" class="table table-hover align-middle mb-0">
+            <thead class="table-dark"><tr><th>Code</th><th>Produit</th><th>Catégorie</th>
+                @foreach (var d in depots)
+                {
+                    <th class="text-end" title="@d.Nom">@d.Code@(d.Actif ? "" : " (inactif)")</th>
+                }
+                <th class="text-end">Total</th></tr></thead>
+            <tbody>
+                @foreach (var p in Model)
+                {
+                    var alerte = p.SeuilAlerte.HasValue && p.StockActuel <= p.SeuilAlerte.Value;
+                    <tr>
+                        <td class="fw-semibold">@p.Code</td>
+                        <td>@p.Nom</td>
+                        <td>@p.Categorie?.Nom</td>
+                        @foreach (var d in depots)
+                        {
+                            var q = quantites.GetValueOrDefault((p.Id, d.Id));
+                            <td class="text-end @(q < 0 ? "text-danger" : q == 0 ? "text-muted" : "")" data-order="@q.ToString(CultureInfo.InvariantCulture)">@Qte(q)</td>
+                        }
+                        <td class="text-end fw-bold" data-order="@p.StockActuel.ToString(CultureInfo.InvariantCulture)"><span class="@(alerte ? "badge bg-danger" : "")">@Qte(p.StockActuel)</span></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $('#stockDepotsTable').DataTable({
+            language: { url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/fr-FR.json' },
+            pageLength: 20,
+            lengthMenu: [20, 50, 100],
+            order: [[1, 'asc']],
+            dom: '<"d-flex justify-content-between align-items-center mb-3"lf>rtip'
+        });
+    </script>
+}

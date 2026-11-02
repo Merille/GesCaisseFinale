@@ -52,7 +52,17 @@ require __DIR__ . '/../partials/form_debut.php';
                     </select>
                     <div class="form-text">Restaurant / Bar : plan de salle, commandes sur les tables, bons cuisine / bar.</div>
                 </div>
-                <div class="col-md-8 d-flex align-items-center">
+                <div class="col-md-8">
+                    <label class="form-label" for="DepotId<?= $sfxPv ?>">Dépôt de stock</label>
+                    <select class="form-select" id="DepotId<?= $sfxPv ?>" name="DepotId">
+                        <?php $depotChoisi = (int) ($caisse['DepotId'] ?? 0); ?>
+                        <?php foreach ($depots ?? [] as $d): ?>
+                            <option value="<?= (int) $d['Id'] ?>" <?= ($depotChoisi ? $depotChoisi === (int) $d['Id'] : $d['ParDefaut']) ? 'selected' : '' ?>><?= h($d['Code'] . ' · ' . $d['Nom']) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <div class="form-text">Les ventes et les retours de la caisse sortent du stock de ce dépôt (et y reviennent).</div>
+                </div>
+                <div class="col-12 d-flex align-items-center">
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" value="1" id="ImprimerBons<?= $sfxPv ?>" name="ImprimerBons" <?= ($caisse['ImprimerBons'] ?? 1) ? 'checked' : '' ?>>
                         <label class="form-check-label" for="ImprimerBons<?= $sfxPv ?>">Imprimer un bon de préparation à chaque envoi en cuisine / au bar
@@ -61,6 +71,7 @@ require __DIR__ . '/../partials/form_debut.php';
                 </div>
                 <?php else: ?>
                 <input type="hidden" name="TypePointVente" value="<?= h($caisse['TypePointVente'] ?? 'Boutique') ?>">
+                <input type="hidden" name="DepotId" value="<?= h((string) ($caisse['DepotId'] ?? '')) ?>">
                 <?php if ($modification): ?><input type="hidden" name="ImprimerBons" value="1"><?php elseif ($caisse['ImprimerBons'] ?? 1): ?><input type="hidden" name="ImprimerBons" value="1"><?php endif; ?>
                 <?php endif; ?>
             </div>

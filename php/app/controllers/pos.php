@@ -31,6 +31,8 @@ function pos_index(): void
     // Catalogue de la société de la journée (aussi pour le SuperAdmin en mode « toutes »).
     $tenant = (int) $journee['TenantId'];
     $combos = combos_societe($tenant);
+    // Stock affiché : celui du dépôt de la caisse.
+    $stocksDepot = array_column(q('SELECT ProduitId, Quantite FROM StocksDepots WHERE DepotId = ?', [depot_caisse((int) $journee['CaisseId'])]), 'Quantite', 'ProduitId');
     $produits = array_map(fn($p) => [
         'id' => (int) $p['Id'],
         'code' => $p['Code'],
@@ -40,7 +42,7 @@ function pos_index(): void
         'prix' => (float) $p['PrixVente'],
         'tva' => (float) $p['TauxTVA'],
         'suivi' => (bool) $p['SuiviStock'],
-        'stock' => (float) $p['StockActuel'],
+        'stock' => (float) ($stocksDepot[$p['Id']] ?? 0),
         'seuil' => $p['SeuilAlerte'] === null ? null : (float) $p['SeuilAlerte'],
         'unite' => $p['Unite'],
         'image' => url_image_produit($p),
@@ -274,11 +276,14 @@ function pos_vendre(): void
                     $parProduit[(int) $c['produitId']] = ($parProduit[(int) $c['produitId']] ?? 0) + $l['qte'] * (float) $c['qte'];
                 }
             }
+            // Stock du dépôt de la caisse.
+            $depotVente = depot_caisse((int) $journee['CaisseId']);
             foreach ($parProduit as $pid => $qte) {
-                $p = q1('SELECT Nom, StockActuel, SuiviStock FROM Produits WHERE Id = ? FOR UPDATE', [$pid]);
-                if ($p['SuiviStock'] && (float) $p['StockActuel'] < $qte - 0.001) {
+                $p = q1('SELECT Nom, SuiviStock FROM Produits WHERE Id = ? FOR UPDATE', [$pid]);
+                $dispo = stock_depot((int) $pid, $depotVente);
+                if ($p['SuiviStock'] && $dispo < $qte - 0.001) {
                     db()->rollBack();
-                    pos_json(['erreur' => 'Stock insuffisant pour « ' . $p['Nom'] . ' » : ' . quantite_fr($p['StockActuel']) . ' disponible(s).'], 409);
+                    pos_json(['erreur' => 'Stock insuffisant pour « ' . $p['Nom'] . ' » : ' . quantite_fr($dispo) . ' disponible(s).'], 409);
                 }
             }
         }
@@ -328,7 +333,8 @@ function pos_vendre(): void
                  $l['composants'] ? json_encode($l['composants'], JSON_UNESCAPED_UNICODE) : null]
             );
             ligne_enregistrer_taxes($ligneId, produit_taxes((int) $l['produit']['Id']), $l['total'], $tenant);
-            ligne_mouvement_stock(['ProduitId' => $l['produit']['Id'], 'Composants' => $l['composants'] ? json_encode($l['composants']) : null], -$l['qte'], 'Vente', $numero, $commandeId);
+            ligne_mouvement_stock(['ProduitId' => $l['produit']['Id'], 'Composants' => $l['composants'] ? json_encode($l['composants']) : null], -$l['qte'], 'Vente', $numero, $commandeId,
+                null, depot_caisse((int) $journee['CaisseId']));
         }
 
         $motif = qv("SELECT ID FROM Motifs WHERE LibelleMotif = 'Vente POS' AND TenantId = ?", [$tenant])

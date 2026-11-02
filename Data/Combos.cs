@@ -77,18 +77,18 @@ namespace EasytransitCaisse.Data
             catch (JsonException) { return new(); }
         }
 
-        // Mouvement de stock d'une ligne vendue : le produit, ou les composants d'un combo.
+        // Mouvement de stock d'une ligne vendue (dans le dépôt donné) : le produit, ou les composants d'un combo.
         public static async Task MouvementLigneAsync(this AppDbContext context, int produitId, string? composants, decimal quantite, string type,
-            string? reference, int? commandeId, int? utilisateurId, string? commentaire = null)
+            string? reference, int? commandeId, int? utilisateurId, string? commentaire = null, int? depotId = null)
         {
             var liste = Lire(composants);
             if (!liste.Any())
             {
-                await context.MouvementAsync(produitId, quantite, type, reference, commandeId, utilisateurId, commentaire);
+                await context.MouvementAsync(produitId, quantite, type, reference, commandeId, utilisateurId, commentaire, depotId);
                 return;
             }
             foreach (var c in liste)
-                await context.MouvementAsync(c.ProduitId, quantite * c.Qte, type, reference, commandeId, utilisateurId, commentaire);
+                await context.MouvementAsync(c.ProduitId, quantite * c.Qte, type, reference, commandeId, utilisateurId, commentaire, depotId);
         }
     }
 }

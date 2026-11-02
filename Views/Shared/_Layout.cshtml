@@ -39,7 +39,7 @@
         "Pos" or "Vente" or "Stock" or "PosRapport" or "Cuisine" => "Point de vente",
         "Salle" => "Activité",
         "Produit" or "Categorie" or "Combo" => "Configuration",
-        "Utilisateur" or "Motif" or "ModePaiement" or "Taxe" or "Unite" or "Societe" => "Paramètres",
+        "Utilisateur" or "Motif" or "ModePaiement" or "Taxe" or "Unite" or "Depot" or "Societe" => "Paramètres",
         "Tenant" => "Administration",
         _ => null
     };
@@ -55,6 +55,7 @@
             "ModePaiement" => "Modes de paiement",
             "Taxe" => "Taxes",
             "Unite" => "Unités de vente",
+            "Depot" => "Dépôts",
             "Salle" => "Plan de salle",
             "Cuisine" => "Écran cuisine / bar",
             "Utilisateur" => "Utilisateurs",
@@ -253,7 +254,7 @@
             <div class="sb-section">
                 <div class="sb-section-title">Administration</div>
                 @{
-                    var parametresActif = controller is "Utilisateur" or "Motif" or "ModePaiement" or "Taxe" or "Unite" or "Societe";
+                    var parametresActif = controller is "Utilisateur" or "Motif" or "ModePaiement" or "Taxe" or "Unite" or "Depot" or "Societe";
                 }
                 <button type="button" class="sb-link sb-parent @(parametresActif ? "parent-actif" : "")" title="Paramètres"
                         aria-expanded="@(parametresActif ? "true" : "false")" aria-controls="sbParametres" onclick="basculerSousMenu(this)">
@@ -290,6 +291,10 @@
                     <a class="sb-link @(controller == "Unite" ? "active" : "")" href="/Unite/Index" title="Unités de vente">
                         <i class="fas fa-scale-balanced"></i>
                         <span class="sb-label">Unités de vente</span>
+                    </a>
+                    <a class="sb-link @(controller == "Depot" ? "active" : "")" href="/Depot/Index" title="Dépôts">
+                        <i class="fas fa-warehouse"></i>
+                        <span class="sb-label">Dépôts</span>
                     </a>
                     }
                 </div>

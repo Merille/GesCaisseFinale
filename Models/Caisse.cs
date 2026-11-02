@@ -23,6 +23,9 @@ namespace EasytransitCaisse.Models
         // contrepartie caisse lors de l'export des écritures vers Sage.
         public string? CompteComptable { get; set; }
 
+        // Dépôt d'où sortent les ventes de la caisse (dépôt par défaut de la société si vide).
+        public int? DepotId { get; set; }
+
         public int TenantId { get; set; }
 
         // Boutique, Restaurant ou Bar : en restaurant / bar, l'écran de vente s'ouvre sur le

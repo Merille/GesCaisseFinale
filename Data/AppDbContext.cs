@@ -129,6 +129,23 @@ namespace EasytransitCaisse.Data
             modelBuilder.Entity<MouvementStock>().Property(m => m.Reference).HasMaxLength(100);
             modelBuilder.Entity<MouvementStock>().Property(m => m.Commentaire).HasMaxLength(300);
 
+            // Dépôts de stockage : stock par dépôt (StocksDepots), caisse rattachée à un dépôt.
+            modelBuilder.Entity<Depot>()
+                .HasQueryFilter(e => _currentTenantId == 0 || e.TenantId == _currentTenantId);
+            modelBuilder.Entity<Depot>()
+                .HasIndex(d => new { d.TenantId, d.Code })
+                .IsUnique();
+            modelBuilder.Entity<StockDepot>().ToTable("StocksDepots");
+            modelBuilder.Entity<StockDepot>()
+                .HasOne<Depot>().WithMany().HasForeignKey(s => s.DepotId).OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<StockDepot>()
+                .HasOne<Produit>().WithMany().HasForeignKey(s => s.ProduitId).OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<StockDepot>().HasIndex(s => s.ProduitId);
+            modelBuilder.Entity<MouvementStock>()
+                .HasOne(m => m.Depot).WithMany().HasForeignKey(m => m.DepotId).OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<Caisse>()
+                .HasOne<Depot>().WithMany().HasForeignKey(c => c.DepotId).OnDelete(DeleteBehavior.Restrict);
+
             // Restaurant / bar : salles, tables, commandes ouvertes, bons de préparation.
             modelBuilder.Entity<Caisse>().Property(c => c.TypePointVente).HasMaxLength(20).HasDefaultValue("Boutique");
             modelBuilder.Entity<Categorie>().Property(c => c.Preparation).HasMaxLength(20).HasDefaultValue("Cuisine");
@@ -320,6 +337,8 @@ namespace EasytransitCaisse.Data
         public DbSet<PaiementPos> PaiementsPos { get; set; }
 
         public DbSet<MouvementStock> MouvementsStock { get; set; }
+        public DbSet<Depot> Depots { get; set; }
+        public DbSet<StockDepot> StocksDepots { get; set; }
 
         public DbSet<Taxe> Taxes { get; set; }
 

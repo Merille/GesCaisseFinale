@@ -17,7 +17,7 @@ namespace EasytransitCaisse.Models
 
         public DateTime DateMouvement { get; set; }
 
-        // Stock initial, Entrée, Inventaire, Vente, Retour, Annulation
+        // Stock initial, Entrée, Inventaire, Vente, Retour, Annulation, Transfert
         public string TypeMouvement { get; set; } = "";
 
         [Precision(18, 2)]
@@ -32,8 +32,13 @@ namespace EasytransitCaisse.Models
 
         public int? UtilisateurId { get; set; }
 
+        // Dépôt concerné ; StockApres est alors le stock du produit dans ce dépôt.
+        public int? DepotId { get; set; }
+
+        public virtual Depot? Depot { get; set; }
+
         public string? Commentaire { get; set; }
 
-        public static readonly string[] Types = { "Stock initial", "Entrée", "Inventaire", "Vente", "Retour", "Annulation" };
+        public static readonly string[] Types = { "Stock initial", "Entrée", "Inventaire", "Vente", "Retour", "Annulation", "Transfert" };
     }
 }

@@ -25,6 +25,19 @@ function caisse_utilisateurs(): array
     return q('SELECT Id, NomComplet FROM Utilisateurs WHERE ' . tf() . ' ORDER BY NomComplet');
 }
 
+/** Dépôts proposés sur la fiche caisse (dépôts actifs de la société). */
+function caisse_depots(): array
+{
+    return q('SELECT Id, Code, Nom, ParDefaut FROM Depots WHERE Actif = 1 AND ' . tf() . ' ORDER BY ParDefaut DESC, Code');
+}
+
+/** Dépôt saisi sur la fiche caisse, s'il est actif et de la société ; sinon null (dépôt par défaut). */
+function caisse_depot_saisi(): ?int
+{
+    $id = int_or_null(post('DepotId'));
+    return $id && qv('SELECT Id FROM Depots WHERE Id = ? AND Actif = 1 AND ' . tf(), [$id]) ? $id : null;
+}
+
 function caisse_index(): void
 {
     $caisses = q(
@@ -32,7 +45,7 @@ function caisse_index(): void
          FROM Caisses c LEFT JOIN Utilisateurs u ON u.Id = c.CashierDefault
          WHERE ' . tf('c') . ' ORDER BY c.ChkCode'
     );
-    render('caisse/index', ['caisses' => $caisses, 'utilisateurs' => caisse_utilisateurs()]);
+    render('caisse/index', ['caisses' => $caisses, 'utilisateurs' => caisse_utilisateurs(), 'depots' => caisse_depots()]);
 }
 
 function caisse_valeurs(): array
@@ -45,36 +58,38 @@ function caisse_valeurs(): array
         post('CompteComptable') ?: null,
         in_array(post('TypePointVente'), CAISSE_TYPES, true) ? post('TypePointVente') : 'Boutique',
         post('ImprimerBons') ? 1 : 0,
+        caisse_depot_saisi(),
     ];
 }
 
 function caisse_create(): void
 {
     if (is_post()) {
-        [$code, $desc, $st, $caissier, $compte, $type, $bons] = caisse_valeurs();
+        [$code, $desc, $st, $caissier, $compte, $type, $bons, $depot] = caisse_valeurs();
+        $tenant = tenant_insert();
         run(
-            'INSERT INTO Caisses (ChkCode, ChkDescription, StCode, CashierDefault, CompteComptable, TypePointVente, ImprimerBons, TenantId) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-            [$code, $desc, $st, $caissier, $compte, $type, $bons, tenant_insert()]
+            'INSERT INTO Caisses (ChkCode, ChkDescription, StCode, CashierDefault, CompteComptable, TypePointVente, ImprimerBons, DepotId, TenantId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [$code, $desc, $st, $caissier, $compte, $type, $bons, $depot ?? depot_par_defaut($tenant), $tenant]
         );
         flash('success', 'Caisse créée.');
         redirect('caisse/index');
     }
-    render('caisse/form', ['caisse' => [], 'utilisateurs' => caisse_utilisateurs()]);
+    render('caisse/form', ['caisse' => [], 'utilisateurs' => caisse_utilisateurs(), 'depots' => caisse_depots()]);
 }
 
 function caisse_edit(): void
 {
     $caisse = caisse_charger((int) get('id'));
     if (is_post()) {
-        [$code, $desc, $st, $caissier, $compte, $type, $bons] = caisse_valeurs();
+        [$code, $desc, $st, $caissier, $compte, $type, $bons, $depot] = caisse_valeurs();
         run(
-            'UPDATE Caisses SET ChkCode = ?, ChkDescription = ?, StCode = ?, CashierDefault = ?, CompteComptable = ?, TypePointVente = ?, ImprimerBons = ? WHERE ID = ?',
-            [$code, $desc, $st, $caissier, $compte, $type, $bons, $caisse['ID']]
+            'UPDATE Caisses SET ChkCode = ?, ChkDescription = ?, StCode = ?, CashierDefault = ?, CompteComptable = ?, TypePointVente = ?, ImprimerBons = ?, DepotId = ? WHERE ID = ?',
+            [$code, $desc, $st, $caissier, $compte, $type, $bons, $depot ?? $caisse['DepotId'] ?? depot_par_defaut((int) $caisse['TenantId']), $caisse['ID']]
         );
         flash('success', 'Caisse modifiée.');
         redirect('caisse/index');
     }
-    render('caisse/form', ['caisse' => $caisse, 'utilisateurs' => caisse_utilisateurs()]);
+    render('caisse/form', ['caisse' => $caisse, 'utilisateurs' => caisse_utilisateurs(), 'depots' => caisse_depots()]);
 }
 
 function caisse_delete(): void

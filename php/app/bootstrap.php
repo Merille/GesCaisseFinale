@@ -149,7 +149,7 @@ function tenant_id(): int
 
 // Modules du point de vente (vente, catalogue, stock, restaurant, taxes, unités) : accessibles
 // seulement si la société a le module Point de vente.
-const MODULES_POINT_VENTE = ['pos', 'vente', 'stock', 'posrapport', 'produit', 'categorie', 'combo', 'salle', 'cuisine', 'taxe', 'unite'];
+const MODULES_POINT_VENTE = ['pos', 'vente', 'stock', 'posrapport', 'produit', 'categorie', 'combo', 'salle', 'cuisine', 'taxe', 'unite', 'depot'];
 
 /** La société courante a-t-elle le module Point de vente ? (toujours oui pour « toutes les sociétés »). */
 function module_pos_actif(): bool
@@ -690,23 +690,55 @@ function vente_taxes(int $commandeId): array
 }
 
 /**
- * Mouvement de stock d'un produit suivi : met à jour son stock et l'enregistre dans
- * l'historique (quantité signée : + entrée, − sortie). Sans effet pour un produit
- * dont le stock n'est pas suivi. À appeler dans la transaction de l'opération.
+ * Dépôt par défaut de la société : reçoit le stock initial des produits et sert aux caisses sans
+ * dépôt choisi. Créé (« Dépôt principal ») s'il n'existe pas encore, par exemple pour une
+ * nouvelle société.
+ */
+function depot_par_defaut(int $tenant): int
+{
+    $id = qv('SELECT Id FROM Depots WHERE TenantId = ? ORDER BY ParDefaut DESC, Id LIMIT 1', [$tenant]);
+    if ($id) {
+        run('UPDATE Depots SET ParDefaut = 1 WHERE Id = ? AND ParDefaut = 0', [$id]);
+        return (int) $id;
+    }
+    return (int) run("INSERT INTO Depots (TenantId, Code, Nom, Actif, ParDefaut) VALUES (?, 'DEP01', 'Dépôt principal', 1, 1)", [$tenant]);
+}
+
+/** Dépôt d'une caisse : celui choisi sur la caisse, sinon le dépôt par défaut de la société. */
+function depot_caisse(int $caisseId): int
+{
+    $c = q1('SELECT DepotId, TenantId FROM Caisses WHERE ID = ?', [$caisseId]);
+    return $c && $c['DepotId'] ? (int) $c['DepotId'] : depot_par_defaut((int) ($c['TenantId'] ?? tenant_id()));
+}
+
+/** Quantité d'un produit dans un dépôt. */
+function stock_depot(int $produitId, int $depotId): float
+{
+    return (float) (qv('SELECT Quantite FROM StocksDepots WHERE DepotId = ? AND ProduitId = ?', [$depotId, $produitId]) ?? 0);
+}
+
+/**
+ * Mouvement de stock d'un produit suivi dans un dépôt (dépôt par défaut de la société si non
+ * précisé) : met à jour le stock du dépôt et le stock total du produit, puis l'enregistre dans
+ * l'historique (quantité signée : + entrée, − sortie ; « stock après » = stock du dépôt).
+ * Sans effet pour un produit dont le stock n'est pas suivi. À appeler dans la transaction de l'opération.
  */
 function mouvement_stock(int $produitId, float $quantite, string $type, ?string $reference = null,
-                         ?int $commandeId = null, ?string $commentaire = null): void
+                         ?int $commandeId = null, ?string $commentaire = null, ?int $depotId = null): void
 {
     $p = q1('SELECT Id, TenantId, SuiviStock FROM Produits WHERE Id = ? FOR UPDATE', [$produitId]);
     if (!$p || !$p['SuiviStock'] || abs($quantite) < 0.0001) {
         return;
     }
+    $depot = $depotId ?: depot_par_defaut((int) $p['TenantId']);
     run('UPDATE Produits SET StockActuel = StockActuel + ? WHERE Id = ?', [$quantite, $produitId]);
+    run('INSERT INTO StocksDepots (DepotId, ProduitId, Quantite) VALUES (?, ?, ?)
+         ON DUPLICATE KEY UPDATE Quantite = Quantite + VALUES(Quantite)', [$depot, $produitId, $quantite]);
     run(
-        'INSERT INTO MouvementsStock (TenantId, ProduitId, DateMouvement, TypeMouvement, Quantite, StockApres,
+        'INSERT INTO MouvementsStock (TenantId, ProduitId, DepotId, DateMouvement, TypeMouvement, Quantite, StockApres,
             Reference, CommandePosId, UtilisateurId, Commentaire)
-         VALUES (?, ?, NOW(), ?, ?, (SELECT StockActuel FROM Produits WHERE Id = ?), ?, ?, ?, ?)',
-        [$p['TenantId'], $produitId, $type, $quantite, $produitId, $reference, $commandeId, user()['id'] ?? null, $commentaire]
+         VALUES (?, ?, ?, NOW(), ?, ?, (SELECT Quantite FROM StocksDepots WHERE DepotId = ? AND ProduitId = ?), ?, ?, ?, ?)',
+        [$p['TenantId'], $produitId, $depot, $type, $quantite, $depot, $produitId, $reference, $commandeId, user()['id'] ?? null, $commentaire]
     );
 }
 

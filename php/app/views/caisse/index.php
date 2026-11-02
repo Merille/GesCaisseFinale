@@ -30,7 +30,7 @@
                                'action' => url('caisse/edit', ['id' => $c['ID']]),
                                'ChkCode' => $c['ChkCode'], 'ChkDescription' => $c['ChkDescription'], 'StCode' => $c['StCode'],
                                'CashierDefault' => $c['CashierDefault'], 'CompteComptable' => $c['CompteComptable'],
-                               'TypePointVente' => $c['TypePointVente'] ?? 'Boutique', 'ImprimerBons' => (bool) ($c['ImprimerBons'] ?? 1),
+                               'TypePointVente' => $c['TypePointVente'] ?? 'Boutique', 'ImprimerBons' => (bool) ($c['ImprimerBons'] ?? 1), 'DepotId' => $c['DepotId'],
                            ])) ?>">Modifier</a>
                         <form method="post" action="<?= h(url('caisse/delete')) ?>" onsubmit="return confirm('Supprimer cette caisse ?');">
                             <?= csrf_field() ?><input type="hidden" name="id" value="<?= (int) $c['ID'] ?>">
@@ -44,8 +44,8 @@
     </div>
 </div>
 
-<?= partial('caisse/form', ['caisse' => [], 'utilisateurs' => $utilisateurs, 'modale' => true]) ?>
-<?= partial('caisse/form', ['caisse' => [], 'utilisateurs' => $utilisateurs, 'modale' => true, 'modification' => true]) ?>
+<?= partial('caisse/form', ['caisse' => [], 'utilisateurs' => $utilisateurs, 'depots' => $depots, 'modale' => true]) ?>
+<?= partial('caisse/form', ['caisse' => [], 'utilisateurs' => $utilisateurs, 'depots' => $depots, 'modale' => true, 'modification' => true]) ?>
 <?php ob_start(); ?>
 <script>
     listeDataTable('#caissesTable', {
@@ -64,7 +64,7 @@
         const modale = document.getElementById('modalModification');
         const form = modale.querySelector('form');
         form.action = c.action;
-        ['ChkCode', 'ChkDescription', 'StCode', 'CashierDefault', 'CompteComptable', 'TypePointVente'].forEach(function (nom) {
+        ['ChkCode', 'ChkDescription', 'StCode', 'CashierDefault', 'CompteComptable', 'TypePointVente', 'DepotId'].forEach(function (nom) {
             const champ = form.elements[nom];
             if (champ) champ.value = c[nom] == null ? '' : c[nom];
         });

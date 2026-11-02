@@ -12,10 +12,12 @@ namespace EasytransitCaisse.Controllers
     public class CaisseController : Controller
     {
         private readonly AppDbContext _context;
+        private readonly ITenantProvider _tenantProvider;
 
-        public CaisseController(AppDbContext context)
+        public CaisseController(AppDbContext context, ITenantProvider tenantProvider)
         {
             _context = context;
+            _tenantProvider = tenantProvider;
         }
 
         // Boutique (affiché « Vente en détail ») : vente au comptoir. Restaurant / Bar : plan de
@@ -24,6 +26,10 @@ namespace EasytransitCaisse.Controllers
 
         // Libellé affiché du type de point de vente.
         public static string Libelle(string? type) => type is null or "Boutique" ? "Vente en détail" : type;
+
+        // Dépôt saisi sur la fiche caisse, s'il est actif et de la société ; sinon null (dépôt par défaut).
+        private int? DepotValide(int? depotId)
+            => depotId.HasValue && _context.Depots.Any(d => d.Id == depotId && d.Actif) ? depotId : null;
 
         // LISTE
         public IActionResult Index()
@@ -99,6 +105,9 @@ namespace EasytransitCaisse.Controllers
                 return View(caisse);
             }
 
+            var tenantCreation = _tenantProvider.TenantId;
+            caisse.DepotId = DepotValide(caisse.DepotId)
+                ?? (tenantCreation > 0 ? _context.DepotParDefautAsync(tenantCreation).GetAwaiter().GetResult() : null);
             _context.Caisses.Add(caisse);
             _context.SaveChanges();
             TempData["Success"] = "Caisse créée.";
@@ -145,6 +154,8 @@ namespace EasytransitCaisse.Controllers
             existing.CompteComptable = caisse.CompteComptable;
             existing.TypePointVente = Types.Contains(caisse.TypePointVente) ? caisse.TypePointVente : "Boutique";
             existing.ImprimerBons = caisse.ImprimerBons;
+            existing.DepotId = DepotValide(caisse.DepotId) ?? existing.DepotId
+                ?? _context.DepotParDefautAsync(existing.TenantId).GetAwaiter().GetResult();
 
             _context.SaveChanges();
             TempData["Success"] = "Caisse modifiée.";
