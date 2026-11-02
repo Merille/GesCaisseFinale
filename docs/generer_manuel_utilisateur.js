@@ -98,7 +98,7 @@ const fiche = [
         ['Application', 'GesCaisse — gestion de caisse et point de vente (POS)'],
         ['Éditeur', 'M-ITECH AFRICA'],
         ['Public', 'Administrateurs, caissiers, vendeurs et serveurs des sociétés clientes'],
-        ['Version du document', '1.0'],
+        ['Version du document', '1.1'],
         ['Date', 'Novembre 2026']
     ], [3000, 6638])
 ];
@@ -174,6 +174,14 @@ const contenu = [
     pt('Le menu latéral (à gauche)', 'les rubriques Activité, Analyse, Point de vente, Configuration et Administration. Le bouton **Réduire le menu**, en bas, ne garde que les icônes pour libérer de la place ; il se souvient de votre choix.'),
     pt('La barre du haut', 'le chemin de la page (ex. « Activité › Tableau de bord »), son titre, les notifications, l’utilisateur connecté et le bouton de déconnexion.'),
     pt('Le bloc Société', 'le nom de votre société. Le super-administrateur y choisit la « société consultée ».'),
+    h3('Les listes'),
+    p('Toutes les listes (caisses, tiers, ventes, produits, utilisateurs…) fonctionnent de la même façon :'),
+    pt('Rechercher', 'tapez quelques lettres dans la zone de recherche, en haut à droite : la liste se filtre aussitôt.'),
+    pt('Trier', 'cliquez sur le titre d’une colonne ; un second clic inverse l’ordre.'),
+    pt('Afficher … entrées', 'choisissez, en haut à gauche, le nombre de lignes par page ; les boutons **Précédent** et **Suivant**, en bas, changent de page.'),
+    h3('Les impressions'),
+    p('Les documents imprimés (liste des caisses, journées, journal des opérations, rapport des opérations) portent en en-tête le logo et les coordonnées de votre société, ainsi que la date, l’heure et le nom de la personne qui les a édités. La liste des caisses, les journées et le journal des opérations portent aussi la mention « République gabonaise — Union - Travail - Justice ». Les montants sont en francs CFA, au format 50 000.'),
+    astuce('Selon la version installée, l’impression s’ouvre en PDF ou dans une page à imprimer. Dans ce cas, cliquez sur **Imprimer / enregistrer en PDF**, puis choisissez une imprimante ou « Enregistrer au format PDF ».'),
     h2('2.3 Le tableau de bord'),
     p('Le tableau de bord résume l’activité des caisses sur la période choisie.'),
     ...figure('02_tableau_de_bord', 'Tableau de bord'),
@@ -198,7 +206,7 @@ const contenu = [
     pt('Compte comptable', 'compte de trésorerie utilisé comme contrepartie dans l’export Sage (ex. 571100).'),
     pt('Type de point de vente', '**Vente en détail** (comptoir classique), **Restaurant** ou **Bar** (plan de salle et commandes par table, voir chapitre 10).'),
     pt('Imprimer les bons de préparation', 'pour un restaurant ou un bar : impression automatique des bons envoyés en cuisine.'),
-    p('Les boutons de chaque ligne permettent d’ouvrir les **Journées** de la caisse, de la **Modifier** ou de la **Supprimer**. Une caisse qui a déjà des journées ne peut pas être supprimée.'),
+    p('Les boutons de chaque ligne permettent d’ouvrir les **Journées** de la caisse, de la **Modifier** ou de la **Supprimer**. Une caisse qui a déjà des journées ne peut pas être supprimée. Le bouton **Imprimer**, en haut de la liste, édite la liste des caisses (code, description, StCode, caissier par défaut, compte comptable).'),
     h2('3.2 Ouvrir une journée'),
     ...etapes([
         'Dans **Caisses**, cliquez sur **Journées** sur la ligne de la caisse.',
@@ -207,6 +215,7 @@ const contenu = [
         'Cliquez sur **Ouvrir la journée**.'
     ]),
     ...figure('11_journees_caisse', 'Journées d’une caisse'),
+    p('Dans la page des journées d’une caisse, le bouton **Imprimer les journées** édite la liste des journées avec, pour chacune, le solde initial, les encaissements, les décaissements, le solde et le statut, ainsi qu’une ligne de total. Les opérations rejetées ne sont pas comptées.'),
     ...figure('12_ouverture_journee', 'Ouverture d’une journée'),
     h2('3.3 Enregistrer un encaissement ou un décaissement'),
     p('Dans la page de la journée, cliquez sur **+ Encaissement** (entrée d’argent) ou sur **− Décaissement** (sortie d’argent). Renseignez :'),
@@ -222,7 +231,7 @@ const contenu = [
     h2('3.4 Valider ou rejeter les opérations'),
     p('Les utilisateurs habilités voient un bouton de validation sur chaque opération en attente. Ils choisissent **Validé** ou **Rejeté**, indiquent si le mouvement est justifié et peuvent ajouter une observation. Une opération rejetée n’est pas comptée dans le solde.'),
     ...figure('14_journee_details', 'Page d’une journée : soldes, totaux par mode de paiement et historique'),
-    p('La page de la journée affiche le solde initial, les encaissements, les décaissements, le solde théorique, les totaux par mode de paiement et l’historique des opérations. Le bouton **Imprimer les opérations** produit le journal de la journée.'),
+    p('La page de la journée affiche le solde initial, les encaissements, les décaissements, le solde théorique, les totaux par mode de paiement et l’historique des opérations. Le bouton **Imprimer les opérations** produit le journal de la journée : soldes, totaux par mode de paiement et détail des opérations (une opération rejetée y apparaît barrée et n’est pas comptée).'),
     h2('3.5 Clôturer une journée'),
     ...etapes([
         'Dans la page de la journée, cliquez sur **Clôturer**.',
@@ -250,7 +259,12 @@ const contenu = [
     h2('5.1 Rapport des opérations'),
     p('Menu **Rapports**. Choisissez la période, la caisse, le type d’opération (encaissement ou décaissement) et le statut, puis cliquez sur **Filtrer**.'),
     ...figure('16_rapport_operations', 'Rapport des opérations'),
-    p('Le bouton **Imprimer / PDF** ouvre un aperçu imprimable du rapport.'),
+    p('Sous la liste, le rapport donne :'),
+    pt('Total encaissements et Total décaissements', 'opérations de la période ; les opérations rejetées sont listées mais pas comptées.'),
+    pt('Solde de la période', 'encaissements moins décaissements.'),
+    pt('Montant initial des journées', 'fond de caisse de départ : le solde initial de la première journée de chaque caisse sur la période. Les journées suivantes repartent du solde de la veille, elles ne sont donc pas ajoutées une seconde fois.'),
+    pt('Solde en caisse', 'montant initial plus solde de la période.'),
+    p('Le bouton **Imprimer / PDF** ouvre un aperçu imprimable du rapport, avec les mêmes colonnes et les mêmes totaux.'),
     h2('5.2 Export vers Sage'),
     p('Le bouton **Export Sage** produit le fichier d’écritures à importer dans votre logiciel comptable, au format Excel (.xlsx), CSV (.csv) ou texte (.txt). Chaque ligne comporte le code caisse, la date, le compte général, le compte tiers, le libellé, le débit, le crédit et le numéro de pièce.'),
     attention('L’export signale les anomalies, par exemple une caisse sans compte comptable ou un tiers sans compte général. Complétez ces informations avant d’importer le fichier dans Sage.'),

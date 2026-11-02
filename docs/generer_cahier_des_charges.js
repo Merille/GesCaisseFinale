@@ -63,7 +63,7 @@ const fiche = [
         ['Projet', 'GesCaisse — gestion de caisse et point de vente (POS)'],
         ['Éditeur', 'M-ITECH AFRICA'],
         ['Versions', 'ASP.NET Core (.NET 10) / SQL Server — PHP 8 / MySQL'],
-        ['Version du document', '1.1'],
+        ['Version du document', '1.2'],
         ['Date', 'Novembre 2026'],
         ['Statut', 'Document de référence (fonctionnalités réalisées)']
     ], [3000, 6638])
@@ -101,7 +101,7 @@ const contenu = [
     // 1
     h1('1. Présentation du projet'),
     h2('1.1 Contexte'),
-    p("GesCaisse est une application web de gestion de caisse destinée aux entreprises d'Afrique centrale (montants en francs CFA). Elle couvre la tenue des journées de caisse (encaissements, décaissements, validation, clôture), la facturation, la vente au comptoir par écran tactile (point de vente), la gestion du stock et, depuis la dernière évolution, la restauration (salles, tables, cuisine et bar)."),
+    p("GesCaisse est une application web de gestion de caisse destinée aux entreprises d'Afrique centrale (montants en francs CFA). Elle couvre la tenue des journées de caisse (encaissements, décaissements, validation, clôture), la vente au comptoir par écran tactile (point de vente), la gestion du stock et, depuis la dernière évolution, la restauration (salles, tables, cuisine et bar)."),
     p("L'application est multi-sociétés : un même déploiement héberge plusieurs sociétés clientes, dont les données sont strictement cloisonnées. Un super-administrateur gère les sociétés et leurs licences."),
     h2('1.2 Objectifs'),
     puce('Fiabiliser la tenue de caisse : chaque mouvement est tracé, justifié, validé et rapproché à la clôture.'),
@@ -112,7 +112,7 @@ const contenu = [
     h2('1.3 Périmètre'),
     p('Le périmètre fonctionnel comprend les modules suivants :'),
     tableau(['Domaine', 'Modules'], [
-        ['Activité', 'Tableau de bord, caisses et journées, tiers (clients), factures'],
+        ['Activité', 'Tableau de bord, caisses et journées, tiers (clients)'],
         ['Analyse', "Rapports d'opérations, export Sage"],
         ['Point de vente', 'Vente, ventes (retours, annulations), écran cuisine / bar, rapports de ventes, stock'],
         ['Configuration', 'Catégories, produits (variantes, combos), combos'],
@@ -125,6 +125,7 @@ const contenu = [
     pt('Version .NET', 'ASP.NET Core MVC (.NET 10), Entity Framework Core, SQL Server — pour un hébergement Windows / IIS ou un serveur dédié.'),
     pt('Version PHP', 'PHP 8 sans framework, MySQL / MariaDB — pour un hébergement mutualisé (Hostinger).'),
     p("Les écrans du point de vente, de l'éditeur de plan de salle, de l'écran cuisine et de l'éditeur de combos partagent les mêmes fichiers JavaScript et CSS dans les deux versions."),
+    p("Les deux versions présentent les mêmes pages (titres, colonnes, boutons, messages), les mêmes listes, les mêmes impressions et les mêmes fichiers d'export (Sage, tiers, produits, ventes) : un utilisateur passe de l'une à l'autre sans différence visible."),
 
     // 2
     h1('2. Acteurs, profils et droits'),
@@ -141,9 +142,9 @@ const contenu = [
     h3('Licence de la société'),
     p("Chaque société a une date d'expiration de licence, prolongée par le super-administrateur (de 1 à 120 mois). À l'expiration, les utilisateurs de la société sont redirigés vers une page « compte suspendu »."),
     h3('Ma société (Paramètres)'),
-    p("L'administrateur modifie lui-même les coordonnées de sa société (adresse, ville, pays, e-mail, téléphone, NIF) et son logo, repris en en-tête des tickets, factures et impressions. Le nom, le code, la licence et les modules sont affichés en lecture seule : ils restent gérés par le super-administrateur."),
+    p("L'administrateur modifie lui-même les coordonnées de sa société (adresse, ville, pays, e-mail, téléphone, NIF) et son logo, repris en en-tête des tickets et des impressions. Le nom, le code, la licence et les modules sont affichés en lecture seule : ils restent gérés par le super-administrateur."),
     h3('Module Point de vente optionnel'),
-    p("À la création (ou en modification) d'une société, le super-administrateur choisit si elle dispose du module Point de vente. Sans ce module, la société n'a que la gestion de caisse (journées, opérations, tiers, factures, rapports) : les menus Point de vente, Configuration, Taxes et Unités de vente sont masqués et leurs pages refusées, même par leur adresse."),
+    p("À la création (ou en modification) d'une société, le super-administrateur choisit si elle dispose du module Point de vente. Sans ce module, la société n'a que la gestion de caisse (journées, opérations, tiers, rapports) : les menus Point de vente, Configuration, Taxes et Unités de vente sont masqués et leurs pages refusées, même par leur adresse."),
 
     // 3
     h1('3. Exigences fonctionnelles — gestion de caisse'),
@@ -161,17 +162,24 @@ const contenu = [
     pt('Opérations', 'encaissements et décaissements avec montant, libellé, client, motif, mode de paiement, justificatif.'),
     pt('Validation', 'les opérations saisies sont « En attente » puis validées ou rejetées par un utilisateur habilité ; les ventes du point de vente sont validées d\'office.'),
     pt('Clôture', 'comptage du montant réel par mode de paiement, calcul de l\'écart avec le théorique, note de clôture. Refusée tant qu\'une table de restaurant a une commande en cours.'),
-    pt('Impressions', 'journal des opérations et liste des journées.'),
+    pt('Impressions', 'journal des opérations de la journée (totaux, totaux par mode de paiement, détail) et liste des journées de la caisse avec leur total ; les opérations rejetées sont exclues des montants.'),
     h2('3.4 Tiers (clients)'),
     puce('Fiche client (code, raison sociale, coordonnées), recherche et pagination.'),
     puce('Import et export Excel.'),
-    h2('3.5 Factures'),
+    h2('3.5 Factures (module masqué)'),
+    p("Le module de facturation n'apparaît plus dans le menu, dans les deux versions. Ses pages restent en place, accessibles par leur adresse ou depuis le détail d'une vente :"),
     puce('Création en brouillon, ajout et suppression de lignes, recalcul automatique HT / TVA / TTC.'),
-    puce('Validation de la facture, puis impression.'),
+    puce('Validation de la facture (refusée tant qu\'elle n\'a aucune ligne), puis impression ; une facture validée ne peut plus être modifiée.'),
     puce('Création d\'une facture à partir d\'une vente du point de vente.'),
     h2('3.6 Rapports et export comptable'),
     puce("Rapport des opérations filtré (période, caisse, type, statut), aperçu imprimable."),
-    puce('Export Sage (Excel ou CSV) : code caisse, date, compte général, compte tiers, libellé, débit, crédit, numéro de pièce ; liste des anomalies (comptes manquants).'),
+    puce("Totaux du rapport : encaissements, décaissements, solde de la période, montant initial des journées et solde en caisse. Le montant initial est le fond de départ de la première journée de chaque caisse sur la période (les journées suivantes repartent du solde de la veille)."),
+    puce('Export Sage (Excel, CSV ou texte) : code caisse, date, compte général, compte tiers, libellé, débit, crédit, numéro de pièce ; liste des anomalies (comptes manquants).'),
+    h2('3.7 Impressions'),
+    puce("Mise en page commune à toutes les impressions : logo et coordonnées de la société à gauche ; à droite, la date et l'heure d'édition et le nom de l'utilisateur (« Édité le … par … »)."),
+    puce("En-tête officiel « RÉPUBLIQUE GABONAISE — Union - Travail - Justice » sur la liste des journées, le journal des opérations, la liste des caisses et la facture."),
+    puce('Montants en francs CFA sans décimales, avec un espace comme séparateur de milliers (ex. 50 000).'),
+    puce("Version .NET : documents PDF ; version PHP : pages imprimables, enregistrables en PDF depuis le navigateur. Le contenu est le même."),
 
     // 4
     h1('4. Exigences fonctionnelles — point de vente'),
@@ -189,7 +197,7 @@ const contenu = [
     puce('Ticket 80 mm : logo et coordonnées de la société, lignes, remises, taxes, règlements, monnaie rendue.'),
     puce('Option de la société : interdire la vente quand le stock est épuisé.'),
     h2('4.3 Ventes'),
-    puce('Liste filtrée et paginée, détail d\'une vente (lignes, taxes, règlements, retours).'),
+    puce('Liste filtrée, avec recherche et pagination, détail d\'une vente (lignes, taxes, règlements, retours).'),
     puce('Retour partiel ou total : remboursement au prix réellement payé, remise en stock.'),
     puce("Annulation d'une vente de la journée en cours : encaissements rejetés, stock rétabli."),
     h2('4.4 Catalogue'),
@@ -269,9 +277,10 @@ const contenu = [
     // 8
     h1('8. Exigences non fonctionnelles'),
     h2('8.1 Ergonomie'),
-    puce('Interface en français, menu latéral repliable (Activité, Analyse, Point de vente, Configuration, Administration).'),
+    puce('Interface en français (montants au format 50 000), menu latéral repliable (Activité, Analyse, Point de vente, Configuration, Administration).'),
     puce('Barre du haut fixe avec le fil d\'Ariane, la société consultée, l\'utilisateur connecté et la déconnexion.'),
-    puce('En-têtes de tableaux bleus, affichage en liste ou en cartes pour les produits et les catégories, pagination.'),
+    puce('En-têtes de tableaux bleus, affichage en liste ou en cartes pour les produits et les catégories.'),
+    puce('Listes identiques dans les deux versions : recherche instantanée, tri par colonne, choix du nombre de lignes affichées (« Afficher … entrées ») et pagination.'),
     puce('Saisies courtes (nouvel élément, combo) dans des fenêtres modales, sans quitter la liste.'),
     puce('Écrans du point de vente et de la cuisine conçus pour tablettes et écrans tactiles.'),
     h2('8.2 Sécurité'),
@@ -298,7 +307,7 @@ const contenu = [
         ['Base de données', 'SQL Server, Entity Framework Core', 'MySQL 8 / MariaDB, PDO'],
         ['Migrations', 'Migrations EF Core appliquées au démarrage', 'Fichiers sql/migrations/*.sql appliqués une fois (table MigrationsAppliquees)'],
         ['PDF / Excel', 'Rotativa (wkhtmltopdf), ClosedXML', 'Pages imprimables, génération XLSX intégrée'],
-        ['Interface', 'Bootstrap 5, Font Awesome, Chart.js, DataTables', 'Bootstrap 5, Font Awesome, Chart.js'],
+        ['Interface', 'Bootstrap 5, Font Awesome, Chart.js, DataTables', 'Bootstrap 5, Font Awesome, Chart.js, DataTables'],
         ['Hébergement', 'Windows / IIS ou serveur Linux', 'Hébergement mutualisé (Hostinger)']
     ], [2100, 3769, 3769]),
     espace(),
