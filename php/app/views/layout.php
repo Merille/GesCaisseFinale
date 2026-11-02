@@ -95,7 +95,7 @@ $badge = $nbJourneesOuvertes > 0
             <?= $lien('dashboard/index', 'dashboard', 'fa-house', 'Tableau de bord') ?>
             <?= $lien('caisse/index', 'caisse|journee', 'fa-cash-register', 'Caisses', $badge) ?>
             <?= $lien('client/index', 'client', 'fa-address-book', 'Tiers') ?>
-            <?= $lien('facture/index', 'facture', 'fa-file-invoice', 'Factures') ?>
+            <?php // Factures : module masqué, comme dans la version .NET (pages toujours accessibles). ?>
         </div>
         <div class="sb-section">
             <div class="sb-section-title">Analyse</div>

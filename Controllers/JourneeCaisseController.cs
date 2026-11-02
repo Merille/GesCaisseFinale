@@ -98,11 +98,16 @@ namespace EasytransitCaisse.Controllers
                 .Where(c => c.JourneeCaisseId == id)
                 .ToList();
 
+            ViewBag.Caisse = _context.Caisses.FirstOrDefault(c => c.ID == journee.CaisseId);
             ViewBag.Operations = _context.OperationsCaisses
                 .Where(x => x.JourneeCaisseId == id)
-                .OrderByDescending(x => x.DateOperation)
+                .OrderByDescending(x => x.DateOperation).ThenByDescending(x => x.Id)
                 .Select(x => new {
                             x.Id,
+                            x.Valideur,
+                            Tiers = x.ClientId != null
+                    ? _context.Clients.Where(c => c.Id == x.ClientId).Select(c => c.NomSociete).FirstOrDefault()
+                    : null,
                             x.DateOperation,
                             x.TypeOperation,
                             x.Montant,
@@ -144,6 +149,23 @@ namespace EasytransitCaisse.Controllers
             var utilisateurId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
             var montantMontant = MontantHelper.Parse(montant);
 
+            // Mêmes contrôles que la version PHP : journée ouverte et montant positif.
+            var journeeOp = _context.JourneesCaisses.FirstOrDefault(j => j.Id == journeeId);
+            if (journeeOp == null)
+                return NotFound();
+            if (journeeOp.Statut == "Cloturee")
+            {
+                TempData["Error"] = "Cette journée est clôturée. Aucune opération autorisée.";
+                return RedirectToAction("Details", new { id = journeeId });
+            }
+            if (montantMontant <= 0)
+            {
+                TempData["Error"] = "Le montant doit être supérieur à zéro.";
+                return RedirectToAction("Details", new { id = journeeId });
+            }
+            typeOperation = typeOperation == "Décaissement" ? "Décaissement" : "Encaissement";
+            var statutsPermis = new[] { "En attente", "Validé", "Rejeté" };
+
             // Droit vérifié côté serveur (pas seulement désactivé côté formulaire) :
             // sans le droit, le statut posté est ignoré et reste "En attente".
             var peutValider = bool.TryParse(
@@ -155,22 +177,25 @@ namespace EasytransitCaisse.Controllers
                 DateOperation = DateTime.Now,
                 TypeOperation = typeOperation,
                 Montant = montantMontant,
-                Libelle = libelle,
+                Libelle = libelle ?? "",
                 ClientId = clientId,
                 MotifId = motifId,
                 ModePaiementId = modePaiementId,
                 UtilisateurId = utilisateurId,
                 EstJustifie = estJustifie,
-                StatutValidation = peutValider && !string.IsNullOrWhiteSpace(statutValidation)
+                StatutValidation = peutValider && statutsPermis.Contains(statutValidation)
                     ? statutValidation
                     : "En attente",
-                Valideur = valideur,
-                Observation = observation
+                Observation = string.IsNullOrWhiteSpace(observation) ? null : observation
             };
+            // Valideur : l'utilisateur connecté, seulement si l'opération est validée ou rejetée d'emblée.
+            if (operation.StatutValidation != "En attente")
+                operation.Valideur = User.FindFirst(AppClaimTypes.NomComplet)?.Value;
 
             _context.OperationsCaisses.Add(operation);
 
             _context.SaveChanges();
+            TempData["Success"] = typeOperation + " enregistré.";
 
             return RedirectToAction(
                 "Details",
@@ -192,7 +217,7 @@ namespace EasytransitCaisse.Controllers
 
             if (!peutValider)
             {
-                TempData["Erreur"] =
+                TempData["Error"] =
                     "Vous n'avez pas le droit de valider/rejeter les opérations de caisse.";
 
                 return RedirectToAction("Details", new { id = journeeId });
@@ -250,6 +275,7 @@ namespace EasytransitCaisse.Controllers
         public IActionResult Create(int id)
         {
             ViewBag.CaisseId = id;
+            ViewBag.Caisse = _context.Caisses.FirstOrDefault(c => c.ID == id);
             ViewBag.SoldeInitialSuggere = GetSoldeInitialSuggere(id);
 
             return View();
@@ -277,10 +303,11 @@ namespace EasytransitCaisse.Controllers
 
             if (existe)
             {
-                TempData["Erreur"] =
+                TempData["Error"] =
                     "Cette journée existe déjà.";
 
                 ViewBag.CaisseId = caisseId;
+                ViewBag.Caisse = caisse;
                 ViewBag.SoldeInitialSuggere = GetSoldeInitialSuggere(caisseId);
 
                 return View();
@@ -361,6 +388,7 @@ namespace EasytransitCaisse.Controllers
             journee.NoteCloture = noteCloture;
 
             _context.SaveChanges();
+            TempData["Success"] = "Journée clôturée.";
 
             return RedirectToAction("Details", new { id });
         }
@@ -377,7 +405,7 @@ namespace EasytransitCaisse.Controllers
             // empêcher suppression si clôturée
             if (journee.Statut == "Cloturee")
             {
-                TempData["Erreur"] =
+                TempData["Error"] =
                     "Impossible de supprimer une journée clôturée.";
 
                 return RedirectToAction("Details", new { id });
@@ -385,6 +413,7 @@ namespace EasytransitCaisse.Controllers
 
             _context.JourneesCaisses.Remove(journee);
             _context.SaveChanges();
+            TempData["Success"] = "Journée supprimée.";
 
             return RedirectToAction("Details", "Caisse", new { id = journee.CaisseId });
         }

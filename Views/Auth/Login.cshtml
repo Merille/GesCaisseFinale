@@ -1,165 +1,103 @@
-﻿@model EasytransitCaisse.Models.LoginViewModel
+@model EasytransitCaisse.Models.LoginViewModel
 @{
     Layout = null;
 }
-
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
-    <meta charset="utf-8" />
-    <title>Connexion</title>
-
+    <meta charset="utf-8">
+    <title>Connexion - GesCaisse</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
-            body {
-                margin: 0;
-                font-family: Arial;
-                min-height: 100vh;
-                /* Image de fond */
-                /* Illustration : caisse, billets FCFA, tableau de bord, mobile money */
-                background-color: #0b2f44;
-                background-image: url('/Images/login-caisse.svg');
-                background-size: cover;
-                background-position: center;
-                background-repeat: no-repeat;
-            }
-
-                /* Léger voile pour faire ressortir le formulaire */
-                body::before {
-                    content: '';
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    width: 100%;
-                    height: 100%;
-                    background: rgba(11, 47, 68, 0.25);
-                    z-index: 0;
-                }
-
-            .container {
-                height: 100vh;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                position: relative;
-                z-index: 1;
-            }
-
-            .login-box {
-                width: 380px;
-                background: rgba(25, 93, 132, 0.92); /* bleu du logo M-ITECH AFRICA */
-                padding: 40px;
-                border-radius: 12px;
-                border: 1px solid rgba(255, 255, 255, 0.25);
-                box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
-                backdrop-filter: blur(4px);
-            }
-
-            h2 {
-                text-align: center;
-                margin-bottom: 25px;
-                color: white;
-                /* color: #1a1a2e; */
-                font-size: 30px;
-                letter-spacing: 1px;
-            }
-
-            .form-group {
-                margin-bottom: 18px;
-            }
-
-            label {
-                display: block;
-                margin-bottom: 6px;
-                color: white;
-                /* color: #333; */
-                font-size: 14px;
-            }
-
-            input {
-                width: 100%;
-                padding: 11px;
-                border: 1px solid #ddd;
-                border-radius: 6px;
-                box-sizing: border-box;
-                font-size: 14px;
-                transition: border-color 0.2s;
-            }
-
-                input:focus {
-                    outline: none;
-                    border-color: #999997;
-                    box-shadow: 0 0 0 3px rgba(153, 153, 151, 0.35);
-                }
-
-            button {
-                width: 100%;
-                padding: 12px;
-                border: none;
-                background: #0b2f44;
-                /* background: #0d6efd; */
-                color: white;
-                border-radius: 6px;
-                cursor: pointer;
-                font-size: 15px;
-                margin-top: 5px;
-                transition: background 0.2s;
-            }
-
-                button:hover {
-                    background: #12445f;
-                }
-
-            .error-msg {
-                background: #fff3f3;
-                color: #dc3545;
-                border: 1px solid #f5c6cb;
-                border-radius: 6px;
-                padding: 10px;
-                margin-bottom: 15px;
-                font-size: 14px;
-            }
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            min-height: 100vh;
+            background: #0b2f44 url('/Images/login-caisse.svg') center / cover no-repeat;
+        }
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: rgba(11, 47, 68, .25);
+        }
+        .container {
+            position: relative;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
+            box-sizing: border-box;
+        }
+        .login-box {
+            width: 100%;
+            max-width: 380px;
+            background: rgba(25, 93, 132, .92); /* bleu du logo M-ITECH AFRICA */
+            padding: 40px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, .25);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, .45);
+            backdrop-filter: blur(4px);
+            box-sizing: border-box;
+        }
+        h1 { text-align: center; margin: 0 0 25px; color: #fff; font-size: 28px; letter-spacing: 1px; }
+        .form-group { margin-bottom: 18px; }
+        label { display: block; margin-bottom: 6px; color: #fff; font-size: 14px; }
+        input {
+            width: 100%;
+            padding: 11px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+        input:focus { outline: none; border-color: #999997; box-shadow: 0 0 0 3px rgba(153, 153, 151, .35); }
+        button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            background: #0b2f44;
+            color: #fff;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 15px;
+            margin-top: 5px;
+        }
+        button:hover { background: #12445f; }
+        .error-msg {
+            background: #fff3f3;
+            color: #b02a37;
+            border: 1px solid #f5c6cb;
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
     </style>
-
 </head>
-
 <body>
-
-    <div class="container">
-
-        <div class="login-box">
-
-            <h2>GESTION CAISSE</h2>
-
-            <form method="post">
-
-                @if (ViewBag.Error != null)
-                {
-                    <div style="color:red;margin-bottom:10px;">
-                        @ViewBag.Error
-                    </div>
-                }
-
-                <div class="form-group">
-                    <label>Utilisateur</label>
-
-                    <input asp-for="Username" />
-                </div>
-
-                <div class="form-group">
-                    <label>Mot de passe</label>
-
-                    <input asp-for="Password" type="password" />
-                </div>
-
-                <button type="submit">
-                    Se connecter
-                </button>
-
-            </form>
-
-        </div>
-
+<div class="container">
+    <div class="login-box">
+        <h1>GESCAISSE</h1>
+        <form method="post" action="/Auth/Login">
+            @Html.AntiForgeryToken()
+            @if (ViewBag.Error != null)
+            {
+                <div class="error-msg">@ViewBag.Error</div>
+            }
+            <div class="form-group">
+                <label for="username">Utilisateur</label>
+                <input id="username" name="Username" autocomplete="username" required autofocus
+                       value="@Model?.Username">
+            </div>
+            <div class="form-group">
+                <label for="password">Mot de passe</label>
+                <input id="password" name="Password" type="password" autocomplete="current-password" required>
+            </div>
+            <button type="submit">Se connecter</button>
+        </form>
     </div>
-
+</div>
 </body>
 </html>

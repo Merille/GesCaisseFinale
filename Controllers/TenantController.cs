@@ -36,9 +36,10 @@ namespace EasytransitCaisse.Controllers
             var image = Images.Lire(logo, out var erreurImage);
             var erreur = ErreurCoordonnees(tenant) ?? erreurImage;
             if (erreur != null)
-                ModelState.AddModelError("", erreur);
-            if (!ModelState.IsValid)
+            {
+                TempData["Error"] = erreur;
                 return View(tenant);
+            }
 
             NettoyerCoordonnees(tenant);
             _context.Tenants.Add(tenant);
@@ -47,6 +48,7 @@ namespace EasytransitCaisse.Controllers
             _context.AjouterUnitesInitiales(tenant.Id);
             _context.EnregistrerLogo(tenant, image, false);
             _context.SaveChanges();
+            TempData["Success"] = "Société créée.";
 
             return RedirectToAction(nameof(Index));
         }
@@ -94,7 +96,7 @@ namespace EasytransitCaisse.Controllers
             var erreur = ErreurCoordonnees(tenant) ?? erreurImage;
             if (erreur != null)
             {
-                ModelState.AddModelError("", erreur);
+                TempData["Error"] = erreur;
                 tenant.LogoMaj = existing.LogoMaj;
                 return View(tenant);
             }
@@ -115,6 +117,7 @@ namespace EasytransitCaisse.Controllers
             _context.EnregistrerLogo(existing, image, supprimerLogo);
 
             _context.SaveChanges();
+            TempData["Success"] = "Société modifiée.";
 
             return RedirectToAction(nameof(Index));
         }
@@ -135,9 +138,10 @@ namespace EasytransitCaisse.Controllers
                 ? tenant.DateExpiration.Value
                 : DateTime.Today;
 
-            tenant.DateExpiration = depart.AddMonths(mois);
+            tenant.DateExpiration = depart.AddMonths(Math.Clamp(mois, 1, 120));
 
             _context.SaveChanges();
+            TempData["Success"] = $"Licence de « {tenant.Nom} » prolongée.";
 
             return RedirectToAction(nameof(Index));
         }

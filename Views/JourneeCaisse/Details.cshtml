@@ -1,937 +1,387 @@
-﻿@model EasytransitCaisse.Models.JourneeCaisse
+@model EasytransitCaisse.Models.JourneeCaisse
 @using EasytransitCaisse.Services
 @{
-    ViewData["Title"] = "Journées de caisse";
+    ViewData["Title"] = "Journée de caisse";
+    var ouverte = Model.Statut == "Ouverte";
+    var caisse = ViewBag.Caisse as EasytransitCaisse.Models.Caisse;
+    var peutValider = (bool)ViewBag.PeutValider;
     var nomValideur = User.FindFirst(AppClaimTypes.NomComplet)?.Value;
-    var peutValider = (bool)(ViewBag.PeutValider ?? false);
+    var totaux = (List<EasytransitCaisse.Models.ViewModels.TotalModePaiementVM>)ViewBag.TotauxParModePaiement;
+    var comptages = (List<EasytransitCaisse.Models.ComptageCloture>)ViewBag.ComptagesCloture;
+    var inv = System.Globalization.CultureInfo.InvariantCulture;
+    var cartes = new (string Libelle, decimal Valeur, string Classe)[] {
+        ("Initial", Model.SoldeInitial, "border-primary"), ("Encaissements", (decimal)ViewBag.TotalEncaisse, "border-success"),
+        ("Décaissements", (decimal)ViewBag.TotalDecaisse, "border-danger"), ("Solde actuel", (decimal)ViewBag.SoldeActuel, "border-dark") };
+    var statuts = new[] { "En attente", "Validé", "Rejeté" };
 }
-<div class="container mt-4">
-
-    <div class="d-flex justify-content-between mb-3">
-
-        <h4>
-            Journée @Model.NumeroJournee
-        </h4>
-        <br />
-        <div>
-
-            @if (Model.Statut == "Ouverte")
-            {
-                <a href="/Pos/Index?journee=@Model.Id" class="btn btn-success">
-                    <i class="fas fa-store"></i> Ouvrir le POS
-                </a>
-                <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#modalCloture">
-                    Clôturer
-                </button>
-            }
-
-            <form method="post"
-                  asp-action="Supprimer"
-                  style="display:inline;">
-                <input type="hidden" name="id" value="@Model.Id" />
-                <button class="btn btn-danger"
-                        onclick="return confirm('Supprimer cette journée ?')">
-                    Supprimer
-                </button>
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <h4 class="mb-0">Journée @Model.NumeroJournee <small class="text-muted fs-6">— @caisse?.ChkCode · @caisse?.ChkDescription, @Model.DateJournee.ToString("dd/MM/yyyy")</small></h4>
+    <div class="d-flex flex-wrap gap-2">
+        @if (ouverte)
+        {
+            <a href="/Pos/Index?journee=@Model.Id" class="btn btn-primary"><i class="fas fa-store"></i> Ouvrir le POS</a>
+            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalEncaissement">+ Encaissement</button>
+            <button class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#modalDecaissement">− Décaissement</button>
+            <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#modalCloture">Clôturer</button>
+            <form method="post" asp-action="Supprimer" asp-route-id="@Model.Id" onsubmit="return confirm('Supprimer cette journée et toutes ses opérations ?');">
+                <button class="btn btn-danger">Supprimer</button>
             </form>
-
-            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalOperation">
-                + Encaissement
-            </button>
-
-            <button class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#modalDecaissement">
-                - Décaissement
-            </button>
-
-            <a href="/Caisse/Index"
-               class="btn btn-dark">
-                Retour
-            </a>
-
-        </div>
-
-    </div>
-
-    <div class="card shadow-lg">
-
-        <div class="card-header bg-brand text-white">
-
-            <h4>
-                Journée @Model.NumeroJournee
-            </h4>
-
-        </div>
-
-        <div class="card-body">
-
-            <div class="row">
-
-                <div class="col-md-3">
-
-                    <div class="card border-primary">
-                        <div class="card-body text-center">
-                            <h6>Initial</h6>
-                            <h3>@Model.SoldeInitial.ToString("N0")</h3>
-                        </div>
-                    </div>
-
-                </div>
-
-                <div class="col-md-3">
-
-                    <div class="card border-success">
-                        <div class="card-body text-center">
-                            <h6>Encaissements</h6>
-                            <h3>@ViewBag.TotalEncaisse.ToString("N0")</h3>
-                        </div>
-                    </div>
-
-                </div>
-
-                <div class="col-md-3">
-
-                    <div class="card border-danger">
-                        <div class="card-body text-center">
-                            <h6>Décaissements</h6>
-                            <h3>@ViewBag.TotalDecaisse.ToString("N0")</h3>
-                        </div>
-                    </div>
-
-                </div>
-
-                <div class="col-md-3">
-
-                    <div class="card border-dark">
-                        <div class="card-body text-center">
-                            <h6>Solde Actuel</h6>
-                            <h3>@ViewBag.SoldeActuel.ToString("N0")</h3>
-                        </div>
-                    </div>
-
-                </div>
-
-            </div>
-
-        </div>
-
-    </div>
-
-    @if (Model.Statut == "Cloturee")
-    {
-        <div class="card shadow-lg mt-4">
-
-            <div class="card-header bg-secondary text-white">
-                Résultat de la clôture
-            </div>
-
-            <div class="card-body">
-                <div class="row mb-3">
-                    <div class="col-md-4">
-                        <strong>Solde final compté :</strong> @Model.SoldeFinal.ToString("N0")
-                    </div>
-                    <div class="col-md-4">
-                        <strong>Écart (compté - théorique) :</strong>
-                        <span class="@(Model.EcartCloture == 0 ? "text-success" : "text-danger fw-bold")">
-                            @(Model.EcartCloture ?? 0).ToString("N0")
-                        </span>
-                    </div>
-                    <div class="col-md-4">
-                        <strong>Clôturée le :</strong> @Model.DateFermeture?.ToString("dd/MM/yyyy HH:mm")
-                    </div>
-                </div>
-
-                @if (!string.IsNullOrWhiteSpace(Model.NoteCloture))
-                {
-                    <p><strong>Note :</strong> @Model.NoteCloture</p>
-                }
-
-                <table class="table table-sm table-bordered mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Mode de paiement</th>
-                            <th class="text-end">Théorique</th>
-                            <th class="text-end">Compté</th>
-                            <th class="text-end">Écart</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var c in ViewBag.ComptagesCloture)
-                        {
-                            <tr>
-                                <td>@(c.ModePaiement?.Libelle ?? "Non renseigné")</td>
-                                <td class="text-end">@c.MontantTheorique.ToString("N0")</td>
-                                <td class="text-end">@c.MontantCompte.ToString("N0")</td>
-                                <td class="text-end @(c.Ecart == 0 ? "text-success" : "text-danger")">
-                                    @c.Ecart.ToString("N0")
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-
-        </div>
-    }
-
-    <div class="card shadow-lg mt-4">
-
-        <div class="card-header bg-dark text-white">
-            Totaux par mode de paiement
-        </div>
-
-        <div class="card-body p-0">
-            <table class="table table-bordered mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th>Mode de paiement</th>
-                        <th class="text-end">Encaissements</th>
-                        <th class="text-end">Décaissements</th>
-                        <th class="text-end">Net</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var t in ViewBag.TotauxParModePaiement)
-                    {
-                        <tr>
-                            <td>@t.Libelle</td>
-                            <td class="text-end text-success">@t.Encaisse.ToString("N0")</td>
-                            <td class="text-end text-danger">@t.Decaisse.ToString("N0")</td>
-                            <td class="text-end fw-bold">@t.Net.ToString("N0")</td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
-
-    </div>
-
-    <div class="card shadow-lg mt-4">
-        @if (Model.Statut == "Cloturee")
-        {
-            <div class="alert alert-danger">
-                Cette journée est clôturée. Aucune opération possible.
-            </div>
         }
-        else
-        {
-            <!-- formulaire normal -->
-            <div class="card-header bg-success text-white" hidden="">
-                Nouvelle opération
-            </div>
-
-            <div class="card-body" hidden="">
-
-                <form method="post"
-                      asp-action="AjouterOperation">
-
-                    <input type="hidden"
-                           name="journeeId"
-                           value="@Model.Id" />
-
-                    <div class="row">
-
-                        <div class="col-md-2">
-                            <label>Type</label>
-
-                            <select name="typeOperation"
-                                    class="form-select">
-
-                                <option value="Encaissement">
-                                    Encaissement
-                                </option>
-
-                                <option value="Décaissement">
-                                    Décaissement
-                                </option>
-
-                            </select>
-                        </div>
-
-                        <div class="col-md-2">
-                            <label>Client</label>
-
-                            <select name="clientId"
-                                    class="form-select">
-
-                                <option value="">
-                                    Aucun
-                                </option>
-
-                                @foreach (var c in ViewBag.Clients)
-                                {
-                                    <option value="@c.Id">
-                                        @c.NomSociete
-                                    </option>
-                                }
-
-                            </select>
-                        </div>
-
-                        <div class="col-md-2">
-                            <label>Montant</label>
-
-                            <input name="montant"
-                                   type="number"
-                                   step="1"
-                                   class="form-control" />
-                        </div>
-
-                        <div class="col-md-3">
-                            <label>Motif</label>
-                            <select name="motifId" class="form-select">
-                                <option value="">-- Choisir un motif --</option>
-                                @foreach (var m in ViewBag.Motifs)
-                                {
-                                    <option value="@m.ID">@m.LibelleMotif</option>
-                                }
-                            </select>
-                        </div>
-
-                        <div class="col-md-3">
-                            <label>Description</label>
-
-                            <input name="libelle"
-                                   class="form-control" />
-                        </div>
-
-                    </div>
-
-                    <div class="text-end mt-3">
-
-                        <button class="btn btn-success">
-                            Enregistrer
-                        </button>
-
-                    </div>
-
-                </form>
-
-            </div>
-        }
+        <a href="/Caisse/Details/@Model.CaisseId" class="btn btn-dark">Retour</a>
     </div>
+</div>
 
-    <div class="card shadow-lg mt-4"> 
-
-        <div class="card-header bg-primary text-white">
-            Historique des opérations
-        </div>
-
-        <div class="card-body p-2">
-            <br />
-            <a href="/JourneeCaisse/PrintOperations?journeeId=@Model.Id"
-               class="btn bg-primary text-white ">
-                Imprimer opérations
-            </a>
-  
-            <table id="operationsTable" class="table table-hover mb-0">
-
-                <thead>
-
-                    <tr>
-                        <th>Date</th>
-                        <th>Motif</th>
-                        <th>Description</th>
-                        <th>Mode de paiement</th>
-                        <th>Montant</th>
-                        <th>Type</th>
-                        <th>Statut</th>
-                        @if (peutValider)
-                        {
-                            <th>Actions</th>
-                        }
-                    </tr>
-
-                </thead>
-
-                <tbody>
-
-                    @foreach (var op in ViewBag.Operations)
-                    {
-                        <tr>
-
-                            <td data-order="@op.DateOperation.ToString("yyyy-MM-ddTHH:mm:ss")">
-                                @op.DateOperation.ToString("dd/MM/yyyy HH:mm")
-                            </td>
-
-                            <td>
-                                @op.MotifLibelle
-                            </td>
-
-                            <td>
-                                @op.Libelle
-                            </td>
-
-                            <td>
-                                @op.ModePaiementLibelle
-                            </td>
-
-                            <td>
-                                @if (op.StatutValidation == "Rejeté")
-                        {
-                            <s class="text-muted" title="Opération rejetée : exclue des totaux">@op.Montant.ToString("N0")</s> <small class="text-muted">(rejetée)</small>
-                        }
-                        else
-                        {
-                            @op.Montant.ToString("N0")
-                        }
-                            </td>
-
-                            <td>
-
-                                @if (op.TypeOperation == "Encaissement")
-                                {
-                                    <span class="badge bg-success">
-                                        Encaissement
-                                    </span>
-                                }
-                                else
-                                {
-                                    <span class="badge bg-danger">
-                                        Décaissement
-                                    </span>
-                                }
-
-                            </td>
-
-                            <td>
-                                @if (op.StatutValidation == "Validé")
-                                {
-                                    <span class="badge bg-success">Validé</span>
-                                }
-                                else if (op.StatutValidation == "Rejeté")
-                                {
-                                    <span class="badge bg-danger">Rejeté</span>
-                                }
-                                else
-                                {
-                                    <span class="badge bg-secondary">En attente</span>
-                                }
-                                @if (op.EstJustifie)
-                                {
-                                    <span class="badge bg-info text-dark">Justifié</span>
-                                }
-                            </td>
-
-                            @if (peutValider)
-                            {
-                                <td>
-                                    <button type="button" class="btn btn-outline-primary btn-sm"
-                                            data-id="@op.Id"
-                                            data-justifie="@(op.EstJustifie ? "true" : "false")"
-                                            data-statut="@op.StatutValidation"
-                                            data-observation="@op.Observation"
-                                            onclick="ouvrirEditValidation(this)">
-                                        Modifier
-                                    </button>
-                                </td>
-                            }
-
-                        </tr>
-                    }
-
-                </tbody>
-
-            </table>
-
-        </div>
-
-    </div>
-
-    <!-- MODAL OPERATION D'ENCAISSEMENT -->
-    <div class="modal fade" id="modalOperation" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header bg-brand text-white">
-                    <h5 class="modal-title">Nouvelle Opération d'encaissement</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-
-                <form method="post" asp-action="AjouterOperation">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="journeeId" value="@Model.Id" />
-
-                    <div class="modal-body">
-                        <div class="row">
-
-                            <div class="col-md-6 mb-3" hidden="">
-                                <label class="form-label">Type</label>
-                                <input name="typeOperation" class="form-control"
-                                       placeholder="Description de l'opération" value="Encaissement" />
-                                @* <select name="typeOperation" class="form-select">
-                                    <option value="Encaissement">Encaissement</option>
-                                    <option value="Décaissement">Décaissement</option>
-                                </select> *@
-                            </div>
-
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Tiers</label>
-                                <select name="clientId" class="form-select">
-                                    <option value="">Aucun</option>
-                                    @foreach (var c in ViewBag.Clients)
-                                    {
-                                        <option value="@c.Id">@c.NomSociete</option>
-                                    }
-                                </select>
-                            </div>
-
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Montant</label>
-                                <input name="montant" type="number" step="1"
-                                       class="form-control" placeholder="0" />
-                            </div>
-
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Motif</label>
-                                <select name="motifId" class="form-select">
-                                    <option value="">-- Choisir un motif --</option>
-                                    @foreach (var m in ViewBag.Motifs)
-                                    {
-                                        <option value="@m.ID">@m.LibelleMotif</option>
-                                    }
-                                </select>
-                            </div>
-
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Description</label>
-                                <input name="libelle" class="form-control"
-                                       placeholder="Description de l'opération" />
-                            </div>
-
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Mode de paiement</label>
-                                <select name="modePaiementId" class="form-select">
-                                    <option value="">-- Choisir un mode de paiement --</option>
-                                    @foreach (var mp in ViewBag.ModesPaiement)
-                                    {
-                                        <option value="@mp.Id">@mp.Libelle</option>
-                                    }
-                                </select>
-                            </div>
-
-                        </div>
-
-                        <div class="card mt-2">
-                            <div class="card-header bg-light">Validations</div>
-                            <div class="card-body">
-
-                                <div class="form-check mb-3">
-                                    <input class="form-check-input" type="checkbox" value="true"
-                                           name="estJustifie" id="estJustifieEnc">
-                                    <label class="form-check-label" for="estJustifieEnc">
-                                        Ce mouvement a été justifié
-                                    </label>
-                                </div>
-
-                                <div class="d-flex gap-4 mb-3">
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="statutValidation"
-                                               id="statutAttenteEnc" value="En attente" checked>
-                                        <label class="form-check-label" for="statutAttenteEnc">En attente</label>
-                                    </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="statutValidation"
-                                               id="statutValideEnc" value="Validé" disabled="@(!peutValider)">
-                                        <label class="form-check-label" for="statutValideEnc">Validé</label>
-                                    </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="statutValidation"
-                                               id="statutRejeteEnc" value="Rejeté" disabled="@(!peutValider)">
-                                        <label class="form-check-label" for="statutRejeteEnc">Rejeté</label>
-                                    </div>
-                                </div>
-
-                                @if (!peutValider)
-                                {
-                                    <p class="text-muted small">
-                                        <i class="fas fa-lock"></i>
-                                        Seuls les utilisateurs ayant le droit "Peut valider / rejeter les opérations
-                                        de caisse" peuvent changer ce statut.
-                                    </p>
-                                }
-
-                                <div class="mb-3">
-                                    <label class="form-label">Valideur</label>
-                                    <input type="text" class="form-control" value="@nomValideur" readonly>
-                                    <input type="hidden" name="valideur" value="@nomValideur">
-                                </div>
-
-                                <div class="mb-0">
-                                    <label class="form-label">Obs.</label>
-                                    <textarea name="observation" class="form-control" rows="3"></textarea>
-                                </div>
-
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-outline-secondary"
-                                data-bs-dismiss="modal">
-                            Annuler
-                        </button>
-                        <button type="submit" class="btn btn-success">Enregistrer</button>
-                    </div>
-
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL OPERATION DE DÉCAISSEMENT -->
-    <div class="modal fade" id="modalDecaissement" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header bg-brand text-white">
-                    <h5 class="modal-title">Nouvelle Opération de décaissement</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-
-                <form method="post" asp-action="AjouterOperation">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="journeeId" value="@Model.Id" />
-                    <input type="hidden" name="typeOperation" value="Décaissement" />
-
-                    <div class="modal-body">
-                        <div class="row">
-
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Tiers</label>
-                                <select name="clientId" class="form-select">
-                                    <option value="">Aucun</option>
-                                    @foreach (var c in ViewBag.Clients)
-                                    {
-                                        <option value="@c.Id">@c.NomSociete</option>
-                                    }
-                                </select>
-                            </div>
-
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Montant</label>
-                                <input name="montant" type="number" step="1"
-                                       class="form-control" placeholder="0" />
-                            </div>
-
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Motif</label>
-                                <select name="motifId" class="form-select">
-                                    <option value="">-- Choisir un motif --</option>
-                                    @foreach (var m in ViewBag.Motifs)
-                                    {
-                                        <option value="@m.ID">@m.LibelleMotif</option>
-                                    }
-                                </select>
-                            </div>
-
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Description</label>
-                                <input name="libelle" class="form-control"
-                                       placeholder="Description de l'opération" />
-                            </div>
-
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Mode de paiement</label>
-                                <select name="modePaiementId" class="form-select">
-                                    <option value="">-- Choisir un mode de paiement --</option>
-                                    @foreach (var mp in ViewBag.ModesPaiement)
-                                    {
-                                        <option value="@mp.Id">@mp.Libelle</option>
-                                    }
-                                </select>
-                            </div>
-
-                        </div>
-
-                        <div class="card mt-2">
-                            <div class="card-header bg-light">Validations</div>
-                            <div class="card-body">
-
-                                <div class="form-check mb-3">
-                                    <input class="form-check-input" type="checkbox" value="true"
-                                           name="estJustifie" id="estJustifieDec">
-                                    <label class="form-check-label" for="estJustifieDec">
-                                        Ce mouvement a été justifié
-                                    </label>
-                                </div>
-
-                                <div class="d-flex gap-4 mb-3">
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="statutValidation"
-                                               id="statutAttenteDec" value="En attente" checked>
-                                        <label class="form-check-label" for="statutAttenteDec">En attente</label>
-                                    </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="statutValidation"
-                                               id="statutValideDec" value="Validé" disabled="@(!peutValider)">
-                                        <label class="form-check-label" for="statutValideDec">Validé</label>
-                                    </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="statutValidation"
-                                               id="statutRejeteDec" value="Rejeté" disabled="@(!peutValider)">
-                                        <label class="form-check-label" for="statutRejeteDec">Rejeté</label>
-                                    </div>
-                                </div>
-
-                                @if (!peutValider)
-                                {
-                                    <p class="text-muted small">
-                                        <i class="fas fa-lock"></i>
-                                        Seuls les utilisateurs ayant le droit "Peut valider / rejeter les opérations
-                                        de caisse" peuvent changer ce statut.
-                                    </p>
-                                }
-
-                                <div class="mb-3">
-                                    <label class="form-label">Valideur</label>
-                                    <input type="text" class="form-control" value="@nomValideur" readonly>
-                                    <input type="hidden" name="valideur" value="@nomValideur">
-                                </div>
-
-                                <div class="mb-0">
-                                    <label class="form-label">Obs.</label>
-                                    <textarea name="observation" class="form-control" rows="3"></textarea>
-                                </div>
-
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-outline-secondary"
-                                data-bs-dismiss="modal">
-                            Annuler
-                        </button>
-                        <button type="submit" class="btn btn-success">Enregistrer</button>
-                    </div>
-
-                </form>
-            </div>
-        </div>
-    </div>
-
-    @if (peutValider)
+<div class="row g-3 mb-4">
+    @foreach (var c in cartes)
     {
-        <!-- MODAL MODIFICATION DU STATUT D'UN MOUVEMENT -->
-        <div class="modal fade" id="modalEditValidation" tabindex="-1">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header bg-brand text-white">
-                        <h5 class="modal-title">Modifier le statut du mouvement</h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                    </div>
-
-                    <form method="post" asp-action="ModifierValidation">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="journeeId" value="@Model.Id" />
-                        <input type="hidden" name="id" id="editValidationId" />
-
-                        <div class="modal-body">
-
-                            <div class="form-check mb-3">
-                                <input class="form-check-input" type="checkbox" value="true"
-                                       name="estJustifie" id="editValidationJustifie">
-                                <label class="form-check-label" for="editValidationJustifie">
-                                    Ce mouvement a été justifié
-                                </label>
-                            </div>
-
-                            <div class="d-flex gap-4 mb-3">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="statutValidation"
-                                           id="editValidationAttente" value="En attente">
-                                    <label class="form-check-label" for="editValidationAttente">En attente</label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="statutValidation"
-                                           id="editValidationValide" value="Validé">
-                                    <label class="form-check-label" for="editValidationValide">Validé</label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="statutValidation"
-                                           id="editValidationRejete" value="Rejeté">
-                                    <label class="form-check-label" for="editValidationRejete">Rejeté</label>
-                                </div>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label">Valideur</label>
-                                <input type="text" class="form-control" value="@nomValideur" readonly>
-                            </div>
-
-                            <div class="mb-0">
-                                <label class="form-label">Obs.</label>
-                                <textarea name="observation" id="editValidationObservation"
-                                          class="form-control" rows="3"></textarea>
-                            </div>
-
-                        </div>
-
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
-                                Annuler
-                            </button>
-                            <button type="submit" class="btn btn-success">Enregistrer</button>
-                        </div>
-
-                    </form>
-                </div>
-            </div>
-        </div>
-    }
-
-    @if (Model.Statut == "Ouverte")
-    {
-        <!-- MODAL CLÔTURE : contrôle physique / théorique par mode de paiement -->
-        <div class="modal fade" id="modalCloture" tabindex="-1">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header bg-warning">
-                        <h5 class="modal-title">Fermeture de la journée @Model.NumeroJournee</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-
-                    <form method="post" asp-action="Cloturer" id="formCloture">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="id" value="@Model.Id" />
-
-                        <div class="modal-body">
-
-                            <p class="text-muted">
-                                Solde initial : <strong>@Model.SoldeInitial.ToString("N0")</strong>
-                                (déjà inclus dans le solde théorique, non recompté ici)
-                            </p>
-
-                            <table class="table table-bordered" id="tableCloture">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>Mode de paiement</th>
-                                        <th class="text-end">Théorique</th>
-                                        <th class="text-end" style="width:160px;">Compté</th>
-                                        <th class="text-end">Écart</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @{ int i = 0; }
-                                    @foreach (var t in ViewBag.TotauxParModePaiement)
-                                    {
-                                        <tr>
-                                            <td>
-                                                @t.Libelle
-                                                <input type="hidden" name="comptages[@i].ModePaiementId" value="@t.ModePaiementId" />
-                                            </td>
-                                            <td class="text-end theorique" data-theorique="@t.Net.ToString(System.Globalization.CultureInfo.InvariantCulture)">
-                                                @t.Net.ToString("N0")
-                                            </td>
-                                            <td>
-                                                <input type="number" step="1" class="form-control text-end input-compte"
-                                                       name="comptages[@i].MontantCompte"
-                                                       value="@t.Net.ToString("0", System.Globalization.CultureInfo.InvariantCulture)" />
-                                            </td>
-                                            <td class="text-end ecart">0</td>
-                                        </tr>
-                                        i++;
-                                    }
-                                </tbody>
-                                <tfoot>
-                                    <tr class="fw-bold">
-                                        <td>Total</td>
-                                        <td class="text-end" id="totalTheorique">0</td>
-                                        <td class="text-end" id="totalCompte">0</td>
-                                        <td class="text-end" id="totalEcart">0</td>
-                                    </tr>
-                                </tfoot>
-                            </table>
-
-                            <div class="mb-0">
-                                <label class="form-label">Note de clôture</label>
-                                <textarea name="noteCloture" class="form-control" rows="2"></textarea>
-                            </div>
-
-                        </div>
-
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
-                                Annuler
-                            </button>
-                            <button type="submit" class="btn btn-warning">Clôturer la journée</button>
-                        </div>
-
-                    </form>
-                </div>
-            </div>
+        <div class="col-md-3 col-6">
+            <div class="card @c.Classe h-100"><div class="card-body text-center"><h6>@c.Libelle</h6><h3 class="mb-0">@c.Valeur.ToString("N0")</h3></div></div>
         </div>
     }
 </div>
 
+@if (!ouverte)
+{
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-secondary text-white">Résultat de la clôture</div>
+        <div class="card-body">
+            <div class="row mb-3">
+                <div class="col-md-4"><strong>Solde final compté :</strong> @Model.SoldeFinal.ToString("N0")</div>
+                <div class="col-md-4"><strong>Écart (compté − théorique) :</strong>
+                    <span class="@((Model.EcartCloture ?? 0) == 0 ? "text-success" : "text-danger fw-bold")">@((Model.EcartCloture ?? 0).ToString("N0"))</span></div>
+                <div class="col-md-4"><strong>Clôturée le :</strong> @Model.DateFermeture?.ToString("dd/MM/yyyy HH:mm")</div>
+            </div>
+            @if (!string.IsNullOrEmpty(Model.NoteCloture))
+            {
+                <p><strong>Note :</strong> @Model.NoteCloture</p>
+            }
+            <table class="table table-sm table-bordered mb-0">
+                <thead class="table-light"><tr><th>Mode de paiement</th><th class="text-end">Théorique</th><th class="text-end">Compté</th><th class="text-end">Écart</th></tr></thead>
+                <tbody>
+                    @foreach (var c in comptages)
+                    {
+                        var ecart = c.MontantCompte - c.MontantTheorique;
+                        <tr>
+                            <td>@(c.ModePaiement?.Libelle ?? "Non renseigné")</td>
+                            <td class="text-end">@c.MontantTheorique.ToString("N0")</td>
+                            <td class="text-end">@c.MontantCompte.ToString("N0")</td>
+                            <td class="text-end @(ecart == 0 ? "text-success" : "text-danger")">@ecart.ToString("N0")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="alert alert-secondary">Cette journée est clôturée. Aucune opération possible.</div>
+}
 
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-dark text-white">Totaux par mode de paiement</div>
+    <div class="card-body p-0">
+        <table class="table table-bordered mb-0">
+            <thead class="table-light"><tr><th>Mode de paiement</th><th class="text-end">Encaissements</th><th class="text-end">Décaissements</th><th class="text-end">Net</th></tr></thead>
+            <tbody>
+                @if (!totaux.Any())
+                {
+                    <tr><td colspan="4" class="text-center text-muted">Aucune opération.</td></tr>
+                }
+                @foreach (var t in totaux)
+                {
+                    <tr>
+                        <td>@t.Libelle</td>
+                        <td class="text-end text-success">@t.Encaisse.ToString("N0")</td>
+                        <td class="text-end text-danger">@t.Decaisse.ToString("N0")</td>
+                        <td class="text-end fw-bold">@t.Net.ToString("N0")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-header bg-brand text-white d-flex justify-content-between align-items-center">
+        <span>Historique des opérations</span>
+        <a href="/JourneeCaisse/PrintOperations?journeeId=@Model.Id" class="btn btn-light btn-sm"><i class="fas fa-print"></i> Imprimer les opérations</a>
+    </div>
+    <div class="card-body p-2">
+        <div class="table-responsive">
+            <table id="operationsTable" class="table table-hover align-middle mb-0">
+                <thead><tr><th>Date</th><th>Motif</th><th>Description</th><th>Tiers</th><th>Mode de paiement</th><th class="text-end">Montant</th><th>Type</th><th>Statut</th>@if (peutValider)
+                    {
+                        <th></th>
+                    }</tr></thead>
+                <tbody>
+                    @foreach (var op in ViewBag.Operations)
+                    {
+                        <tr>
+                            <td class="text-nowrap" data-order="@(((DateTime)op.DateOperation).ToString("yyyy-MM-ddTHH:mm:ss"))-@(((int)op.Id).ToString("D9"))">@(((DateTime)op.DateOperation).ToString("dd/MM/yyyy HH:mm"))</td>
+                            <td>@op.MotifLibelle</td>
+                            <td>@op.Libelle</td>
+                            <td>@(op.Tiers ?? "-")</td>
+                            <td>@op.ModePaiementLibelle</td>
+                            <td class="text-end text-nowrap" data-order="@(((decimal)op.Montant).ToString(inv))">
+                                @if (op.StatutValidation == "Rejeté")
+                                {
+                                    <s class="text-muted" title="Opération rejetée : exclue des totaux">@(((decimal)op.Montant).ToString("N0"))</s> <small class="text-muted">(rejetée)</small>
+                                }
+                                else
+                                {
+                                    @(((decimal)op.Montant).ToString("N0"))
+                                }
+                            </td>
+                            <td><span class="badge @(op.TypeOperation == "Encaissement" ? "bg-success" : "bg-danger")">@op.TypeOperation</span></td>
+                            <td>
+                                <span class="badge @(op.StatutValidation == "Validé" ? "bg-success" : op.StatutValidation == "Rejeté" ? "bg-danger" : "bg-secondary")">@op.StatutValidation</span>
+                                @if (op.EstJustifie)
+                                {
+                                    <span class="badge bg-info text-dark">Justifié</span>
+                                }
+                                @if (!string.IsNullOrEmpty((string)op.Valideur))
+                                {
+                                    <div class="small text-muted">par @op.Valideur</div>
+                                }
+                            </td>
+                            @if (peutValider)
+                            {
+                                <td>
+                                    <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalValidation"
+                                            data-id="@op.Id" data-justifie="@(op.EstJustifie ? "1" : "0")"
+                                            data-statut="@op.StatutValidation" data-observation="@op.Observation">Modifier</button>
+                                </td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@if (ouverte)
+{
+    foreach (var (type, idModal) in new[] { ("Encaissement", "modalEncaissement"), ("Décaissement", "modalDecaissement") })
+    {
+        var suffixe = type == "Encaissement" ? "Enc" : "Dec";
+        <div class="modal fade" id="@idModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header bg-brand text-white">
+                        <h5 class="modal-title">Nouvelle opération : @type.ToLower()</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                    </div>
+                    <form method="post" asp-action="AjouterOperation">
+                        <input type="hidden" name="journeeId" value="@Model.Id" />
+                        <input type="hidden" name="typeOperation" value="@type" />
+                        <div class="modal-body">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Tiers</label>
+                                    <select name="clientId" class="form-select">
+                                        <option value="">Aucun</option>
+                                        @foreach (var c in ViewBag.Clients)
+                                        {
+                                            <option value="@c.Id">@c.NomSociete</option>
+                                        }
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Montant</label>
+                                    <input name="montant" inputmode="decimal" class="form-control" placeholder="0" required />
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Motif</label>
+                                    <select name="motifId" class="form-select">
+                                        <option value="">-- Choisir un motif --</option>
+                                        @foreach (var m in ViewBag.Motifs)
+                                        {
+                                            <option value="@m.ID">@m.LibelleMotif</option>
+                                        }
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Description</label>
+                                    <input name="libelle" class="form-control" placeholder="Description de l'opération" />
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Mode de paiement</label>
+                                    <select name="modePaiementId" class="form-select">
+                                        <option value="">-- Choisir un mode de paiement --</option>
+                                        @foreach (var mp in ViewBag.ModesPaiement)
+                                        {
+                                            <option value="@mp.Id">@mp.Libelle</option>
+                                        }
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="card mt-2">
+                                <div class="card-header bg-light">Validations</div>
+                                <div class="card-body">
+                                    <div class="form-check mb-3">
+                                        <input class="form-check-input" type="checkbox" value="true" name="estJustifie" id="estJustifie@(suffixe)" />
+                                        <label class="form-check-label" for="estJustifie@(suffixe)">Ce mouvement a été justifié</label>
+                                    </div>
+                                    <div class="d-flex gap-4 mb-3">
+                                        @for (var i = 0; i < statuts.Length; i++)
+                                        {
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="statutValidation" id="st@(suffixe)@i" value="@statuts[i]"
+                                                       checked="@(i == 0)" disabled="@(i > 0 && !peutValider)" />
+                                                <label class="form-check-label" for="st@(suffixe)@i">@statuts[i]</label>
+                                            </div>
+                                        }
+                                    </div>
+                                    @if (!peutValider)
+                                    {
+                                        <div class="form-text mb-2">Seuls les utilisateurs ayant le droit « Peut valider / rejeter les opérations » peuvent changer le statut.</div>
+                                    }
+                                    <label class="form-label">Observation</label>
+                                    <textarea name="observation" class="form-control" rows="2"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+                            <button class="btn btn-primary">Enregistrer</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    }
+
+    <div class="modal fade" id="modalCloture" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title">Clôture de la journée — comptage</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                </div>
+                <form method="post" asp-action="Cloturer" asp-route-id="@Model.Id">
+                    <input type="hidden" name="id" value="@Model.Id" />
+                    <div class="modal-body">
+                        <p class="text-muted small">Saisissez, pour chaque mode de paiement, le montant réellement compté. L'écart avec le montant théorique (net des opérations de la journée) est enregistré.</p>
+                        <table class="table table-bordered align-middle" id="tableCloture">
+                            <thead class="table-light"><tr><th>Mode de paiement</th><th class="text-end">Théorique</th><th style="width:180px;">Compté</th><th class="text-end">Écart</th></tr></thead>
+                            <tbody>
+                                @for (var i = 0; i < totaux.Count; i++)
+                                {
+                                    var t = totaux[i];
+                                    <tr data-theorique="@t.Net.ToString(inv)">
+                                        <td>@t.Libelle
+                                            <input type="hidden" name="comptages[@i].ModePaiementId" value="@t.ModePaiementId" /></td>
+                                        <td class="text-end">@t.Net.ToString("N0")</td>
+                                        <td><input class="form-control text-end" inputmode="decimal" name="comptages[@i].MontantCompte" value="@Math.Round(t.Net).ToString(inv)" /></td>
+                                        <td class="text-end ecart">0</td>
+                                    </tr>
+                                }
+                                @if (!totaux.Any())
+                                {
+                                    <tr><td colspan="4" class="text-center text-muted">Aucune opération : rien à compter.</td></tr>
+                                }
+                            </tbody>
+                            <tfoot class="fw-bold"><tr><td>Total</td><td class="text-end" id="totalTheorique">0</td><td class="text-end" id="totalCompte">0</td><td class="text-end" id="ecartGlobal">0</td></tr></tfoot>
+                        </table>
+                        <label class="form-label">Note de clôture</label>
+                        <textarea name="noteCloture" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button class="btn btn-warning" onclick="return confirm('Clôturer définitivement cette journée ?');">Clôturer la journée</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+@if (peutValider)
+{
+    <div class="modal fade" id="modalValidation" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-brand text-white">
+                    <h5 class="modal-title">Validation de l'opération</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                </div>
+                <form method="post" asp-action="ModifierValidation">
+                    <input type="hidden" name="journeeId" value="@Model.Id" />
+                    <input type="hidden" name="id" id="valId" />
+                    <div class="modal-body">
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" value="true" name="estJustifie" id="valJustifie" />
+                            <label class="form-check-label" for="valJustifie">Ce mouvement a été justifié</label>
+                        </div>
+                        <div class="d-flex gap-4 mb-3">
+                            @for (var i = 0; i < statuts.Length; i++)
+                            {
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="statutValidation" id="valSt@(i)" value="@statuts[i]" />
+                                    <label class="form-check-label" for="valSt@(i)">@statuts[i]</label>
+                                </div>
+                            }
+                        </div>
+                        <label class="form-label">Valideur</label>
+                        <input class="form-control mb-3" value="@nomValideur" readonly />
+                        <label class="form-label" for="valObservation">Observation</label>
+                        <textarea name="observation" id="valObservation" class="form-control" rows="3"></textarea>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button class="btn btn-primary">Enregistrer</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
 
 @section Scripts {
     <script>
-        function ouvrirEditValidation(btn) {
-            document.getElementById('editValidationId').value = btn.dataset.id;
-            document.getElementById('editValidationJustifie').checked = btn.dataset.justifie === 'true';
-            document.getElementById('editValidationObservation').value = btn.dataset.observation || '';
+        (function () {
+            const fmt = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 });
+            const nombre = (v) => parseFloat(String(v).replace(/[\s  ]/g, '').replace(',', '.')) || 0;
 
-            var statutMap = {
-                'Validé': 'editValidationValide',
-                'Rejeté': 'editValidationRejete'
-            };
-            var radioId = statutMap[btn.dataset.statut] || 'editValidationAttente';
-            document.getElementById(radioId).checked = true;
+            const validation = document.getElementById('modalValidation');
+            if (validation) {
+                validation.addEventListener('show.bs.modal', function (e) {
+                    const b = e.relatedTarget;
+                    document.getElementById('valId').value = b.dataset.id;
+                    document.getElementById('valJustifie').checked = b.dataset.justifie === '1';
+                    document.getElementById('valObservation').value = b.dataset.observation || '';
+                    validation.querySelectorAll('input[name=statutValidation]').forEach(r => r.checked = (r.value === b.dataset.statut));
+                });
+            }
 
-            new bootstrap.Modal(document.getElementById('modalEditValidation')).show();
-        }
+            const cloture = document.getElementById('modalCloture');
+            function recalculer() {
+                let th = 0, co = 0;
+                cloture.querySelectorAll('#tableCloture tbody tr[data-theorique]').forEach(function (tr) {
+                    const t = nombre(tr.dataset.theorique);
+                    const c = nombre(tr.querySelector('input[name$="MontantCompte"]').value);
+                    const ecart = c - t;
+                    const cell = tr.querySelector('.ecart');
+                    cell.textContent = fmt.format(ecart);
+                    cell.className = 'text-end ecart ' + (ecart === 0 ? 'text-success' : 'text-danger fw-bold');
+                    th += t; co += c;
+                });
+                document.getElementById('totalTheorique').textContent = fmt.format(th);
+                document.getElementById('totalCompte').textContent = fmt.format(co);
+                document.getElementById('ecartGlobal').textContent = fmt.format(co - th);
+            }
+            if (cloture) {
+                cloture.addEventListener('shown.bs.modal', recalculer);
+                cloture.addEventListener('input', recalculer);
+            }
 
-        function formatMontant(n) {
-            return n.toLocaleString('fr-FR', { maximumFractionDigits: 0 });
-        }
-
-        function recalculerCloture() {
-            var totalTheorique = 0, totalCompte = 0;
-
-            document.querySelectorAll('#tableCloture tbody tr').forEach(function (tr) {
-                var theorique = parseFloat(tr.querySelector('.theorique').dataset.theorique) || 0;
-                var compte = parseFloat(tr.querySelector('.input-compte').value) || 0;
-                var ecart = compte - theorique;
-
-                tr.querySelector('.ecart').textContent = formatMontant(ecart);
-                tr.querySelector('.ecart').className = 'text-end ecart ' + (ecart === 0 ? 'text-success' : 'text-danger');
-
-                totalTheorique += theorique;
-                totalCompte += compte;
-            });
-
-            document.getElementById('totalTheorique').textContent = formatMontant(totalTheorique);
-            document.getElementById('totalCompte').textContent = formatMontant(totalCompte);
-
-            var totalEcart = document.getElementById('totalEcart');
-            var ecartGlobal = totalCompte - totalTheorique;
-            totalEcart.textContent = formatMontant(ecartGlobal);
-            totalEcart.className = 'text-end ' + (ecartGlobal === 0 ? 'text-success' : 'text-danger');
-        }
-
-        var modalCloture = document.getElementById('modalCloture');
-        if (modalCloture) {
-            modalCloture.addEventListener('shown.bs.modal', recalculerCloture);
-            modalCloture.addEventListener('input', function (e) {
-                if (e.target.classList.contains('input-compte')) {
-                    recalculerCloture();
-                }
-            });
-        }
-
-        $(document).ready(function() {
             $('#operationsTable').DataTable({
-                language: {
-                    url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/fr-FR.json'
-                },
+                language: { url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/fr-FR.json' },
                 pageLength: 20,
                 lengthMenu: [20, 50, 100],
-                order: [[0, 'desc']], // tri par date décroissante
-                columnDefs: [
-                    { orderable: false, targets: 5 } // colonne Type non triable
-                ],
+                order: [[0, 'desc']],
+                columnDefs: [{ orderable: false, targets: @(peutValider ? "[6, -1]" : "[6]") }],
                 dom: '<"d-flex justify-content-between align-items-center mb-3"lf>rtip'
             });
-        });
+        })();
     </script>
 }

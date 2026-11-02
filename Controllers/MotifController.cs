@@ -1,11 +1,12 @@
-﻿using EasytransitCaisse.Data;
+using EasytransitCaisse.Data;
 using EasytransitCaisse.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EasytransitCaisse.Controllers
 {
-    // Réservé aux profils Admin et SuperAdmin.
+    // Motifs d'opération (avec compte général pour l'export Sage), comme la version PHP :
+    // création et modification dans la même fenêtre (Save). Réservé aux profils Admin et SuperAdmin.
     [Authorize(Policy = "Admin")]
     public class MotifController : Controller
     {
@@ -18,54 +19,36 @@ namespace EasytransitCaisse.Controllers
 
         public IActionResult Index()
         {
-            var motifs = _context.Motifs.OrderBy(m => m.LibelleMotif).ToList();
-            return View(motifs);
+            return View(_context.Motifs.OrderBy(m => m.LibelleMotif).ToList());
         }
 
-        // Liste des Motifs
-        //public async Task<IActionResult> Index()
-        //{
-        //    var motifs = await _context.Motifs
-        //        .OrderBy(c => c.LibelleMotif)
-        //        .ToListAsync();
-
-        //    return View(motifs);
-        //}
-
-        public IActionResult Create() => View();
-
+        // Création (sans ID) ou modification (avec ID).
         [HttpPost]
-        public IActionResult Create(Motif motif)
+        [ValidateAntiForgeryToken]
+        public IActionResult Save(int? id, string? libelleMotif, string? typeModif, string? cG_Num)
         {
-            _context.Motifs.Add(motif);
-            _context.SaveChanges();
-            TempData["Success"] = "Motif créé avec succès.";
-            return RedirectToAction("Index");
-        }
-
-        public IActionResult Edit(int id)
-        {
-            var motif = _context.Motifs.Find(id);
-            if (motif == null) return NotFound();
-            return View(motif);
-        }
-
-        [HttpPost]
-        public IActionResult Edit(Motif motif)
-        {
-            var existing = _context.Motifs.Find(motif.ID);
-
-            if (existing == null)
-                return NotFound();
-
-            // Copie champ à champ (et non Update() global) pour ne pas écraser
-            // TenantId, absent du formulaire, avec la valeur par défaut 0.
-            existing.LibelleMotif = motif.LibelleMotif;
-            existing.TypeModif = motif.TypeModif;
-            existing.CG_Num = motif.CG_Num;
-
-            _context.SaveChanges();
-            TempData["Success"] = "Motif modifié avec succès.";
+            if (id is > 0)
+            {
+                var motif = _context.Motifs.FirstOrDefault(m => m.ID == id);
+                if (motif == null)
+                    return NotFound();
+                motif.LibelleMotif = libelleMotif ?? "";
+                motif.TypeModif = string.IsNullOrEmpty(typeModif) ? null : typeModif;
+                motif.CG_Num = string.IsNullOrEmpty(cG_Num) ? null : cG_Num;
+                _context.SaveChanges();
+                TempData["Success"] = "Motif modifié avec succès.";
+            }
+            else
+            {
+                _context.Motifs.Add(new Motif
+                {
+                    LibelleMotif = libelleMotif ?? "",
+                    TypeModif = string.IsNullOrEmpty(typeModif) ? null : typeModif,
+                    CG_Num = string.IsNullOrEmpty(cG_Num) ? null : cG_Num
+                });
+                _context.SaveChanges();
+                TempData["Success"] = "Motif créé avec succès.";
+            }
             return RedirectToAction("Index");
         }
 
@@ -73,11 +56,17 @@ namespace EasytransitCaisse.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult Delete(int id)
         {
-            var motif = _context.Motifs.Find(id);
+            var motif = _context.Motifs.FirstOrDefault(m => m.ID == id);
             if (motif != null)
             {
-                _context.Motifs.Remove(motif);
-                _context.SaveChanges();
+                if (_context.OperationsCaisses.Any(o => o.MotifId == id))
+                    TempData["Error"] = "Ce motif est utilisé par des opérations : il ne peut pas être supprimé.";
+                else
+                {
+                    _context.Motifs.Remove(motif);
+                    _context.SaveChanges();
+                    TempData["Success"] = "Motif supprimé.";
+                }
             }
             return RedirectToAction("Index");
         }

@@ -9,6 +9,8 @@ namespace EasytransitCaisse.Models
 
         public string CashierName { get; set; }
 
+        public string? CompteComptable { get; set; }
+
         public string TypePointVente { get; set; } = "Boutique";
     }
 }

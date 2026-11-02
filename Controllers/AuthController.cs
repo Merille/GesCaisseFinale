@@ -56,7 +56,8 @@ namespace EasytransitCaisse.Controllers
             if (user == null)
             {
                 ViewBag.Error = "Utilisateur ou mot de passe incorrect";
-                return View();
+                model.Password = "";
+                return View(model);
             }
 
             var claims = new List<Claim>

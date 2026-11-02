@@ -1,131 +1,58 @@
-﻿@model EasytransitCaisse.Models.Caisse
-
+@model EasytransitCaisse.Models.Caisse
 @{
-    ViewData["Title"] = "Caisses";
+    ViewData["Title"] = "Caisse " + Model.ChkCode;
 }
-<div class="container mt-4">
-
-    <div class="card shadow">
-
-        <div class="card-header bg-primary text-white">
-
-            <div class="d-flex justify-content-between">
-
-                <h4>
-                    @Model.ChkCode - @Model.ChkDescription
-                </h4>
-            </div>
-            <div class="d-flex justify-content-end gap-2">
-                <a href="/JourneeCaisse/PrintJournees?caisseId=@Model.ID"
-                   class="btn btn-dark">
-                    Imprimer PDF
-                </a>
-
-                <a href="/Caisse/Index"
-                   class="btn btn-secondary">
-                    Retour
-                </a>
-
-                <a href="/JourneeCaisse/Create/@Model.ID" data-modale
-                   class="btn btn-success">
-                    Nouvelle journée
-                </a>
-            </div>
-
-        </div>
-
-        <div class="card-body p-0">
-
-            <table id="journeesTable" class="table table-hover mb-0">
-
-                <thead class="table-dark">
-
-                    <tr>
-                        <th>Date</th>
-                        <th>Initial</th>
-                        <th>Encaisse</th>
-                        <th>Décaisse</th>
-                        <th>Solde</th>
-                        <th>Statut</th>
-                        <th width="180">Action</th>
-                    </tr>
-
-                </thead>
-
-                <tbody>
-
-                    @foreach (var j in ViewBag.Journees)
-                    {
-                        <tr>
-
-                            <td data-order="@j.DateJournee.ToString("yyyy-MM-dd")">
-                                @j.DateJournee.ToString("dd/MM/yyyy")
-                            </td>
-
-                            <td>
-                                @j.Initial.ToString("N0")
-                            </td>
-
-                            <td class="text-success fw-bold">
-                                @j.Encaisse.ToString("N0")
-                            </td>
-
-                            <td class="text-danger fw-bold">
-                                @j.Decaisse.ToString("N0")
-                            </td>
-
-                            <td class="fw-bold">
-                                @j.Solde.ToString("N0")
-                            </td>
-                            <td>
-                                @if (j.Statut == "Ouverte")
-                                {
-                                    <span class="badge bg-success">
-                                        <i class="fas fa-lock-open"></i> Ouverte
-                                    </span>
-                                }
-                                else
-                                {
-                                    <span class="badge bg-danger">
-                                        <i class="fas fa-lock"></i> Clôturée
-                                    </span>
-                                }
-                            </td>
-                            <td>
-
-                                <a href="/JourneeCaisse/Details/@j.JourneeId"
-                                       class="btn btn-primary btn-sm">
-
-                                    Consulter
-
-                                </a>
-
-                            </td>
-
-                        </tr>
-                    }
-
-                </tbody>
-
-            </table>
-
-        </div>
-
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <h4 class="mb-0">@Model.ChkCode - @Model.ChkDescription</h4>
+    <div class="d-flex gap-2">
+        <a href="/JourneeCaisse/PrintJournees?caisseId=@Model.ID" class="btn btn-outline-primary"><i class="fas fa-print"></i> Imprimer les journées</a>
+        <a href="/JourneeCaisse/Create/@Model.ID" class="btn btn-success" data-modale><i class="fas fa-plus"></i> Ouvrir une journée</a>
+        <a href="/Caisse/Index" class="btn btn-dark">Retour</a>
     </div>
-
+</div>
+<div class="card shadow-sm border-0">
+    <div class="card-body">
+        <table id="journeesTable" class="table table-hover align-middle mb-0">
+            <thead class="table-dark">
+                <tr><th>Date</th><th>N° journée</th><th class="text-end">Initial</th><th class="text-end">Encaissé</th><th class="text-end">Décaissé</th><th class="text-end">Solde</th><th>Statut</th><th></th></tr>
+            </thead>
+            <tbody>
+                @foreach (var j in ViewBag.Journees)
+                {
+                    <tr>
+                        <td data-order="@j.DateJournee.ToString("yyyy-MM-dd")-@(((int)j.JourneeId).ToString("D9"))">@j.DateJournee.ToString("dd/MM/yyyy")</td>
+                        <td>@j.Numero</td>
+                        <td class="text-end" data-order="@(((decimal)j.Initial).ToString(System.Globalization.CultureInfo.InvariantCulture))">@(((decimal)j.Initial).ToString("N0"))</td>
+                        <td class="text-end text-success" data-order="@(((decimal)j.Encaisse).ToString(System.Globalization.CultureInfo.InvariantCulture))">@(((decimal)j.Encaisse).ToString("N0"))</td>
+                        <td class="text-end text-danger" data-order="@(((decimal)j.Decaisse).ToString(System.Globalization.CultureInfo.InvariantCulture))">@(((decimal)j.Decaisse).ToString("N0"))</td>
+                        <td class="text-end fw-bold" data-order="@(((decimal)j.Solde).ToString(System.Globalization.CultureInfo.InvariantCulture))">@(((decimal)j.Solde).ToString("N0"))</td>
+                        <td>
+                            @if (j.Statut == "Ouverte")
+                            {
+                                <span class="badge bg-success">Ouverte</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">Clôturée</span>
+                            }
+                        </td>
+                        <td class="text-end"><a href="/JourneeCaisse/Details/@j.JourneeId" class="btn btn-primary btn-sm">Ouvrir</a></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
 </div>
 
 @section Scripts {
     <script>
         $(document).ready(function () {
             $('#journeesTable').DataTable({
-                language: {
-                    url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/fr-FR.json'
-                },
+                language: { url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/fr-FR.json' },
                 pageLength: 20,
                 lengthMenu: [20, 50, 100],
                 order: [[0, 'desc']],
-                columnDefs: [{ orderable: false, targets: 6 }],  // colonne Action
+                columnDefs: [{ orderable: false, targets: -1 }],
                 dom: '<"d-flex justify-content-between align-items-center mb-3"lf>rtip'
             });
         });

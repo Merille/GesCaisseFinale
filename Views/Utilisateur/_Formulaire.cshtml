@@ -1,0 +1,67 @@
+@model EasytransitCaisse.Models.Utilisateur
+@* Formulaire d'un utilisateur (création, aussi en fenêtre modale, et modification), comme la version PHP. *@
+@{
+    var edition = Model.Id > 0;
+    var titre = edition ? "Modifier l'utilisateur" : "Nouvel utilisateur";
+    var superAdmin = ViewBag.IsSuperAdmin == true;
+    var profils = superAdmin ? new[] { "Admin", "Caissier", "Vendeur", "SuperAdmin" } : new[] { "Admin", "Caissier", "Vendeur" };
+}
+<div class="card shadow-sm border-0" style="max-width: 720px;">
+    <div class="card-header bg-brand text-white"><h5 class="mb-0">@titre</h5></div>
+    <div class="card-body">
+        <form method="post" action="@(edition ? "/Utilisateur/Edit/" + Model.Id : "/Utilisateur/Create")" autocomplete="off">
+            @Html.AntiForgeryToken()
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label" for="NomUtilisateur">Nom d'utilisateur (connexion)</label>
+                    <input class="form-control" id="NomUtilisateur" name="NomUtilisateur" value="@Model.NomUtilisateur" required />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="NomComplet">Nom complet</label>
+                    <input class="form-control" id="NomComplet" name="NomComplet" value="@Model.NomComplet" required />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="MotPasse">Mot de passe</label>
+                    <input class="form-control" type="password" id="MotPasse" name="MotPasse" autocomplete="new-password" required="@(!edition)" />
+                    @if (edition)
+                    {
+                        <div class="form-text">Laisser vide pour ne pas le changer.</div>
+                    }
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="Profil">Profil</label>
+                    <select class="form-select" id="Profil" name="Profil">
+                        @foreach (var p in profils)
+                        {
+                            <option selected="@(Model.Profil == p)">@p</option>
+                        }
+                    </select>
+                </div>
+                @if (superAdmin)
+                {
+                    <div class="col-md-6">
+                        <label class="form-label" for="TenantId">Société</label>
+                        <select class="form-select" id="TenantId" name="TenantId">
+                            <option value="">-- Aucune (SuperAdmin) --</option>
+                            @foreach (var t in (IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>)ViewBag.Tenants)
+                            {
+                                <option value="@t.Value" selected="@(Model.TenantId?.ToString() == t.Value)">@t.Text</option>
+                            }
+                        </select>
+                    </div>
+                }
+                <div class="col-12">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" value="true" id="PeutValiderOperations" name="PeutValiderOperations" checked="@Model.PeutValiderOperations" />
+                        <input type="hidden" name="PeutValiderOperations" value="false" />
+                        <label class="form-check-label" for="PeutValiderOperations">Peut valider / rejeter les opérations de caisse</label>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-4 d-flex gap-2">
+                <button type="submit" class="btn btn-primary">Enregistrer</button>
+                <a href="/Utilisateur/Index" class="btn btn-outline-secondary hors-modale">Annuler</a>
+            </div>
+        </form>
+    </div>
+</div>

@@ -1,314 +1,94 @@
-﻿@model EasytransitCaisse.Models.ViewModels.RapportOperationsVM
-
+@model EasytransitCaisse.Models.ViewModels.RapportOperationsVM
 @{
     ViewData["Title"] = "Rapport des opérations";
+    var caisses = (List<EasytransitCaisse.Models.Caisse>)ViewBag.Caisses;
+    var p = new Dictionary<string, string?>
+    {
+        ["dateDebut"] = Model.DateDebut?.ToString("yyyy-MM-dd"),
+        ["dateFin"] = Model.DateFin?.ToString("yyyy-MM-dd"),
+        ["caisseId"] = Model.CaisseId?.ToString(),
+        ["typeOperation"] = string.IsNullOrEmpty(Model.TypeOperation) ? null : Model.TypeOperation
+    };
+    string Lien(string action) => Url.Action(action, p.Where(x => !string.IsNullOrEmpty(x.Value)).ToDictionary(x => x.Key, x => (object?)x.Value))!;
 }
-
-<div class="card shadow">
-
-    <div class="card-header bg-primary text-white">
-        <h4 class="mb-0">
-            Rapport des opérations
-        </h4>
-    </div>
-
-    <div class="card-body">
-
-        <form method="get">
-
-            <div class="row">
-
-                <div class="col-md-2">
-                    <label>Date début</label>
-                    <input type="date"
-                           name="dateDebut"
-                           value="@Model.DateDebut?.ToString("yyyy-MM-dd")"
-                           class="form-control"/>
-                </div>
-
-                <div class="col-md-2">
-                    <label>Date fin</label>
-                    <input type="date"
-                           name="dateFin"
-                           value="@Model.DateFin?.ToString("yyyy-MM-dd")"
-                           class="form-control"/>
-                </div>
-
-                <div class="col-md-3">
-                    <label>Caisse</label>
-
-                    <select class="form-select"
-                            name="caisseId"
-                            asp-items="ViewBag.Caisses">
-
-                        <option value="">Toutes</option>
-
-                    </select>
-
-                </div>
-
-                <div class="col-md-3">
-
-                    <label>Type</label>
-
-                    <select class="form-select"
-                            name="typeOperation">
-
-                        <option value="">Toutes</option>
-
-                        <option value="Encaissement">
-                            Encaissement
-                        </option>
-
-                        <option value="Décaissement">
-                            Décaissement
-                        </option>
-
-                    </select>
-
-                </div>
-
-                <div class="col-md-2 d-grid">
-
-                    <label>&nbsp;</label>
-
-                    <button class="btn btn-primary">
-
-                        Rechercher
-
-                    </button>
-
-                </div>
-
-            </div>
-
-        </form>
-
-        <hr />
-
-        <div class="mb-3">
-
-            <a class="btn btn-success"
-               target="_blank"
-               asp-action="PreviewOperations"
-               asp-route-dateDebut="@Model.DateDebut?.ToString("yyyy-MM-dd")"
-               asp-route-dateFin="@Model.DateFin?.ToString("yyyy-MM-dd")"
-               asp-route-caisseId="@Model.CaisseId"
-               asp-route-typeOperation="@Model.TypeOperation">
-
-                <i class="fa fa-print"></i>
-
-                Aperçu / Imprimer
-
-            </a>
-
-            <a class="btn btn-outline-success"
-               asp-action="ExportSage"
-               asp-route-dateDebut="@Model.DateDebut?.ToString("yyyy-MM-dd")"
-               asp-route-dateFin="@Model.DateFin?.ToString("yyyy-MM-dd")"
-               asp-route-caisseId="@Model.CaisseId"
-               asp-route-typeOperation="@Model.TypeOperation">
-
-                <i class="fa fa-file-excel"></i>
-
-                Exporter vers Sage (Excel)
-
-            </a>
-
-            <a class="btn btn-outline-secondary"
-               asp-action="ExportSageCsv"
-               asp-route-dateDebut="@Model.DateDebut?.ToString("yyyy-MM-dd")"
-               asp-route-dateFin="@Model.DateFin?.ToString("yyyy-MM-dd")"
-               asp-route-caisseId="@Model.CaisseId"
-               asp-route-typeOperation="@Model.TypeOperation">
-
-                <i class="fa fa-file-csv"></i>
-
-                Exporter vers Sage (CSV)
-
-            </a>
-
-            <a class="btn btn-outline-dark"
-               asp-action="ExportSageTxt"
-               asp-route-dateDebut="@Model.DateDebut?.ToString("yyyy-MM-dd")"
-               asp-route-dateFin="@Model.DateFin?.ToString("yyyy-MM-dd")"
-               asp-route-caisseId="@Model.CaisseId"
-               asp-route-typeOperation="@Model.TypeOperation">
-
-                <i class="fa fa-file-alt"></i>
-
-                Exporter vers Sage (TXT)
-
-            </a>
-
+<form method="get" action="/Rapport/Operations" class="card shadow-sm border-0 mb-3">
+    <div class="card-body d-flex flex-wrap align-items-end gap-3">
+        <div><label class="form-label small fw-semibold text-muted mb-1" for="dateDebut">Du</label><input type="date" class="form-control" id="dateDebut" name="dateDebut" value="@Model.DateDebut?.ToString("yyyy-MM-dd")" /></div>
+        <div><label class="form-label small fw-semibold text-muted mb-1" for="dateFin">Au</label><input type="date" class="form-control" id="dateFin" name="dateFin" value="@Model.DateFin?.ToString("yyyy-MM-dd")" /></div>
+        <div>
+            <label class="form-label small fw-semibold text-muted mb-1" for="caisseId">Caisse</label>
+            <select class="form-select" id="caisseId" name="caisseId">
+                <option value="">Toutes</option>
+                @foreach (var c in caisses)
+                {
+                    <option value="@c.ID" selected="@(Model.CaisseId == c.ID)">@c.ChkCode - @c.ChkDescription</option>
+                }
+            </select>
         </div>
-
-        <table class="table table-bordered table-hover">
-
-            <thead class="table-dark">
-
-            <tr>
-
-                <th>Date</th>
-
-                <th>Journée</th>
-
-                <th>Type</th>
-
-                <th>Libellé</th>
-
-                <th>Tiers</th>
-
-                <th>Caissier</th>
-
-                <th class="text-end">
-
-                    Montant
-
-                </th>
-
-            </tr>
-
-            </thead>
-
-            <tbody>
-
-            @foreach(var item in Model.Operations)
-            {
-
-                <tr>
-
-                    <td>
-
-                        @item.DateOperation.ToString("dd/MM/yyyy HH:mm")
-
-                    </td>
-
-                    <td>
-
-                        @item.JourneeCaisse.NumeroJournee
-
-                    </td>
-
-                    <td>
-
-                        @item.TypeOperation
-
-                    </td>
-
-                    <td>
-
-                        @item.Libelle
-
-                    </td>
-
-                    <td>
-
-                        @(item.Client?.NomSociete ?? "")
-
-                    </td>
-
-                    <td>
-
-                        @item.Utilisateur.NomComplet
-
-                    </td>
-
-                    <td class="text-end">
-
-                        @if (item.StatutValidation == "Rejeté")
-                        {
-                            <s class="text-muted" title="Opération rejetée : exclue des totaux">@item.Montant.ToString("N0")</s> <small class="text-muted">(rejetée)</small>
-                        }
-                        else
-                        {
-                            @item.Montant.ToString("N0")
-                        }
-
-                    </td>
-
-                </tr>
-
-            }
-
-            </tbody>
-
-            <tfoot>
-
-                <tr class="table-success">
-
-                    <th colspan="6">
-
-                        Total Encaissements
-
-                    </th>
-
-                    <th class="text-end">
-
-                        @Model.TotalEntrees.ToString("N0")
-
-                    </th>
-
-                </tr>
-
-                <tr class="table-danger">
-
-                    <th colspan="6">
-
-                        Total Décaissements
-
-                    </th>
-
-                    <th class="text-end">
-
-                        @Model.TotalSorties.ToString("N0")
-
-                    </th>
-
-                </tr>
-
-                <tr class="table-primary">
-
-                    <th colspan="6">
-
-                        Solde
-
-                    </th>
-
-                    <th class="text-end">
-
-                        @((Model.TotalEntrees-Model.TotalSorties).ToString("N0"))
-
-                    </th>
-
-                </tr>
-
-                <tr class="table-warning">
-
-                    <th colspan="6">
-                        Montant initial des journées
-                    </th>
-
-                    <th class="text-end">
-                        @Model.MontantInitialJournees.ToString("N0")
-                    </th>
-
-                </tr>
-                <tr class="table-info">
-
-                    <th colspan="6">
-                        Solde théorique
-                    </th>
-
-                    <th class="text-end">
-                        @((Model.MontantInitialJournees + Model.TotalEntrees - Model.TotalSorties).ToString("N0"))
-                    </th>
-
-                </tr>
-            </tfoot>
-
-        </table>
-
+        <div>
+            <label class="form-label small fw-semibold text-muted mb-1" for="typeOperation">Type</label>
+            <select class="form-select" id="typeOperation" name="typeOperation">
+                <option value="">Toutes</option>
+                @foreach (var t in new[] { "Encaissement", "Décaissement" })
+                {
+                    <option selected="@(Model.TypeOperation == t)">@t</option>
+                }
+            </select>
+        </div>
+        <button class="btn btn-primary"><i class="fas fa-search"></i> Filtrer</button>
+        <div class="ms-auto d-flex flex-wrap gap-2">
+            <a class="btn btn-outline-primary" href="@Lien("PreviewOperations")"><i class="fas fa-print"></i> Imprimer / PDF</a>
+            <div class="btn-group">
+                <a class="btn btn-success" href="@Lien("ExportSage")"><i class="fas fa-file-excel"></i> Export Sage</a>
+                <button type="button" class="btn btn-success dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-label="Autres formats"></button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><a class="dropdown-item" href="@Lien("ExportSage")">Excel (.xlsx)</a></li>
+                    <li><a class="dropdown-item" href="@Lien("ExportSageCsv")">CSV (.csv)</a></li>
+                    <li><a class="dropdown-item" href="@Lien("ExportSageTxt")">Texte (.txt)</a></li>
+                </ul>
+            </div>
+        </div>
     </div>
+</form>
 
+<div class="card shadow-sm border-0">
+    <div class="card-body table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-dark"><tr><th>Date</th><th>Journée</th><th>Type</th><th>Libellé</th><th>Tiers</th><th>Caissier</th><th class="text-end">Montant</th></tr></thead>
+            <tbody>
+                @if (!Model.Operations.Any())
+                {
+                    <tr><td colspan="7" class="text-center text-muted py-4">Aucune opération pour ces critères.</td></tr>
+                }
+                @foreach (var o in Model.Operations)
+                {
+                    <tr>
+                        <td class="text-nowrap">@o.DateOperation.ToString("dd/MM/yyyy HH:mm")</td>
+                        <td><a href="/JourneeCaisse/Details/@o.JourneeCaisseId">@o.JourneeCaisse?.NumeroJournee</a></td>
+                        <td><span class="badge @(o.TypeOperation == "Encaissement" ? "bg-success" : "bg-danger")">@o.TypeOperation</span></td>
+                        <td>@o.Libelle</td>
+                        <td>@o.Client?.NomSociete</td>
+                        <td>@o.Utilisateur?.NomComplet</td>
+                        <td class="text-end text-nowrap">
+                            @if (o.StatutValidation == "Rejeté")
+                            {
+                                <s class="text-muted" title="Opération rejetée : exclue des totaux">@o.Montant.ToString("N0")</s> <small class="text-muted">(rejetée)</small>
+                            }
+                            else
+                            {
+                                @o.Montant.ToString("N0")
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+            <tfoot>
+                <tr class="table-success"><th colspan="6">Total encaissements</th><th class="text-end">@Model.TotalEntrees.ToString("N0")</th></tr>
+                <tr class="table-danger"><th colspan="6">Total décaissements</th><th class="text-end">@Model.TotalSorties.ToString("N0")</th></tr>
+                <tr class="table-primary"><th colspan="6">Solde de la période (encaissements − décaissements)</th><th class="text-end">@((Model.TotalEntrees - Model.TotalSorties).ToString("N0"))</th></tr>
+                <tr><th colspan="6">Montant initial des journées</th><th class="text-end">@Model.MontantInitialJournees.ToString("N0")</th></tr>
+                <tr class="table-dark"><th colspan="6">Solde en caisse</th><th class="text-end">@((Model.MontantInitialJournees + Model.TotalEntrees - Model.TotalSorties).ToString("N0"))</th></tr>
+            </tfoot>
+        </table>
+    </div>
 </div>

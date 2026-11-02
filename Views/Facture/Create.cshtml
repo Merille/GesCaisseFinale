@@ -1,64 +1,38 @@
-﻿@model EasytransitCaisse.Models.Facture
 @{
-    ViewData["Title"] = "Factures";
+    ViewData["Title"] = "Nouvelle facture";
+    var clients = (List<EasytransitCaisse.Models.Client>)ViewBag.Clients;
+    dynamic? saisie = ViewBag.Saisie;
+    string numero = saisie?.Numero ?? (string)ViewBag.NumeroPropose;
+    string taux = saisie?.TauxTVA ?? "18";
+    int clientChoisi = saisie?.ClientId ?? 0;
 }
-<div class="container mt-4">
-
-    <div class="card shadow-lg">
-
-        <div class="card-header bg-brand text-white">
-            Nouvelle facture
-        </div>
-
-        <div class="card-body">
-
-            <form method="post">
-
-                <div class="row">
-
-                    <div class="col-md-6 mb-3">
-                        <label>Numéro (*)</label>
-                        <input name="Numero"
-                               class="form-control" required />
-                    </div>
-
-                    <div class="col-md-6 mb-3">
-                        <label>Client (*)</label>
-
-                        <select name="ClientId"
-                                class="form-select" required>
-
-                            @foreach (var client in ViewBag.Clients)
-                            {
-                                <option value="@client.Id">
-                                    @client.NomSociete
-                                </option>
-                            }
-
-                        </select>
-                    </div>
-                   
-                    <div class="col-md-4 mb-3">
-                        <label>TVA (%)</label>
-                        <input name="TauxTVA"
-                               value="0"
-                               class="form-control" />
-                    </div>
-
+<div class="card shadow-sm border-0" style="max-width: 640px;">
+    <div class="card-header bg-brand text-white"><h5 class="mb-0">Nouvelle facture</h5></div>
+    <div class="card-body">
+        <form method="post" action="/Facture/Create">
+            @Html.AntiForgeryToken()
+            @if (!clients.Any())
+            {
+                <div class="alert alert-warning">Créez d'abord un tiers dans <a href="/Client/Index">Tiers</a>.</div>
+            }
+            <div class="row g-3">
+                <div class="col-md-6"><label class="form-label" for="Numero">Numéro</label><input class="form-control" id="Numero" name="Numero" value="@numero" required /></div>
+                <div class="col-md-6"><label class="form-label" for="TauxTVA">Taux de TVA (%)</label><input class="form-control" id="TauxTVA" name="TauxTVA" inputmode="decimal" value="@taux" /></div>
+                <div class="col-12">
+                    <label class="form-label" for="ClientId">Client</label>
+                    <select class="form-select" id="ClientId" name="ClientId" required>
+                        <option value="">-- Choisir un client --</option>
+                        @foreach (var c in clients)
+                        {
+                            <option value="@c.Id" selected="@(clientChoisi == c.Id)">@c.NomSociete</option>
+                        }
+                    </select>
                 </div>
-
-                <div class="text-end">
-
-                    <button class="btn btn-success">
-                        Enregistrer
-                    </button>
-
-                </div>
-
-            </form>
-
-        </div>
-
+            </div>
+            <div class="mt-4 d-flex gap-2">
+                <button type="submit" class="btn btn-primary">Créer et ajouter les lignes</button>
+                <a href="/Facture/Index" class="btn btn-outline-secondary hors-modale">Annuler</a>
+            </div>
+        </form>
     </div>
-
 </div>

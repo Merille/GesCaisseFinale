@@ -1,96 +1,49 @@
 
 @model List<EasytransitCaisse.Models.Client>
-
-@if (TempData["Success"] != null)
-{
-    <div class="alert alert-success alert-dismissible fade show">
-        ✅ @TempData["Success"]
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
+@{
+    ViewData["Title"] = "Tiers";
 }
 
-<!-- Formulaire import caché -->
-<form method="post" asp-action="Import" enctype="multipart/form-data" id="importForm">
-    <input type="file" name="file" accept=".xlsx" id="importFile" style="display:none"
-           onchange="document.getElementById('importForm').submit()" />
-</form>
-<div class="container mt-4">
-    <div class="d-flex justify-content-between mb-3">
-        <h3>Liste des Tiers</h3>
+<div class="d-flex flex-wrap justify-content-end align-items-end gap-2 mb-3">
+    <div class="d-flex gap-2">
+        <form method="post" asp-action="Import" enctype="multipart/form-data">
+            <input type="file" name="file" accept=".xlsx" id="importFile" class="d-none" onchange="this.form.submit()" />
+            <button type="button" class="btn btn-outline-primary" onclick="document.getElementById('importFile').click()"><i class="fas fa-file-import"></i> Importer Excel</button>
+        </form>
+        <a href="/Client/Export" class="btn btn-success"><i class="fas fa-file-excel"></i> Exporter Excel</a>
+        <a href="/Client/Create" class="btn btn-primary" data-modale><i class="fas fa-plus"></i> Nouveau tiers</a>
     </div>
-    <div class="d-flex justify-content-end gap-2">
-        
-        <div class="d-flex gap-2">
-            <button type="button" class="btn btn-outline-primary"
-                    onclick="document.getElementById('importFile').click()">
-                📤 Importer Excel
-            </button>
-            <a href="@Url.Action("Export")" class="btn btn-success">
-                📥 Exporter Excel
-            </a>
-            <a href="/Client/Create" class="btn btn-primary" data-modale>
-                + Nouveau client
-            </a>
-        </div>
-    </div>
-    <br />
-
-    <!-- TABLEAU -->
-    <div class="card shadow-sm">
-        <div class="card-body">
-            <table id="clientsTable" class="table table-hover align-middle mb-0">
-                <thead class="table-dark">
+</div>
+<p class="small text-muted">Import : la première ligne du fichier est un en-tête ; colonnes dans l'ordre Code, Société, Contact, Téléphone, EmailContact, Adresse, Email, Type, FonctionContact, TelephoneContact, CompteGeneral (le plus simple est de partir d'un export).</p>
+<div class="card shadow-sm border-0">
+    <div class="card-body table-responsive">
+        <table id="clientsTable" class="table table-hover align-middle mb-0">
+            <thead class="table-dark"><tr><th>Code</th><th>Société</th><th>Adresse</th><th>Contact</th><th>Fonction</th><th>Téléphone</th><th class="text-center">Type</th><th class="text-center">Actions</th></tr></thead>
+            <tbody>
+                @foreach (var c in Model)
+                {
+                    var badge = c.Type switch { "Client" => "bg-primary", "Fournisseur" => "bg-orange", "Salarié" => "bg-success", "Autre" => "bg-danger", _ => "bg-secondary" };
                     <tr>
-                        <th>Code</th>
-                        <th>Société</th>
-                        <th>Adresse</th>
-                        <th>Contact</th>
-                        <th>Fonction</th>
-                        <th>Téléphone</th>
-                        <th style="text-align:center;">Type</th>
-                        <th style="text-align:center;">Actions</th>
-                        @* <th width="180">Actions</th> *@
+                        <td>@c.CodeClient</td>
+                        <td class="fw-semibold">@c.NomSociete</td>
+                        <td>@c.Adresse</td>
+                        <td>@c.NomContact</td>
+                        <td>@c.FonctionContact</td>
+                        <td>@c.Telephone</td>
+                        <td class="text-center">@if (!string.IsNullOrEmpty(c.Type))
+                            {
+                                <span class="badge @badge">@c.Type</span>
+                            }</td>
+                        <td class="text-center table-actions">
+                            <a href="/Client/Edit/@c.Id" class="btn btn-warning btn-sm">Modifier</a>
+                            <form asp-action="Delete" asp-route-id="@c.Id" method="post" onsubmit="return confirm('Supprimer ce tiers ?');">
+                                <button class="btn btn-danger btn-sm">Supprimer</button>
+                            </form>
+                        </td>
                     </tr>
-                </thead>
-                <tbody>
-                    @foreach (var c in Model)
-                    {
-                        <tr>
-                            <td>@c.CodeClient</td>
-                            <td class="fw-semibold">@c.NomSociete</td>
-                            <td>@c.Adresse</td>
-                            <td>@c.NomContact</td>
-                            <td>@c.FonctionContact</td>
-                            <td>@c.Telephone</td>
-                            <td style="text-align:center;">
-                                @{
-                                    string badgeColor = c.Type switch
-                                    {
-                                        "Client" => "bg-primary",   // bleu
-                                        "Fournisseur" => "bg-orange",    // orange
-                                        "Salarié" => "bg-success",    // vert
-                                        "Autre" => "bg-danger",     // rouge
-                                        _ => "bg-secondary"   // gris par défaut
-                                    };
-                                }
-                                <span class="badge @badgeColor">@c.Type</span>
-                                @* @c.Type *@
-                            </td>
-                            <td style="padding-left:100px;">
-                                <div class="d-flex gap-1">
-                                    <a href="/Client/Edit/@c.Id" class="btn btn-warning btn-sm">Modifier</a>
-                                    <form asp-action="Delete" asp-route-id="@c.Id" method="post" class="d-inline"
-                                          onsubmit="return confirm('Supprimer ce client ?')">
-                                        @Html.AntiForgeryToken()
-                                        <button type="submit" class="btn btn-danger btn-sm">Supprimer</button>
-                                    </form>
-                                </div>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
+                }
+            </tbody>
+        </table>
     </div>
 </div>
 

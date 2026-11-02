@@ -9,7 +9,7 @@
     <input type="hidden" name="ImprimerBons" value="@(Model.ImprimerBons ? "true" : "false")" />
     return;
 }
-<div class="col-md-6 mb-3">
+<div class="col-md-4">
     <label class="form-label" for="TypePointVente">Type de point de vente</label>
     <select class="form-select" id="TypePointVente" name="TypePointVente">
         @foreach (var t in EasytransitCaisse.Controllers.CaisseController.Types)
@@ -19,7 +19,7 @@
     </select>
     <div class="form-text">Restaurant / Bar : plan de salle, commandes sur les tables, bons cuisine / bar.</div>
 </div>
-<div class="col-md-6 mb-3 d-flex align-items-center">
+<div class="col-md-8 d-flex align-items-center">
     <div class="form-check">
         <input class="form-check-input" type="checkbox" value="true" id="ImprimerBons" name="ImprimerBons" checked="@Model.ImprimerBons" />
         <input type="hidden" name="ImprimerBons" value="false" />

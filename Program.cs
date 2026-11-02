@@ -9,6 +9,19 @@ using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage;
 using Rotativa.AspNetCore;
 
+// Affichage à la française, comme la version PHP : milliers séparés par une espace (50 000),
+// dates jj/mm/aaaa, quel que soit le réglage régional du serveur. La décimale reste le point
+// pour que les saisies envoyées par les formulaires et le JavaScript soient lues comme avant.
+var cultureAffichage = (System.Globalization.CultureInfo)System.Globalization.CultureInfo.GetCultureInfo("fr-FR").Clone();
+cultureAffichage.NumberFormat.NumberDecimalSeparator = ".";
+cultureAffichage.NumberFormat.CurrencyDecimalSeparator = ".";
+cultureAffichage.NumberFormat.PercentDecimalSeparator = ".";
+cultureAffichage.NumberFormat.NumberGroupSeparator = " ";
+cultureAffichage.NumberFormat.CurrencyGroupSeparator = " ";
+cultureAffichage.NumberFormat.PercentGroupSeparator = " ";
+System.Globalization.CultureInfo.DefaultThreadCurrentCulture = cultureAffichage;
+System.Globalization.CultureInfo.DefaultThreadCurrentUICulture = cultureAffichage;
+
 // Racine du site : le dossier de démarrage s'il contient wwwroot, sinon le premier
 // dossier parent qui en contient un. Ainsi l'application trouve ses CSS, images et
 // wkhtmltopdf même lancée depuis bin\Debug\net10.0 (profil de lancement inadapté).

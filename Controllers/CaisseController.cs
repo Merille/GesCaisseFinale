@@ -45,9 +45,14 @@ namespace EasytransitCaisse.Controllers
                     ChkDescription = x.c.ChkDescription,
                     StCode = x.c.StCode,
                     TypePointVente = x.c.TypePointVente,
+                    CompteComptable = x.c.CompteComptable,
                     CashierName = u != null ? u.NomComplet : null
                 })
+            .OrderBy(c => c.ChkCode)
             .ToList();
+            ViewBag.Users = _context.Utilisateurs
+                .Select(u => new SelectListItem { Value = u.Id.ToString(), Text = u.NomComplet })
+                .ToList();
 
             return View(caisses);
         }
@@ -96,6 +101,7 @@ namespace EasytransitCaisse.Controllers
 
             _context.Caisses.Add(caisse);
             _context.SaveChanges();
+            TempData["Success"] = "Caisse créée.";
 
             return RedirectToAction(nameof(Index));
         }
@@ -119,6 +125,7 @@ namespace EasytransitCaisse.Controllers
 
         // EDIT - POST
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public IActionResult Edit(Caisse caisse)
         {
             var existing = _context.Caisses.FirstOrDefault(c => c.ID == caisse.ID);
@@ -140,6 +147,7 @@ namespace EasytransitCaisse.Controllers
             existing.ImprimerBons = caisse.ImprimerBons;
 
             _context.SaveChanges();
+            TempData["Success"] = "Caisse modifiée.";
 
             return RedirectToAction("Index");
         }
@@ -153,8 +161,16 @@ namespace EasytransitCaisse.Controllers
 
             if (caisse != null)
             {
-                _context.Caisses.Remove(caisse);
-                _context.SaveChanges();
+                // Comme la version PHP : une caisse qui a des journées est conservée.
+                var nb = _context.JourneesCaisses.Count(j => j.CaisseId == caisse.ID);
+                if (nb > 0)
+                    TempData["Error"] = $"Impossible de supprimer cette caisse : elle a {nb} journée(s) enregistrée(s).";
+                else
+                {
+                    _context.Caisses.Remove(caisse);
+                    _context.SaveChanges();
+                    TempData["Success"] = "Caisse supprimée.";
+                }
             }
 
             return RedirectToAction("Index");
@@ -169,7 +185,7 @@ namespace EasytransitCaisse.Controllers
 
             var journees = _context.JourneesCaisses
                 .Where(x => x.CaisseId == id)
-                .OrderByDescending(x => x.DateOuverture)
+                .OrderByDescending(x => x.DateOuverture).ThenByDescending(x => x.Id)
                 .ToList();
 
             var resultat = new List<dynamic>();
@@ -193,6 +209,7 @@ namespace EasytransitCaisse.Controllers
                 resultat.Add(new
                 {
                     JourneeId = journee.Id,
+                    Numero = journee.NumeroJournee,
                     Date = journee.DateOuverture,
                     DateJournee = journee.DateJournee,
                     Initial = journee.SoldeInitial,
@@ -257,7 +274,7 @@ namespace EasytransitCaisse.Controllers
             // 🔒 BLOQUAGE
             if (journee.Statut == "Cloturee")
             {
-                TempData["Erreur"] =
+                TempData["Error"] =
                     "Cette journée est clôturée. Aucune opération autorisée.";
 
                 return RedirectToAction("Details", new { id = journeeId });

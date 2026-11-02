@@ -41,32 +41,47 @@ namespace EasytransitCaisse.Controllers
             return View(clients); // ← List<Client> directement
         }
 
+        // Champs saisis, nettoyés comme dans la version PHP (texte vide plutôt que null).
+        private static void Copier(Client source, Client cible)
+        {
+            cible.CodeClient = (source.CodeClient ?? "").Trim();
+            cible.NomSociete = (source.NomSociete ?? "").Trim();
+            cible.Adresse = source.Adresse ?? "";
+            cible.Telephone = source.Telephone ?? "";
+            cible.Email = source.Email ?? "";
+            cible.Type = source.Type ?? "";
+            cible.CompteGeneral = source.CompteGeneral ?? "";
+            cible.NomContact = source.NomContact ?? "";
+            cible.FonctionContact = source.FonctionContact ?? "";
+            cible.TelephoneContact = source.TelephoneContact ?? "";
+            cible.EmailContact = source.EmailContact ?? "";
+        }
+
         // CREATE GET
         public IActionResult Create()
         {
-            return View();
+            return View(new Client());
         }
 
         // CREATE POST
         [HttpPost]
-        public IActionResult Create(Client client)
+        [ValidateAntiForgeryToken]
+        public IActionResult Create(Client saisie)
         {
-            Console.WriteLine("POST CREATE EXECUTE");
-            if (!ModelState.IsValid)
+            var client = new Client();
+            Copier(saisie, client);
+            if (client.CodeClient == "" || client.NomSociete == "")
+                TempData["Error"] = "Le code et le nom de la société sont obligatoires.";
+            else if (_context.Clients.Any(c => c.CodeClient == client.CodeClient))
+                TempData["Error"] = $"Le code « {client.CodeClient} » existe déjà.";
+            else
             {
-                var errors = ModelState.Values
-                    .SelectMany(v => v.Errors)
-                    .Select(e => e.ErrorMessage);
-
-                Console.WriteLine(string.Join(",", errors));
-
-                return View(client);
+                _context.Clients.Add(client);
+                _context.SaveChanges();
+                TempData["Success"] = "Tiers créé.";
+                return RedirectToAction("Index");
             }
-
-            _context.Clients.Add(client);
-            _context.SaveChanges();
-
-            return RedirectToAction("Index");
+            return View(client);
         }
 
         // EDIT GET
@@ -80,32 +95,28 @@ namespace EasytransitCaisse.Controllers
 
         // EDIT POST
         [HttpPost]
-        public IActionResult Edit(Client model)
+        [ValidateAntiForgeryToken]
+        public IActionResult Edit(int id, Client saisie)
         {
-            var client = _context.Clients.FirstOrDefault(c => c.Id == model.Id);
-
+            var client = _context.Clients.FirstOrDefault(c => c.Id == id);
             if (client == null)
                 return NotFound();
 
-            client.CodeClient = model.CodeClient;
-            client.NomSociete = model.NomSociete;
-            client.Adresse = model.Adresse;
-            client.Telephone = model.Telephone;
-
-            client.Email = model.Email ?? ""; // 🔥 évite NULL
-            client.Type = model.Type;
-            client.CompteGeneral = model.CompteGeneral;
-            client.NomContact = model.NomContact;
-            client.FonctionContact = model.FonctionContact;
-            client.TelephoneContact = model.TelephoneContact;
-            client.EmailContact = model.EmailContact;
-
+            var verif = new Client();
+            Copier(saisie, verif);
+            if (verif.CodeClient == "" || verif.NomSociete == "")
+            {
+                TempData["Error"] = "Le code et le nom de la société sont obligatoires.";
+                verif.Id = client.Id;
+                return View(verif);
+            }
+            Copier(saisie, client);
             _context.SaveChanges();
-
+            TempData["Success"] = "Tiers modifié.";
             return RedirectToAction("Index");
         }
 
-        // DELETE
+        // DELETE : refusée si le tiers est utilisé (comme la version PHP).
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult Delete(int id)
@@ -114,8 +125,16 @@ namespace EasytransitCaisse.Controllers
 
             if (client != null)
             {
-                _context.Clients.Remove(client);
-                _context.SaveChanges();
+                var utilise = _context.OperationsCaisses.Count(o => o.ClientId == client.Id)
+                            + _context.Factures.Count(f => f.ClientId == client.Id);
+                if (utilise > 0)
+                    TempData["Error"] = "Ce tiers est utilisé par des opérations ou des factures : il ne peut pas être supprimé.";
+                else
+                {
+                    _context.Clients.Remove(client);
+                    _context.SaveChanges();
+                    TempData["Success"] = "Tiers supprimé.";
+                }
             }
 
             return RedirectToAction("Index");
@@ -277,7 +296,7 @@ namespace EasytransitCaisse.Controllers
                 await _context.SaveChangesAsync();
             }
 
-            TempData["Success"] = $"{clients.Count} client(s) importé(s) avec succès.";
+            TempData["Success"] = $"{clients.Count} tiers importé(s) avec succès.";
             if (erreurs.Any())
                 TempData["Erreurs"] = string.Join("|", erreurs);
 

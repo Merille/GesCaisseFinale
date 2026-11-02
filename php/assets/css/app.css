@@ -1,4 +1,4 @@
-/* Compléments propres à la version PHP. */
+/* Compléments communs (versions .NET et PHP). */
 .table-actions { white-space: nowrap; }
 .table-actions form { display: inline; }
 .card-brand > .card-header { background: var(--brand); color: #fff; }

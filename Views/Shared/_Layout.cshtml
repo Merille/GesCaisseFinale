@@ -87,6 +87,7 @@
     <link rel="stylesheet" href="~/css/theme.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/print.css" />
     <link rel="stylesheet" href="~/css/layout.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/app.css" asp-append-version="true" />
     <script>
         // Applique l'état replié du menu avant l'affichage (pas de saut visuel).
         try { if (localStorage.getItem('sidebarReplie') === '1') document.documentElement.classList.add('sidebar-replie'); } catch (e) { }
@@ -340,6 +341,7 @@
         </header>
 
         <div class="page-content">
+            <partial name="_Messages" />
             @RenderBody()
         </div>
 

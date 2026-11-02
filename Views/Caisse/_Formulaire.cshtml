@@ -1,0 +1,51 @@
+@model EasytransitCaisse.Models.Caisse
+@* Formulaire d'une caisse (création, aussi en fenêtre modale, et modification), comme la version PHP. *@
+@{
+    var edition = Model.ID > 0;
+    var titre = edition ? "Modifier la caisse" : "Nouvelle caisse";
+}
+<div class="card shadow-sm border-0" style="max-width: 760px;">
+    <div class="card-header bg-brand text-white"><h5 class="mb-0">@titre</h5></div>
+    <div class="card-body">
+        <form method="post" action="@(edition ? "/Caisse/Edit/" + Model.ID : "/Caisse/Create")">
+            @Html.AntiForgeryToken()
+            @if (edition)
+            {
+                <input type="hidden" name="ID" value="@Model.ID" />
+            }
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label" for="ChkCode">Code</label>
+                    <input class="form-control" id="ChkCode" name="ChkCode" value="@Model.ChkCode" required />
+                </div>
+                <div class="col-md-8">
+                    <label class="form-label" for="ChkDescription">Description</label>
+                    <input class="form-control" id="ChkDescription" name="ChkDescription" value="@Model.ChkDescription" required />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="StCode">StCode</label>
+                    <input class="form-control" id="StCode" name="StCode" value="@Model.StCode" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="CashierDefault">Caissier par défaut</label>
+                    <select class="form-select" id="CashierDefault" name="CashierDefault">
+                        <option value="">-- Choisir un caissier --</option>
+                        @foreach (var user in ViewBag.Users)
+                        {
+                            <option value="@user.Value" selected="@(Model.CashierDefault?.ToString() == user.Value)">@user.Text</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="CompteComptable">Compte comptable (Sage)</label>
+                    <input class="form-control" id="CompteComptable" name="CompteComptable" value="@Model.CompteComptable" placeholder="ex. 571000" />
+                </div>
+                <partial name="_TypePointVente" model="Model" />
+            </div>
+            <div class="mt-4 d-flex gap-2">
+                <button type="submit" class="btn btn-primary">Enregistrer</button>
+                <a href="/Caisse/Index" class="btn btn-outline-secondary hors-modale">Annuler</a>
+            </div>
+        </form>
+    </div>
+</div>

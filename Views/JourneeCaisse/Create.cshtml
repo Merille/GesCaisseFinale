@@ -1,76 +1,27 @@
-﻿@{
-    ViewData["Title"] = "Journées de caisse";
+@{
+    ViewData["Title"] = "Ouvrir une journée";
+    var caisse = ViewBag.Caisse as EasytransitCaisse.Models.Caisse;
 }
-<div class="container mt-4">
-
-    <div class="card shadow-lg">
-
-        <div class="card-header bg-brand text-white">
-            Ouvrir une nouvelle journée
-        </div>
-
-        <div class="card-body">
-            @if (TempData["Erreur"] != null)
-            {
-                <div class="alert alert-danger">
-                    @TempData["Erreur"]
-                </div>
-            }
-            <form method="post">
-
-                <input type="hidden"
-                       name="caisseId"
-                       value="@ViewBag.CaisseId" />
-
-                <div class="row">
-
-                    <div class="col-md-6 mb-3">
-
-                        <label class="form-label">
-                            Date de la journée
-                        </label>
-
-                        <input type="date"
-                               name="dateJournee"
-                               value="@DateTime.Today.ToString("yyyy-MM-dd")"
-                               class="form-control"
-                               required />
-
-                    </div>
-
-                    <div class="col-md-6 mb-3">
-
-                        <label class="form-label">
-                            Montant initial
-                        </label>
-
-                        <input type="number"
-                               step="1"
-                               name="soldeInitial"
-                               value="@(((decimal)ViewBag.SoldeInitialSuggere).ToString("0", System.Globalization.CultureInfo.InvariantCulture))"
-                               class="form-control"
-                               required />
-
-                        <div class="form-text">
-                            Solde actuel de la dernière journée — modifiable si besoin.
-                        </div>
-
-                    </div>
-
-                </div>
-
-                <div class="text-end">
-
-                    <button class="btn btn-success">
-                        Ouvrir la journée
-                    </button>
-
-                </div>
-
-            </form>
-
-        </div>
-
+<div class="card shadow-sm border-0" style="max-width: 560px;">
+    <div class="card-header bg-brand text-white"><h5 class="mb-0">Nouvelle journée — @caisse?.ChkCode · @caisse?.ChkDescription</h5></div>
+    <div class="card-body">
+        <form method="post" action="/JourneeCaisse/Create/@ViewBag.CaisseId">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="caisseId" value="@ViewBag.CaisseId" />
+            <div class="mb-3">
+                <label class="form-label" for="dateJournee">Date de la journée</label>
+                <input type="date" class="form-control" id="dateJournee" name="dateJournee" value="@DateTime.Today.ToString("yyyy-MM-dd")" required />
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="soldeInitial">Solde initial (FCFA)</label>
+                <input class="form-control" id="soldeInitial" name="soldeInitial" inputmode="decimal"
+                       value="@(((decimal)ViewBag.SoldeInitialSuggere).ToString("0", System.Globalization.CultureInfo.InvariantCulture))" required />
+                <div class="form-text">Proposé à partir de la dernière journée de cette caisse (solde compté si elle est clôturée).</div>
+            </div>
+            <div class="mt-4 d-flex gap-2">
+                <button type="submit" class="btn btn-success">Ouvrir la journée</button>
+                <a href="/Caisse/Details/@ViewBag.CaisseId" class="btn btn-outline-secondary hors-modale">Annuler</a>
+            </div>
+        </form>
     </div>
-
 </div>

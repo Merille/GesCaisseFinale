@@ -23,10 +23,8 @@ namespace EasytransitCaisse.Controllers
             _context = context;
         }
 
-        public IActionResult Index()
-        {
-            return View();
-        }
+        // Page « Rapports » : le rapport des opérations (la vue Index n'existe pas).
+        public IActionResult Index() => RedirectToAction(nameof(Operations));
 
         [HttpGet]
         public IActionResult GetOperations(DateTime? dateDebut, DateTime? dateFin, string type, int? caisseId)
@@ -39,7 +37,7 @@ namespace EasytransitCaisse.Controllers
                 query = query.Where(x => x.DateOperation >= dateDebut);
 
             if (dateFin != null)
-                query = query.Where(x => x.DateOperation <= dateFin);
+                query = query.Where(x => x.DateOperation < dateFin.Value.Date.AddDays(1));
 
             if (!string.IsNullOrEmpty(type))
                 query = query.Where(x => x.TypeOperation == type);
@@ -75,7 +73,7 @@ namespace EasytransitCaisse.Controllers
                 query = query.Where(x => x.DateOperation >= dateDebut.Value);
 
             if (dateFin.HasValue)
-                query = query.Where(x => x.DateOperation <= dateFin.Value);
+                query = query.Where(x => x.DateOperation < dateFin.Value.Date.AddDays(1));
 
             if (caisseId.HasValue)
                 query = query.Where(x => x.JourneeCaisse.CaisseId == caisseId);
@@ -111,7 +109,7 @@ namespace EasytransitCaisse.Controllers
                     (!caisseId.HasValue || j.CaisseId == caisseId.Value))
                 .Sum(j => (decimal?)j.SoldeInitial) ?? 0;
 
-            ViewBag.Caisses = new SelectList(_context.Caisses, "ID", "ChkDescription");
+            ViewBag.Caisses = _context.Caisses.OrderBy(c => c.ChkDescription).ToList();
 
             return View(model);
         }
@@ -131,7 +129,7 @@ namespace EasytransitCaisse.Controllers
                 query = query.Where(x => x.DateOperation >= dateDebut);
 
             if (dateFin.HasValue)
-                query = query.Where(x => x.DateOperation <= dateFin);
+                query = query.Where(x => x.DateOperation < dateFin.Value.Date.AddDays(1));
 
             if (caisseId.HasValue)
                 query = query.Where(x => x.JourneeCaisse.CaisseId == caisseId);
@@ -197,7 +195,7 @@ namespace EasytransitCaisse.Controllers
                 query = query.Where(x => x.DateOperation >= dateDebut.Value);
 
             if (dateFin.HasValue)
-                query = query.Where(x => x.DateOperation <= dateFin.Value);
+                query = query.Where(x => x.DateOperation < dateFin.Value.Date.AddDays(1));
 
             if (caisseId.HasValue)
                 query = query.Where(x => x.JourneeCaisse.CaisseId == caisseId);

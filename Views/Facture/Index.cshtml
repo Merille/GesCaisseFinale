@@ -3,55 +3,34 @@
 @{
     ViewData["Title"] = "Factures";
 }
-<div class="container mt-4">
-
-    <div class="d-flex justify-content-between mb-3">
-        <h3>Liste des factures</h3>
-
-        <a href="/Facture/Create"
-               class="btn btn-primary" data-modale>
-            Nouvelle facture
-        </a>
-    </div>
-
-    <div class="card shadow-sm">
-
-        <table id="facturesTable" class="table table-hover mb-0">
-
-            <thead class="table-dark">
-                <tr>
-                    <th>Numéro</th>
-                    <th>Date</th>
-                    <th>Montant TTC</th>
-                    <th>Statut</th>
-                    <th width="120">Actions</th>
-                </tr>
-            </thead>
-
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">Factures</h4>
+    <a href="/Facture/Create" class="btn btn-primary" data-modale><i class="fas fa-plus"></i> Nouvelle facture</a>
+</div>
+<div class="card shadow-sm border-0">
+    <div class="card-body table-responsive">
+        <table id="facturesTable" class="table table-hover align-middle mb-0">
+            <thead class="table-dark"><tr><th>Numéro</th><th>Date</th><th>Client</th><th class="text-end">HT</th><th class="text-end">TVA</th><th class="text-end">TTC</th><th>Statut</th><th></th></tr></thead>
             <tbody>
-
-                @foreach (var item in Model)
+                @foreach (var f in Model)
                 {
                     <tr>
-                        <td>@item.Numero</td>
-                        <td data-order="@item.DateFacture.ToString("yyyy-MM-dd")">@item.DateFacture.ToShortDateString()</td>
-                        <td>@item.MontantTTC.ToString("N0")</td>
-                        <td>@item.Statut</td>
-                        <td>
-                            <a href="/Facture/Edit/@item.Id"
-                                   class="btn btn-primary btn-sm">
-                                Ouvrir
-                            </a>
+                        <td class="fw-semibold">@f.Numero</td>
+                        <td data-order="@f.DateFacture.ToString("yyyy-MM-dd")-@f.Id.ToString("D9")">@f.DateFacture.ToString("dd/MM/yyyy")</td>
+                        <td>@f.Client?.NomSociete</td>
+                        <td class="text-end" data-order="@f.MontantHT.ToString(System.Globalization.CultureInfo.InvariantCulture)">@f.MontantHT.ToString("N0")</td>
+                        <td class="text-end" data-order="@f.MontantTVA.ToString(System.Globalization.CultureInfo.InvariantCulture)">@f.MontantTVA.ToString("N0")</td>
+                        <td class="text-end fw-bold" data-order="@f.MontantTTC.ToString(System.Globalization.CultureInfo.InvariantCulture)">@f.MontantTTC.ToString("N0")</td>
+                        <td><span class="badge @(f.Statut == "Validée" ? "bg-success" : "bg-secondary")">@f.Statut</span></td>
+                        <td class="text-end table-actions">
+                            <a href="/Facture/Edit/@f.Id" class="btn btn-primary btn-sm">Ouvrir</a>
+                            <a href="/Facture/Print/@f.Id" class="btn btn-outline-primary btn-sm"><i class="fas fa-print"></i></a>
                         </td>
                     </tr>
                 }
-
             </tbody>
-
         </table>
-
     </div>
-
 </div>
 
 @section Scripts {
@@ -64,7 +43,7 @@
                 pageLength: 20,
                 lengthMenu: [20, 50, 100],
                 order: [[1, 'desc']],
-                columnDefs: [{ orderable: false, targets: 4 }],  // colonne Actions
+                columnDefs: [{ orderable: false, targets: -1 }],  // colonne Actions
                 dom: '<"d-flex justify-content-between align-items-center mb-3"lf>rtip'
             });
         });

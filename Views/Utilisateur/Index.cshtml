@@ -1,67 +1,51 @@
-﻿@model List<EasytransitCaisse.Models.Utilisateur>
+@model List<EasytransitCaisse.Models.Utilisateur>
 @{
     ViewData["Title"] = "Utilisateurs";
+    var superAdmin = ViewBag.IsSuperAdmin == true;
 }
-<div class="container mt-4">
-
-    <div class="d-flex justify-content-between mb-3">
-        <h3>Liste des Utilisateurs</h3>
-
-        <a href="/Utilisateur/Create" class="btn btn-primary" data-modale>
-            + Nouvel utilisateur
-        </a>
-    </div>
-
-    <div class="card shadow-sm">
-
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">Utilisateurs</h4>
+    <a href="/Utilisateur/Create" class="btn btn-primary" data-modale><i class="fas fa-plus"></i> Nouvel utilisateur</a>
+</div>
+<div class="card shadow-sm border-0">
+    <div class="card-body table-responsive">
         <table id="UsersTable" class="table table-hover align-middle mb-0">
-            @* <table class="table table-hover align-middle mb-0"> *@
-            <thead class="table-dark">
-                <tr>
-                    <th>Nom utilisateur</th>
-                    <th>Nom complet</th>
-                    <th>Profil</th>
-                    <th>Droits</th>
-                    <th width="180">Actions</th>
-                </tr>
-            </thead>
-
+            <thead class="table-dark"><tr><th>Nom utilisateur</th><th>Nom complet</th><th>Profil</th>@if (superAdmin)
+                {
+                    <th>Société</th>
+                }<th>Droits</th><th class="text-center">Actions</th></tr></thead>
             <tbody>
                 @foreach (var u in Model)
                 {
                     <tr>
                         <td>@u.NomUtilisateur</td>
                         <td>@u.NomComplet</td>
-                        <td>
-                            <span class="badge bg-info">@u.Profil</span>
-                        </td>
-                        <td>
-                            @if (u.PeutValiderOperations)
+                        <td><span class="badge bg-info text-dark">@u.Profil</span></td>
+                        @if (superAdmin)
+                        {
+                            <td>@if (u.Tenant != null)
+                                {
+                                    @u.Tenant.Nom
+                                }
+                                else
+                                {
+                                    <span class="text-muted">Toutes</span>
+                                }</td>
+                        }
+                        <td>@if (u.PeutValiderOperations)
                             {
-                                <span class="badge bg-success">Validation caisse</span>
-                            }
-                        </td>
-                        <td>
-                            <div class="d-flex gap-1">
-                                <a href="/Utilisateur/Edit/@u.Id" class="btn btn-warning btn-sm">
-                                    Modifier
-                                </a>
-
-                                <form asp-action="Delete" asp-route-id="@u.Id" method="post" class="d-inline"
-                                      onsubmit="return confirm('Supprimer ?')">
-                                    @Html.AntiForgeryToken()
-                                    <button type="submit" class="btn btn-danger btn-sm">
-                                        Supprimer
-                                    </button>
-                                </form>
-                            </div>
+                                <span class="badge bg-success">Peut valider / rejeter</span>
+                            }</td>
+                        <td class="text-center table-actions">
+                            <a href="/Utilisateur/Edit/@u.Id" class="btn btn-warning btn-sm">Modifier</a>
+                            <form asp-action="Delete" asp-route-id="@u.Id" method="post" onsubmit="return confirm('Supprimer cet utilisateur ?');">
+                                <button class="btn btn-danger btn-sm">Supprimer</button>
+                            </form>
                         </td>
                     </tr>
                 }
             </tbody>
-
         </table>
-
     </div>
 </div>
 
@@ -69,15 +53,11 @@
     <script>
         $(document).ready(function () {
             $('#UsersTable').DataTable({
-                language: {
-                    url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/fr-FR.json'
-                },
+                language: { url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/fr-FR.json' },
                 pageLength: 10,
                 lengthMenu: [10, 25, 50, 100],
-                order: [[1, 'asc']], // Tri par défaut sur Société
-                columnDefs: [
-                    { orderable: false, targets: 4 } // Colonne Actions non triable
-                ],
+                order: [[1, 'asc']],
+                columnDefs: [{ orderable: false, targets: -1 }],
                 dom: '<"d-flex justify-content-between align-items-center mb-3"lf>rtip'
             });
         });

@@ -14,7 +14,6 @@
     int NbVariantes(EasytransitCaisse.Models.Produit p) => variantes.TryGetValue(p.Id, out var v) ? v.Nb : 0;
 }
 
-<partial name="_Messages" />
 
 <form method="post" asp-action="Import" enctype="multipart/form-data" id="importProduitsForm">
     <input type="file" name="file" accept=".xlsx" id="importProduits" class="d-none"

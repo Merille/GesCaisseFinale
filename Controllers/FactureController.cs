@@ -20,31 +20,53 @@ namespace EasytransitCaisse.Controllers
 
         public IActionResult Index()
         {
-            var factures = _context.Factures.ToList();
+            var factures = _context.Factures.Include(f => f.Client)
+                .OrderByDescending(f => f.DateFacture).ThenByDescending(f => f.Id).ToList();
             return View(factures);
+        }
+
+        // Clients et numéro proposé (FAC-AAAA-0001, suivant le nombre de factures de l'année), comme la version PHP.
+        private void DonneesCreation()
+        {
+            ViewBag.Clients = _context.Clients.OrderBy(x => x.NomSociete).ToList();
+            var n = _context.Factures.Count(f => f.DateFacture.Year == DateTime.Today.Year) + 1;
+            ViewBag.NumeroPropose = $"FAC-{DateTime.Today.Year}-{n:D4}";
         }
 
         public IActionResult Create()
         {
-            ViewBag.Clients = _context.Clients
-                .OrderBy(x => x.NomSociete)
-                .ToList();
-
+            DonneesCreation();
             return View();
         }
 
         [HttpPost]
-        public IActionResult Create(Facture facture)
+        [ValidateAntiForgeryToken]
+        public IActionResult Create(int clientId, string? numero, string? tauxTVA)
         {
-            facture.DateFacture = DateTime.Now;
-            facture.Statut = "Brouillon";
-
+            numero = (numero ?? "").Trim();
+            string? erreur = !_context.Clients.Any(c => c.Id == clientId) ? "Choisissez un client."
+                : numero == "" ? "Le numéro de facture est obligatoire."
+                : _context.Factures.Any(f => f.Numero == numero) ? $"Le numéro « {numero} » existe déjà."
+                : null;
+            if (erreur != null)
+            {
+                TempData["Error"] = erreur;
+                DonneesCreation();
+                ViewBag.Saisie = new { ClientId = clientId, Numero = numero, TauxTVA = tauxTVA };
+                return View();
+            }
+            var facture = new Facture
+            {
+                Numero = numero,
+                ClientId = clientId,
+                TauxTVA = MontantHelper.Parse(tauxTVA),
+                DateFacture = DateTime.Now,
+                Statut = "Brouillon"
+            };
             _context.Factures.Add(facture);
             _context.SaveChanges();
 
-            return RedirectToAction(
-                "Edit",
-                new { id = facture.Id });
+            return RedirectToAction("Edit", new { id = facture.Id });
         }
 
         public IActionResult Edit(int id)

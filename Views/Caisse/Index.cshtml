@@ -5,82 +5,57 @@
 @{
     ViewData["Title"] = "Caisses";
     var modulePointVente = await EasytransitCaisse.Services.ModulePointVenteFilter.ActifAsync(DbContext, TenantProvider.TenantId);
+    var admin = User.HasClaim(EasytransitCaisse.Services.AppClaimTypes.Profil, "Admin") || User.HasClaim(EasytransitCaisse.Services.AppClaimTypes.Profil, "SuperAdmin");
 }
-<div class="container mt-4">
-    <div class="d-flex justify-content-between mb-3">
-        <h3 class="fw-bold">Gestion des Caisses</h3>
-    </div>
-    <div class="d-flex justify-content-end gap-2">
-        @* <h3 class="fw-bold">Gestion des Caisses</h3> *@
-        <a href="/Caisse/PrintCaisses"
-           class="btn btn-outline-primary">
-            Imprimer PDF
-        </a>
-        <a href="/Caisse/Create" class="btn btn-primary" data-modale>
-            + Nouvelle Caisse
-        </a>
-    </div>
-    <br />
-
-    <div class="card shadow-sm">
-
+<div class="d-flex justify-content-end gap-2 mb-3">
+    <a href="/Caisse/PrintCaisses" class="btn btn-outline-primary"><i class="fas fa-print"></i> Imprimer</a>
+    <a href="/Caisse/Create" class="btn btn-primary" data-modale><i class="fas fa-plus"></i> Nouvelle caisse</a>
+</div>
+<div class="card shadow-sm border-0">
+    <div class="card-body">
         <table id="caissesTable" class="table table-hover align-middle mb-0">
-
             <thead class="table-dark">
-                <tr>
-                    <th>Code</th>
-                    <th>Description</th>
-                    <th>Type</th>
-                    <th>StCode</th>
-                    <th>Caissier par défaut</th>
-                    <th style="text-align: center;" width="280">Actions</th>
-                </tr>
+                <tr><th>Code</th><th>Description</th><th>Type</th><th>StCode</th><th>Caissier par défaut</th><th>Compte comptable</th><th class="text-center">Actions</th></tr>
             </thead>
-
             <tbody>
                 @foreach (var item in Model)
                 {
+                    var type = item.TypePointVente ?? "Boutique";
                     <tr>
                         <td class="fw-semibold">@item.ChkCode</td>
                         <td>@item.ChkDescription</td>
                         <td>
-                            <span class="badge @(item.TypePointVente == "Boutique" ? "bg-secondary" : item.TypePointVente == "Bar" ? "bg-info text-dark" : "bg-warning text-dark")">
-                                <i class="fas @(item.TypePointVente == "Boutique" ? "fa-store" : item.TypePointVente == "Bar" ? "fa-martini-glass" : "fa-utensils")"></i> @EasytransitCaisse.Controllers.CaisseController.Libelle(item.TypePointVente)
+                            <span class="badge @(type == "Boutique" ? "bg-secondary" : type == "Bar" ? "bg-info text-dark" : "bg-warning text-dark")">
+                                <i class="fas @(type == "Boutique" ? "fa-store" : type == "Bar" ? "fa-martini-glass" : "fa-utensils")"></i> @EasytransitCaisse.Controllers.CaisseController.Libelle(type)
                             </span>
                         </td>
                         <td>@item.StCode</td>
                         <td>
-                            <span class="badge bg-info text-dark">
+                            @if (string.IsNullOrEmpty(item.CashierName))
+                            {
+                                <span class="text-muted">—</span>
+                            }
+                            else
+                            {
                                 @item.CashierName
-                            </span>
+                            }
                         </td>
-                        <td>
-                            <a href="/Caisse/Details/@item.ID"
-                                   class="btn btn-success btn-sm">
-                                Ouvrir
-                            </a>
-                            @if (item.TypePointVente != "Boutique" && modulePointVente && (User.HasClaim(EasytransitCaisse.Services.AppClaimTypes.Profil, "Admin") || User.HasClaim(EasytransitCaisse.Services.AppClaimTypes.Profil, "SuperAdmin")))
+                        <td>@item.CompteComptable</td>
+                        <td class="text-center table-actions">
+                            <a href="/Caisse/Details/@item.ID" class="btn btn-primary btn-sm">Journées</a>
+                            @if (type != "Boutique" && admin && modulePointVente)
                             {
                                 <a href="/Salle/Index?caisse=@item.ID" class="btn btn-info btn-sm"><i class="fas fa-chair"></i> Plan de salle</a>
                             }
-                            <a href="/Caisse/Edit/@item.ID" class="btn btn-warning btn-sm">
-                                Modifier
-                            </a>
-
-                            <form asp-action="Delete" asp-route-id="@item.ID" method="post" class="d-inline"
-                                  onsubmit="return confirm('Supprimer cette caisse ?')">
-                                @Html.AntiForgeryToken()
-                                <button type="submit" class="btn btn-danger btn-sm">
-                                    Supprimer
-                                </button>
+                            <a href="/Caisse/Edit/@item.ID" class="btn btn-warning btn-sm">Modifier</a>
+                            <form asp-action="Delete" asp-route-id="@item.ID" method="post" onsubmit="return confirm('Supprimer cette caisse ?');">
+                                <button class="btn btn-danger btn-sm">Supprimer</button>
                             </form>
                         </td>
                     </tr>
                 }
             </tbody>
-
         </table>
-
     </div>
 </div>
 
@@ -88,15 +63,11 @@
     <script>
         $(document).ready(function () {
             $('#caissesTable').DataTable({
-                language: {
-                    url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/fr-FR.json'
-                },
+                language: { url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/fr-FR.json' },
                 pageLength: 10,
                 lengthMenu: [10, 25, 50, 100],
                 order: [[1, 'asc']],
-                columnDefs: [
-                    { orderable: false, targets: 5 }
-                ],
+                columnDefs: [{ orderable: false, targets: -1 }],
                 dom: '<"d-flex justify-content-between align-items-center mb-3"lf>rtip'
             });
         });

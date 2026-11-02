@@ -5,7 +5,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace EasytransitCaisse.Controllers
 {
-    // Réservé aux profils Admin et SuperAdmin.
+    // Modes de paiement (espèces, chèque, mobile money...), comme la version PHP :
+    // création et modification dans la même fenêtre (Save). Réservé aux profils Admin et SuperAdmin.
     [Authorize(Policy = "Admin")]
     public class ModePaiementController : Controller
     {
@@ -18,33 +19,31 @@ namespace EasytransitCaisse.Controllers
 
         public IActionResult Index()
         {
-            var modes = _context.ModesPaiement.OrderBy(m => m.Libelle).ToList();
-            return View(modes);
+            return View(_context.ModesPaiement.OrderBy(m => m.Libelle).ToList());
         }
 
+        // Création (sans Id) ou modification (avec Id).
         [HttpPost]
-        public IActionResult Create(ModePaiement mode)
+        [ValidateAntiForgeryToken]
+        public IActionResult Save(int? id, string? code, string? libelle, bool actif)
         {
-            _context.ModesPaiement.Add(mode);
-            _context.SaveChanges();
-            TempData["Success"] = "Mode de paiement créé avec succès.";
-            return RedirectToAction("Index");
-        }
-
-        [HttpPost]
-        public IActionResult Edit(ModePaiement mode)
-        {
-            var existing = _context.ModesPaiement.Find(mode.Id);
-
-            if (existing == null)
-                return NotFound();
-
-            existing.Code = mode.Code;
-            existing.Libelle = mode.Libelle;
-            existing.Actif = mode.Actif;
-
-            _context.SaveChanges();
-            TempData["Success"] = "Mode de paiement modifié avec succès.";
+            if (id is > 0)
+            {
+                var mode = _context.ModesPaiement.FirstOrDefault(m => m.Id == id);
+                if (mode == null)
+                    return NotFound();
+                mode.Code = code ?? "";
+                mode.Libelle = libelle ?? "";
+                mode.Actif = actif;
+                _context.SaveChanges();
+                TempData["Success"] = "Mode de paiement modifié avec succès.";
+            }
+            else
+            {
+                _context.ModesPaiement.Add(new ModePaiement { Code = code ?? "", Libelle = libelle ?? "", Actif = actif });
+                _context.SaveChanges();
+                TempData["Success"] = "Mode de paiement créé avec succès.";
+            }
             return RedirectToAction("Index");
         }
 
@@ -52,14 +51,18 @@ namespace EasytransitCaisse.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult Delete(int id)
         {
-            var mode = _context.ModesPaiement.Find(id);
-
+            var mode = _context.ModesPaiement.FirstOrDefault(m => m.Id == id);
             if (mode != null)
             {
-                _context.ModesPaiement.Remove(mode);
-                _context.SaveChanges();
+                if (_context.OperationsCaisses.Any(o => o.ModePaiementId == id))
+                    TempData["Error"] = "Ce mode de paiement est utilisé par des opérations : désactivez-le plutôt que de le supprimer.";
+                else
+                {
+                    _context.ModesPaiement.Remove(mode);
+                    _context.SaveChanges();
+                    TempData["Success"] = "Mode de paiement supprimé.";
+                }
             }
-
             return RedirectToAction("Index");
         }
     }
