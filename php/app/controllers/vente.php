@@ -45,16 +45,11 @@ function vente_lignes(int $id): array
 function vente_index(): void
 {
     $journee = (int) get('journee', 0);
-    $search = (string) get('search', '');
     $where = tf('cmd');
     $params = [];
     if ($journee > 0) {
         $where .= ' AND cmd.JourneeCaisseId = ?';
         $params[] = $journee;
-    }
-    if ($search !== '') {
-        $where .= ' AND (cmd.Numero LIKE ? OR cl.NomSociete LIKE ?)';
-        array_push($params, "%$search%", "%$search%");
     }
     $from = ' FROM CommandesPos cmd
               JOIN JourneesCaisses j ON j.Id = cmd.JourneeCaisseId
@@ -62,19 +57,16 @@ function vente_index(): void
               LEFT JOIN Clients cl ON cl.Id = cmd.ClientId
               LEFT JOIN Utilisateurs u ON u.Id = cmd.UtilisateurId
               WHERE ' . $where;
-    $pagination = paginer((int) qv('SELECT COUNT(*)' . $from, $params), 'vente/index',
-        ['journee' => $journee ?: null, 'search' => $search], 'Ventes');
     $ventes = q(
         'SELECT cmd.*, c.ChkCode, cl.NomSociete AS Client, u.NomComplet AS Vendeur' . $from
-        . ' ORDER BY cmd.DateCommande DESC, cmd.Id DESC' . $pagination['limite'],
+        . ' ORDER BY cmd.DateCommande DESC, cmd.Id DESC',
         $params
     );
     $infoJournee = $journee ? q1(
         'SELECT j.*, c.ChkCode FROM JourneesCaisses j JOIN Caisses c ON c.ID = j.CaisseId WHERE j.Id = ? AND ' . tf('j'), [$journee]
     ) : null;
     render('vente/index', [
-        'ventes' => $ventes, 'pagination' => $pagination, 'search' => $search,
-        'journee' => $journee, 'infoJournee' => $infoJournee,
+        'ventes' => $ventes, 'journee' => $journee, 'infoJournee' => $infoJournee,
     ]);
 }
 

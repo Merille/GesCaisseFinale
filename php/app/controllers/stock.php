@@ -40,12 +40,9 @@ function stock_index(): void
     }
     $from = ' FROM MouvementsStock m JOIN Produits p ON p.Id = m.ProduitId
               LEFT JOIN Utilisateurs u ON u.Id = m.UtilisateurId WHERE ' . $where;
-    $pagination = paginer((int) qv('SELECT COUNT(*)' . $from, $params), 'stock/index',
-        ['produit' => $produit ?: null, 'type' => $type, 'du' => $du, 'au' => $au], 'Mouvements');
     render('stock/index', [
         'mouvements' => q('SELECT m.*, p.Code, p.Nom, u.NomComplet AS Utilisateur' . $from
-            . ' ORDER BY m.DateMouvement DESC, m.Id DESC' . $pagination['limite'], $params),
-        'pagination' => $pagination,
+            . ' ORDER BY m.DateMouvement DESC, m.Id DESC LIMIT 2000', $params),
         'produits' => q('SELECT Id, Code, Nom FROM Produits WHERE SuiviStock = 1 AND EstModele = 0 AND ' . tf() . ' ORDER BY Nom'),
         'filtres' => ['produit' => $produit, 'type' => $type, 'du' => $du, 'au' => $au],
         'alertes' => q(

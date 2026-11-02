@@ -198,6 +198,9 @@ $badge = $nbJourneesOuvertes > 0
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 <script>
     // Menu latéral replié / déplié, mémorisé dans le navigateur.
     function basculerMenu() {
@@ -227,6 +230,7 @@ $badge = $nbJourneesOuvertes > 0
     });
 </script>
 <script src="<?= asset('assets/js/vues.js') ?>"></script>
+<script src="<?= asset('assets/js/listes.js') ?>"></script>
 <?= $scripts ?? '' ?>
 </body>
 </html>

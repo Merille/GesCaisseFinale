@@ -1,15 +1,13 @@
 <?php $titre = 'Produits'; ?>
 <div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mb-3">
-    <form method="get" action="index.php" class="d-flex flex-wrap gap-2">
+    <form method="get" action="index.php" class="d-flex gap-2">
         <input type="hidden" name="r" value="produit/index">
-        <input name="search" class="form-control" placeholder="Rechercher (nom, code, code-barres)" value="<?= h($search) ?>" style="min-width:280px;">
-        <select name="categorie" class="form-select" style="width:auto;" onchange="this.form.submit()">
+        <select name="categorie" class="form-select" style="width:auto;" onchange="this.form.submit()" aria-label="Catégorie">
             <option value="">Toutes les catégories</option>
             <?php foreach ($categories as $c): ?>
                 <option value="<?= (int) $c['Id'] ?>" <?= $categorie === (int) $c['Id'] ? 'selected' : '' ?>><?= h($c['Nom']) ?></option>
             <?php endforeach; ?>
         </select>
-        <button class="btn btn-outline-primary" aria-label="Rechercher"><i class="fa fa-search"></i></button>
     </form>
     <div class="d-flex flex-wrap gap-2">
         <div class="btn-group" role="group" aria-label="Affichage" data-vues="produits">
@@ -21,7 +19,7 @@
             <input type="file" name="file" accept=".xlsx" id="importProduits" class="d-none" onchange="this.form.submit()">
             <button type="button" class="btn btn-outline-primary" onclick="document.getElementById('importProduits').click()"><i class="fa fa-file-import"></i> Importer Excel</button>
         </form>
-        <a href="<?= h(url('produit/export', ['search' => $search, 'categorie' => $categorie ?: null])) ?>" class="btn btn-success"><i class="fa fa-file-excel"></i> Exporter Excel</a>
+        <a href="<?= h(url('produit/export', ['categorie' => $categorie ?: null])) ?>" class="btn btn-success"><i class="fa fa-file-excel"></i> Exporter Excel</a>
         <a href="<?= h(url('produit/create')) ?>" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalCreation"><i class="fa fa-plus"></i> Nouveau produit</a>
     </div>
 </div>
@@ -29,25 +27,24 @@
 <?php if ($nbAlertes > 0): ?>
     <div class="alert alert-warning py-2"><i class="fa fa-triangle-exclamation"></i> <?= $nbAlertes ?> produit(s) au niveau ou sous le seuil d'alerte de stock. <a href="<?= h(url('stock/index')) ?>">Voir le stock</a></div>
 <?php endif; ?>
-<div class="card shadow-sm border-0" data-vue-de="produits" data-vue="liste">
+<div class="card shadow-sm border-0">
     <div class="card-body table-responsive">
-        <table class="table table-hover align-middle mb-0">
+        <table id="produitsTable" class="table table-hover align-middle mb-0" data-vue-de="produits" data-vue="liste">
             <thead class="table-dark"><tr><th>Code</th><th>Produit</th><th>Catégorie</th><th>Code-barres</th><th class="text-end">Prix TTC</th><th>Taxes</th><th class="text-end">Stock</th><th class="text-center">Statut</th><th class="text-center">Actions</th></tr></thead>
             <tbody>
-            <?php if (!$produits): ?><tr><td colspan="9" class="text-center text-muted py-4">Aucun produit.</td></tr><?php endif; ?>
             <?php foreach ($produits as $p):
                 // Modèle à variantes : stock total de ses variantes actives.
                 if ($p['EstModele']) { $p['StockActuel'] = $p['StockVariantes']; }
                 $alerte = !$p['EstModele'] && $p['SuiviStock'] && $p['SeuilAlerte'] !== null && (float) $p['StockActuel'] <= (float) $p['SeuilAlerte'];
                 $badgeVariantes = $p['EstModele'] ? ' <span class="badge text-bg-light border">' . (int) $p['NbVariantes'] . ' variante' . ((int) $p['NbVariantes'] > 1 ? 's' : '') . '</span>' : '' . (!empty($p['EstCombo']) ? ' <span class="badge text-bg-warning"><i class="fa fa-utensils"></i> Combo</span>' : ''); ?>
-                <tr>
+                <tr data-id="<?= (int) $p['Id'] ?>">
                     <td class="fw-semibold"><?= h($p['Code']) ?></td>
                     <td><div class="d-flex align-items-center gap-2"><?php if ($img = url_image_produit($p)): ?><img src="<?= h($img) ?>" alt="" class="vignette-image vignette-petite" loading="lazy"><?php endif; ?><span><?= h($p['Nom']) ?><?= $badgeVariantes ?></span></div></td>
                     <td><?php if ($p['Categorie']): ?><span class="pastille-categorie" style="background: <?= h($p['Couleur']) ?>"></span> <?= h($p['Categorie']) ?><?php else: ?><span class="text-muted">—</span><?php endif; ?></td>
                     <td class="text-muted small"><?= h($p['CodeBarres']) ?></td>
-                    <td class="text-end fw-semibold text-nowrap"><?= fcfa($p['PrixVente']) ?><?php if ($p['Unite'] !== 'Unité'): ?> <span class="small fw-normal text-muted">/ <?= h($p['Unite']) ?></span><?php endif; ?></td>
+                    <td class="text-end fw-semibold text-nowrap" data-order="<?= (float) $p['PrixVente'] ?>"><?= fcfa($p['PrixVente']) ?><?php if ($p['Unite'] !== 'Unité'): ?> <span class="small fw-normal text-muted">/ <?= h($p['Unite']) ?></span><?php endif; ?></td>
                     <td class="text-nowrap"><?php if ($p['Taxes']): ?><?= h($p['Taxes']) ?> <span class="text-muted small">· <?= quantite_fr($p['TauxTVA']) ?> %</span><?php else: ?><span class="text-muted">Aucune</span><?php endif; ?></td>
-                    <td class="text-end text-nowrap">
+                    <td class="text-end text-nowrap" data-order="<?= $p['SuiviStock'] ? (float) $p['StockActuel'] : -1 ?>">
                         <?php if (!$p['SuiviStock']): ?><span class="text-muted small">Non suivi</span>
                         <?php else: ?><span class="<?= $alerte ? 'badge bg-danger' : '' ?>" <?= $alerte ? 'title="Stock au niveau ou sous le seuil d\'alerte"' : '' ?>><?= quantite_fr($p['StockActuel']) ?></span><?php endif; ?>
                     </td>
@@ -63,17 +60,12 @@
             <?php endforeach; ?>
             </tbody>
         </table>
-    </div>
-</div>
-
-<div class="d-none" data-vue-de="produits" data-vue="cartes">
-    <?php if (!$produits): ?><div class="card shadow-sm border-0"><div class="card-body text-center text-muted py-4">Aucun produit.</div></div><?php endif; ?>
-    <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xxl-4 g-3">
+    <div id="produitsCartes" class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xxl-4 g-3 d-none" data-vue-de="produits" data-vue="cartes">
         <?php foreach ($produits as $p):
             if ($p['EstModele']) { $p['StockActuel'] = $p['StockVariantes']; }
             $alerte = !$p['EstModele'] && $p['SuiviStock'] && $p['SeuilAlerte'] !== null && (float) $p['StockActuel'] <= (float) $p['SeuilAlerte'];
             $badgeVariantes = $p['EstModele'] ? ' <span class="badge text-bg-light border">' . (int) $p['NbVariantes'] . ' variante' . ((int) $p['NbVariantes'] > 1 ? 's' : '') . '</span>' : '' . (!empty($p['EstCombo']) ? ' <span class="badge text-bg-warning"><i class="fa fa-utensils"></i> Combo</span>' : ''); ?>
-            <div class="col">
+            <div class="col" data-id="<?= (int) $p['Id'] ?>">
                 <article class="carte-liste h-100 d-flex flex-column" style="--couleur: <?= h($p['Couleur'] ?: '#999997') ?>">
                     <div class="p-3 d-flex flex-column gap-2 flex-grow-1">
                         <div class="d-flex justify-content-between align-items-start gap-2">
@@ -106,7 +98,37 @@
             </div>
         <?php endforeach; ?>
     </div>
+    </div>
 </div>
-<?= partial('partials/pagination', $pagination) ?>
 
 <?= partial('produit/form', ['produit' => ['SuiviStock' => 1, 'Actif' => 1, 'Unite' => 'Unité', 'TaxeIds' => taxes_par_defaut()], 'edition' => false, 'categories' => $categories, 'taxes' => $taxes, 'modale' => true]) ?>
+<?php ob_start(); ?>
+<script>
+    (function () {
+        const cartes = document.getElementById('produitsCartes');
+        listeDataTable('#produitsTable', {
+            pageLength: 20,
+            lengthMenu: [20, 50, 100],
+            order: [[1, 'asc']],
+            columnDefs: [{ orderable: false, targets: -1 }],
+            dom: '<"d-flex justify-content-between align-items-center mb-3"lf>rtip',
+            // Cartes placées juste après le tableau, avant le pied (infos et pagination).
+            initComplete: function () {
+                document.getElementById('produitsTable').after(cartes);
+                synchroniserCartes(this.api());
+            },
+            drawCallback: function () { synchroniserCartes(this.api()); }
+        });
+
+        // Affichage en cartes : la recherche, le tri et la pagination du tableau s'appliquent aussi aux cartes.
+        function synchroniserCartes(tableau) {
+            const parId = {};
+            cartes.querySelectorAll(':scope > [data-id]').forEach(function (c) { parId[c.dataset.id] = c; c.classList.add('d-none'); });
+            tableau.rows({ page: 'current' }).nodes().each(function (tr) {
+                const carte = parId[tr.dataset.id];
+                if (carte) { carte.classList.remove('d-none'); cartes.appendChild(carte); }
+            });
+        }
+    })();
+</script>
+<?php $scripts = ($scripts ?? '') . ob_get_clean(); ?>

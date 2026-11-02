@@ -41,20 +41,13 @@ const PRODUIT_SELECT = "SELECT p.*, c.Nom AS Categorie, c.Couleur,
 
 function produit_index(): void
 {
-    $search = (string) get('search', '');
     $categorie = (int) get('categorie', 0);
-    [$where, $params] = produit_filtre($search, $categorie);
-    $pagination = paginer(
-        (int) qv('SELECT COUNT(*) FROM Produits p WHERE ' . $where, $params),
-        'produit/index', ['search' => $search, 'categorie' => $categorie ?: null], 'Produits'
-    );
+    [$where, $params] = produit_filtre('', $categorie);
     render('produit/index', [
-        'produits' => q(PRODUIT_SELECT . ' WHERE ' . $where . ' ORDER BY p.Nom, p.Id' . $pagination['limite'], $params),
+        'produits' => q(PRODUIT_SELECT . ' WHERE ' . $where . ' ORDER BY p.Nom, p.Id', $params),
         'categories' => produit_categories(),
         'taxes' => taxes_liste(),
-        'search' => $search,
         'categorie' => $categorie,
-        'pagination' => $pagination,
         'nbAlertes' => (int) qv('SELECT COUNT(*) FROM Produits WHERE SuiviStock = 1 AND Actif = 1 AND EstModele = 0 AND SeuilAlerte IS NOT NULL AND StockActuel <= SeuilAlerte AND ' . tf()),
     ]);
 }

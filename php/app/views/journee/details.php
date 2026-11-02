@@ -84,18 +84,17 @@ $ouverte = $journee['Statut'] === 'Ouverte';
     </div>
     <div class="card-body p-2">
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
+            <table id="operationsTable" class="table table-hover align-middle mb-0">
                 <thead><tr><th>Date</th><th>Motif</th><th>Description</th><th>Tiers</th><th>Mode de paiement</th><th class="text-end">Montant</th><th>Type</th><th>Statut</th><?php if (peut_valider()): ?><th></th><?php endif; ?></tr></thead>
                 <tbody>
-                <?php if (!$operations): ?><tr><td colspan="9" class="text-center text-muted py-3">Aucune opération.</td></tr><?php endif; ?>
                 <?php foreach ($operations as $op): ?>
                     <tr>
-                        <td class="text-nowrap"><?= date_fr($op['DateOperation'], 'd/m/Y H:i') ?></td>
+                        <td class="text-nowrap" data-order="<?= h($op['DateOperation']) ?>-<?= sprintf('%09d', $op['Id']) ?>"><?= date_fr($op['DateOperation'], 'd/m/Y H:i') ?></td>
                         <td><?= h($op['MotifLibelle']) ?></td>
                         <td><?= h($op['Libelle']) ?></td>
                         <td><?= h($op['Tiers'] ?? '-') ?></td>
                         <td><?= h($op['ModeLibelle']) ?></td>
-                        <td class="text-end text-nowrap">
+                        <td class="text-end text-nowrap" data-order="<?= (float) $op['Montant'] ?>">
                             <?php if ($op['StatutValidation'] === STATUT_REJETE): ?>
                                 <s class="text-muted" title="Opération rejetée : exclue des totaux"><?= fcfa($op['Montant']) ?></s> <small class="text-muted">(rejetée)</small>
                             <?php else: ?><?= fcfa($op['Montant']) ?><?php endif; ?>
@@ -118,7 +117,6 @@ $ouverte = $journee['Statut'] === 'Ouverte';
                 </tbody>
             </table>
         </div>
-        <div class="px-2 pb-2"><?= partial('partials/pagination', $pagination) ?></div>
     </div>
 </div>
 
@@ -247,3 +245,13 @@ $ouverte = $journee['Statut'] === 'Ouverte';
     })();
 </script>
 <?php $scripts = ob_get_clean(); ?>
+<?php ob_start(); ?>
+<script>
+    listeDataTable('#operationsTable', {
+        pageLength: 20,
+        lengthMenu: [20, 50, 100],
+        order: [[0, 'desc']],
+        columnDefs: [{ orderable: false, targets: <?= peut_valider() ? '[6, -1]' : '[6]' ?> }]
+    });
+</script>
+<?php $scripts = ($scripts ?? '') . ob_get_clean(); ?>

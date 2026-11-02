@@ -40,12 +40,9 @@ function client_recherche(string $search, bool $etendue = false): array
 
 function client_index(): void
 {
-    $search = (string) get('search', '');
-    [$where, $p] = client_filtre($search, false);
-    $total = (int) qv('SELECT COUNT(*) FROM Clients WHERE ' . $where, $p);
-    $pagination = paginer($total, 'client/index', ['search' => $search], 'Tiers');
-    $clients = q('SELECT * FROM Clients WHERE ' . $where . ' ORDER BY NomSociete, Id' . $pagination['limite'], $p);
-    render('client/index', ['clients' => $clients, 'search' => $search, 'pagination' => $pagination]);
+    [$where, $p] = client_filtre('', false);
+    $clients = q('SELECT * FROM Clients WHERE ' . $where . ' ORDER BY NomSociete, Id', $p);
+    render('client/index', ['clients' => $clients]);
 }
 
 function client_charger(int $id): array

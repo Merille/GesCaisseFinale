@@ -1,27 +1,21 @@
 <?php $titre = 'Tiers'; ?>
-<div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mb-3">
-    <form method="get" action="index.php" class="d-flex gap-2">
-        <input type="hidden" name="r" value="client/index">
-        <input name="search" class="form-control" placeholder="Rechercher (code, société, contact, téléphone, type)" value="<?= h($search) ?>" style="min-width:320px;">
-        <button class="btn btn-outline-primary"><i class="fa fa-search"></i></button>
-    </form>
+<div class="d-flex flex-wrap justify-content-end align-items-end gap-2 mb-3">
     <div class="d-flex gap-2">
         <form method="post" action="<?= h(url('client/import')) ?>" enctype="multipart/form-data">
             <?= csrf_field() ?>
             <input type="file" name="file" accept=".xlsx" id="importFile" class="d-none" onchange="this.form.submit()">
             <button type="button" class="btn btn-outline-primary" onclick="document.getElementById('importFile').click()"><i class="fa fa-file-import"></i> Importer Excel</button>
         </form>
-        <a href="<?= h(url('client/export', ['search' => $search])) ?>" class="btn btn-success"><i class="fa fa-file-excel"></i> Exporter Excel</a>
+        <a href="<?= h(url('client/export')) ?>" class="btn btn-success"><i class="fa fa-file-excel"></i> Exporter Excel</a>
         <a href="<?= h(url('client/create')) ?>" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalCreation"><i class="fa fa-plus"></i> Nouveau tiers</a>
     </div>
 </div>
 <p class="small text-muted">Import : la première ligne du fichier est un en-tête ; colonnes dans l'ordre Code, Société, Contact, Téléphone, EmailContact, Adresse, Email, Type, FonctionContact, TelephoneContact, CompteGeneral (le plus simple est de partir d'un export).</p>
 <div class="card shadow-sm border-0">
     <div class="card-body table-responsive">
-        <table class="table table-hover align-middle mb-0">
+        <table id="clientsTable" class="table table-hover align-middle mb-0">
             <thead class="table-dark"><tr><th>Code</th><th>Société</th><th>Adresse</th><th>Contact</th><th>Fonction</th><th>Téléphone</th><th class="text-center">Type</th><th class="text-center">Actions</th></tr></thead>
             <tbody>
-            <?php if (!$clients): ?><tr><td colspan="8" class="text-center text-muted py-4">Aucun tiers.</td></tr><?php endif; ?>
             <?php foreach ($clients as $c):
                 $badge = ['Client' => 'bg-primary', 'Fournisseur' => 'bg-orange', 'Salarié' => 'bg-success', 'Autre' => 'bg-danger'][$c['Type']] ?? 'bg-secondary'; ?>
                 <tr>
@@ -45,6 +39,15 @@
         </table>
     </div>
 </div>
-<?= partial('partials/pagination', $pagination) ?>
 
 <?= partial('client/form', ['client' => [], 'edition' => false, 'modale' => true]) ?>
+<?php ob_start(); ?>
+<script>
+    listeDataTable('#clientsTable', {
+        pageLength: 20,
+        lengthMenu: [20, 50, 100],
+        order: [[1, 'asc']],
+        columnDefs: [{ orderable: false, targets: -1 }]
+    });
+</script>
+<?php $scripts = ($scripts ?? '') . ob_get_clean(); ?>

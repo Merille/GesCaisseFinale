@@ -68,16 +68,15 @@ $badge = ['Entrée' => 'bg-success', 'Retour' => 'bg-info text-dark', 'Annulatio
 
 <div class="card shadow-sm border-0">
     <div class="card-body table-responsive">
-        <table class="table table-hover align-middle mb-0">
+        <table id="mouvementsTable" class="table table-hover align-middle mb-0">
             <thead class="table-dark"><tr><th>Date</th><th>Produit</th><th>Type</th><th class="text-end">Quantité</th><th class="text-end">Stock après</th><th>Référence</th><th>Par</th><th>Commentaire</th></tr></thead>
             <tbody>
-            <?php if (!$mouvements): ?><tr><td colspan="8" class="text-center text-muted py-4">Aucun mouvement.</td></tr><?php endif; ?>
             <?php foreach ($mouvements as $m): $q = (float) $m['Quantite']; ?>
                 <tr>
-                    <td class="text-nowrap"><?= date_fr($m['DateMouvement'], 'd/m/Y H:i') ?></td>
+                    <td class="text-nowrap" data-order="<?= h($m['DateMouvement']) ?>-<?= sprintf('%09d', $m['Id']) ?>"><?= date_fr($m['DateMouvement'], 'd/m/Y H:i') ?></td>
                     <td><?= h($m['Code'] . ' · ' . $m['Nom']) ?></td>
                     <td><span class="badge <?= $badge[$m['TypeMouvement']] ?? 'bg-secondary' ?>"><?= h($m['TypeMouvement']) ?></span></td>
-                    <td class="text-end fw-semibold <?= $q < 0 ? 'text-danger' : 'text-success' ?>"><?= ($q > 0 ? '+' : '') . quantite_fr($q) ?></td>
+                    <td class="text-end fw-semibold <?= $q < 0 ? 'text-danger' : 'text-success' ?>" data-order="<?= $q ?>"><?= ($q > 0 ? '+' : '') . quantite_fr($q) ?></td>
                     <td class="text-end"><?= quantite_fr($m['StockApres']) ?></td>
                     <td><?php if ($m['CommandePosId']): ?><a href="<?= h(url('vente/details', ['id' => $m['CommandePosId']])) ?>"><?= h($m['Reference']) ?></a><?php else: ?><?= h($m['Reference']) ?><?php endif; ?></td>
                     <td><?= h($m['Utilisateur']) ?></td>
@@ -88,4 +87,14 @@ $badge = ['Entrée' => 'bg-success', 'Retour' => 'bg-info text-dark', 'Annulatio
         </table>
     </div>
 </div>
-<?= partial('partials/pagination', $pagination) ?>
+<?php ob_start(); ?>
+<script>
+    listeDataTable('#mouvementsTable', {
+        pageLength: 20,
+        lengthMenu: [20, 50, 100],
+        order: [[0, 'desc']],
+        searching: false,
+        dom: 'rtip'
+    });
+</script>
+<?php $scripts = ($scripts ?? '') . ob_get_clean(); ?>

@@ -7,10 +7,9 @@
     Une unité désactivée n'est plus proposée sur la fiche produit mais reste sur les produits qui l'utilisent. Renommer une unité met à jour ses produits.</p>
 <div class="card shadow-sm border-0">
     <div class="card-body">
-        <table class="table table-hover align-middle mb-0">
+        <table id="unitesTable" class="table table-hover align-middle mb-0">
             <thead class="table-dark"><tr><th>Unité</th><th>Libellé</th><th class="text-center">Produits</th><th class="text-center">Statut</th><th class="text-center">Actions</th></tr></thead>
             <tbody>
-            <?php if (!$unites): ?><tr><td colspan="5" class="text-center text-muted py-4">Aucune unité.</td></tr><?php endif; ?>
             <?php foreach ($unites as $u): ?>
                 <tr class="<?= $u['Actif'] ? '' : 'text-muted' ?>">
                     <td class="fw-semibold"><?= h($u['Nom']) ?></td>
@@ -33,7 +32,6 @@
             <?php endforeach; ?>
             </tbody>
         </table>
-        <?= partial('partials/pagination', $pagination) ?>
     </div>
 </div>
 
@@ -70,3 +68,13 @@
     });
 </script>
 <?php $scripts = ob_get_clean(); ?>
+<?php ob_start(); ?>
+<script>
+    listeDataTable('#unitesTable', {
+        pageLength: 10,
+        lengthMenu: [10, 25, 50, 100],
+        order: [],
+        columnDefs: [{ orderable: false, targets: 4 }]
+    });
+</script>
+<?php $scripts = ($scripts ?? '') . ob_get_clean(); ?>

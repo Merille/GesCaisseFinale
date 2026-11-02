@@ -5,14 +5,11 @@
 </div>
 <div class="card shadow-sm border-0">
     <div class="card-body">
-        <table class="table table-hover align-middle mb-0">
+        <table id="caissesTable" class="table table-hover align-middle mb-0">
             <thead class="table-dark">
             <tr><th>Code</th><th>Description</th><th>Type</th><th>StCode</th><th>Caissier par défaut</th><th>Compte comptable</th><th class="text-center">Actions</th></tr>
             </thead>
             <tbody>
-            <?php if (!$caisses): ?>
-                <tr><td colspan="7" class="text-center text-muted py-4">Aucune caisse.</td></tr>
-            <?php endif; ?>
             <?php foreach ($caisses as $c): ?>
                 <tr>
                     <td class="fw-semibold"><?= h($c['ChkCode']) ?></td>
@@ -42,3 +39,13 @@
 </div>
 
 <?= partial('caisse/form', ['caisse' => [], 'utilisateurs' => $utilisateurs, 'modale' => true]) ?>
+<?php ob_start(); ?>
+<script>
+    listeDataTable('#caissesTable', {
+        pageLength: 10,
+        lengthMenu: [10, 25, 50, 100],
+        order: [[1, 'asc']],
+        columnDefs: [{ orderable: false, targets: -1 }]
+    });
+</script>
+<?php $scripts = ($scripts ?? '') . ob_get_clean(); ?>

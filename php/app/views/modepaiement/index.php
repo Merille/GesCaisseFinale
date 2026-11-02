@@ -5,10 +5,9 @@
 </div>
 <div class="card shadow-sm border-0">
     <div class="card-body">
-        <table class="table table-hover align-middle mb-0">
+        <table id="modesPaiementTable" class="table table-hover align-middle mb-0">
             <thead class="table-dark"><tr><th>Code</th><th>Libellé</th><th>Statut</th><th class="text-center">Actions</th></tr></thead>
             <tbody>
-            <?php if (!$modes): ?><tr><td colspan="4" class="text-center text-muted py-4">Aucun mode de paiement.</td></tr><?php endif; ?>
             <?php foreach ($modes as $m): ?>
                 <tr>
                     <td><?= h($m['Code']) ?></td>
@@ -61,3 +60,13 @@
     });
 </script>
 <?php $scripts = ob_get_clean(); ?>
+<?php ob_start(); ?>
+<script>
+    listeDataTable('#modesPaiementTable', {
+        pageLength: 10,
+        lengthMenu: [10, 25, 50, 100],
+        order: [[0, 'asc']],
+        columnDefs: [{ orderable: false, targets: -1 }]
+    });
+</script>
+<?php $scripts = ($scripts ?? '') . ob_get_clean(); ?>

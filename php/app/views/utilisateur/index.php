@@ -5,7 +5,7 @@
 </div>
 <div class="card shadow-sm border-0">
     <div class="card-body table-responsive">
-        <table class="table table-hover align-middle mb-0">
+        <table id="UsersTable" class="table table-hover align-middle mb-0">
             <thead class="table-dark"><tr><th>Nom utilisateur</th><th>Nom complet</th><th>Profil</th><?php if (is_super_admin()): ?><th>Société</th><?php endif; ?><th>Droits</th><th class="text-center">Actions</th></tr></thead>
             <tbody>
             <?php foreach ($users as $u): ?>
@@ -30,3 +30,13 @@
 </div>
 
 <?= partial('utilisateur/form', ['u' => ['Profil' => 'Caissier', 'TenantId' => tenant_id() ?: null], 'edition' => false, 'societes' => $societes, 'profils' => $profils, 'modale' => true]) ?>
+<?php ob_start(); ?>
+<script>
+    listeDataTable('#UsersTable', {
+        pageLength: 10,
+        lengthMenu: [10, 25, 50, 100],
+        order: [[1, 'asc']],
+        columnDefs: [{ orderable: false, targets: -1 }]
+    });
+</script>
+<?php $scripts = ($scripts ?? '') . ob_get_clean(); ?>
