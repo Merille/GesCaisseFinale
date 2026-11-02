@@ -11,7 +11,7 @@
             <button type="button" class="btn btn-outline-primary" onclick="document.getElementById('importFile').click()"><i class="fas fa-file-import"></i> Importer Excel</button>
         </form>
         <a href="/Client/Export" class="btn btn-success"><i class="fas fa-file-excel"></i> Exporter Excel</a>
-        <a href="/Client/Create" class="btn btn-primary" data-modale><i class="fas fa-plus"></i> Nouveau tiers</a>
+        <a href="/Client/Create" class="btn btn-primary" data-modale="modal-xl"><i class="fas fa-plus"></i> Nouveau tiers</a>
     </div>
 </div>
 <p class="small text-muted">Import : la première ligne du fichier est un en-tête ; colonnes dans l'ordre Code, Société, Contact, Téléphone, EmailContact, Adresse, Email, Type, FonctionContact, TelephoneContact, CompteGeneral (le plus simple est de partir d'un export).</p>
@@ -35,7 +35,7 @@
                                 <span class="badge @badge">@c.Type</span>
                             }</td>
                         <td class="text-center table-actions">
-                            <a href="/Client/Edit/@c.Id" class="btn btn-warning btn-sm">Modifier</a>
+                            <a href="/Client/Edit/@c.Id" class="btn btn-warning btn-sm" data-modale="modal-xl">Modifier</a>
                             <form asp-action="Delete" asp-route-id="@c.Id" method="post" onsubmit="return confirm('Supprimer ce tiers ?');">
                                 <button class="btn btn-danger btn-sm">Supprimer</button>
                             </form>

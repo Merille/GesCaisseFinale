@@ -1,4 +1,5 @@
-<?php $titre = 'Tiers'; ?>
+<?php $titre = 'Tiers';
+$champsModale = ['CodeClient', 'NomSociete', 'Type', 'Adresse', 'Telephone', 'Email', 'CompteGeneral', 'NomContact', 'FonctionContact', 'TelephoneContact', 'EmailContact']; ?>
 <div class="d-flex flex-wrap justify-content-end align-items-end gap-2 mb-3">
     <div class="d-flex gap-2">
         <form method="post" action="<?= h(url('client/import')) ?>" enctype="multipart/form-data">
@@ -27,7 +28,8 @@
                     <td><?= h($c['Telephone']) ?></td>
                     <td class="text-center"><?php if ($c['Type']): ?><span class="badge <?= $badge ?>"><?= h($c['Type']) ?></span><?php endif; ?></td>
                     <td class="text-center table-actions">
-                        <a href="<?= h(url('client/edit', ['id' => $c['Id']])) ?>" class="btn btn-warning btn-sm">Modifier</a>
+                        <a href="<?= h(url('client/edit', ['id' => $c['Id']])) ?>" class="btn btn-warning btn-sm"
+                           data-tiers="<?= h(json_encode(['action' => url('client/edit', ['id' => $c['Id']])] + array_intersect_key($c, array_flip($champsModale)))) ?>">Modifier</a>
                         <form method="post" action="<?= h(url('client/delete')) ?>" onsubmit="return confirm('Supprimer ce tiers ?');">
                             <?= csrf_field() ?><input type="hidden" name="id" value="<?= (int) $c['Id'] ?>">
                             <button class="btn btn-danger btn-sm">Supprimer</button>
@@ -41,6 +43,7 @@
 </div>
 
 <?= partial('client/form', ['client' => [], 'edition' => false, 'modale' => true]) ?>
+<?= partial('client/form', ['client' => [], 'edition' => false, 'modale' => true, 'modification' => true]) ?>
 <?php ob_start(); ?>
 <script>
     listeDataTable('#clientsTable', {
@@ -48,6 +51,25 @@
         lengthMenu: [20, 50, 100],
         order: [[1, 'asc']],
         columnDefs: [{ orderable: false, targets: -1 }]
+    });
+
+    // « Modifier » : ouvre la modale de modification, remplie avec le tiers de la ligne.
+    document.addEventListener('click', function (e) {
+        const lien = e.target.closest('a[data-tiers]');
+        if (!lien || e.ctrlKey || e.metaKey || e.shiftKey || e.button !== 0) return;
+        e.preventDefault();
+        const t = JSON.parse(lien.dataset.tiers);
+        const modale = document.getElementById('modalModification');
+        const form = modale.querySelector('form');
+        form.action = t.action;
+        Object.keys(t).forEach(function (nom) {
+            const champ = form.elements[nom];
+            if (champ && nom !== 'action') champ.value = t[nom] == null ? '' : t[nom];
+        });
+        bootstrap.Modal.getOrCreateInstance(modale).show();
+    });
+    document.getElementById('modalModification').addEventListener('shown.bs.modal', function () {
+        document.getElementById('CodeClientE').focus();
     });
 </script>
 <?php $scripts = ($scripts ?? '') . ob_get_clean(); ?>

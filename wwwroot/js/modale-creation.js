@@ -2,6 +2,7 @@
 // Un lien <a href="/Caisse/Create" data-modale> charge la page de création et
 // affiche son formulaire dans une modale. Le formulaire est envoyé normalement :
 // en cas d'erreur de saisie, le serveur affiche la page de création complète.
+// data-modale="modal-xl" (ou modal-sm…) choisit la taille de la fenêtre ; modal-lg par défaut.
 // Les éléments marqués « hors-modale » (ex. lien Annuler) sont masqués dans la modale.
 // Mise en forme identique aux modales de la version PHP : champs dans le corps, boutons
 // Annuler / Enregistrer alignés à droite dans le pied de la modale.
@@ -74,6 +75,9 @@
 
         const entete = contenu.querySelector('.card-header');
         modale = modale || creerModale();
+        const dialogue = modale.querySelector('.modal-dialog');
+        dialogue.classList.remove('modal-sm', 'modal-lg', 'modal-xl');
+        dialogue.classList.add(lien.getAttribute('data-modale') || 'modal-lg');
         modale.querySelector('.modal-title').textContent =
             (entete ? entete.textContent : lien.textContent).replace(/\s+/g, ' ').trim();
         const ancien = modale.querySelector('.modal-content > form');

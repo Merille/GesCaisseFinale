@@ -1,13 +1,22 @@
 <?php
+// Formulaire d'un tiers : page (modification sans JavaScript), modale de création, ou modale
+// de modification ($modification = true) remplie en JavaScript depuis la liste des tiers.
+$modification = !empty($modification);
+$edition = $edition || $modification;
 $titre = $edition ? 'Modifier le tiers' : 'Nouveau tiers';
 $v = fn(string $k) => h($client[$k] ?? '');
-$champ = function (string $nom, string $libelle, string $attrs = '') use ($v) {
-    return '<label class="form-label" for="' . $nom . '">' . $libelle . '</label><input class="form-control" id="' . $nom . '" name="' . $nom . '" value="' . $v($nom) . '" ' . $attrs . '>';
+// Identifiants des champs : distincts entre la modale de création et celle de modification.
+$sfx = $modification ? 'E' : '';
+$champ = function (string $nom, string $libelle, string $attrs = '') use ($v, $sfx) {
+    return '<label class="form-label" for="' . $nom . $sfx . '">' . $libelle . '</label><input class="form-control" id="' . $nom . $sfx . '" name="' . $nom . '" value="' . $v($nom) . '" ' . $attrs . '>';
 };
+if ($modification) {
+    $idModale = 'modalModification';
+}
 $entete = $titre;
 $largeur = '900px';
 $tailleModale = 'modal-xl';
-$action = !empty($modale) ? url('client/create') : null;
+$action = !empty($modale) ? ($modification ? url('client/index') : url('client/create')) : null;
 $retour = url('client/index');
 require __DIR__ . '/../partials/form_debut.php';
 ?>
@@ -16,8 +25,8 @@ require __DIR__ . '/../partials/form_debut.php';
                 <div class="col-md-3"><?= $champ('CodeClient', 'Code', 'required') ?></div>
                 <div class="col-md-5"><?= $champ('NomSociete', 'Nom de la société', 'required') ?></div>
                 <div class="col-md-4">
-                    <label class="form-label" for="Type">Type</label>
-                    <select class="form-select" id="Type" name="Type">
+                    <label class="form-label" for="Type<?= $sfx ?>">Type</label>
+                    <select class="form-select" id="Type<?= $sfx ?>" name="Type">
                         <option value="">--</option>
                         <?php foreach (['Client', 'Fournisseur', 'Salarié', 'Autre'] as $t): ?>
                             <option <?= ($client['Type'] ?? '') === $t ? 'selected' : '' ?>><?= $t ?></option>
