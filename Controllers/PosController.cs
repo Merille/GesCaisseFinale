@@ -13,7 +13,7 @@ namespace EasytransitCaisse.Controllers
     // Point de vente : choix de la journée ouverte, puis écran de vente plein écran.
     // Ouvert à tous les profils connectés. Les tickets en cours sont gardés dans le
     // navigateur jusqu'au paiement.
-    public class PosController : Controller
+    public partial class PosController : Controller
     {
         private readonly AppDbContext _context;
         private readonly IAntiforgery _antiforgery;
@@ -104,7 +104,12 @@ namespace EasytransitCaisse.Controllers
             var clients = await _context.Clients
                 .Where(c => c.TenantId == tenant)
                 .OrderBy(c => c.NomSociete)
-                .Select(c => new { id = c.Id, nom = c.NomSociete, code = c.CodeClient })
+                .Select(c => new { id = c.Id, nom = c.NomSociete, code = c.CodeClient, telephone = c.Telephone, adresse = c.Adresse })
+                .ToListAsync();
+            var livreurs = await _context.Livreurs
+                .Where(l => l.Actif && l.TenantId == tenant)
+                .OrderBy(l => l.Nom)
+                .Select(l => new { id = l.Id, nom = l.Nom, telephone = l.Telephone })
                 .ToListAsync();
 
             var modes = (await _context.ModesPaiement
@@ -129,6 +134,7 @@ namespace EasytransitCaisse.Controllers
                 produits,
                 categories,
                 clients,
+                livreurs,
                 utilisateur = new
                 {
                     nom = string.IsNullOrWhiteSpace(nom) ? User.FindFirst(ClaimTypes.Name)?.Value : nom,
@@ -141,6 +147,12 @@ namespace EasytransitCaisse.Controllers
                 urlVendre = "/Pos/Vendre",
                 urlTicket = "/Pos/Ticket/",
                 urlVentes = $"/Vente/Index?journee={j.Id}",
+                // Commandes en attente (partagées entre postes) et livraisons.
+                urlAttentes = $"/Pos/Attentes?journee={j.Id}",
+                urlMettreEnAttente = "/Pos/MettreEnAttente",
+                urlReprendre = "/Pos/Reprendre",
+                urlSupprimerAttente = "/Pos/SupprimerAttente",
+                urlLivree = "/Pos/Livree",
                 venteSansStock = (await _context.Tenants.AsNoTracking().FirstOrDefaultAsync(t => t.Id == tenant))?.PosVenteSansStock ?? true,
                 jeton = new { nom = jetons.FormFieldName, valeur = jetons.RequestToken },
                 restaurant = j.Caisse != null && j.Caisse.EstRestaurant ? new
@@ -175,6 +187,8 @@ namespace EasytransitCaisse.Controllers
             // Restaurant / bar : pourboire et commande de table payée (reste : articles qui demeurent sur la table).
             public decimal Pourboire { get; set; }
             public OuverteSaisie? CommandeOuverte { get; set; }
+            // Commande à livrer : livreur, destinataire, payée maintenant ou à la livraison.
+            public LivraisonSaisie? Livraison { get; set; }
         }
 
         private sealed class OuverteSaisie
@@ -340,6 +354,9 @@ namespace EasytransitCaisse.Controllers
             int? clientId = v.ClientId.HasValue && await _context.Clients.AnyAsync(c => c.Id == v.ClientId && c.TenantId == tenant)
                 ? v.ClientId : null;
             int.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var utilisateurId);
+            var (livraison, erreurLivraison) = await ControlerLivraisonAsync(v.Livraison, tenant);
+            if (erreurLivraison != null)
+                return Erreur(400, erreurLivraison);
 
             await using var transaction = await _context.Database.BeginTransactionAsync();
             // Verrou sur la journée : numéros de ticket consécutifs même avec plusieurs postes.
@@ -411,6 +428,17 @@ namespace EasytransitCaisse.Controllers
                 TableNom = tableNom, Couverts = couverts, Pourboire = pourboire,
                 Lignes = lignes.Select(x => x.Ligne).ToList()
             };
+            if (livraison != null)
+            {
+                // Payée à la livraison : le livreur est revenu, la commande est livrée.
+                var livree = livraison.Paiement == "livraison";
+                commande.LivreurId = livraison.LivreurId;
+                commande.NomLivraison = livraison.Nom;
+                commande.TelephoneLivraison = livraison.Telephone;
+                commande.AdresseLivraison = livraison.Adresse;
+                commande.StatutLivraison = livree ? "Livrée" : "À livrer";
+                commande.DateLivraison = livree ? DateTime.Now : null;
+            }
             var motif = await _context.Motifs.FirstOrDefaultAsync(m => m.LibelleMotif == "Vente POS" && m.TenantId == tenant);
             if (motif == null)
             {
@@ -482,6 +510,9 @@ namespace EasytransitCaisse.Controllers
             ViewBag.Vendeur = (await _context.Utilisateurs.IgnoreQueryFilters().FirstOrDefaultAsync(u => u.Id == commande.UtilisateurId))?.NomComplet ?? "";
             ViewBag.Client = commande.ClientId.HasValue
                 ? (await _context.Clients.FirstOrDefaultAsync(c => c.Id == commande.ClientId))?.NomSociete
+                : null;
+            ViewBag.Livreur = commande.LivreurId.HasValue
+                ? (await _context.Livreurs.IgnoreQueryFilters().FirstOrDefaultAsync(l => l.Id == commande.LivreurId))?.Nom
                 : null;
             ViewBag.NumeroOrigine = commande.CommandeOrigineId.HasValue
                 ? (await _context.CommandesPos.FirstOrDefaultAsync(c => c.Id == commande.CommandeOrigineId))?.Numero

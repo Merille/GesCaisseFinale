@@ -32,6 +32,19 @@ $peutAnnuler = $peutRembourser && !$estRetour && $vente['Statut'] === 'Payée' &
         <?php if (!empty($vente['TableNom'])): ?>
             <div class="small text-muted mt-2">Table</div><div><i class="fa fa-utensils"></i> <?= h($vente['TableNom']) ?><?= $vente['Couverts'] ? ' · ' . (int) $vente['Couverts'] . ' couvert(s)' : '' ?></div>
         <?php endif; ?>
+        <?php if ($vente['StatutLivraison'] !== null): ?>
+            <div class="small text-muted mt-2">Livraison</div>
+            <div><i class="fa fa-motorcycle"></i> <?= h($vente['Livreur']) ?>
+                <span class="badge <?= $vente['StatutLivraison'] === 'Livrée' ? 'bg-success' : 'bg-warning text-dark' ?>"><?= h($vente['StatutLivraison']) ?></span></div>
+            <div class="small"><?= h($vente['NomLivraison'] ?? $vente['Client'] ?? '') ?><?= $vente['TelephoneLivraison'] ? ' · ' . h($vente['TelephoneLivraison']) : '' ?></div>
+            <div class="small"><?= h($vente['AdresseLivraison']) ?></div>
+            <?php if ($vente['StatutLivraison'] === 'À livrer'): ?>
+                <form method="post" action="<?= h(url('vente/livree')) ?>" class="mt-1">
+                    <?= csrf_field() ?><input type="hidden" name="id" value="<?= (int) $vente['Id'] ?>">
+                    <button class="btn btn-sm btn-outline-success"><i class="fa fa-check"></i> Marquer livrée</button>
+                </form>
+            <?php endif; ?>
+        <?php endif; ?>
     </div></div></div>
     <div class="col-md-3"><div class="card h-100 border-0 shadow-sm"><div class="card-body">
         <div class="small text-muted">Total TTC</div>

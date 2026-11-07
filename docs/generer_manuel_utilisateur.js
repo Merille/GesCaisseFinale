@@ -98,7 +98,7 @@ const fiche = [
         ['Application', 'GesCaisse — gestion de caisse et point de vente (POS)'],
         ['Éditeur', 'M-ITECH AFRICA'],
         ['Public', 'Administrateurs, caissiers, vendeurs et serveurs des sociétés clientes'],
-        ['Version du document', '1.2'],
+        ['Version du document', '1.3'],
         ['Date', 'Novembre 2026']
     ], [3000, 6638])
 ];
@@ -240,7 +240,7 @@ const contenu = [
         'GesCaisse calcule l’**écart** avec le montant théorique. Ajoutez au besoin une **note de clôture** pour l’expliquer.',
         'Cliquez sur **Clôturer la journée** et confirmez.'
     ]),
-    attention('La clôture est définitive : plus aucune opération ne peut être ajoutée à la journée. Dans un restaurant, elle est refusée tant qu’une table a une commande en cours.'),
+    attention('La clôture est définitive : plus aucune opération ne peut être ajoutée à la journée. Elle est refusée tant qu’une commande est en attente au point de vente ou, dans un restaurant, tant qu’une table a une commande en cours.'),
 
     // 4 ------------------------------------------------------------------
     h1('4. Tiers'),
@@ -296,12 +296,29 @@ const contenu = [
     pt('Remise %', 'tapez le pourcentage de remise de la ligne.'),
     pt('Prix', 'tapez un nouveau prix unitaire (réservé aux administrateurs).'),
     pt('Corbeille', 'supprime la ligne ; la touche d’effacement corrige la saisie en cours.'),
-    h2('6.4 Client, remise globale et tickets en attente'),
+    h2('6.4 Client, remise globale et mise en attente'),
     pt('Choisir un client', 'associe la vente à un tiers (il apparaît sur le ticket et dans les rapports).'),
     pt('Remise globale', 'remise en % ou en montant sur tout le ticket (administrateurs et utilisateurs habilités). Elle est répartie sur les lignes.'),
-    pt('Mettre en attente', 'met le ticket de côté pour servir un autre client. Les tickets ouverts apparaissent en onglets en haut de l’écran ; le bouton **+** en crée un nouveau.'),
+    pt('Mettre en attente', 'met le ticket de côté pour servir un autre client : il est enregistré et quitte l’écran. Il apparaît dans la liste **Commandes en attente**, visible depuis tous les postes de la journée (voir 6.5).'),
+    pt('Plusieurs tickets', 'les tickets en cours sur ce poste apparaissent en onglets en haut de l’écran ; le bouton **+** en crée un nouveau.'),
     astuce('Les tickets en cours sont gardés dans le navigateur : une coupure de réseau ou un rechargement de la page ne les fait pas perdre.'),
-    h2('6.5 Encaisser'),
+    h2('6.5 Commandes en attente'),
+    p('Le bouton **Commandes en attente**, en haut de l’écran, indique le nombre de commandes à reprendre. Il ouvre la liste de la journée, partagée entre tous les postes de la caisse :'),
+    pt('En attente', 'commandes mises en attente et commandes à livrer à encaisser au retour du livreur : numéro, heure, client, articles, total, livreur et adresse. **Reprendre** ramène la commande dans un nouveau ticket de ce poste (un seul poste peut la reprendre) ; la corbeille la supprime.'),
+    pt('Livraisons payées à effectuer', 'ventes déjà encaissées qui restent à livrer. **Livrée** les retire de la liste au retour du livreur ; l’icône de ticket le réimprime.'),
+    ...figure('21c_attentes', 'Commandes en attente et livraisons à effectuer'),
+    attention('Une journée ne peut pas être clôturée tant qu’une commande est en attente : reprenez-la pour l’encaisser, ou supprimez-la.'),
+    h2('6.6 Commandes à livrer'),
+    p('Les livreurs sont créés dans **Paramètres** › **Livreurs** (voir 12.8). Pour une commande à livrer :'),
+    ...etapes([
+        'Ajoutez les articles, choisissez au besoin le client, puis touchez **Livraison**.',
+        'Choisissez le **livreur** ; vérifiez le **destinataire**, le **téléphone** et l’**adresse de livraison** (repris de la fiche du client s’il est choisi).',
+        'Choisissez **À encaisser à la livraison** : la commande est mise en attente et confiée au livreur. À son retour, ouvrez **Commandes en attente**, touchez **Reprendre** puis encaissez : la vente est enregistrée comme livrée.',
+        'Ou choisissez **Payée maintenant** : l’écran de paiement s’ouvre et la vente est encaissée tout de suite. Elle apparaît dans **Livraisons payées à effectuer** jusqu’au retour du livreur (bouton **Livrée**).'
+    ]),
+    ...figure('21b_livraison', 'Commande à livrer : livreur, destinataire et paiement'),
+    p('Le ticket et le détail de la vente indiquent le livreur, le destinataire, l’adresse et le statut de la livraison (**À livrer** ou **Livrée**).'),
+    h2('6.7 Encaisser'),
     ...etapes([
         'Touchez **Paiement**.',
         'Choisissez le mode de paiement (**Espèces**, **Mobile Money**…).',
@@ -311,10 +328,10 @@ const contenu = [
     ]),
     ...figure('21_pos_paiement', 'Paiement : modes, montant reçu et monnaie à rendre'),
     p('La monnaie à rendre est calculée sur les espèces uniquement. Chaque règlement devient un encaissement validé de la journée de caisse.'),
-    h2('6.6 Le ticket'),
+    h2('6.8 Le ticket'),
     p('Après le paiement, le ticket s’affiche avec le logo et les coordonnées de la société, les articles, le total, les taxes, les règlements et la monnaie rendue. Touchez **Imprimer le ticket** (imprimante 80 mm), puis **Nouvelle vente**.'),
     ...figure('22_pos_ticket', 'Vente terminée et ticket de caisse'),
-    h2('6.7 Quitter le point de vente'),
+    h2('6.9 Quitter le point de vente'),
     p('Le bouton **Ventes** ouvre la liste des ventes ; le bouton **Fermer** revient à l’application. La journée reste ouverte : seule la clôture (3.5) la termine.'),
     attention('Si votre société interdit la vente sans stock (voir 8.6), un article épuisé dans le dépôt de la caisse est refusé. Sinon, la vente est acceptée avec un avertissement.'),
 
@@ -324,7 +341,7 @@ const contenu = [
     p('Menu **Ventes**. Recherchez par numéro de ticket, client ou période. Chaque ligne indique la date, la caisse, le client, le vendeur, le total et le statut.'),
     ...figure('23_ventes', 'Liste des ventes'),
     h2('7.2 Détail d’une vente'),
-    p('Cliquez sur **Ouvrir** : la page présente les articles, les remises, les taxes, les règlements et les éventuels retours. Le bouton **Réimprimer le ticket** permet d’en éditer une copie.'),
+    p('Cliquez sur **Ouvrir** : la page présente les articles, les remises, les taxes, les règlements et les éventuels retours. Le bouton **Réimprimer le ticket** permet d’en éditer une copie. Pour une vente livrée, elle indique le livreur, le destinataire, l’adresse et le statut ; **Marquer livrée** termine une livraison payée à la commande.'),
     ...figure('24_vente_details', 'Détail d’une vente'),
     h2('7.3 Retour et remboursement'),
     ...etapes([
@@ -501,7 +518,12 @@ const contenu = [
     pt('Par défaut', 'le dépôt par défaut reçoit le stock initial des nouveaux produits et sert aux caisses sans dépôt choisi. Il ne peut être ni désactivé ni supprimé : choisissez d’abord un autre dépôt par défaut.'),
     pt('Désactiver', 'un dépôt désactivé n’est plus proposé pour les caisses ni les mouvements de stock. Un dépôt rattaché à une caisse ne peut pas être désactivé.'),
     pt('Supprimer', 'seul un dépôt sans mouvement de stock ni caisse peut être supprimé ; sinon, désactivez-le.'),
-    h2('12.8 Sociétés (super-administrateur)'),
+    h2('12.8 Livreurs'),
+    p('Menu **Paramètres** › **Livreurs**. Les livreurs sont proposés au point de vente sur une commande à livrer ; ils n’ont pas de compte de connexion. Cliquez sur **Nouveau livreur** (ou **Modifier**) et renseignez le **nom** et le **téléphone**. La liste indique le nombre de livraisons de chacun.'),
+    ...figure('47_livreurs', 'Livreurs'),
+    pt('Désactiver', 'un livreur désactivé n’est plus proposé au point de vente mais reste sur ses livraisons passées.'),
+    pt('Supprimer', 'seul un livreur sans livraison peut être supprimé ; sinon, désactivez-le.'),
+    h2('12.9 Sociétés (super-administrateur)'),
     p('Le super-administrateur crée les sociétés, choisit leurs modules (point de vente activé ou non), fixe leur mode d’accès (licence ou abonnement) et prolonge leur date d’expiration. Le bloc **Société** du menu lui permet de consulter les données d’une société en particulier.'),
 
     // 13 -----------------------------------------------------------------

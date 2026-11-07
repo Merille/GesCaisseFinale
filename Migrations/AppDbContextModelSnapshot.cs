@@ -278,6 +278,67 @@ namespace EasytransitCaisse.Migrations
                     b.ToTable("ComboChoix", (string)null);
                 });
 
+            modelBuilder.Entity("EasytransitCaisse.Models.CommandeAttente", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AdresseLivraison")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int?>("ClientId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Contenu")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("DateCreation")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("JourneeCaisseId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("LivreurId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("NbArticles")
+                        .HasColumnType("int");
+
+                    b.Property<string>("NomLivraison")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("Numero")
+                        .HasColumnType("int");
+
+                    b.Property<string>("TelephoneLivraison")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Total")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("UtilisateurId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LivreurId");
+
+                    b.HasIndex("JourneeCaisseId", "Numero");
+
+                    b.ToTable("CommandesAttente", (string)null);
+                });
+
             modelBuilder.Entity("EasytransitCaisse.Models.CommandeOuverte", b =>
                 {
                     b.Property<int>("Id")
@@ -339,6 +400,10 @@ namespace EasytransitCaisse.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("AdresseLivraison")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
                     b.Property<string>("CleClient")
                         .IsRequired()
                         .HasMaxLength(64)
@@ -356,10 +421,16 @@ namespace EasytransitCaisse.Migrations
                     b.Property<DateTime>("DateCommande")
                         .HasColumnType("datetime2");
 
+                    b.Property<DateTime?>("DateLivraison")
+                        .HasColumnType("datetime2");
+
                     b.Property<int?>("FactureId")
                         .HasColumnType("int");
 
                     b.Property<int>("JourneeCaisseId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("LivreurId")
                         .HasColumnType("int");
 
                     b.Property<decimal>("MonnaieRendue")
@@ -373,6 +444,10 @@ namespace EasytransitCaisse.Migrations
                     b.Property<string>("Motif")
                         .HasMaxLength(300)
                         .HasColumnType("nvarchar(300)");
+
+                    b.Property<string>("NomLivraison")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("Numero")
                         .IsRequired()
@@ -395,9 +470,17 @@ namespace EasytransitCaisse.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("StatutLivraison")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
                     b.Property<string>("TableNom")
                         .HasMaxLength(60)
                         .HasColumnType("nvarchar(60)");
+
+                    b.Property<string>("TelephoneLivraison")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
 
                     b.Property<int>("TenantId")
                         .HasColumnType("int");
@@ -422,6 +505,8 @@ namespace EasytransitCaisse.Migrations
                     b.HasIndex("CommandeOrigineId");
 
                     b.HasIndex("JourneeCaisseId");
+
+                    b.HasIndex("LivreurId");
 
                     b.HasIndex("TenantId", "CleClient")
                         .IsUnique();
@@ -768,6 +853,34 @@ namespace EasytransitCaisse.Migrations
                     b.HasIndex("FactureId");
 
                     b.ToTable("LignesFactures");
+                });
+
+            modelBuilder.Entity("EasytransitCaisse.Models.Livreur", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Actif")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Nom")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Telephone")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Livreurs");
                 });
 
             modelBuilder.Entity("EasytransitCaisse.Models.ModePaiement", b =>
@@ -1508,6 +1621,20 @@ namespace EasytransitCaisse.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("EasytransitCaisse.Models.CommandeAttente", b =>
+                {
+                    b.HasOne("EasytransitCaisse.Models.JourneeCaisse", null)
+                        .WithMany()
+                        .HasForeignKey("JourneeCaisseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("EasytransitCaisse.Models.Livreur", null)
+                        .WithMany()
+                        .HasForeignKey("LivreurId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
             modelBuilder.Entity("EasytransitCaisse.Models.CommandeOuverte", b =>
                 {
                     b.HasOne("EasytransitCaisse.Models.JourneeCaisse", null)
@@ -1524,6 +1651,11 @@ namespace EasytransitCaisse.Migrations
                         .HasForeignKey("JourneeCaisseId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("EasytransitCaisse.Models.Livreur", null)
+                        .WithMany()
+                        .HasForeignKey("LivreurId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("JourneeCaisse");
                 });

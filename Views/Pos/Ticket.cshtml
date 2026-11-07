@@ -54,6 +54,12 @@
         {
             <div>Table  : @c.TableNom@(c.Couverts.HasValue ? $" · {c.Couverts} couvert(s)" : "")</div>
         }
+        @if (c.StatutLivraison != null)
+        {
+            <div>Livraison : @c.StatutLivraison · @ViewBag.Livreur</div>
+            <div>À : @(c.NomLivraison ?? ViewBag.Client)@(string.IsNullOrEmpty(c.TelephoneLivraison) ? "" : " · " + c.TelephoneLivraison)</div>
+            <div>@c.AdresseLivraison</div>
+        }
         <hr />
         @foreach (var l in c.Lignes.OrderBy(x => x.Id))
         {

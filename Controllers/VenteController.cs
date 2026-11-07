@@ -74,6 +74,8 @@ namespace EasytransitCaisse.Controllers
             ViewBag.Retours = await _context.CommandesPos.Where(c => c.CommandeOrigineId == vente.Id && c.Statut != "Annulée").OrderBy(c => c.Id).ToListAsync();
             ViewBag.Origine = vente.CommandeOrigineId.HasValue ? await _context.CommandesPos.FirstOrDefaultAsync(c => c.Id == vente.CommandeOrigineId) : null;
             ViewBag.Facture = vente.FactureId.HasValue ? await _context.Factures.FirstOrDefaultAsync(f => f.Id == vente.FactureId) : null;
+            ViewBag.Livreur = vente.LivreurId.HasValue
+                ? (await _context.Livreurs.IgnoreQueryFilters().FirstOrDefaultAsync(l => l.Id == vente.LivreurId))?.Nom : null;
             ViewBag.Client = vente.ClientId.HasValue ? (await _context.Clients.FirstOrDefaultAsync(c => c.Id == vente.ClientId))?.NomSociete : null;
             ViewBag.Vendeur = (await _context.Utilisateurs.IgnoreQueryFilters().FirstOrDefaultAsync(u => u.Id == vente.UtilisateurId))?.NomComplet ?? "";
             ViewBag.Clients = vente.ClientId.HasValue ? new List<Client>()
@@ -251,6 +253,24 @@ namespace EasytransitCaisse.Controllers
             await transaction.CommitAsync();
 
             return VersDetails(retour.Id, succes: $"Retour {numero} enregistré : {ttc.ToString("N0", CultureInfo.GetCultureInfo("fr-FR"))} FCFA à rembourser ({mode.Libelle}).");
+        }
+
+        // Livraison d'une vente payée à la commande : le retour du livreur la marque « Livrée ».
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Livree(int id)
+        {
+            var vente = await _context.CommandesPos.FirstOrDefaultAsync(c => c.Id == id);
+            if (vente == null)
+                return NotFound();
+            if (vente.StatutLivraison == "À livrer")
+            {
+                vente.StatutLivraison = "Livrée";
+                vente.DateLivraison = DateTime.Now;
+                await _context.SaveChangesAsync();
+                TempData["Success"] = $"Livraison de la vente {vente.Numero} marquée comme effectuée.";
+            }
+            return RedirectToAction("Details", new { id });
         }
 
         // Annulation d'une vente du jour : ses encaissements passent « Rejeté » (donc

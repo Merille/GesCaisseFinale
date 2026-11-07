@@ -13,7 +13,7 @@ namespace EasytransitCaisse.Services
     {
         public static readonly HashSet<string> Controleurs = new(StringComparer.OrdinalIgnoreCase)
         {
-            "Pos", "Vente", "Stock", "PosRapport", "Produit", "Categorie", "Combo", "Salle", "Cuisine", "Taxe", "Unite", "Depot"
+            "Pos", "Vente", "Stock", "PosRapport", "Produit", "Categorie", "Combo", "Salle", "Cuisine", "Taxe", "Unite", "Depot", "Livreur"
         };
 
         private readonly AppDbContext _context;

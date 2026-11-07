@@ -28,6 +28,11 @@ $c = $commande;
     <div>Caisse : <?= h($c['ChkCode']) ?> · Vendeur : <?= h($c['Vendeur']) ?></div>
     <?php if ($c['Client']): ?><div>Client : <?= h($c['Client']) ?></div><?php endif; ?>
     <?php if (!empty($c['TableNom'])): ?><div>Table  : <?= h($c['TableNom']) ?><?= $c['Couverts'] ? ' · ' . (int) $c['Couverts'] . ' couvert(s)' : '' ?></div><?php endif; ?>
+    <?php if ($c['StatutLivraison'] !== null): ?>
+        <div>Livraison : <?= h($c['StatutLivraison']) ?> · <?= h($c['Livreur']) ?></div>
+        <div>À : <?= h($c['NomLivraison'] ?? $c['Client']) ?><?= $c['TelephoneLivraison'] ? ' · ' . h($c['TelephoneLivraison']) : '' ?></div>
+        <div><?= h($c['AdresseLivraison']) ?></div>
+    <?php endif; ?>
     <hr>
     <?php foreach ($lignes as $l): ?>
         <div class="b"><?= h($l['Libelle']) ?></div>

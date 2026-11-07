@@ -63,7 +63,7 @@ const fiche = [
         ['Projet', 'GesCaisse — gestion de caisse et point de vente (POS)'],
         ['Éditeur', 'M-ITECH AFRICA'],
         ['Versions', 'ASP.NET Core (.NET 10) / SQL Server — PHP 8 / MySQL'],
-        ['Version du document', '1.3'],
+        ['Version du document', '1.4'],
         ['Date', 'Novembre 2026'],
         ['Statut', 'Document de référence (fonctionnalités réalisées)']
     ], [3000, 6638])
@@ -116,7 +116,7 @@ const contenu = [
         ['Analyse', "Rapports d'opérations, export Sage"],
         ['Point de vente', 'Vente, ventes (retours, annulations), écran cuisine / bar, rapports de ventes, stock'],
         ['Configuration', 'Catégories, produits (variantes, combos), combos'],
-        ['Paramètres', 'Ma société, utilisateurs, motifs, modes de paiement, taxes, unités de vente, dépôts'],
+        ['Paramètres', 'Ma société, utilisateurs, motifs, modes de paiement, taxes, unités de vente, dépôts, livreurs'],
         ['Administration', 'Sociétés et licences (super-administrateur)']
     ], [2600, 7038]),
     espace(),
@@ -187,7 +187,9 @@ const contenu = [
     h2('4.1 Écran de vente'),
     puce('Choix de la journée de caisse ouverte, puis écran plein écran adapté au tactile.'),
     puce('Grille de produits par catégorie (couleurs), recherche par nom, code ou code-barres, lecture par douchette.'),
-    puce('Plusieurs tickets en parallèle (« mettre en attente »), gardés dans le navigateur jusqu\'au paiement.'),
+    puce('Plusieurs tickets en parallèle sur un poste (onglets), gardés dans le navigateur jusqu\'au paiement.'),
+    puce('« Mettre en attente » : le ticket est enregistré sur le serveur et quitte l\'écran ; la liste « Commandes en attente » (journée de caisse) est partagée entre les postes, avec reprise (un seul poste à la fois) et suppression.'),
+    puce('Commande à livrer : livreur (Paramètres › Livreurs), destinataire, téléphone, adresse ; payée maintenant (vente encaissée, statut « À livrer » puis « Livrée » au retour du livreur) ou à encaisser à la livraison (commande en attente reprise au retour du livreur, vente enregistrée « Livrée »). Livreur, destinataire et statut figurent sur le ticket et le détail de la vente.'),
     puce('Pavé numérique : quantité, remise par ligne (%), prix (administrateurs seulement), suppression.'),
     puce('Remise globale sur le ticket, en % ou en montant (administrateurs et utilisateurs habilités).'),
     puce('Choix du client ; affichage du stock restant dans le dépôt de la caisse et alerte de stock bas.'),
@@ -276,7 +278,7 @@ const contenu = [
         ['RG09', 'Une variante de produit est vendue, stockée et suivie comme un produit ; le modèle n\'est ni vendu ni stocké.'],
         ['RG10', 'Le prix d\'un combo est le prix du produit combo plus les suppléments des articles choisis ; chaque combo doit avoir exactement le nombre d\'articles prévu.'],
         ['RG11', 'La quantité envoyée en préparation est fixée par le serveur ; seul l\'écart avec la dernière version donne lieu à un bon.'],
-        ['RG12', 'Une journée de caisse ne peut être clôturée tant qu\'une table a une commande ouverte.'],
+        ['RG12', 'Une journée de caisse ne peut être clôturée tant qu\'une table a une commande ouverte ou qu\'une commande est en attente.'],
         ['RG13', 'Les données de chaque société sont cloisonnées ; le super-administrateur peut consulter une société ou toutes.']
     ], [900, 8738]),
 
@@ -324,7 +326,7 @@ const contenu = [
         ['Facturation', 'Factures, LignesFactures'],
         ['Catalogue', 'Categories, Produits, ProduitImages, Taxes, ProduitTaxes, Unites, ProduitAttributs, ProduitAttributValeurs, VarianteValeurs'],
         ['Combos', 'Combos, ComboChoix, ProduitCombos'],
-        ['Ventes', 'CommandesPos, LignesCommandePos, LignesCommandePosTaxes, PaiementsPos'],
+        ['Ventes', 'CommandesPos, LignesCommandePos, LignesCommandePosTaxes, PaiementsPos, CommandesAttente, Livreurs'],
         ['Stock', 'Depots, StocksDepots, MouvementsStock'],
         ['Restaurant', 'Salles, TablesRestaurant, CommandesOuvertes, BonsPreparation, LignesBonPreparation']
     ], [2400, 7238]),

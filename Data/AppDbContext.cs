@@ -129,6 +129,23 @@ namespace EasytransitCaisse.Data
             modelBuilder.Entity<MouvementStock>().Property(m => m.Reference).HasMaxLength(100);
             modelBuilder.Entity<MouvementStock>().Property(m => m.Commentaire).HasMaxLength(300);
 
+            // Livraisons : livreurs, commandes en attente (partagées entre postes), livraison d'une vente.
+            modelBuilder.Entity<Livreur>()
+                .HasQueryFilter(e => _currentTenantId == 0 || e.TenantId == _currentTenantId);
+            modelBuilder.Entity<CommandeAttente>().ToTable("CommandesAttente")
+                .HasQueryFilter(e => _currentTenantId == 0 || e.TenantId == _currentTenantId);
+            modelBuilder.Entity<CommandeAttente>()
+                .HasOne<JourneeCaisse>().WithMany().HasForeignKey(c => c.JourneeCaisseId).OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<CommandeAttente>()
+                .HasOne<Livreur>().WithMany().HasForeignKey(c => c.LivreurId).OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<CommandeAttente>().HasIndex(c => new { c.JourneeCaisseId, c.Numero });
+            modelBuilder.Entity<CommandePos>()
+                .HasOne<Livreur>().WithMany().HasForeignKey(c => c.LivreurId).OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<CommandePos>().Property(c => c.NomLivraison).HasMaxLength(100);
+            modelBuilder.Entity<CommandePos>().Property(c => c.TelephoneLivraison).HasMaxLength(30);
+            modelBuilder.Entity<CommandePos>().Property(c => c.AdresseLivraison).HasMaxLength(200);
+            modelBuilder.Entity<CommandePos>().Property(c => c.StatutLivraison).HasMaxLength(20);
+
             // Dépôts de stockage : stock par dépôt (StocksDepots), caisse rattachée à un dépôt.
             modelBuilder.Entity<Depot>()
                 .HasQueryFilter(e => _currentTenantId == 0 || e.TenantId == _currentTenantId);
@@ -339,6 +356,8 @@ namespace EasytransitCaisse.Data
         public DbSet<MouvementStock> MouvementsStock { get; set; }
         public DbSet<Depot> Depots { get; set; }
         public DbSet<StockDepot> StocksDepots { get; set; }
+        public DbSet<Livreur> Livreurs { get; set; }
+        public DbSet<CommandeAttente> CommandesAttente { get; set; }
 
         public DbSet<Taxe> Taxes { get; set; }
 

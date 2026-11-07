@@ -39,7 +39,7 @@
         "Pos" or "Vente" or "Stock" or "PosRapport" or "Cuisine" => "Point de vente",
         "Salle" => "Activité",
         "Produit" or "Categorie" or "Combo" => "Configuration",
-        "Utilisateur" or "Motif" or "ModePaiement" or "Taxe" or "Unite" or "Depot" or "Societe" => "Paramètres",
+        "Utilisateur" or "Motif" or "ModePaiement" or "Taxe" or "Unite" or "Depot" or "Livreur" or "Societe" => "Paramètres",
         "Tenant" => "Administration",
         _ => null
     };
@@ -56,6 +56,7 @@
             "Taxe" => "Taxes",
             "Unite" => "Unités de vente",
             "Depot" => "Dépôts",
+            "Livreur" => "Livreurs",
             "Salle" => "Plan de salle",
             "Cuisine" => "Écran cuisine / bar",
             "Utilisateur" => "Utilisateurs",
@@ -254,7 +255,7 @@
             <div class="sb-section">
                 <div class="sb-section-title">Administration</div>
                 @{
-                    var parametresActif = controller is "Utilisateur" or "Motif" or "ModePaiement" or "Taxe" or "Unite" or "Depot" or "Societe";
+                    var parametresActif = controller is "Utilisateur" or "Motif" or "ModePaiement" or "Taxe" or "Unite" or "Depot" or "Livreur" or "Societe";
                 }
                 <button type="button" class="sb-link sb-parent @(parametresActif ? "parent-actif" : "")" title="Paramètres"
                         aria-expanded="@(parametresActif ? "true" : "false")" aria-controls="sbParametres" onclick="basculerSousMenu(this)">
@@ -295,6 +296,10 @@
                     <a class="sb-link @(controller == "Depot" ? "active" : "")" href="/Depot/Index" title="Dépôts">
                         <i class="fas fa-warehouse"></i>
                         <span class="sb-label">Dépôts</span>
+                    </a>
+                    <a class="sb-link @(controller == "Livreur" ? "active" : "")" href="/Livreur/Index" title="Livreurs">
+                        <i class="fas fa-motorcycle"></i>
+                        <span class="sb-label">Livreurs</span>
                     </a>
                     }
                 </div>

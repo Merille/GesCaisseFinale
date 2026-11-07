@@ -254,3 +254,35 @@ body.pos-body { margin: 0; background: var(--pos-bg); color: #1d2a35; font-famil
 .pos-combo-pied .pos-big:disabled { opacity: .5; cursor: not-allowed; }
 .pos-ligne .compo { font-size: 12px; color: #5a6b78; margin-top: 1px; }
 .pos-tuile .stock.combo { color: var(--pos-warn); font-weight: 600; }
+
+/* ---------- Commandes en attente et livraisons ---------- */
+.pos-btn-top { cursor: pointer; }
+.pos-compte { display: inline-block; min-width: 20px; margin-left: 4px; padding: 0 6px; border-radius: 10px; background: var(--pos-warn); color: #fff; font-size: 12px; line-height: 18px; text-align: center; }
+/* Vente directe : 4 actions (client, attente, remise, livraison) sur deux rangées. */
+.pos-actions.quatre { display: grid; grid-template-columns: 1fr 1fr; }
+.pos-act.livraison { background: #e8f4ec; border-color: var(--pos-ok); color: #1f6b3a; }
+.pos-modal-attentes { width: 820px; }
+.pos-att-corps { overflow-y: auto; padding: 6px 18px 16px; }
+.pos-att-corps h6 { margin: 14px 0 6px; font-size: 13px; text-transform: uppercase; letter-spacing: .03em; color: #6c7a86; }
+.pos-att { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #edf1f4; }
+.pos-att-info { flex: 1; min-width: 0; font-size: 14px; }
+.pos-att-info small { color: #6c7a86; }
+.pos-att-total { font-weight: 700; white-space: nowrap; }
+.pos-att-btns { display: flex; gap: 6px; }
+.pos-att-btns .pos-sec { padding: 8px 12px; font-size: 14px; text-decoration: none; }
+.pos-att-btns .pos-sec.rouge { color: var(--pos-danger); }
+.pos-att-btns .pos-sec.vert { color: #fff; background: var(--pos-ok); border-color: var(--pos-ok); }
+.pos-att-badge { display: inline-block; margin-left: 8px; padding: 1px 8px; border-radius: 10px; background: #fff4e5; color: #8a4b0f; font-size: 12px; font-weight: 600; }
+.pos-att-badge.paye { background: #e8f4ec; color: #1f6b3a; }
+.pos-att-livraison { margin-top: 3px; font-size: 13px; color: #33444f; }
+.pos-att-livraison span { color: #6c7a86; }
+.pos-att-vide { padding: 10px 0; color: #6c7a86; font-size: 14px; }
+.pos-modal-livraison { width: 560px; }
+.pos-form { display: flex; flex-direction: column; gap: 10px; padding: 14px 18px 16px; overflow-y: auto; }
+.pos-form label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #6c7a86; }
+.pos-form input, .pos-form select, .pos-form textarea { box-sizing: border-box; width: 100%; min-width: 0; margin: 0; padding: 10px 12px; border-radius: 8px; border: 1px solid #cfd8df; font-size: 15px; color: #1d2b36; background: #fff; font-family: inherit; }
+.pos-form-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.pos-form .pos-remise-types { margin: 4px 0 0; }
+.pos-form-aide { font-size: 13px; color: #6c7a86; min-height: 18px; }
+.pos-form .pos-remise-boutons { margin: 0; }
+@media (max-width: 600px) { .pos-form-2 { grid-template-columns: 1fr; } .pos-att { flex-wrap: wrap; } }

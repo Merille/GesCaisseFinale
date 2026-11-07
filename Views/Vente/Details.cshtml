@@ -52,6 +52,20 @@
         {
             <div class="small text-muted mt-2">Table</div><div><i class="fas fa-utensils"></i> @v.TableNom@(v.Couverts.HasValue ? $" · {v.Couverts} couvert(s)" : "")</div>
         }
+        @if (v.StatutLivraison != null)
+        {
+            <div class="small text-muted mt-2">Livraison</div>
+            <div><i class="fas fa-motorcycle"></i> @ViewBag.Livreur
+                <span class="badge @(v.StatutLivraison == "Livrée" ? "bg-success" : "bg-warning text-dark")">@v.StatutLivraison</span></div>
+            <div class="small">@(v.NomLivraison ?? ViewBag.Client ?? "")@(string.IsNullOrEmpty(v.TelephoneLivraison) ? "" : " · " + v.TelephoneLivraison)</div>
+            <div class="small">@v.AdresseLivraison</div>
+            @if (v.StatutLivraison == "À livrer")
+            {
+                <form method="post" asp-action="Livree" asp-route-id="@v.Id" class="mt-1">
+                    <button class="btn btn-sm btn-outline-success"><i class="fas fa-check"></i> Marquer livrée</button>
+                </form>
+            }
+        }
     </div></div></div>
     <div class="col-md-3"><div class="card h-100 border-0 shadow-sm"><div class="card-body">
         <div class="small text-muted">Total TTC</div>

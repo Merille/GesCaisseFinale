@@ -2,7 +2,7 @@
 -- Les noms de tables et de colonnes reprennent ceux de la version .NET
 -- (SQL Server) pour faciliter une éventuelle reprise des données.
 --
--- Base à jour : intègre toutes les migrations de sql/migrations (001 à 013),
+-- Base à jour : intègre toutes les migrations de sql/migrations (001 à 014),
 -- notées comme appliquées dans MigrationsAppliquees.
 --
 -- Utilisation (NOUVELLE installation uniquement) : créer une base VIDE (ex. gescaisse),
@@ -129,6 +129,30 @@ CREATE TABLE `Combos` (
 
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `CommandesAttente` (
+  `Id` int NOT NULL AUTO_INCREMENT,
+  `TenantId` int NOT NULL,
+  `JourneeCaisseId` int NOT NULL,
+  `Numero` int NOT NULL,
+  `DateCreation` datetime NOT NULL,
+  `UtilisateurId` int NOT NULL,
+  `ClientId` int DEFAULT NULL,
+  `Contenu` mediumtext NOT NULL,
+  `Total` decimal(18,2) NOT NULL DEFAULT '0.00',
+  `NbArticles` int NOT NULL DEFAULT '0',
+  `LivreurId` int DEFAULT NULL,
+  `NomLivraison` varchar(100) DEFAULT NULL,
+  `TelephoneLivraison` varchar(30) DEFAULT NULL,
+  `AdresseLivraison` varchar(200) DEFAULT NULL,
+  PRIMARY KEY (`Id`),
+  KEY `IX_CommandesAttente_JourneeCaisseId_Numero` (`JourneeCaisseId`,`Numero`),
+  KEY `IX_CommandesAttente_LivreurId` (`LivreurId`),
+  CONSTRAINT `FK_CommandesAttente_JourneesCaisses` FOREIGN KEY (`JourneeCaisseId`) REFERENCES `JourneesCaisses` (`Id`) ON DELETE CASCADE,
+  CONSTRAINT `FK_CommandesAttente_Livreurs` FOREIGN KEY (`LivreurId`) REFERENCES `Livreurs` (`Id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `CommandesOuvertes` (
   `Id` int NOT NULL AUTO_INCREMENT,
   `TenantId` int NOT NULL DEFAULT '0',
@@ -174,12 +198,20 @@ CREATE TABLE `CommandesPos` (
   `TableNom` varchar(60) DEFAULT NULL,
   `Couverts` int DEFAULT NULL,
   `Pourboire` decimal(18,2) NOT NULL DEFAULT '0.00',
+  `LivreurId` int DEFAULT NULL,
+  `NomLivraison` varchar(100) DEFAULT NULL,
+  `TelephoneLivraison` varchar(30) DEFAULT NULL,
+  `AdresseLivraison` varchar(200) DEFAULT NULL,
+  `StatutLivraison` varchar(20) DEFAULT NULL,
+  `DateLivraison` datetime DEFAULT NULL,
   PRIMARY KEY (`Id`),
   UNIQUE KEY `UX_CommandesPos_Numero` (`TenantId`,`Numero`),
   UNIQUE KEY `UX_CommandesPos_Cle` (`TenantId`,`CleClient`),
   KEY `IX_CommandesPos_Journee` (`JourneeCaisseId`),
   KEY `IX_CommandesPos_Origine` (`CommandeOrigineId`),
-  CONSTRAINT `FK_CommandesPos_Journees` FOREIGN KEY (`JourneeCaisseId`) REFERENCES `JourneesCaisses` (`Id`)
+  KEY `IX_CommandesPos_LivreurId` (`LivreurId`),
+  CONSTRAINT `FK_CommandesPos_Journees` FOREIGN KEY (`JourneeCaisseId`) REFERENCES `JourneesCaisses` (`Id`),
+  CONSTRAINT `FK_CommandesPos_Livreurs` FOREIGN KEY (`LivreurId`) REFERENCES `Livreurs` (`Id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -330,6 +362,18 @@ CREATE TABLE `LignesFactures` (
 
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `Livreurs` (
+  `Id` int NOT NULL AUTO_INCREMENT,
+  `TenantId` int NOT NULL,
+  `Nom` varchar(100) NOT NULL,
+  `Telephone` varchar(30) DEFAULT NULL,
+  `Actif` tinyint(1) NOT NULL DEFAULT '1',
+  PRIMARY KEY (`Id`),
+  KEY `IX_Livreurs_TenantId` (`TenantId`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `MigrationsAppliquees` (
   `Nom` varchar(100) NOT NULL,
   `DateApplication` datetime NOT NULL,
@@ -350,6 +394,7 @@ INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('010_combo
 INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('011_combos_odoo.sql','2026-11-02 00:15:20');
 INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('012_module_point_vente.sql','2026-11-02 00:15:20');
 INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('013_depots.sql','2026-11-02 00:15:20');
+INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('014_livraisons.sql','2026-11-02 00:15:20');
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `ModesPaiement` (

@@ -65,6 +65,20 @@ namespace EasytransitCaisse.Models
         [Precision(18, 2)]
         public decimal Pourboire { get; set; }
 
+        // Commande livrée : livreur, destinataire et statut de la livraison (« À livrer » tant
+        // qu'une vente payée à la commande n'est pas livrée, puis « Livrée »). Vide hors livraison.
+        public int? LivreurId { get; set; }
+
+        public string? NomLivraison { get; set; }
+
+        public string? TelephoneLivraison { get; set; }
+
+        public string? AdresseLivraison { get; set; }
+
+        public string? StatutLivraison { get; set; }
+
+        public DateTime? DateLivraison { get; set; }
+
         public List<LigneCommandePos> Lignes { get; set; } = new();
 
         public List<PaiementPos> Paiements { get; set; } = new();

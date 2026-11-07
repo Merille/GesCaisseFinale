@@ -1,7 +1,9 @@
 // Écran de vente du point de vente (commun aux versions .NET et PHP).
 // Les données (produits, catégories, clients, journée) sont fournies par la page
 // dans <script id="pos-donnees" type="application/json">. Les tickets en cours
-// sont gardés dans le navigateur (localStorage) jusqu'au paiement.
+// sont gardés dans le navigateur (localStorage) jusqu'au paiement ; « Mettre en attente »
+// les enregistre sur le serveur (liste « Commandes en attente », partagée entre les postes).
+// Livraison : livreur et destinataire sur le ticket, payée maintenant ou à la livraison.
 // Restaurant / bar (D.restaurant) : l'écran s'ouvre sur le plan de salle ; la commande de
 // chaque table est gardée sur le serveur (partagée entre serveurs et appareils), envoyée en
 // cuisine / au bar par bons de préparation, puis encaissée (en une fois ou partagée).
@@ -617,6 +619,7 @@
                 + echap(x.nom) + '</button>').join('') + '</div>'
             + '<div class="pos-droite">'
             + '<button type="button" class="pos-btn-top" data-action="directe"><i class="fas fa-bag-shopping"></i> Vente directe</button>'
+            + boutonAttentes()
             + '<a class="pos-btn-top" href="' + echap(R.urlCuisine) + '" target="_blank" rel="noopener"><i class="fas fa-fire-burner"></i> Écran cuisine</a>'
             + (D.urlVentes ? '<a class="pos-btn-top" href="' + echap(D.urlVentes) + '"><i class="fas fa-receipt"></i> Ventes</a>' : '')
             + '<a class="pos-btn-top rouge" href="' + echap(D.urlFermer) + '"><i class="fas fa-power-off"></i> Fermer</a>'
@@ -736,6 +739,7 @@
             remiseGlobale: pay.partage ? null : (t.remise || null),
             pourboire: pay.pourboire || 0,
             commandeOuverte: cmd ? { id: cmd.id, version: cmd.version, reste: resteApresPaiement() } : null,
+            livraison: cmd ? null : (t.livraison || null),
             paiements: pay.lignes.map(r => ({ modeId: r.modeId, montant: r.montant }))
         };
         const corps = new FormData();
@@ -771,6 +775,7 @@
         pay = null;
         vue = 'fin';
         afficher();
+        rafraichirAttentes();
     }
 
     function nouvelleVente() {
@@ -952,6 +957,7 @@
             + '</div>'
             + '<div class="pos-droite">'
             + '<span class="pos-user"><span class="pos-avatar">' + echap(initiales(D.utilisateur.nom || '?')) + '</span><span>' + echap(D.utilisateur.nom) + ' · ' + echap(D.utilisateur.profil) + '</span></span>'
+            + boutonAttentes()
             + (D.urlVentes ? '<a class="pos-btn-top" href="' + echap(D.urlVentes) + '"><i class="fas fa-receipt"></i> Ventes</a>' : '')
             + '<a class="pos-btn-top rouge" href="' + echap(D.urlFermer) + '"><i class="fas fa-power-off"></i> Fermer</a>'
             + '</div></div>'
@@ -963,12 +969,15 @@
                 + (t.remise.type === 'pct' ? ' ' + qte(t.remise.valeur) + ' %' : '') + ' −' + fcfa(tot.remise) + '</span></div>' : '')
             + '<div class="pos-grand">' + fcfa(tot.ttc) + ' FCFA</div>'
             + '<div class="pos-tva">dont taxes : ' + fcfa(tot.tva) + ' · ' + t.lignes.length + ' article(s), ' + qte(tot.unites) + ' unité(s)</div></div>'
-            + '<div class="pos-actions">'
+            + '<div class="pos-actions' + (cmd ? '' : ' quatre') + '">'
             + '<button type="button" class="pos-act" data-action="client"><i class="fas fa-user"></i> ' + (client ? 'Client : <b>' + echap(client.nom) + '</b>' : 'Choisir un client') + '</button>'
             + (cmd ? '<button type="button" class="pos-act" data-action="note"><i class="fas fa-comment-dots"></i> Note</button>'
-                : '<button type="button" class="pos-act" data-action="nouveau"><i class="fas fa-pause"></i> Mettre en attente</button>')
+                : '<button type="button" class="pos-act" data-action="attente"><i class="fas fa-pause"></i> Mettre en attente</button>')
             + '<button type="button" class="pos-act" data-action="remise"' + (D.peutRemiseGlobale ? '' : ' disabled title="Réservée aux administrateurs"') + '>'
             + '<i class="fas fa-percent"></i> ' + (t.remise ? 'Remise : <b>' + (t.remise.type === 'pct' ? qte(t.remise.valeur) + ' %' : fcfa(t.remise.valeur)) + '</b>' : 'Remise globale') + '</button>'
+            + (cmd ? '' : '<button type="button" class="pos-act' + (t.livraison ? ' livraison' : '') + '" data-action="livraison"><i class="fas fa-motorcycle"></i> '
+                + (t.livraison ? 'Livraison : <b>' + echap(nomLivreur(t.livraison.livreurId)) + '</b>' + (t.livraison.paiement === 'livraison' ? ' (à encaisser)' : '')
+                    : 'Livraison') + '</button>')
             + '</div>'
             + (cmd ? '<div class="pos-actions resto">'
                 + '<button type="button" class="pos-act envoyer' + (aEnvoyer() ? ' actif' : '') + '" data-action="envoyer"><i class="fas fa-fire-burner"></i> Envoyer'
@@ -1199,6 +1208,212 @@
     }
 
     // ------------------------------------------------------------------
+    // Commandes en attente (gardées sur le serveur, partagées entre les postes) et livraisons
+    // ------------------------------------------------------------------
+    let attentes = { attentes: [], livraisons: [] };
+    const livreurs = new Map((D.livreurs || []).map(l => [l.id, l]));
+    const nomLivreur = id => (livreurs.get(id) || {}).nom || 'Livreur';
+
+    function boutonAttentes() {
+        if (!D.urlAttentes) return '';
+        const n = attentes.attentes.length + attentes.livraisons.length;
+        return '<button type="button" class="pos-btn-top" data-action="attentes" title="Commandes en attente et livraisons à effectuer">'
+            + '<i class="fas fa-clock"></i> Commandes en attente' + (n ? ' <b class="pos-compte">' + n + '</b>' : '') + '</button>';
+    }
+
+    async function rafraichirAttentes() {
+        if (!D.urlAttentes) return;
+        try {
+            const res = await fetch(D.urlAttentes, { credentials: 'same-origin' });
+            const r = await res.json();
+            if (!res.ok || !r || r.erreur) return;
+            attentes = { attentes: r.attentes || [], livraisons: r.livraisons || [] };
+            const liste = document.querySelector('.pos-modal-attentes');
+            if (liste) remplirAttentes(liste);
+            // Seul le bouton est redessiné : la saisie en cours (recherche…) n'est pas perdue.
+            racine.querySelectorAll('[data-action="attentes"]').forEach(b => { b.outerHTML = boutonAttentes(); });
+        } catch (err) { /* hors ligne : la liste sera actualisée plus tard */ }
+    }
+
+    // Ticket enregistré sur le serveur puis retiré de l'écran (repris depuis n'importe quel poste).
+    async function mettreEnAttente() {
+        const t = ticket();
+        if (!t.lignes.length) { message('Le ticket est vide.'); return false; }
+        const res = await appel(D.urlMettreEnAttente, 'commande', {
+            journeeId: D.journee.id,
+            lignes: t.lignes.map(l => ({ uid: l.uid, produitId: l.produitId, nom: l.nom, qte: l.qte, prix: l.prix, remise: l.remise || 0, tva: l.tva, unite: l.unite, note: l.note || '', composants: l.composants || null })),
+            clientId: t.clientId, remise: t.remise || null, livraison: t.livraison || null
+        });
+        if (!res.ok) {
+            message(res.r && res.r.erreur ? res.r.erreur : 'Connexion impossible : la commande n\'est pas mise en attente. Réessayez.', true);
+            return false;
+        }
+        const l = t.livraison;
+        etat.tickets.splice(etat.actif, 1);
+        if (!etat.tickets.length) { etat.compteur += 1; etat.tickets.push(nouveauTicket(etat.compteur)); }
+        etat.actif = Math.min(etat.actif, etat.tickets.length - 1);
+        mode = 'qte';
+        saisie = null;
+        enregistrer();
+        afficher();
+        message(l ? 'Commande à livrer n° ' + res.r.numero + ' confiée à ' + nomLivreur(l.livreurId) + ' : à encaisser à son retour.'
+            : 'Commande mise en attente : n° ' + res.r.numero + '.');
+        rafraichirAttentes();
+        return true;
+    }
+
+    function htmlLivraison(l) {
+        return '<div class="pos-att-livraison"><i class="fas fa-motorcycle"></i> ' + echap(l.livreur || 'Livreur')
+            + (l.nom || l.telephone ? ' · ' + echap([l.nom, l.telephone].filter(Boolean).join(' · ')) : '')
+            + (l.adresse ? '<br><span>' + echap(l.adresse) + '</span>' : '') + '</div>';
+    }
+
+    function remplirAttentes(fond) {
+        const a = attentes.attentes, l = attentes.livraisons;
+        fond.querySelector('.pos-att-corps').innerHTML =
+            '<h6>En attente (' + a.length + ')</h6>'
+            + (a.length ? a.map(c => '<div class="pos-att">'
+                + '<div class="pos-att-info"><b>N° ' + c.numero + '</b> · ' + echap(c.heure) + (c.client ? ' · ' + echap(c.client) : '')
+                + ' · ' + c.articles + ' article(s)' + (c.utilisateur ? ' · <small>' + echap(c.utilisateur) + '</small>' : '')
+                + (c.livraison ? '<span class="pos-att-badge">À livrer · à encaisser</span>' + htmlLivraison(c.livraison) : '') + '</div>'
+                + '<div class="pos-att-total">' + fcfa(c.total) + ' FCFA</div>'
+                + '<div class="pos-att-btns"><button type="button" class="pos-sec" data-reprendre="' + c.id + '">Reprendre</button>'
+                + '<button type="button" class="pos-sec rouge" data-supprimer="' + c.id + '" data-numero="' + c.numero + '" aria-label="Supprimer la commande n° ' + c.numero + '">'
+                + '<i class="fas fa-trash-can"></i></button></div></div>').join('')
+                : '<div class="pos-att-vide">Aucune commande en attente.</div>')
+            + '<h6>Livraisons payées à effectuer (' + l.length + ')</h6>'
+            + (l.length ? l.map(c => '<div class="pos-att">'
+                + '<div class="pos-att-info"><b>' + echap(c.numero) + '</b> · ' + echap(c.heure) + (c.client ? ' · ' + echap(c.client) : '')
+                + '<span class="pos-att-badge paye">Payée · à livrer</span>' + htmlLivraison(c) + '</div>'
+                + '<div class="pos-att-total">' + fcfa(c.total) + ' FCFA</div>'
+                + '<div class="pos-att-btns"><button type="button" class="pos-sec vert" data-livree="' + c.id + '"><i class="fas fa-check"></i> Livrée</button>'
+                + '<a class="pos-sec" href="' + echap(D.urlTicket + c.id) + '" target="_blank" rel="noopener" title="Ticket"><i class="fas fa-receipt"></i></a></div></div>').join('')
+                : '<div class="pos-att-vide">Aucune livraison payée en cours.</div>');
+    }
+
+    function listeAttentes() {
+        const fond = document.createElement('div');
+        fond.className = 'pos-modal-fond attentes';
+        fond.innerHTML = '<div class="pos-modal pos-modal-attentes" role="dialog" aria-modal="true" aria-label="Commandes en attente">'
+            + '<div class="pos-modal-tete">Commandes en attente<button type="button" data-close aria-label="Fermer">×</button></div>'
+            + '<div class="pos-att-corps"></div></div>';
+        document.body.appendChild(fond);
+        remplirAttentes(fond);
+        rafraichirAttentes();
+        const fermer = () => { fond.remove(); afficher(); };
+        fond.addEventListener('click', async e => {
+            if (e.target === fond || e.target.closest('[data-close]')) { fermer(); return; }
+            const b = e.target.closest('button');
+            if (!b || b.disabled) return;
+            if (b.dataset.reprendre) {
+                b.disabled = true;
+                const res = await appel(D.urlReprendre, 'commande', { id: Number(b.dataset.reprendre) });
+                if (!res.ok) { message(res.r && res.r.erreur ? res.r.erreur : 'Connexion impossible. Réessayez.', true); rafraichirAttentes(); return; }
+                reprendre(res.r);
+                fond.remove();
+            } else if (b.dataset.supprimer) {
+                if (!confirm('Supprimer la commande en attente n° ' + b.dataset.numero + ' ?')) return;
+                b.disabled = true;
+                const res = await appel(D.urlSupprimerAttente, 'commande', { id: Number(b.dataset.supprimer) });
+                if (!res.ok) message(res.r && res.r.erreur ? res.r.erreur : 'Connexion impossible. Réessayez.', true);
+                else message('Commande n° ' + b.dataset.numero + ' supprimée.');
+                rafraichirAttentes();
+            } else if (b.dataset.livree) {
+                b.disabled = true;
+                const res = await appel(D.urlLivree, 'commande', { id: Number(b.dataset.livree) });
+                if (!res.ok) message(res.r && res.r.erreur ? res.r.erreur : 'Connexion impossible. Réessayez.', true);
+                else message('Livraison marquée comme effectuée.');
+                rafraichirAttentes();
+            }
+        });
+        fond.addEventListener('keydown', e => { if (e.key === 'Escape') fermer(); });
+    }
+
+    // Commande reprise : elle devient un nouveau ticket de ce poste (vente directe).
+    function reprendre(r) {
+        const c = r.contenu || {};
+        const lignes = (c.lignes || []).filter(l => produits.has(l.produitId))
+            .map(l => Object.assign({ remise: 0, note: '', envoye: 0 }, l, { uid: l.uid || identifiant(), envoye: 0 }));
+        etat.compteur += 1;
+        etat.tickets.push({ numero: etat.compteur, lignes: lignes, clientId: c.clientId || null, remise: c.remise || null, livraison: c.livraison || null, choisie: -1 });
+        etat.actif = etat.tickets.length - 1;
+        cmd = null;
+        vue = 'vente';
+        mode = 'qte';
+        saisie = null;
+        enregistrer();
+        afficher();
+        message(lignes.length < (c.lignes || []).length
+            ? 'Commande n° ' + r.numero + ' reprise : un article retiré du catalogue a été ignoré.'
+            : 'Commande n° ' + r.numero + ' reprise' + (c.livraison && c.livraison.paiement === 'livraison' ? ' : encaissez-la au retour du livreur.' : '.'),
+            lignes.length < (c.lignes || []).length);
+        rafraichirAttentes();
+    }
+
+    // Livraison du ticket : livreur et destinataire ; payée maintenant (vente normale, livrée ensuite)
+    // ou à la livraison (commande mise en attente jusqu'au retour du livreur).
+    function livraison() {
+        const t = ticket();
+        if (!t.lignes.length) { message('Le ticket est vide.'); return; }
+        if (!livreurs.size) { message('Aucun livreur actif : créez-en dans Paramètres › Livreurs.', true); return; }
+        const client = clients.get(t.clientId) || {};
+        const l = t.livraison || { livreurId: null, nom: client.nom || '', telephone: client.telephone || '', adresse: client.adresse || '', paiement: 'livraison' };
+        const fond = document.createElement('div');
+        fond.className = 'pos-modal-fond';
+        fond.innerHTML = '<div class="pos-modal pos-modal-livraison" role="dialog" aria-modal="true" aria-label="Livraison">'
+            + '<div class="pos-modal-tete">Commande à livrer<button type="button" data-close aria-label="Fermer">×</button></div>'
+            + '<div class="pos-form">'
+            + '<label>Livreur<select name="livreurId"><option value="">-- Choisir un livreur --</option>'
+            + (D.livreurs || []).map(x => '<option value="' + x.id + '"' + (x.id === l.livreurId ? ' selected' : '') + '>' + echap(x.nom) + (x.telephone ? ' · ' + echap(x.telephone) : '') + '</option>').join('')
+            + '</select></label>'
+            + '<div class="pos-form-2"><label>Destinataire<input name="nom" maxlength="100" value="' + echap(l.nom) + '"></label>'
+            + '<label>Téléphone<input name="telephone" maxlength="30" inputmode="tel" value="' + echap(l.telephone) + '"></label></div>'
+            + '<label>Adresse de livraison<textarea name="adresse" rows="2" maxlength="200">' + echap(l.adresse) + '</textarea></label>'
+            + '<div class="pos-remise-types"><button type="button" data-paiement="maintenant">Payée maintenant</button><button type="button" data-paiement="livraison">À encaisser à la livraison</button></div>'
+            + '<div class="pos-form-aide"></div>'
+            + '<div class="pos-remise-boutons">'
+            + (t.livraison ? '<button type="button" class="pos-sec" data-retirer>Retirer la livraison</button>' : '')
+            + '<button type="button" class="pos-big" data-valider>Valider</button></div>'
+            + '</div></div>';
+        document.body.appendChild(fond);
+        let paiement = l.paiement === 'maintenant' ? 'maintenant' : 'livraison';
+        const champ = n => fond.querySelector('[name="' + n + '"]');
+        const maj = () => {
+            fond.querySelectorAll('[data-paiement]').forEach(b => b.classList.toggle('on', b.dataset.paiement === paiement));
+            fond.querySelector('.pos-form-aide').textContent = paiement === 'maintenant'
+                ? 'Le client paie maintenant : encaissez le ticket, puis marquez la livraison « Livrée » au retour du livreur.'
+                : 'La commande est mise en attente et confiée au livreur : reprenez-la à son retour pour l\'encaisser.';
+            fond.querySelector('[data-valider]').textContent = paiement === 'maintenant' ? 'Valider puis encaisser' : 'Confier au livreur';
+        };
+        const fermer = () => fond.remove();
+        const valider = async () => {
+            const livreurId = Number(champ('livreurId').value) || null;
+            const adresse = champ('adresse').value.trim();
+            if (!livreurId) { message('Choisissez un livreur.', true); champ('livreurId').focus(); return; }
+            if (!adresse) { message('Indiquez l\'adresse de livraison.', true); champ('adresse').focus(); return; }
+            t.livraison = { livreurId: livreurId, nom: champ('nom').value.trim(), telephone: champ('telephone').value.trim(), adresse: adresse, paiement: paiement };
+            enregistrer();
+            fermer();
+            if (paiement === 'livraison') {
+                if (!(await mettreEnAttente())) afficher();
+            } else {
+                afficher();
+                payer();
+            }
+        };
+        maj();
+        fond.addEventListener('click', e => {
+            if (e.target === fond || e.target.closest('[data-close]')) { fermer(); return; }
+            const b = e.target.closest('[data-paiement]');
+            if (b) { paiement = b.dataset.paiement; maj(); return; }
+            if (e.target.closest('[data-retirer]')) { t.livraison = null; enregistrer(); fermer(); afficher(); return; }
+            if (e.target.closest('[data-valider]')) valider();
+        });
+        fond.addEventListener('keydown', e => { if (e.key === 'Escape') fermer(); });
+        champ('livreurId').focus();
+    }
+
+    // ------------------------------------------------------------------
     // Messages
     // ------------------------------------------------------------------
     let minuterie = null;
@@ -1222,6 +1437,7 @@
             if (d.table) { const t = tableDe(Number(d.table)); if (t) ouvrirTable(t); }
             else if (d.salle !== undefined) { salleActive = Number(d.salle); afficher(); }
             else if (d.action === 'directe') { cmd = null; vue = 'vente'; mode = 'qte'; saisie = null; afficher(); }
+            else if (d.action === 'attentes') listeAttentes();
             return;
         }
         if (vue !== 'vente') {
@@ -1248,6 +1464,9 @@
         else if (d.categorie !== undefined) { categorieChoisie = Number(d.categorie); afficher(); }
         else if (d.ticket !== undefined) { etat.actif = Number(d.ticket); mode = 'qte'; saisie = null; enregistrer(); afficher(); }
         else if (d.action === 'nouveau') nouveauTicketActif();
+        else if (d.action === 'attente') mettreEnAttente();
+        else if (d.action === 'attentes') listeAttentes();
+        else if (d.action === 'livraison') livraison();
         else if (d.action === 'client') choisirClient();
         else if (d.action === 'remise') remiseGlobale();
         else if (d.action === 'payer') payer();
@@ -1321,6 +1540,9 @@
 
     // Plan de salle actualisé régulièrement (tables ouvertes ou encaissées sur d'autres appareils).
     if (R) setInterval(() => { if (vue === 'plan' && !document.querySelector('.pos-modal-fond')) rafraichirPlan(); }, 8000);
+    // Commandes en attente actualisées régulièrement (mises en attente ou reprises sur d'autres postes).
+    setInterval(rafraichirAttentes, 15000);
 
     afficher();
+    rafraichirAttentes();
 })();

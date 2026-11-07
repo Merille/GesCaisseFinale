@@ -155,6 +155,12 @@ function journee_cloturer(): void
             . '). Encaissez-les ou videz-les depuis le point de vente.');
         redirect('journee/details', ['id' => $journee['Id']]);
     }
+    // Commandes mises en attente (dont les livraisons à encaisser) : à encaisser ou supprimer d'abord.
+    $enAttente = (int) qv('SELECT COUNT(*) FROM CommandesAttente WHERE JourneeCaisseId = ?', [$journee['Id']]);
+    if ($enAttente > 0) {
+        flash('danger', "Clôture impossible : $enAttente commande(s) en attente. Encaissez-les ou supprimez-les depuis le point de vente (bouton « Commandes en attente »).");
+        redirect('journee/details', ['id' => $journee['Id']]);
+    }
 
     $theoriques = [];
     foreach (totaux_par_mode((int) $journee['Id']) as $t) {

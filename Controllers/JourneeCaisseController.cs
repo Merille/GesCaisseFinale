@@ -359,6 +359,14 @@ namespace EasytransitCaisse.Controllers
                 return RedirectToAction("Details", new { id });
             }
 
+            // Commandes mises en attente (dont les livraisons à encaisser) : à encaisser ou supprimer d'abord.
+            var enAttente = _context.CommandesAttente.Count(c => c.JourneeCaisseId == id);
+            if (enAttente > 0)
+            {
+                TempData["Error"] = $"Clôture impossible : {enAttente} commande(s) en attente. Encaissez-les ou supprimez-les depuis le point de vente (bouton « Commandes en attente »).";
+                return RedirectToAction("Details", new { id });
+            }
+
             var theoriques = GetTotauxParModePaiement(id);
 
             decimal totalCompte = 0;

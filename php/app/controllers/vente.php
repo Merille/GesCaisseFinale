@@ -13,8 +13,9 @@ function vente_charger(int $id): array
     $v = q1(
         'SELECT cmd.*, j.Statut AS StatutJournee, j.CaisseId, j.NumeroJournee, c.ChkCode, c.ChkDescription,
                 u.NomComplet AS Vendeur, cl.NomSociete AS Client, f.Numero AS NumeroFacture,
-                o.Numero AS NumeroOrigine
+                o.Numero AS NumeroOrigine, lv.Nom AS Livreur
          FROM CommandesPos cmd
+         LEFT JOIN Livreurs lv ON lv.Id = cmd.LivreurId
          JOIN JourneesCaisses j ON j.Id = cmd.JourneeCaisseId
          JOIN Caisses c ON c.ID = j.CaisseId
          LEFT JOIN Utilisateurs u ON u.Id = cmd.UtilisateurId
@@ -261,6 +262,17 @@ function vente_retour(): void
  * Annulation d'une vente du jour : ses encaissements passent « Rejeté » (donc hors
  * des totaux) et le stock est remis. Journée ouverte, sans retour ni facture.
  */
+/** Livraison d'une vente payée à la commande : le retour du livreur la marque « Livrée ». */
+function vente_livree(): void
+{
+    $vente = vente_charger((int) post('id'));
+    if ($vente['StatutLivraison'] === 'À livrer') {
+        run("UPDATE CommandesPos SET StatutLivraison = 'Livrée', DateLivraison = NOW() WHERE Id = ?", [$vente['Id']]);
+        flash('success', 'Livraison de la vente ' . $vente['Numero'] . ' marquée comme effectuée.');
+    }
+    redirect('vente/details', ['id' => $vente['Id']]);
+}
+
 function vente_annuler(): void
 {
     $vente = vente_charger((int) post('id'));

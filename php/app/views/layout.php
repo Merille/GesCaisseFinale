@@ -24,7 +24,7 @@ $rubrique = match ($module) {
     'pos', 'vente', 'stock', 'posrapport', 'cuisine' => 'Point de vente',
     'salle' => 'Activité',
     'produit', 'categorie', 'combo' => 'Configuration',
-    'utilisateur', 'motif', 'modepaiement', 'taxe', 'unite', 'depot', 'societe' => 'Paramètres',
+    'utilisateur', 'motif', 'modepaiement', 'taxe', 'unite', 'depot', 'livreur', 'societe' => 'Paramètres',
     'tenant' => 'Administration',
     default => null,
 };
@@ -129,7 +129,7 @@ $badge = $nbJourneesOuvertes > 0
         <?php if (is_admin()): ?>
         <div class="sb-section">
             <div class="sb-section-title">Administration</div>
-            <?php $parametresActif = in_array($module, ['utilisateur', 'motif', 'modepaiement', 'taxe', 'unite', 'depot', 'societe'], true); ?>
+            <?php $parametresActif = in_array($module, ['utilisateur', 'motif', 'modepaiement', 'taxe', 'unite', 'depot', 'livreur', 'societe'], true); ?>
             <button type="button" class="sb-link sb-parent <?= $parametresActif ? 'parent-actif' : '' ?>" title="Paramètres"
                     aria-expanded="<?= $parametresActif ? 'true' : 'false' ?>" aria-controls="sbParametres" onclick="basculerSousMenu(this)">
                 <i class="fas fa-gear"></i><span class="sb-label">Paramètres</span><i class="fas fa-chevron-down sb-chevron"></i>
@@ -145,6 +145,7 @@ $badge = $nbJourneesOuvertes > 0
                     <?= $lien('taxe/index', 'taxe', 'fa-percent', 'Taxes') ?>
                     <?= $lien('unite/index', 'unite', 'fa-scale-balanced', 'Unités de vente') ?>
                     <?= $lien('depot/index', 'depot', 'fa-warehouse', 'Dépôts') ?>
+                    <?= $lien('livreur/index', 'livreur', 'fa-motorcycle', 'Livreurs') ?>
                 <?php endif; ?>
             </div>
             <?php if (is_super_admin()): ?>

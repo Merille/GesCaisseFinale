@@ -58,8 +58,11 @@ function pos_index(): void
     ], q('SELECT Id, Nom, Couleur FROM Categories WHERE TenantId = ? ORDER BY Ordre, Nom', [$tenant]));
 
     $clients = array_map(fn($c) => [
-        'id' => (int) $c['Id'], 'nom' => $c['NomSociete'], 'code' => $c['CodeClient'],
-    ], q('SELECT Id, NomSociete, CodeClient FROM Clients WHERE TenantId = ? ORDER BY NomSociete', [$tenant]));
+        'id' => (int) $c['Id'], 'nom' => $c['NomSociete'], 'code' => $c['CodeClient'], 'telephone' => $c['Telephone'], 'adresse' => $c['Adresse'],
+    ], q('SELECT Id, NomSociete, CodeClient, Telephone, Adresse FROM Clients WHERE TenantId = ? ORDER BY NomSociete', [$tenant]));
+    $livreurs = array_map(fn($l) => [
+        'id' => (int) $l['Id'], 'nom' => $l['Nom'], 'telephone' => $l['Telephone'],
+    ], q('SELECT Id, Nom, Telephone FROM Livreurs WHERE Actif = 1 AND TenantId = ? ORDER BY Nom', [$tenant]));
 
     // « Espèces » : le seul mode sur lequel on peut rendre la monnaie.
     $modes = array_map(fn($m) => [
@@ -77,6 +80,7 @@ function pos_index(): void
         'produits' => $produits,
         'categories' => $categories,
         'clients' => $clients,
+        'livreurs' => $livreurs,
         'utilisateur' => ['nom' => $u['nomComplet'] ?: $u['nom'], 'profil' => $u['profil']],
         'peutModifierPrix' => is_admin(),
         'peutRemiseGlobale' => pos_peut_remise_globale(),
@@ -85,6 +89,12 @@ function pos_index(): void
         'urlVendre' => url('pos/vendre'),
         'urlTicket' => url('pos/ticket') . '&id=',
         'urlVentes' => url('vente/index', ['journee' => $journee['Id']]),
+        // Commandes en attente (partagées entre postes) et livraisons.
+        'urlAttentes' => url('pos/attentes', ['journee' => $journee['Id']]),
+        'urlMettreEnAttente' => url('pos/mettreenattente'),
+        'urlReprendre' => url('pos/reprendre'),
+        'urlSupprimerAttente' => url('pos/supprimerattente'),
+        'urlLivree' => url('pos/livree'),
         'venteSansStock' => vente_sans_stock($tenant),
         'jeton' => ['nom' => '_csrf', 'valeur' => csrf_token()],
         'restaurant' => caisse_est_restaurant($journee) ? [
@@ -262,6 +272,13 @@ function pos_vendre(): void
     if ($client && !q1('SELECT Id FROM Clients WHERE Id = ? AND TenantId = ?', [$client, $tenant])) {
         $client = null;
     }
+    // Commande à livrer : livreur, destinataire, payée maintenant ou à la livraison.
+    [$livraison, $erreurLivraison] = pos_controler_livraison($v['livraison'] ?? null, $tenant);
+    if ($erreurLivraison) {
+        pos_json(['erreur' => $erreurLivraison], 400);
+    }
+    // Payée à la livraison : le livreur est revenu, la commande est livrée.
+    $livree = $livraison && $livraison['paiement'] === 'livraison';
 
     db()->beginTransaction();
     try {
@@ -321,9 +338,12 @@ function pos_vendre(): void
 
         $commandeId = run(
             "INSERT INTO CommandesPos (TenantId, Numero, CleClient, JourneeCaisseId, ClientId, UtilisateurId, DateCommande,
-                TotalHT, TotalTVA, TotalTTC, MontantRecu, MonnaieRendue, Statut, RemiseGlobale, RemiseGlobaleTaux, TableNom, Couverts, Pourboire)
-             VALUES (?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?, ?, 'Payée', ?, ?, ?, ?, ?)",
-            [$tenant, $numero, $cle, $journee['Id'], $client, user()['id'], $ttc - $tva, $tva, $ttc, $recu, $rendu, $remiseGlobale, $tauxRemise, $tableNom, $couverts, $pourboire]
+                TotalHT, TotalTVA, TotalTTC, MontantRecu, MonnaieRendue, Statut, RemiseGlobale, RemiseGlobaleTaux, TableNom, Couverts, Pourboire,
+                LivreurId, NomLivraison, TelephoneLivraison, AdresseLivraison, StatutLivraison, DateLivraison)
+             VALUES (?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?, ?, 'Payée', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, " . ($livree ? 'NOW()' : 'NULL') . ")",
+            [$tenant, $numero, $cle, $journee['Id'], $client, user()['id'], $ttc - $tva, $tva, $ttc, $recu, $rendu, $remiseGlobale, $tauxRemise, $tableNom, $couverts, $pourboire,
+             $livraison['livreurId'] ?? null, $livraison['nom'] ?? null, $livraison['telephone'] ?? null, $livraison['adresse'] ?? null,
+             $livraison ? ($livree ? 'Livrée' : 'À livrer') : null]
         );
         foreach ($lignes as $l) {
             $ligneId = run(
@@ -380,8 +400,9 @@ function pos_ticket(): void
     $commande = q1(
         'SELECT cmd.*, j.DateJournee, c.ChkCode, c.ChkDescription, t.Nom AS Societe, t.Adresse, t.Ville, t.Pays,
                 t.Email AS EmailSociete, t.Telephone, t.NIF, t.LogoMaj,
-                u.NomComplet AS Vendeur, cl.NomSociete AS Client, o.Numero AS NumeroOrigine
+                u.NomComplet AS Vendeur, cl.NomSociete AS Client, o.Numero AS NumeroOrigine, lv.Nom AS Livreur
          FROM CommandesPos cmd
+         LEFT JOIN Livreurs lv ON lv.Id = cmd.LivreurId
          LEFT JOIN CommandesPos o ON o.Id = cmd.CommandeOrigineId
          JOIN JourneesCaisses j ON j.Id = cmd.JourneeCaisseId
          JOIN Caisses c ON c.ID = j.CaisseId
@@ -635,4 +656,195 @@ function pos_bon(): void
     }
     unset($b);
     render('pos/bon', ['bons' => $bons], false);
+}
+
+// ---------------------------------------------------------------------------
+// Commandes en attente (gardées sur le serveur, visibles depuis tous les postes de la journée)
+// et commandes à livrer (livreur, destinataire, payées maintenant ou à la livraison).
+// Même fonctionnement que la version .NET (Controllers/PosController.Livraisons.cs).
+// ---------------------------------------------------------------------------
+
+/** Texte nettoyé et tronqué, null si vide. */
+function pos_texte(mixed $valeur, int $max): ?string
+{
+    $t = trim((string) ($valeur ?? ''));
+    return $t === '' ? null : mb_substr($t, 0, $max);
+}
+
+/** Livraison saisie : livreur actif de la société et adresse obligatoires. Renvoie [livraison, erreur]. */
+function pos_controler_livraison(mixed $l, int $tenant): array
+{
+    if (!is_array($l)) {
+        return [null, null];
+    }
+    $livreur = (int) ($l['livreurId'] ?? 0);
+    if (!$livreur || !q1('SELECT Id FROM Livreurs WHERE Id = ? AND TenantId = ? AND Actif = 1', [$livreur, $tenant])) {
+        return [null, 'Choisissez un livreur actif pour la livraison.'];
+    }
+    $adresse = pos_texte($l['adresse'] ?? null, 200);
+    if ($adresse === null) {
+        return [null, "Indiquez l'adresse de livraison."];
+    }
+    return [[
+        'livreurId' => $livreur, 'nom' => pos_texte($l['nom'] ?? null, 100), 'telephone' => pos_texte($l['telephone'] ?? null, 30),
+        'adresse' => $adresse, 'paiement' => ($l['paiement'] ?? '') === 'livraison' ? 'livraison' : 'maintenant',
+    ], null];
+}
+
+/** Liste du bouton « Commandes en attente » : commandes en attente de la journée et ventes payées qui restent à livrer. */
+function pos_attentes(): void
+{
+    $journee = q1('SELECT * FROM JourneesCaisses WHERE Id = ? AND ' . tf(), [(int) get('journee')]);
+    if (!$journee) {
+        pos_json(['erreur' => 'Journée introuvable.'], 404);
+    }
+    $livraison = fn($c) => $c['LivreurId'] !== null || $c['AdresseLivraison'] !== null ? [
+        'livreur' => $c['Livreur'], 'nom' => $c['NomLivraison'], 'telephone' => $c['TelephoneLivraison'], 'adresse' => $c['AdresseLivraison'],
+    ] : null;
+    $attentes = array_map(fn($c) => [
+        'id' => (int) $c['Id'], 'numero' => (int) $c['Numero'], 'heure' => date('H:i', strtotime($c['DateCreation'])),
+        'client' => $c['Client'], 'articles' => (int) $c['NbArticles'], 'total' => (float) $c['Total'], 'utilisateur' => $c['Utilisateur'],
+        'livraison' => $livraison($c),
+    ], q(
+        'SELECT a.*, l.Nom AS Livreur, cl.NomSociete AS Client, u.NomComplet AS Utilisateur
+         FROM CommandesAttente a LEFT JOIN Livreurs l ON l.Id = a.LivreurId LEFT JOIN Clients cl ON cl.Id = a.ClientId
+         LEFT JOIN Utilisateurs u ON u.Id = a.UtilisateurId
+         WHERE a.JourneeCaisseId = ? ORDER BY a.Numero',
+        [$journee['Id']]
+    ));
+    $livraisons = array_map(fn($c) => [
+        'id' => (int) $c['Id'], 'numero' => $c['Numero'], 'heure' => date('H:i', strtotime($c['DateCommande'])),
+        'client' => $c['Client'], 'total' => (float) $c['TotalTTC'], 'livreur' => $c['Livreur'],
+        'nom' => $c['NomLivraison'], 'telephone' => $c['TelephoneLivraison'], 'adresse' => $c['AdresseLivraison'],
+    ], q(
+        "SELECT c.*, l.Nom AS Livreur, cl.NomSociete AS Client
+         FROM CommandesPos c LEFT JOIN Livreurs l ON l.Id = c.LivreurId LEFT JOIN Clients cl ON cl.Id = c.ClientId
+         WHERE c.JourneeCaisseId = ? AND c.StatutLivraison = 'À livrer' ORDER BY c.DateCommande, c.Id",
+        [$journee['Id']]
+    ));
+    pos_json(['attentes' => $attentes, 'livraisons' => $livraisons]);
+}
+
+/**
+ * « Mettre en attente » : le ticket est enregistré sur le serveur (avec sa livraison s'il est à
+ * encaisser à la livraison) et quitte l'écran ; il se reprend depuis n'importe quel poste.
+ */
+function pos_mettreenattente(): void
+{
+    $s = pos_saisie();
+    $journee = q1('SELECT * FROM JourneesCaisses WHERE Id = ? AND ' . tf(), [(int) ($s['journeeId'] ?? 0)]);
+    if (!$journee) {
+        pos_json(['erreur' => 'Journée introuvable.'], 404);
+    }
+    if ($journee['Statut'] !== 'Ouverte') {
+        pos_json(['erreur' => 'Cette journée est clôturée : la commande ne peut pas être mise en attente.'], 409);
+    }
+    $tenant = (int) $journee['TenantId'];
+
+    // Lignes : produits actifs de la société ; nom, taux et unité repris du catalogue.
+    $lignes = [];
+    foreach ((array) ($s['lignes'] ?? []) as $l) {
+        if (!is_array($l)) {
+            continue;
+        }
+        $qte = round((float) ($l['qte'] ?? 0), 2);
+        $p = q1('SELECT Id, Nom, TauxTVA, Unite FROM Produits WHERE Id = ? AND TenantId = ? AND Actif = 1', [(int) ($l['produitId'] ?? 0), $tenant]);
+        if (!$p || $qte <= 0) {
+            continue;
+        }
+        $lignes[] = [
+            'uid' => pos_texte($l['uid'] ?? null, 60) ?? bin2hex(random_bytes(8)), 'produitId' => (int) $p['Id'],
+            'nom' => pos_texte($l['nom'] ?? null, 250) ?? $p['Nom'], 'qte' => $qte,
+            'prix' => max(0, round((float) ($l['prix'] ?? 0), 2)), 'remise' => min(100, max(0, round((float) ($l['remise'] ?? 0), 2))),
+            'tva' => (float) $p['TauxTVA'], 'unite' => $p['Unite'], 'note' => pos_texte($l['note'] ?? null, 200) ?? '',
+            'composants' => $l['composants'] ?? null,
+        ];
+    }
+    if (!$lignes) {
+        pos_json(['erreur' => 'Le ticket est vide.'], 400);
+    }
+    $client = int_or_null($s['clientId'] ?? null);
+    if ($client && !q1('SELECT Id FROM Clients WHERE Id = ? AND TenantId = ?', [$client, $tenant])) {
+        $client = null;
+    }
+    [$livraison, $erreur] = pos_controler_livraison($s['livraison'] ?? null, $tenant);
+    if ($erreur) {
+        pos_json(['erreur' => $erreur], 400);
+    }
+    $r = $s['remise'] ?? null;
+    $remise = is_array($r) && (float) ($r['valeur'] ?? 0) > 0 && pos_peut_remise_globale()
+        ? ['type' => ($r['type'] ?? '') === 'pct' ? 'pct' : 'montant', 'valeur' => (float) $r['valeur']] : null;
+
+    // Total affiché dans la liste (même calcul que l'écran de vente).
+    $brut = array_sum(array_map(fn($l) => round($l['qte'] * $l['prix'] * (1 - $l['remise'] / 100)), $lignes));
+    $montantRemise = !$remise || $brut <= 0 ? 0
+        : ($remise['type'] === 'pct' ? round($brut * min(100, $remise['valeur']) / 100) : min($brut, round($remise['valeur'])));
+
+    db()->beginTransaction();
+    try {
+        q('SELECT Id FROM JourneesCaisses WHERE Id = ? FOR UPDATE', [$journee['Id']]);
+        $numero = (int) qv('SELECT COALESCE(MAX(Numero), 0) FROM CommandesAttente WHERE JourneeCaisseId = ?', [$journee['Id']]) + 1;
+        $id = run(
+            'INSERT INTO CommandesAttente (TenantId, JourneeCaisseId, Numero, DateCreation, UtilisateurId, ClientId, Contenu, Total, NbArticles,
+                LivreurId, NomLivraison, TelephoneLivraison, AdresseLivraison)
+             VALUES (?, ?, ?, NOW(), ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [$tenant, $journee['Id'], $numero, user()['id'], $client,
+             json_encode(['lignes' => $lignes, 'clientId' => $client, 'remise' => $remise, 'livraison' => $livraison], JSON_UNESCAPED_UNICODE),
+             $brut - $montantRemise, count($lignes),
+             $livraison['livreurId'] ?? null, $livraison['nom'] ?? null, $livraison['telephone'] ?? null, $livraison['adresse'] ?? null]
+        );
+        db()->commit();
+    } catch (Throwable $e) {
+        db()->rollBack();
+        throw $e;
+    }
+    pos_json(['id' => (int) $id, 'numero' => $numero]);
+}
+
+/**
+ * Reprise d'une commande en attente : elle est retirée de la liste (sous verrou : un seul poste la
+ * reprend) et son contenu revient à l'écran de vente.
+ */
+function pos_reprendre(): void
+{
+    $s = pos_saisie();
+    db()->beginTransaction();
+    $c = q1('SELECT a.*, j.Statut AS StatutJournee FROM CommandesAttente a JOIN JourneesCaisses j ON j.Id = a.JourneeCaisseId
+             WHERE a.Id = ? AND ' . tf('a') . ' FOR UPDATE', [(int) ($s['id'] ?? 0)]);
+    if (!$c) {
+        db()->rollBack();
+        pos_json(['erreur' => 'Cette commande a déjà été reprise ou supprimée sur un autre poste.'], 404);
+    }
+    if ($c['StatutJournee'] !== 'Ouverte') {
+        db()->rollBack();
+        pos_json(['erreur' => 'Cette journée est clôturée.'], 409);
+    }
+    run('DELETE FROM CommandesAttente WHERE Id = ?', [$c['Id']]);
+    db()->commit();
+    pos_json(['numero' => (int) $c['Numero'], 'contenu' => json_decode($c['Contenu'], true)]);
+}
+
+function pos_supprimerattente(): void
+{
+    $s = pos_saisie();
+    $c = q1('SELECT Id FROM CommandesAttente WHERE Id = ? AND ' . tf(), [(int) ($s['id'] ?? 0)]);
+    if (!$c) {
+        pos_json(['erreur' => 'Cette commande a déjà été reprise ou supprimée sur un autre poste.'], 404);
+    }
+    run('DELETE FROM CommandesAttente WHERE Id = ?', [$c['Id']]);
+    pos_json(['ok' => true]);
+}
+
+/** Vente payée à la commande, livrée ensuite : le retour du livreur la marque « Livrée ». */
+function pos_livree(): void
+{
+    $s = pos_saisie();
+    $c = q1('SELECT Id, StatutLivraison FROM CommandesPos WHERE Id = ? AND ' . tf(), [(int) ($s['id'] ?? 0)]);
+    if (!$c || $c['StatutLivraison'] === null) {
+        pos_json(['erreur' => 'Livraison introuvable.'], 404);
+    }
+    if ($c['StatutLivraison'] !== 'Livrée') {
+        run("UPDATE CommandesPos SET StatutLivraison = 'Livrée', DateLivraison = NOW() WHERE Id = ?", [$c['Id']]);
+    }
+    pos_json(['ok' => true]);
 }
