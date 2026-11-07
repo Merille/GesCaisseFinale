@@ -866,6 +866,13 @@ namespace EasytransitCaisse.Migrations
                     b.Property<bool>("Actif")
                         .HasColumnType("bit");
 
+                    b.Property<string>("MoyenLivraison")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasDefaultValue("Moto");
+
                     b.Property<string>("Nom")
                         .IsRequired()
                         .HasMaxLength(100)

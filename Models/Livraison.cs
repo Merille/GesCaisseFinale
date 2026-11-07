@@ -18,7 +18,22 @@ namespace EasytransitCaisse.Models
         [StringLength(30)]
         public string? Telephone { get; set; }
 
+        // Moyen de livraison : Moto, Voiture, Vélo ou Autre.
+        [StringLength(20)]
+        public string MoyenLivraison { get; set; } = "Moto";
+
         public bool Actif { get; set; } = true;
+
+        public static readonly string[] Moyens = { "Moto", "Voiture", "Vélo", "Autre" };
+
+        // Pictogramme Font Awesome du moyen de livraison.
+        public static string Icone(string? moyen) => moyen switch
+        {
+            "Voiture" => "fa-car",
+            "Vélo" => "fa-bicycle",
+            "Autre" => "fa-truck-fast",
+            _ => "fa-motorcycle"
+        };
     }
 
     // Commande mise en attente au point de vente, gardée sur le serveur et visible depuis tous les

@@ -61,8 +61,8 @@ function pos_index(): void
         'id' => (int) $c['Id'], 'nom' => $c['NomSociete'], 'code' => $c['CodeClient'], 'telephone' => $c['Telephone'], 'adresse' => $c['Adresse'],
     ], q('SELECT Id, NomSociete, CodeClient, Telephone, Adresse FROM Clients WHERE TenantId = ? ORDER BY NomSociete', [$tenant]));
     $livreurs = array_map(fn($l) => [
-        'id' => (int) $l['Id'], 'nom' => $l['Nom'], 'telephone' => $l['Telephone'],
-    ], q('SELECT Id, Nom, Telephone FROM Livreurs WHERE Actif = 1 AND TenantId = ? ORDER BY Nom', [$tenant]));
+        'id' => (int) $l['Id'], 'nom' => $l['Nom'], 'telephone' => $l['Telephone'], 'moyen' => $l['MoyenLivraison'],
+    ], q('SELECT Id, Nom, Telephone, MoyenLivraison FROM Livreurs WHERE Actif = 1 AND TenantId = ? ORDER BY Nom', [$tenant]));
 
     // « Espèces » : le seul mode sur lequel on peut rendre la monnaie.
     $modes = array_map(fn($m) => [
@@ -400,7 +400,7 @@ function pos_ticket(): void
     $commande = q1(
         'SELECT cmd.*, j.DateJournee, c.ChkCode, c.ChkDescription, t.Nom AS Societe, t.Adresse, t.Ville, t.Pays,
                 t.Email AS EmailSociete, t.Telephone, t.NIF, t.LogoMaj,
-                u.NomComplet AS Vendeur, cl.NomSociete AS Client, o.Numero AS NumeroOrigine, lv.Nom AS Livreur
+                u.NomComplet AS Vendeur, cl.NomSociete AS Client, o.Numero AS NumeroOrigine, lv.Nom AS Livreur, lv.MoyenLivraison AS MoyenLivreur
          FROM CommandesPos cmd
          LEFT JOIN Livreurs lv ON lv.Id = cmd.LivreurId
          LEFT JOIN CommandesPos o ON o.Id = cmd.CommandeOrigineId
@@ -699,14 +699,14 @@ function pos_attentes(): void
         pos_json(['erreur' => 'Journée introuvable.'], 404);
     }
     $livraison = fn($c) => $c['LivreurId'] !== null || $c['AdresseLivraison'] !== null ? [
-        'livreur' => $c['Livreur'], 'nom' => $c['NomLivraison'], 'telephone' => $c['TelephoneLivraison'], 'adresse' => $c['AdresseLivraison'],
+        'livreur' => $c['Livreur'], 'moyen' => $c['MoyenLivreur'], 'nom' => $c['NomLivraison'], 'telephone' => $c['TelephoneLivraison'], 'adresse' => $c['AdresseLivraison'],
     ] : null;
     $attentes = array_map(fn($c) => [
         'id' => (int) $c['Id'], 'numero' => (int) $c['Numero'], 'heure' => date('H:i', strtotime($c['DateCreation'])),
         'client' => $c['Client'], 'articles' => (int) $c['NbArticles'], 'total' => (float) $c['Total'], 'utilisateur' => $c['Utilisateur'],
         'livraison' => $livraison($c),
     ], q(
-        'SELECT a.*, l.Nom AS Livreur, cl.NomSociete AS Client, u.NomComplet AS Utilisateur
+        'SELECT a.*, l.Nom AS Livreur, l.MoyenLivraison AS MoyenLivreur, cl.NomSociete AS Client, u.NomComplet AS Utilisateur
          FROM CommandesAttente a LEFT JOIN Livreurs l ON l.Id = a.LivreurId LEFT JOIN Clients cl ON cl.Id = a.ClientId
          LEFT JOIN Utilisateurs u ON u.Id = a.UtilisateurId
          WHERE a.JourneeCaisseId = ? ORDER BY a.Numero',
@@ -714,10 +714,10 @@ function pos_attentes(): void
     ));
     $livraisons = array_map(fn($c) => [
         'id' => (int) $c['Id'], 'numero' => $c['Numero'], 'heure' => date('H:i', strtotime($c['DateCommande'])),
-        'client' => $c['Client'], 'total' => (float) $c['TotalTTC'], 'livreur' => $c['Livreur'],
+        'client' => $c['Client'], 'total' => (float) $c['TotalTTC'], 'livreur' => $c['Livreur'], 'moyen' => $c['MoyenLivreur'],
         'nom' => $c['NomLivraison'], 'telephone' => $c['TelephoneLivraison'], 'adresse' => $c['AdresseLivraison'],
     ], q(
-        "SELECT c.*, l.Nom AS Livreur, cl.NomSociete AS Client
+        "SELECT c.*, l.Nom AS Livreur, l.MoyenLivraison AS MoyenLivreur, cl.NomSociete AS Client
          FROM CommandesPos c LEFT JOIN Livreurs l ON l.Id = c.LivreurId LEFT JOIN Clients cl ON cl.Id = c.ClientId
          WHERE c.JourneeCaisseId = ? AND c.StatutLivraison = 'À livrer' ORDER BY c.DateCommande, c.Id",
         [$journee['Id']]

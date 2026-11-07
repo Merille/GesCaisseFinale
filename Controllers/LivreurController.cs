@@ -39,9 +39,10 @@ namespace EasytransitCaisse.Controllers
         // Création (Id = 0) ou modification.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Save(int id, string? nom, string? telephone, bool actif)
+        public async Task<IActionResult> Save(int id, string? nom, string? telephone, string? moyenLivraison, bool actif)
         {
             nom = Texte(nom, 100);
+            var moyen = Livreur.Moyens.Contains(moyenLivraison) ? moyenLivraison! : "Moto";
             if (nom == null)
                 return Erreur("Le nom du livreur est obligatoire.");
             var livreur = id > 0 ? await _context.Livreurs.FirstOrDefaultAsync(l => l.Id == id) : null;
@@ -54,12 +55,13 @@ namespace EasytransitCaisse.Controllers
             {
                 livreur.Nom = nom;
                 livreur.Telephone = Texte(telephone, 30);
+                livreur.MoyenLivraison = moyen;
                 livreur.Actif = actif;
                 TempData["Success"] = "Livreur modifié.";
             }
             else
             {
-                _context.Livreurs.Add(new Livreur { TenantId = tenantId, Nom = nom, Telephone = Texte(telephone, 30), Actif = actif });
+                _context.Livreurs.Add(new Livreur { TenantId = tenantId, Nom = nom, Telephone = Texte(telephone, 30), MoyenLivraison = moyen, Actif = actif });
                 TempData["Success"] = "Livreur créé.";
             }
             await _context.SaveChangesAsync();

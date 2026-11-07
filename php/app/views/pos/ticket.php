@@ -29,7 +29,7 @@ $c = $commande;
     <?php if ($c['Client']): ?><div>Client : <?= h($c['Client']) ?></div><?php endif; ?>
     <?php if (!empty($c['TableNom'])): ?><div>Table  : <?= h($c['TableNom']) ?><?= $c['Couverts'] ? ' · ' . (int) $c['Couverts'] . ' couvert(s)' : '' ?></div><?php endif; ?>
     <?php if ($c['StatutLivraison'] !== null): ?>
-        <div>Livraison : <?= h($c['StatutLivraison']) ?> · <?= h($c['Livreur']) ?></div>
+        <div>Livraison : <?= h($c['StatutLivraison']) ?> · <?= h($c['Livreur']) ?><?= $c['MoyenLivreur'] ? ' (' . h($c['MoyenLivreur']) . ')' : '' ?></div>
         <div>À : <?= h($c['NomLivraison'] ?? $c['Client']) ?><?= $c['TelephoneLivraison'] ? ' · ' . h($c['TelephoneLivraison']) : '' ?></div>
         <div><?= h($c['AdresseLivraison']) ?></div>
     <?php endif; ?>

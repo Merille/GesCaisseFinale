@@ -13,7 +13,7 @@ function vente_charger(int $id): array
     $v = q1(
         'SELECT cmd.*, j.Statut AS StatutJournee, j.CaisseId, j.NumeroJournee, c.ChkCode, c.ChkDescription,
                 u.NomComplet AS Vendeur, cl.NomSociete AS Client, f.Numero AS NumeroFacture,
-                o.Numero AS NumeroOrigine, lv.Nom AS Livreur
+                o.Numero AS NumeroOrigine, lv.Nom AS Livreur, lv.MoyenLivraison AS MoyenLivreur
          FROM CommandesPos cmd
          LEFT JOIN Livreurs lv ON lv.Id = cmd.LivreurId
          JOIN JourneesCaisses j ON j.Id = cmd.JourneeCaisseId

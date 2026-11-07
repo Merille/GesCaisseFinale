@@ -132,6 +132,7 @@ namespace EasytransitCaisse.Data
             // Livraisons : livreurs, commandes en attente (partagées entre postes), livraison d'une vente.
             modelBuilder.Entity<Livreur>()
                 .HasQueryFilter(e => _currentTenantId == 0 || e.TenantId == _currentTenantId);
+            modelBuilder.Entity<Livreur>().Property(l => l.MoyenLivraison).HasDefaultValue("Moto");
             modelBuilder.Entity<CommandeAttente>().ToTable("CommandesAttente")
                 .HasQueryFilter(e => _currentTenantId == 0 || e.TenantId == _currentTenantId);
             modelBuilder.Entity<CommandeAttente>()

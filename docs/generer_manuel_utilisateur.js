@@ -98,7 +98,7 @@ const fiche = [
         ['Application', 'GesCaisse — gestion de caisse et point de vente (POS)'],
         ['Éditeur', 'M-ITECH AFRICA'],
         ['Public', 'Administrateurs, caissiers, vendeurs et serveurs des sociétés clientes'],
-        ['Version du document', '1.3'],
+        ['Version du document', '1.4'],
         ['Date', 'Novembre 2026']
     ], [3000, 6638])
 ];
@@ -312,7 +312,7 @@ const contenu = [
     p('Les livreurs sont créés dans **Paramètres** › **Livreurs** (voir 12.8). Pour une commande à livrer :'),
     ...etapes([
         'Ajoutez les articles, choisissez au besoin le client, puis touchez **Livraison**.',
-        'Choisissez le **livreur** ; vérifiez le **destinataire**, le **téléphone** et l’**adresse de livraison** (repris de la fiche du client s’il est choisi).',
+        'Choisissez le **livreur** (son moyen de livraison est indiqué : moto, voiture, vélo…) ; vérifiez le **destinataire**, le **téléphone** et l’**adresse de livraison** (repris de la fiche du client s’il est choisi).',
         'Choisissez **À encaisser à la livraison** : la commande est mise en attente et confiée au livreur. À son retour, ouvrez **Commandes en attente**, touchez **Reprendre** puis encaissez : la vente est enregistrée comme livrée.',
         'Ou choisissez **Payée maintenant** : l’écran de paiement s’ouvre et la vente est encaissée tout de suite. Elle apparaît dans **Livraisons payées à effectuer** jusqu’au retour du livreur (bouton **Livrée**).'
     ]),
@@ -519,7 +519,8 @@ const contenu = [
     pt('Désactiver', 'un dépôt désactivé n’est plus proposé pour les caisses ni les mouvements de stock. Un dépôt rattaché à une caisse ne peut pas être désactivé.'),
     pt('Supprimer', 'seul un dépôt sans mouvement de stock ni caisse peut être supprimé ; sinon, désactivez-le.'),
     h2('12.8 Livreurs'),
-    p('Menu **Paramètres** › **Livreurs**. Les livreurs sont proposés au point de vente sur une commande à livrer ; ils n’ont pas de compte de connexion. Cliquez sur **Nouveau livreur** (ou **Modifier**) et renseignez le **nom** et le **téléphone**. La liste indique le nombre de livraisons de chacun.'),
+    p('Menu **Paramètres** › **Livreurs**. Les livreurs sont proposés au point de vente sur une commande à livrer ; ils n’ont pas de compte de connexion. Cliquez sur **Nouveau livreur** (ou **Modifier**) et renseignez le **nom**, le **téléphone** et le **moyen de livraison** : **Moto**, **Voiture**, **Vélo** ou **Autre**. La liste indique le moyen et le nombre de livraisons de chacun.'),
+    pt('Moyen de livraison', 'il apparaît au point de vente dans le choix du livreur et dans la liste des commandes en attente, ainsi que sur le ticket et le détail de la vente (ex. « Jean Moussavou (Moto) »).'),
     ...figure('47_livreurs', 'Livreurs'),
     pt('Désactiver', 'un livreur désactivé n’est plus proposé au point de vente mais reste sur ses livraisons passées.'),
     pt('Supprimer', 'seul un livreur sans livraison peut être supprimé ; sinon, désactivez-le.'),

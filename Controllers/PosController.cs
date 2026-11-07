@@ -109,7 +109,7 @@ namespace EasytransitCaisse.Controllers
             var livreurs = await _context.Livreurs
                 .Where(l => l.Actif && l.TenantId == tenant)
                 .OrderBy(l => l.Nom)
-                .Select(l => new { id = l.Id, nom = l.Nom, telephone = l.Telephone })
+                .Select(l => new { id = l.Id, nom = l.Nom, telephone = l.Telephone, moyen = l.MoyenLivraison })
                 .ToListAsync();
 
             var modes = (await _context.ModesPaiement
@@ -511,9 +511,9 @@ namespace EasytransitCaisse.Controllers
             ViewBag.Client = commande.ClientId.HasValue
                 ? (await _context.Clients.FirstOrDefaultAsync(c => c.Id == commande.ClientId))?.NomSociete
                 : null;
-            ViewBag.Livreur = commande.LivreurId.HasValue
-                ? (await _context.Livreurs.IgnoreQueryFilters().FirstOrDefaultAsync(l => l.Id == commande.LivreurId))?.Nom
-                : null;
+            var livreurTicket = commande.LivreurId.HasValue
+                ? await _context.Livreurs.IgnoreQueryFilters().FirstOrDefaultAsync(l => l.Id == commande.LivreurId) : null;
+            ViewBag.Livreur = livreurTicket == null ? null : $"{livreurTicket.Nom} ({livreurTicket.MoyenLivraison})";
             ViewBag.NumeroOrigine = commande.CommandeOrigineId.HasValue
                 ? (await _context.CommandesPos.FirstOrDefaultAsync(c => c.Id == commande.CommandeOrigineId))?.Numero
                 : null;

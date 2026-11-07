@@ -55,7 +55,8 @@
         @if (v.StatutLivraison != null)
         {
             <div class="small text-muted mt-2">Livraison</div>
-            <div><i class="fas fa-motorcycle"></i> @ViewBag.Livreur
+            var livreurVente = (EasytransitCaisse.Models.Livreur?)ViewBag.LivreurVente;
+            <div><i class="fas @EasytransitCaisse.Models.Livreur.Icone(livreurVente?.MoyenLivraison)"></i> @livreurVente?.Nom@(livreurVente == null ? "" : " (" + livreurVente.MoyenLivraison + ")")
                 <span class="badge @(v.StatutLivraison == "Livrée" ? "bg-success" : "bg-warning text-dark")">@v.StatutLivraison</span></div>
             <div class="small">@(v.NomLivraison ?? ViewBag.Client ?? "")@(string.IsNullOrEmpty(v.TelephoneLivraison) ? "" : " · " + v.TelephoneLivraison)</div>
             <div class="small">@v.AdresseLivraison</div>

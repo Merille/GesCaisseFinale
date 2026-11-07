@@ -2,7 +2,7 @@
 -- Les noms de tables et de colonnes reprennent ceux de la version .NET
 -- (SQL Server) pour faciliter une éventuelle reprise des données.
 --
--- Base à jour : intègre toutes les migrations de sql/migrations (001 à 014),
+-- Base à jour : intègre toutes les migrations de sql/migrations (001 à 015),
 -- notées comme appliquées dans MigrationsAppliquees.
 --
 -- Utilisation (NOUVELLE installation uniquement) : créer une base VIDE (ex. gescaisse),
@@ -368,6 +368,7 @@ CREATE TABLE `Livreurs` (
   `Nom` varchar(100) NOT NULL,
   `Telephone` varchar(30) DEFAULT NULL,
   `Actif` tinyint(1) NOT NULL DEFAULT '1',
+  `MoyenLivraison` varchar(20) NOT NULL DEFAULT 'Moto',
   PRIMARY KEY (`Id`),
   KEY `IX_Livreurs_TenantId` (`TenantId`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -395,6 +396,7 @@ INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('011_combo
 INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('012_module_point_vente.sql','2026-11-02 00:15:20');
 INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('013_depots.sql','2026-11-02 00:15:20');
 INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('014_livraisons.sql','2026-11-02 00:15:20');
+INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('015_moyen_livraison.sql','2026-11-02 00:15:20');
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `ModesPaiement` (

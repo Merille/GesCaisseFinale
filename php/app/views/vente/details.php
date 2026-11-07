@@ -34,7 +34,7 @@ $peutAnnuler = $peutRembourser && !$estRetour && $vente['Statut'] === 'Payée' &
         <?php endif; ?>
         <?php if ($vente['StatutLivraison'] !== null): ?>
             <div class="small text-muted mt-2">Livraison</div>
-            <div><i class="fa fa-motorcycle"></i> <?= h($vente['Livreur']) ?>
+            <div><i class="fa <?= ['Voiture' => 'fa-car', 'Vélo' => 'fa-bicycle', 'Autre' => 'fa-truck-fast'][$vente['MoyenLivreur'] ?? ''] ?? 'fa-motorcycle' ?>"></i> <?= h($vente['Livreur']) ?><?= $vente['MoyenLivreur'] ? ' (' . h($vente['MoyenLivreur']) . ')' : '' ?>
                 <span class="badge <?= $vente['StatutLivraison'] === 'Livrée' ? 'bg-success' : 'bg-warning text-dark' ?>"><?= h($vente['StatutLivraison']) ?></span></div>
             <div class="small"><?= h($vente['NomLivraison'] ?? $vente['Client'] ?? '') ?><?= $vente['TelephoneLivraison'] ? ' · ' . h($vente['TelephoneLivraison']) : '' ?></div>
             <div class="small"><?= h($vente['AdresseLivraison']) ?></div>

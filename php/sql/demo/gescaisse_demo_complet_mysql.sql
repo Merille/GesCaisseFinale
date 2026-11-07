@@ -1,10 +1,10 @@
 -- GesCaisse (version PHP / MySQL) : base COMPLÈTE et à jour, avec données de démonstration.
--- Structure identique à sql/schema.sql (migrations 001 à 014 intégrées) et données fictives :
+-- Structure identique à sql/schema.sql (migrations 001 à 015 intégrées) et données fictives :
 --   société « Société de démonstration » (coordonnées), 4 utilisateurs, 2 caisses (Caisse principale,
 --   Restaurant Le Jardin avec 2 salles et 9 tables), 6 tiers, 3 modes de paiement, 4 motifs,
 --   catégories et 39 produits avec leur image (dont un menu combo et 3 combos), 151 ventes réparties sur 14 journées
 --   clôturées, leurs opérations de caisse et 322 mouvements de stock ; un dépôt « Dépôt principal »
---   qui porte tout le stock, rattaché aux deux caisses ; deux livreurs (Jean Moussavou, Paul Obame).
+--   qui porte tout le stock, rattaché aux deux caisses ; deux livreurs (Jean Moussavou à moto, Paul Obame en voiture).
 --
 -- Utilisation : créer une base VIDE (ex. gescaisse_demo), puis importer ce fichier
 -- (phpMyAdmin > Importer, ou : mysql -u root -p gescaisse_demo < gescaisse_demo_complet_mysql.sql).
@@ -360,11 +360,12 @@ CREATE TABLE `Livreurs` (
   `Nom` varchar(100) NOT NULL,
   `Telephone` varchar(30) DEFAULT NULL,
   `Actif` tinyint(1) NOT NULL DEFAULT '1',
+  `MoyenLivraison` varchar(20) NOT NULL DEFAULT 'Moto',
   PRIMARY KEY (`Id`),
   KEY `IX_Livreurs_TenantId` (`TenantId`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-INSERT INTO `Livreurs` (`Id`, `TenantId`, `Nom`, `Telephone`, `Actif`) VALUES (1,1,'Jean Moussavou','077 11 22 33',1),(2,1,'Paul Obame','074 55 66 77',1);
+INSERT INTO `Livreurs` (`Id`, `TenantId`, `Nom`, `Telephone`, `Actif`, `MoyenLivraison`) VALUES (1,1,'Jean Moussavou','077 11 22 33',1,'Moto'),(2,1,'Paul Obame','074 55 66 77',1,'Voiture');
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `MigrationsAppliquees` (
@@ -373,7 +374,7 @@ CREATE TABLE `MigrationsAppliquees` (
   PRIMARY KEY (`Nom`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('001_pos_catalogue.sql','2026-11-02 00:15:19'),('002_pos_ventes.sql','2026-11-02 00:15:19'),('003_pos_apres_vente.sql','2026-11-02 00:15:19'),('004_pos_stock.sql','2026-11-02 00:15:19'),('005_pos_taxes.sql','2026-11-02 00:15:19'),('006_societe_produits.sql','2026-11-02 00:15:19'),('007_variantes_remise.sql','2026-11-02 00:15:20'),('008_unites.sql','2026-11-02 00:15:20'),('009_restaurant.sql','2026-11-02 00:15:20'),('010_combos.sql','2026-11-02 00:15:20'),('011_combos_odoo.sql','2026-11-02 00:15:20'),('012_module_point_vente.sql','2026-11-02 00:15:20'),('013_depots.sql','2026-11-02 00:15:20'),('014_livraisons.sql','2026-11-02 00:15:20');
+INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('001_pos_catalogue.sql','2026-11-02 00:15:19'),('002_pos_ventes.sql','2026-11-02 00:15:19'),('003_pos_apres_vente.sql','2026-11-02 00:15:19'),('004_pos_stock.sql','2026-11-02 00:15:19'),('005_pos_taxes.sql','2026-11-02 00:15:19'),('006_societe_produits.sql','2026-11-02 00:15:19'),('007_variantes_remise.sql','2026-11-02 00:15:20'),('008_unites.sql','2026-11-02 00:15:20'),('009_restaurant.sql','2026-11-02 00:15:20'),('010_combos.sql','2026-11-02 00:15:20'),('011_combos_odoo.sql','2026-11-02 00:15:20'),('012_module_point_vente.sql','2026-11-02 00:15:20'),('013_depots.sql','2026-11-02 00:15:20'),('014_livraisons.sql','2026-11-02 00:15:20'),('015_moyen_livraison.sql','2026-11-02 00:15:20');
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `ModesPaiement` (

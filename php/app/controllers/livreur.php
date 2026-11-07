@@ -2,6 +2,14 @@
 // Livreurs (sans compte de connexion) : choisis au point de vente sur une commande à livrer.
 // Un livreur qui a déjà des livraisons se désactive au lieu d'être supprimé.
 
+const LIVREUR_MOYENS = ['Moto', 'Voiture', 'Vélo', 'Autre'];
+
+/** Pictogramme Font Awesome du moyen de livraison. */
+function livreur_icone(?string $moyen): string
+{
+    return ['Voiture' => 'fa-car', 'Vélo' => 'fa-bicycle', 'Autre' => 'fa-truck-fast'][$moyen] ?? 'fa-motorcycle';
+}
+
 function livreur_index(): void
 {
     render('livreur/index', [
@@ -28,6 +36,7 @@ function livreur_save(): void
         $id = int_or_null(post('Id'));
         $nom = mb_substr(trim((string) post('Nom', '')), 0, 100);
         $telephone = mb_substr(trim((string) post('Telephone', '')), 0, 30) ?: null;
+        $moyen = in_array(post('MoyenLivraison'), LIVREUR_MOYENS, true) ? post('MoyenLivraison') : 'Moto';
         $actif = post('Actif') ? 1 : 0;
         if ($nom === '') {
             flash('danger', 'Le nom du livreur est obligatoire.');
@@ -35,10 +44,10 @@ function livreur_save(): void
         }
         if ($id) {
             $l = livreur_charger($id);
-            run('UPDATE Livreurs SET Nom = ?, Telephone = ?, Actif = ? WHERE Id = ?', [$nom, $telephone, $actif, $l['Id']]);
+            run('UPDATE Livreurs SET Nom = ?, Telephone = ?, MoyenLivraison = ?, Actif = ? WHERE Id = ?', [$nom, $telephone, $moyen, $actif, $l['Id']]);
             flash('success', 'Livreur modifié.');
         } else {
-            run('INSERT INTO Livreurs (TenantId, Nom, Telephone, Actif) VALUES (?, ?, ?, ?)', [tenant_insert(), $nom, $telephone, $actif]);
+            run('INSERT INTO Livreurs (TenantId, Nom, Telephone, MoyenLivraison, Actif) VALUES (?, ?, ?, ?, ?)', [tenant_insert(), $nom, $telephone, $moyen, $actif]);
             flash('success', 'Livreur créé.');
         }
     }

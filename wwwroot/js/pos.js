@@ -975,7 +975,8 @@
                 : '<button type="button" class="pos-act" data-action="attente"><i class="fas fa-pause"></i> Mettre en attente</button>')
             + '<button type="button" class="pos-act" data-action="remise"' + (D.peutRemiseGlobale ? '' : ' disabled title="Réservée aux administrateurs"') + '>'
             + '<i class="fas fa-percent"></i> ' + (t.remise ? 'Remise : <b>' + (t.remise.type === 'pct' ? qte(t.remise.valeur) + ' %' : fcfa(t.remise.valeur)) + '</b>' : 'Remise globale') + '</button>'
-            + (cmd ? '' : '<button type="button" class="pos-act' + (t.livraison ? ' livraison' : '') + '" data-action="livraison"><i class="fas fa-motorcycle"></i> '
+            + (cmd ? '' : '<button type="button" class="pos-act' + (t.livraison ? ' livraison' : '') + '" data-action="livraison"><i class="fas '
+                + iconeMoyen(t.livraison ? (livreurs.get(t.livraison.livreurId) || {}).moyen : null) + '"></i> '
                 + (t.livraison ? 'Livraison : <b>' + echap(nomLivreur(t.livraison.livreurId)) + '</b>' + (t.livraison.paiement === 'livraison' ? ' (à encaisser)' : '')
                     : 'Livraison') + '</button>')
             + '</div>'
@@ -1213,6 +1214,8 @@
     let attentes = { attentes: [], livraisons: [] };
     const livreurs = new Map((D.livreurs || []).map(l => [l.id, l]));
     const nomLivreur = id => (livreurs.get(id) || {}).nom || 'Livreur';
+    // Pictogramme du moyen de livraison (Moto, Voiture, Vélo, Autre).
+    const iconeMoyen = m => ({ Voiture: 'fa-car', 'Vélo': 'fa-bicycle', Autre: 'fa-truck-fast' })[m] || 'fa-motorcycle';
 
     function boutonAttentes() {
         if (!D.urlAttentes) return '';
@@ -1263,7 +1266,7 @@
     }
 
     function htmlLivraison(l) {
-        return '<div class="pos-att-livraison"><i class="fas fa-motorcycle"></i> ' + echap(l.livreur || 'Livreur')
+        return '<div class="pos-att-livraison"><i class="fas ' + iconeMoyen(l.moyen) + '"></i> ' + echap(l.livreur || 'Livreur') + (l.moyen ? ' (' + echap(l.moyen) + ')' : '')
             + (l.nom || l.telephone ? ' · ' + echap([l.nom, l.telephone].filter(Boolean).join(' · ')) : '')
             + (l.adresse ? '<br><span>' + echap(l.adresse) + '</span>' : '') + '</div>';
     }
@@ -1364,7 +1367,7 @@
             + '<div class="pos-modal-tete">Commande à livrer<button type="button" data-close aria-label="Fermer">×</button></div>'
             + '<div class="pos-form">'
             + '<label>Livreur<select name="livreurId"><option value="">-- Choisir un livreur --</option>'
-            + (D.livreurs || []).map(x => '<option value="' + x.id + '"' + (x.id === l.livreurId ? ' selected' : '') + '>' + echap(x.nom) + (x.telephone ? ' · ' + echap(x.telephone) : '') + '</option>').join('')
+            + (D.livreurs || []).map(x => '<option value="' + x.id + '"' + (x.id === l.livreurId ? ' selected' : '') + '>' + echap(x.nom) + (x.moyen ? ' · ' + echap(x.moyen) : '') + (x.telephone ? ' · ' + echap(x.telephone) : '') + '</option>').join('')
             + '</select></label>'
             + '<div class="pos-form-2"><label>Destinataire<input name="nom" maxlength="100" value="' + echap(l.nom) + '"></label>'
             + '<label>Téléphone<input name="telephone" maxlength="30" inputmode="tel" value="' + echap(l.telephone) + '"></label></div>'

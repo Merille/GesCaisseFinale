@@ -74,8 +74,8 @@ namespace EasytransitCaisse.Controllers
             ViewBag.Retours = await _context.CommandesPos.Where(c => c.CommandeOrigineId == vente.Id && c.Statut != "Annulée").OrderBy(c => c.Id).ToListAsync();
             ViewBag.Origine = vente.CommandeOrigineId.HasValue ? await _context.CommandesPos.FirstOrDefaultAsync(c => c.Id == vente.CommandeOrigineId) : null;
             ViewBag.Facture = vente.FactureId.HasValue ? await _context.Factures.FirstOrDefaultAsync(f => f.Id == vente.FactureId) : null;
-            ViewBag.Livreur = vente.LivreurId.HasValue
-                ? (await _context.Livreurs.IgnoreQueryFilters().FirstOrDefaultAsync(l => l.Id == vente.LivreurId))?.Nom : null;
+            ViewBag.LivreurVente = vente.LivreurId.HasValue
+                ? await _context.Livreurs.IgnoreQueryFilters().FirstOrDefaultAsync(l => l.Id == vente.LivreurId) : null;
             ViewBag.Client = vente.ClientId.HasValue ? (await _context.Clients.FirstOrDefaultAsync(c => c.Id == vente.ClientId))?.NomSociete : null;
             ViewBag.Vendeur = (await _context.Utilisateurs.IgnoreQueryFilters().FirstOrDefaultAsync(u => u.Id == vente.UtilisateurId))?.NomComplet ?? "";
             ViewBag.Clients = vente.ClientId.HasValue ? new List<Client>()

@@ -90,7 +90,7 @@ namespace EasytransitCaisse.Controllers
             if (j == null)
                 return Erreur(404, "Journée introuvable.");
             var livreurs = await _context.Livreurs.IgnoreQueryFilters().Where(l => l.TenantId == j.TenantId)
-                .ToDictionaryAsync(l => l.Id, l => l.Nom);
+                .ToDictionaryAsync(l => l.Id);
             var clients = await _context.Clients.IgnoreQueryFilters().Where(c => c.TenantId == j.TenantId)
                 .ToDictionaryAsync(c => c.Id, c => c.NomSociete);
             var utilisateurs = await _context.Utilisateurs.IgnoreQueryFilters()
@@ -105,7 +105,8 @@ namespace EasytransitCaisse.Controllers
                     livraison = c.LivreurId.HasValue || c.AdresseLivraison != null
                         ? new
                         {
-                            livreur = c.LivreurId.HasValue ? livreurs.GetValueOrDefault(c.LivreurId.Value) : null,
+                            livreur = c.LivreurId.HasValue ? livreurs.GetValueOrDefault(c.LivreurId.Value)?.Nom : null,
+                            moyen = c.LivreurId.HasValue ? livreurs.GetValueOrDefault(c.LivreurId.Value)?.MoyenLivraison : null,
                             nom = c.NomLivraison, telephone = c.TelephoneLivraison, adresse = c.AdresseLivraison
                         }
                         : null
@@ -118,7 +119,8 @@ namespace EasytransitCaisse.Controllers
                     id = c.Id, numero = c.Numero, heure = c.DateCommande.ToString("HH:mm"),
                     client = c.ClientId.HasValue ? clients.GetValueOrDefault(c.ClientId.Value) : null,
                     total = c.TotalTTC,
-                    livreur = c.LivreurId.HasValue ? livreurs.GetValueOrDefault(c.LivreurId.Value) : null,
+                    livreur = c.LivreurId.HasValue ? livreurs.GetValueOrDefault(c.LivreurId.Value)?.Nom : null,
+                    moyen = c.LivreurId.HasValue ? livreurs.GetValueOrDefault(c.LivreurId.Value)?.MoyenLivraison : null,
                     nom = c.NomLivraison, telephone = c.TelephoneLivraison, adresse = c.AdresseLivraison
                 });
             return Json(new { attentes, livraisons });
