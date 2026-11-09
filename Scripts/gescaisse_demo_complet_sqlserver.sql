@@ -7,7 +7,8 @@
 --   clôturées, leurs opérations de caisse et 322 mouvements de stock ; un dépôt « Dépôt principal »
 --   qui porte tout le stock, rattaché aux deux caisses ; deux livreurs (Jean Moussavou à moto, Paul Obame en voiture).
 --   Seconde société « Laverie Éclat Blanc » (script demo_laverie_mysql.sql) : caisse LAV1 de type Laverie,
---   6 catégories et 24 articles avec leur image (prestations et produits en stock), 4 tiers.
+--   6 catégories et 24 articles avec leur image (prestations et produits en stock), 4 tiers et
+--   20 ventes à ces tiers (5 chacun) sur 5 journées clôturées.
 --
 -- Utilisation : créer une base VIDE (ex. GesCaisseDemo), puis exécuter ce script sur cette base
 -- (SSMS : ouvrir le fichier, choisir la base, Exécuter ; ou : sqlcmd -S serveur -d GesCaisseDemo -f 65001 -i gescaisse_demo_complet_sqlserver.sql).
@@ -971,7 +972,7 @@ INSERT INTO [Combos] ([Id], [TenantId], [Nom], [Quantite], [Ordre]) VALUES
 SET IDENTITY_INSERT [Combos] OFF;
 GO
 
--- CommandesPos (151)
+-- CommandesPos (171)
 SET IDENTITY_INSERT [CommandesPos] ON;
 INSERT INTO [CommandesPos] ([Id], [TenantId], [Numero], [CleClient], [JourneeCaisseId], [ClientId], [UtilisateurId], [DateCommande], [TotalHT], [TotalTVA], [TotalTTC], [MontantRecu], [MonnaieRendue], [Statut], [FactureId], [CommandeOrigineId], [Motif], [RemiseGlobale], [RemiseGlobaleTaux], [TableNom], [Couverts], [Pourboire], [LivreurId], [NomLivraison], [TelephoneLivraison], [AdresseLivraison], [StatutLivraison], [DateLivraison]) VALUES
 (1, 1, N'POS-CASH1-20261019-D001', N'demo-POS-CASH1-20261019-D001', 1, NULL, 2, N'2026-10-19 09:56:00', 6356.00, 1144.00, 7500.00, 7500.00, 0.00, N'Payée', NULL, NULL, NULL, 0.00, NULL, NULL, NULL, 0.00, NULL, NULL, NULL, NULL, NULL, NULL),
@@ -1124,7 +1125,27 @@ INSERT INTO [CommandesPos] ([Id], [TenantId], [Numero], [CleClient], [JourneeCai
 (148, 1, N'POS-CASH1-20261101-D010', N'demo-POS-CASH1-20261101-D010', 14, NULL, 3, N'2026-11-01 18:25:00', 3559.00, 641.00, 4200.00, 4200.00, 0.00, N'Payée', NULL, NULL, NULL, 0.00, NULL, NULL, NULL, 0.00, NULL, NULL, NULL, NULL, NULL, NULL),
 (149, 1, N'POS-CASH1-20261101-D011', N'demo-POS-CASH1-20261101-D011', 14, NULL, 3, N'2026-11-01 19:25:00', 13136.00, 2364.00, 15500.00, 16000.00, 500.00, N'Payée', NULL, NULL, NULL, 0.00, NULL, NULL, NULL, 0.00, NULL, NULL, NULL, NULL, NULL, NULL),
 (150, 1, N'POS-CASH1-20261101-D012', N'demo-POS-CASH1-20261101-D012', 14, NULL, 2, N'2026-11-01 19:25:00', 424.00, 76.00, 500.00, 1000.00, 500.00, N'Payée', NULL, NULL, NULL, 0.00, NULL, NULL, NULL, 0.00, NULL, NULL, NULL, NULL, NULL, NULL),
-(151, 1, N'POS-CASH1-20261101-D013', N'demo-POS-CASH1-20261101-D013', 14, NULL, 3, N'2026-11-01 19:57:00', 1271.00, 229.00, 1500.00, 2000.00, 500.00, N'Payée', NULL, NULL, NULL, 0.00, NULL, NULL, NULL, 0.00, NULL, NULL, NULL, NULL, NULL, NULL);
+(151, 1, N'POS-CASH1-20261101-D013', N'demo-POS-CASH1-20261101-D013', 14, NULL, 3, N'2026-11-01 19:57:00', 1271.00, 229.00, 1500.00, 2000.00, 500.00, N'Payée', NULL, NULL, NULL, 0.00, NULL, NULL, NULL, 0.00, NULL, NULL, NULL, NULL, NULL, NULL),
+(152, 2, N'POS-LAV1-20261104-D001', N'demo-lav-POS-LAV1-20261104-D001', 15, 7, 6, N'2026-11-04 09:05:00', 22034.00, 3966.00, 26000.00, 26000.00, 0.00, N'Payée', NULL, NULL, NULL, 0.00, NULL, NULL, NULL, 0.00, NULL, NULL, NULL, NULL, NULL, NULL),
+(153, 2, N'POS-LAV1-20261104-D002', N'demo-lav-POS-LAV1-20261104-D002', 15, 8, 6, N'2026-11-04 10:40:00', 4576.00, 824.00, 5400.00, 5400.00, 0.00, N'Payée', NULL, NULL, NULL, 0.00, NULL, NULL, NULL, 0.00, NULL, NULL, NULL, NULL, NULL, NULL),
+(154, 2, N'POS-LAV1-20261104-D003', N'demo-lav-POS-LAV1-20261104-D003', 15, 9, 6, N'2026-11-04 13:50:00', 4661.00, 839.00, 5500.00, 5500.00, 0.00, N'Payée', NULL, NULL, NULL, 0.00, NULL, NULL, NULL, 0.00, NULL, NULL, NULL, NULL, NULL, NULL),
+(155, 2, N'POS-LAV1-20261104-D004', N'demo-lav-POS-LAV1-20261104-D004', 15, 10, 6, N'2026-11-04 16:50:00', 12288.00, 2212.00, 14500.00, 14500.00, 0.00, N'Payée', NULL, NULL, NULL, 0.00, NULL, NULL, NULL, 0.00, NULL, NULL, NULL, NULL, NULL, NULL),
+(156, 2, N'POS-LAV1-20261105-D001', N'demo-lav-POS-LAV1-20261105-D001', 16, 8, 6, N'2026-11-05 08:40:00', 5085.00, 915.00, 6000.00, 6000.00, 0.00, N'Payée', NULL, NULL, NULL, 0.00, NULL, NULL, NULL, 0.00, NULL, NULL, NULL, NULL, NULL, NULL),
+(157, 2, N'POS-LAV1-20261105-D002', N'demo-lav-POS-LAV1-20261105-D002', 16, 7, 6, N'2026-11-05 11:40:00', 52119.00, 9381.00, 61500.00, 61500.00, 0.00, N'Payée', NULL, NULL, NULL, 0.00, NULL, NULL, NULL, 0.00, NULL, NULL, NULL, NULL, NULL, NULL),
+(158, 2, N'POS-LAV1-20261105-D003', N'demo-lav-POS-LAV1-20261105-D003', 16, 9, 6, N'2026-11-05 15:05:00', 10169.00, 1831.00, 12000.00, 12000.00, 0.00, N'Payée', NULL, NULL, NULL, 0.00, NULL, NULL, NULL, 0.00, NULL, NULL, NULL, NULL, NULL, NULL),
+(159, 2, N'POS-LAV1-20261105-D004', N'demo-lav-POS-LAV1-20261105-D004', 16, 10, 6, N'2026-11-05 18:00:00', 8475.00, 1525.00, 10000.00, 10000.00, 0.00, N'Payée', NULL, NULL, NULL, 0.00, NULL, NULL, NULL, 0.00, NULL, NULL, NULL, NULL, NULL, NULL),
+(160, 2, N'POS-LAV1-20261106-D001', N'demo-lav-POS-LAV1-20261106-D001', 17, 9, 6, N'2026-11-06 09:20:00', 5085.00, 915.00, 6000.00, 6000.00, 0.00, N'Payée', NULL, NULL, NULL, 0.00, NULL, NULL, NULL, 0.00, NULL, NULL, NULL, NULL, NULL, NULL),
+(161, 2, N'POS-LAV1-20261106-D002', N'demo-lav-POS-LAV1-20261106-D002', 17, 7, 6, N'2026-11-06 12:40:00', 15254.00, 2746.00, 18000.00, 18000.00, 0.00, N'Payée', NULL, NULL, NULL, 0.00, NULL, NULL, NULL, 0.00, NULL, NULL, NULL, NULL, NULL, NULL),
+(162, 2, N'POS-LAV1-20261106-D003', N'demo-lav-POS-LAV1-20261106-D003', 17, 8, 6, N'2026-11-06 14:40:00', 8898.00, 1602.00, 10500.00, 10500.00, 0.00, N'Payée', NULL, NULL, NULL, 0.00, NULL, NULL, NULL, 0.00, NULL, NULL, NULL, NULL, NULL, NULL),
+(163, 2, N'POS-LAV1-20261106-D004', N'demo-lav-POS-LAV1-20261106-D004', 17, 10, 6, N'2026-11-06 17:30:00', 11017.00, 1983.00, 13000.00, 13000.00, 0.00, N'Payée', NULL, NULL, NULL, 0.00, NULL, NULL, NULL, 0.00, NULL, NULL, NULL, NULL, NULL, NULL),
+(164, 2, N'POS-LAV1-20261107-D001', N'demo-lav-POS-LAV1-20261107-D001', 18, 8, 6, N'2026-11-07 10:00:00', 12712.00, 2288.00, 15000.00, 15000.00, 0.00, N'Payée', NULL, NULL, NULL, 0.00, NULL, NULL, NULL, 0.00, NULL, NULL, NULL, NULL, NULL, NULL),
+(165, 2, N'POS-LAV1-20261107-D002', N'demo-lav-POS-LAV1-20261107-D002', 18, 10, 6, N'2026-11-07 12:15:00', 8475.00, 1525.00, 10000.00, 10000.00, 0.00, N'Payée', NULL, NULL, NULL, 0.00, NULL, NULL, NULL, 0.00, NULL, NULL, NULL, NULL, NULL, NULL),
+(166, 2, N'POS-LAV1-20261107-D003', N'demo-lav-POS-LAV1-20261107-D003', 18, 7, 6, N'2026-11-07 15:15:00', 37288.00, 6712.00, 44000.00, 44000.00, 0.00, N'Payée', NULL, NULL, NULL, 0.00, NULL, NULL, NULL, 0.00, NULL, NULL, NULL, NULL, NULL, NULL),
+(167, 2, N'POS-LAV1-20261107-D004', N'demo-lav-POS-LAV1-20261107-D004', 18, 9, 6, N'2026-11-07 18:20:00', 5932.00, 1068.00, 7000.00, 7000.00, 0.00, N'Payée', NULL, NULL, NULL, 0.00, NULL, NULL, NULL, 0.00, NULL, NULL, NULL, NULL, NULL, NULL),
+(168, 2, N'POS-LAV1-20261108-D001', N'demo-lav-POS-LAV1-20261108-D001', 19, 7, 6, N'2026-11-08 08:35:00', 16949.00, 3051.00, 20000.00, 20000.00, 0.00, N'Payée', NULL, NULL, NULL, 0.00, NULL, NULL, NULL, 0.00, NULL, NULL, NULL, NULL, NULL, NULL),
+(169, 2, N'POS-LAV1-20261108-D002', N'demo-lav-POS-LAV1-20261108-D002', 19, 9, 6, N'2026-11-08 11:30:00', 4449.00, 801.00, 5250.00, 5250.00, 0.00, N'Payée', NULL, NULL, NULL, 0.00, NULL, NULL, NULL, 0.00, NULL, NULL, NULL, NULL, NULL, NULL),
+(170, 2, N'POS-LAV1-20261108-D003', N'demo-lav-POS-LAV1-20261108-D003', 19, 10, 6, N'2026-11-08 14:20:00', 6610.00, 1190.00, 7800.00, 7800.00, 0.00, N'Payée', NULL, NULL, NULL, 0.00, NULL, NULL, NULL, 0.00, NULL, NULL, NULL, NULL, NULL, NULL),
+(171, 2, N'POS-LAV1-20261108-D004', N'demo-lav-POS-LAV1-20261108-D004', 19, 8, 6, N'2026-11-08 17:20:00', 6356.00, 1144.00, 7500.00, 7500.00, 0.00, N'Payée', NULL, NULL, NULL, 0.00, NULL, NULL, NULL, 0.00, NULL, NULL, NULL, NULL, NULL, NULL);
 SET IDENTITY_INSERT [CommandesPos] OFF;
 GO
 
@@ -1136,7 +1157,7 @@ INSERT INTO [Depots] ([Id], [TenantId], [Code], [Nom], [Adresse], [Responsable],
 SET IDENTITY_INSERT [Depots] OFF;
 GO
 
--- JourneesCaisses (14)
+-- JourneesCaisses (19)
 SET IDENTITY_INSERT [JourneesCaisses] ON;
 INSERT INTO [JourneesCaisses] ([Id], [TenantId], [CaisseId], [NumeroJournee], [DateJournee], [DateOuverture], [DateFermeture], [SoldeInitial], [SoldeFinal], [EcartCloture], [NoteCloture], [Statut]) VALUES
 (1, 1, 1, N'CASH1-20261019-DEMO', N'2026-10-19', N'2026-10-19 07:30:00', N'2026-10-19 20:30:00', 50000.00, 98300.00, 0.00, N'Journée de démonstration', N'Cloturee'),
@@ -1152,11 +1173,16 @@ INSERT INTO [JourneesCaisses] ([Id], [TenantId], [CaisseId], [NumeroJournee], [D
 (11, 1, 1, N'CASH1-20261029-DEMO', N'2026-10-29', N'2026-10-29 07:30:00', N'2026-10-29 20:30:00', 50000.00, 91700.00, 0.00, N'Journée de démonstration', N'Cloturee'),
 (12, 1, 1, N'CASH1-20261030-DEMO', N'2026-10-30', N'2026-10-30 07:30:00', N'2026-10-30 20:30:00', 50000.00, 91300.00, 0.00, N'Journée de démonstration', N'Cloturee'),
 (13, 1, 1, N'CASH1-20261031-DEMO', N'2026-10-31', N'2026-10-31 07:30:00', N'2026-10-31 20:30:00', 50000.00, 76550.00, 0.00, N'Journée de démonstration', N'Cloturee'),
-(14, 1, 1, N'CASH1-20261101-DEMO', N'2026-11-01', N'2026-11-01 07:30:00', N'2026-11-01 20:30:00', 50000.00, 108800.00, 0.00, N'Journée de démonstration', N'Cloturee');
+(14, 1, 1, N'CASH1-20261101-DEMO', N'2026-11-01', N'2026-11-01 07:30:00', N'2026-11-01 20:30:00', 50000.00, 108800.00, 0.00, N'Journée de démonstration', N'Cloturee'),
+(15, 2, 3, N'LAV1-20261104-DEMO', N'2026-11-04', N'2026-11-04 08:00:00', N'2026-11-04 19:30:00', 20000.00, 71400.00, 0.00, N'Journée de démonstration', N'Cloturee'),
+(16, 2, 3, N'LAV1-20261105-DEMO', N'2026-11-05', N'2026-11-05 08:00:00', N'2026-11-05 19:30:00', 20000.00, 109500.00, 0.00, N'Journée de démonstration', N'Cloturee'),
+(17, 2, 3, N'LAV1-20261106-DEMO', N'2026-11-06', N'2026-11-06 08:00:00', N'2026-11-06 19:30:00', 20000.00, 67500.00, 0.00, N'Journée de démonstration', N'Cloturee'),
+(18, 2, 3, N'LAV1-20261107-DEMO', N'2026-11-07', N'2026-11-07 08:00:00', N'2026-11-07 19:30:00', 20000.00, 96000.00, 0.00, N'Journée de démonstration', N'Cloturee'),
+(19, 2, 3, N'LAV1-20261108-DEMO', N'2026-11-08', N'2026-11-08 08:00:00', N'2026-11-08 19:30:00', 20000.00, 60550.00, 0.00, N'Journée de démonstration', N'Cloturee');
 SET IDENTITY_INSERT [JourneesCaisses] OFF;
 GO
 
--- LignesCommandePos (304)
+-- LignesCommandePos (346)
 SET IDENTITY_INSERT [LignesCommandePos] ON;
 INSERT INTO [LignesCommandePos] ([Id], [TenantId], [CommandePosId], [ProduitId], [Libelle], [Quantite], [PrixUnitaire], [Remise], [TauxTVA], [TotalTTC], [LigneOrigineId], [RemiseGlobale], [Note], [Composants]) VALUES
 (1, 1, 1, 2, N'Eau minérale 1,5 L', 7.00, 500.00, 0.00, 18.00, 3500.00, NULL, 0.00, NULL, NULL),
@@ -1463,11 +1489,53 @@ INSERT INTO [LignesCommandePos] ([Id], [TenantId], [CommandePosId], [ProduitId],
 (301, 1, 149, 28, N'Photocopie (la page)', 30.00, 100.00, 0.00, 18.00, 3000.00, NULL, 0.00, NULL, NULL),
 (302, 1, 149, 11, N'Yaourt nature', 6.00, 500.00, 0.00, 18.00, 3000.00, NULL, 0.00, NULL, NULL),
 (303, 1, 150, 11, N'Yaourt nature', 1.00, 500.00, 0.00, 18.00, 500.00, NULL, 0.00, NULL, NULL),
-(304, 1, 151, 2, N'Eau minérale 1,5 L', 3.00, 500.00, 0.00, 18.00, 1500.00, NULL, 0.00, NULL, NULL);
+(304, 1, 151, 2, N'Eau minérale 1,5 L', 3.00, 500.00, 0.00, 18.00, 1500.00, NULL, 0.00, NULL, NULL),
+(305, 2, 152, 48, N'Drap (lavage + repassage)', 12.00, 1500.00, 0.00, 18.00, 18000.00, NULL, 0.00, NULL, NULL),
+(306, 2, 152, 50, N'Rideau (lavage + repassage)', 4.00, 2000.00, 0.00, 18.00, 8000.00, NULL, 0.00, NULL, NULL),
+(307, 2, 153, 40, N'Chemise (lavage + repassage)', 3.00, 1000.00, 0.00, 18.00, 3000.00, NULL, 0.00, NULL, NULL),
+(308, 2, 153, 41, N'Pantalon (lavage + repassage)', 2.00, 1200.00, 0.00, 18.00, 2400.00, NULL, 0.00, NULL, NULL),
+(309, 2, 154, 52, N'Linge au kilo : lavage + séchage', 4.50, 1000.00, 0.00, 18.00, 4500.00, NULL, 0.00, NULL, NULL),
+(310, 2, 154, 58, N'Repassage seul', 2.00, 500.00, 0.00, 18.00, 1000.00, NULL, 0.00, NULL, NULL),
+(311, 2, 155, 51, N'Tapis (nettoyage)', 2.00, 6000.00, 0.00, 18.00, 12000.00, NULL, 0.00, NULL, NULL),
+(312, 2, 155, 45, N'Veste / blazer (nettoyage à sec)', 1.00, 2500.00, 0.00, 18.00, 2500.00, NULL, 0.00, NULL, NULL),
+(313, 2, 156, 46, N'Robe de soirée (nettoyage à sec)', 1.00, 5000.00, 0.00, 18.00, 5000.00, NULL, 0.00, NULL, NULL),
+(314, 2, 156, 57, N'Détachage', 1.00, 1000.00, 0.00, 18.00, 1000.00, NULL, 0.00, NULL, NULL),
+(315, 2, 157, 48, N'Drap (lavage + repassage)', 20.00, 1500.00, 0.00, 18.00, 30000.00, NULL, 0.00, NULL, NULL),
+(316, 2, 157, 49, N'Couette / couverture', 6.00, 5000.00, 0.00, 18.00, 30000.00, NULL, 0.00, NULL, NULL),
+(317, 2, 157, 59, N'Collecte et livraison à domicile', 1.00, 1500.00, 0.00, 18.00, 1500.00, NULL, 0.00, NULL, NULL),
+(318, 2, 158, 53, N'Linge au kilo : lavage + séchage + pliage', 6.00, 1500.00, 0.00, 18.00, 9000.00, NULL, 0.00, NULL, NULL),
+(319, 2, 158, 60, N'Lessive liquide 1 L', 1.00, 3000.00, 0.00, 18.00, 3000.00, NULL, 0.00, NULL, NULL),
+(320, 2, 159, 40, N'Chemise (lavage + repassage)', 5.00, 1000.00, 0.00, 18.00, 5000.00, NULL, 0.00, NULL, NULL),
+(321, 2, 159, 63, N'Housse de protection pour vêtement', 5.00, 1000.00, 0.00, 18.00, 5000.00, NULL, 0.00, NULL, NULL),
+(322, 2, 160, 44, N'Costume 2 pièces (nettoyage à sec)', 1.00, 4000.00, 0.00, 18.00, 4000.00, NULL, 0.00, NULL, NULL),
+(323, 2, 160, 40, N'Chemise (lavage + repassage)', 2.00, 1000.00, 0.00, 18.00, 2000.00, NULL, 0.00, NULL, NULL),
+(324, 2, 161, 50, N'Rideau (lavage + repassage)', 8.00, 2000.00, 0.00, 18.00, 16000.00, NULL, 0.00, NULL, NULL),
+(325, 2, 161, 56, N'Service express (24 h)', 1.00, 2000.00, 0.00, 18.00, 2000.00, NULL, 0.00, NULL, NULL),
+(326, 2, 162, 54, N'Machine libre-service 8 kg', 2.00, 2500.00, 0.00, 18.00, 5000.00, NULL, 0.00, NULL, NULL),
+(327, 2, 162, 55, N'Séchoir libre-service (30 min)', 2.00, 1500.00, 0.00, 18.00, 3000.00, NULL, 0.00, NULL, NULL),
+(328, 2, 162, 61, N'Assouplissant 1 L', 1.00, 2500.00, 0.00, 18.00, 2500.00, NULL, 0.00, NULL, NULL),
+(329, 2, 163, 44, N'Costume 2 pièces (nettoyage à sec)', 2.00, 4000.00, 0.00, 18.00, 8000.00, NULL, 0.00, NULL, NULL),
+(330, 2, 163, 45, N'Veste / blazer (nettoyage à sec)', 2.00, 2500.00, 0.00, 18.00, 5000.00, NULL, 0.00, NULL, NULL),
+(331, 2, 164, 47, N'Robe de mariée (nettoyage à sec)', 1.00, 15000.00, 0.00, 18.00, 15000.00, NULL, 0.00, NULL, NULL),
+(332, 2, 165, 52, N'Linge au kilo : lavage + séchage', 10.00, 1000.00, 0.00, 18.00, 10000.00, NULL, 0.00, NULL, NULL),
+(333, 2, 166, 48, N'Drap (lavage + repassage)', 15.00, 1500.00, 0.00, 18.00, 22500.00, NULL, 0.00, NULL, NULL),
+(334, 2, 166, 49, N'Couette / couverture', 4.00, 5000.00, 0.00, 18.00, 20000.00, NULL, 0.00, NULL, NULL),
+(335, 2, 166, 59, N'Collecte et livraison à domicile', 1.00, 1500.00, 0.00, 18.00, 1500.00, NULL, 0.00, NULL, NULL),
+(336, 2, 167, 42, N'Robe simple (lavage + repassage)', 2.00, 1500.00, 0.00, 18.00, 3000.00, NULL, 0.00, NULL, NULL),
+(337, 2, 167, 43, N'Tenue traditionnelle / boubou', 1.00, 2000.00, 0.00, 18.00, 2000.00, NULL, 0.00, NULL, NULL),
+(338, 2, 167, 62, N'Détachant 500 ml', 1.00, 2000.00, 0.00, 18.00, 2000.00, NULL, 0.00, NULL, NULL),
+(339, 2, 168, 51, N'Tapis (nettoyage)', 3.00, 6000.00, 0.00, 18.00, 18000.00, NULL, 0.00, NULL, NULL),
+(340, 2, 168, 56, N'Service express (24 h)', 1.00, 2000.00, 0.00, 18.00, 2000.00, NULL, 0.00, NULL, NULL),
+(341, 2, 169, 53, N'Linge au kilo : lavage + séchage + pliage', 3.50, 1500.00, 0.00, 18.00, 5250.00, NULL, 0.00, NULL, NULL),
+(342, 2, 170, 41, N'Pantalon (lavage + repassage)', 4.00, 1200.00, 0.00, 18.00, 4800.00, NULL, 0.00, NULL, NULL),
+(343, 2, 170, 58, N'Repassage seul', 6.00, 500.00, 0.00, 18.00, 3000.00, NULL, 0.00, NULL, NULL),
+(344, 2, 171, 40, N'Chemise (lavage + repassage)', 4.00, 1000.00, 0.00, 18.00, 4000.00, NULL, 0.00, NULL, NULL),
+(345, 2, 171, 42, N'Robe simple (lavage + repassage)', 1.00, 1500.00, 0.00, 18.00, 1500.00, NULL, 0.00, NULL, NULL),
+(346, 2, 171, 63, N'Housse de protection pour vêtement', 2.00, 1000.00, 0.00, 18.00, 2000.00, NULL, 0.00, NULL, NULL);
 SET IDENTITY_INSERT [LignesCommandePos] OFF;
 GO
 
--- LignesCommandePosTaxes (304)
+-- LignesCommandePosTaxes (346)
 SET IDENTITY_INSERT [LignesCommandePosTaxes] ON;
 INSERT INTO [LignesCommandePosTaxes] ([Id], [TenantId], [LigneCommandePosId], [TaxeId], [Code], [Taux], [Montant]) VALUES
 (1, 1, 1, 1, N'TVA', 18.00, 533.90),
@@ -1774,7 +1842,49 @@ INSERT INTO [LignesCommandePosTaxes] ([Id], [TenantId], [LigneCommandePosId], [T
 (301, 1, 301, 1, N'TVA', 18.00, 457.63),
 (302, 1, 302, 1, N'TVA', 18.00, 457.63),
 (303, 1, 303, 1, N'TVA', 18.00, 76.27),
-(304, 1, 304, 1, N'TVA', 18.00, 228.81);
+(304, 1, 304, 1, N'TVA', 18.00, 228.81),
+(305, 2, 305, 3, N'TVA', 18.00, 2745.76),
+(306, 2, 306, 3, N'TVA', 18.00, 1220.34),
+(307, 2, 307, 3, N'TVA', 18.00, 457.63),
+(308, 2, 308, 3, N'TVA', 18.00, 366.10),
+(309, 2, 309, 3, N'TVA', 18.00, 686.44),
+(310, 2, 310, 3, N'TVA', 18.00, 152.54),
+(311, 2, 311, 3, N'TVA', 18.00, 1830.51),
+(312, 2, 312, 3, N'TVA', 18.00, 381.36),
+(313, 2, 313, 3, N'TVA', 18.00, 762.71),
+(314, 2, 314, 3, N'TVA', 18.00, 152.54),
+(315, 2, 315, 3, N'TVA', 18.00, 4576.27),
+(316, 2, 316, 3, N'TVA', 18.00, 4576.27),
+(317, 2, 317, 3, N'TVA', 18.00, 228.81),
+(318, 2, 318, 3, N'TVA', 18.00, 1372.88),
+(319, 2, 319, 3, N'TVA', 18.00, 457.63),
+(320, 2, 320, 3, N'TVA', 18.00, 762.71),
+(321, 2, 321, 3, N'TVA', 18.00, 762.71),
+(322, 2, 322, 3, N'TVA', 18.00, 610.17),
+(323, 2, 323, 3, N'TVA', 18.00, 305.08),
+(324, 2, 324, 3, N'TVA', 18.00, 2440.68),
+(325, 2, 325, 3, N'TVA', 18.00, 305.08),
+(326, 2, 326, 3, N'TVA', 18.00, 762.71),
+(327, 2, 327, 3, N'TVA', 18.00, 457.63),
+(328, 2, 328, 3, N'TVA', 18.00, 381.36),
+(329, 2, 329, 3, N'TVA', 18.00, 1220.34),
+(330, 2, 330, 3, N'TVA', 18.00, 762.71),
+(331, 2, 331, 3, N'TVA', 18.00, 2288.14),
+(332, 2, 332, 3, N'TVA', 18.00, 1525.42),
+(333, 2, 333, 3, N'TVA', 18.00, 3432.20),
+(334, 2, 334, 3, N'TVA', 18.00, 3050.85),
+(335, 2, 335, 3, N'TVA', 18.00, 228.81),
+(336, 2, 336, 3, N'TVA', 18.00, 457.63),
+(337, 2, 337, 3, N'TVA', 18.00, 305.08),
+(338, 2, 338, 3, N'TVA', 18.00, 305.08),
+(339, 2, 339, 3, N'TVA', 18.00, 2745.76),
+(340, 2, 340, 3, N'TVA', 18.00, 305.08),
+(341, 2, 341, 3, N'TVA', 18.00, 800.85),
+(342, 2, 342, 3, N'TVA', 18.00, 732.20),
+(343, 2, 343, 3, N'TVA', 18.00, 457.63),
+(344, 2, 344, 3, N'TVA', 18.00, 610.17),
+(345, 2, 345, 3, N'TVA', 18.00, 228.81),
+(346, 2, 346, 3, N'TVA', 18.00, 305.08);
 SET IDENTITY_INSERT [LignesCommandePosTaxes] OFF;
 GO
 
@@ -1809,7 +1919,7 @@ INSERT INTO [Motifs] ([ID], [LibelleMotif], [TypeModif], [CG_Num], [TenantId]) V
 SET IDENTITY_INSERT [Motifs] OFF;
 GO
 
--- MouvementsStock (326)
+-- MouvementsStock (331)
 SET IDENTITY_INSERT [MouvementsStock] ON;
 INSERT INTO [MouvementsStock] ([Id], [TenantId], [ProduitId], [DateMouvement], [TypeMouvement], [Quantite], [StockApres], [Reference], [CommandePosId], [UtilisateurId], [Commentaire], [DepotId]) VALUES
 (1, 1, 1, N'2026-10-18 16:00:00', N'Entrée', 48.00, 48.00, N'BL-DEMO-001', NULL, 2, N'Livraison fournisseur (démo)', 1),
@@ -2138,11 +2248,16 @@ INSERT INTO [MouvementsStock] ([Id], [TenantId], [ProduitId], [DateMouvement], [
 (323, 2, 60, N'2026-11-02 00:15:20', N'Entrée', 24.00, 24.00, N'BL-LAV-001', NULL, 5, N'Stock de départ (démo)', 2),
 (324, 2, 61, N'2026-11-02 00:15:20', N'Entrée', 18.00, 18.00, N'BL-LAV-001', NULL, 5, N'Stock de départ (démo)', 2),
 (325, 2, 62, N'2026-11-02 00:15:20', N'Entrée', 12.00, 12.00, N'BL-LAV-001', NULL, 5, N'Stock de départ (démo)', 2),
-(326, 2, 63, N'2026-11-02 00:15:20', N'Entrée', 40.00, 40.00, N'BL-LAV-001', NULL, 5, N'Stock de départ (démo)', 2);
+(326, 2, 63, N'2026-11-02 00:15:20', N'Entrée', 40.00, 40.00, N'BL-LAV-001', NULL, 5, N'Stock de départ (démo)', 2),
+(327, 2, 60, N'2026-11-05 15:05:00', N'Vente', -1.00, 23.00, N'POS-LAV1-20261105-D003', 158, 6, NULL, 2),
+(328, 2, 63, N'2026-11-05 18:00:00', N'Vente', -5.00, 35.00, N'POS-LAV1-20261105-D004', 159, 6, NULL, 2),
+(329, 2, 61, N'2026-11-06 14:40:00', N'Vente', -1.00, 17.00, N'POS-LAV1-20261106-D003', 162, 6, NULL, 2),
+(330, 2, 62, N'2026-11-07 18:20:00', N'Vente', -1.00, 11.00, N'POS-LAV1-20261107-D004', 167, 6, NULL, 2),
+(331, 2, 63, N'2026-11-08 17:20:00', N'Vente', -2.00, 33.00, N'POS-LAV1-20261108-D004', 171, 6, NULL, 2);
 SET IDENTITY_INSERT [MouvementsStock] OFF;
 GO
 
--- OperationsCaisses (159)
+-- OperationsCaisses (179)
 SET IDENTITY_INSERT [OperationsCaisses] ON;
 INSERT INTO [OperationsCaisses] ([Id], [TenantId], [JourneeCaisseId], [DateOperation], [TypeOperation], [Montant], [Libelle], [ClientId], [MotifId], [ModePaiementId], [UtilisateurId], [EstJustifie], [StatutValidation], [Valideur], [Observation]) VALUES
 (1, 1, 1, N'2026-10-19 09:56:00', N'Encaissement', 3800.00, N'Vente POS POS-CASH1-20261019-D001', NULL, 1, 2, 2, 1, N'Validé', N'Point de vente', NULL),
@@ -2303,11 +2418,31 @@ INSERT INTO [OperationsCaisses] ([Id], [TenantId], [JourneeCaisseId], [DateOpera
 (156, 1, 14, N'2026-11-01 18:25:00', N'Encaissement', 4200.00, N'Vente POS POS-CASH1-20261101-D010', NULL, 1, 2, 3, 1, N'Validé', N'Point de vente', NULL),
 (157, 1, 14, N'2026-11-01 19:25:00', N'Encaissement', 15500.00, N'Vente POS POS-CASH1-20261101-D011', NULL, 1, 1, 3, 1, N'Validé', N'Point de vente', NULL),
 (158, 1, 14, N'2026-11-01 19:25:00', N'Encaissement', 500.00, N'Vente POS POS-CASH1-20261101-D012', NULL, 1, 1, 2, 1, N'Validé', N'Point de vente', NULL),
-(159, 1, 14, N'2026-11-01 19:57:00', N'Encaissement', 1500.00, N'Vente POS POS-CASH1-20261101-D013', NULL, 1, 1, 3, 1, N'Validé', N'Point de vente', NULL);
+(159, 1, 14, N'2026-11-01 19:57:00', N'Encaissement', 1500.00, N'Vente POS POS-CASH1-20261101-D013', NULL, 1, 1, 3, 1, N'Validé', N'Point de vente', NULL),
+(160, 2, 15, N'2026-11-04 09:05:00', N'Encaissement', 26000.00, N'Vente POS POS-LAV1-20261104-D001', 7, 5, 5, 6, 1, N'Validé', N'Point de vente', NULL),
+(161, 2, 15, N'2026-11-04 10:40:00', N'Encaissement', 5400.00, N'Vente POS POS-LAV1-20261104-D002', 8, 5, 4, 6, 1, N'Validé', N'Point de vente', NULL),
+(162, 2, 15, N'2026-11-04 13:50:00', N'Encaissement', 5500.00, N'Vente POS POS-LAV1-20261104-D003', 9, 5, 4, 6, 1, N'Validé', N'Point de vente', NULL),
+(163, 2, 15, N'2026-11-04 16:50:00', N'Encaissement', 14500.00, N'Vente POS POS-LAV1-20261104-D004', 10, 5, 6, 6, 1, N'Validé', N'Point de vente', NULL),
+(164, 2, 16, N'2026-11-05 08:40:00', N'Encaissement', 6000.00, N'Vente POS POS-LAV1-20261105-D001', 8, 5, 5, 6, 1, N'Validé', N'Point de vente', NULL),
+(165, 2, 16, N'2026-11-05 11:40:00', N'Encaissement', 61500.00, N'Vente POS POS-LAV1-20261105-D002', 7, 5, 6, 6, 1, N'Validé', N'Point de vente', NULL),
+(166, 2, 16, N'2026-11-05 15:05:00', N'Encaissement', 12000.00, N'Vente POS POS-LAV1-20261105-D003', 9, 5, 4, 6, 1, N'Validé', N'Point de vente', NULL),
+(167, 2, 16, N'2026-11-05 18:00:00', N'Encaissement', 10000.00, N'Vente POS POS-LAV1-20261105-D004', 10, 5, 4, 6, 1, N'Validé', N'Point de vente', NULL),
+(168, 2, 17, N'2026-11-06 09:20:00', N'Encaissement', 6000.00, N'Vente POS POS-LAV1-20261106-D001', 9, 5, 5, 6, 1, N'Validé', N'Point de vente', NULL),
+(169, 2, 17, N'2026-11-06 12:40:00', N'Encaissement', 18000.00, N'Vente POS POS-LAV1-20261106-D002', 7, 5, 5, 6, 1, N'Validé', N'Point de vente', NULL),
+(170, 2, 17, N'2026-11-06 14:40:00', N'Encaissement', 10500.00, N'Vente POS POS-LAV1-20261106-D003', 8, 5, 4, 6, 1, N'Validé', N'Point de vente', NULL),
+(171, 2, 17, N'2026-11-06 17:30:00', N'Encaissement', 13000.00, N'Vente POS POS-LAV1-20261106-D004', 10, 5, 6, 6, 1, N'Validé', N'Point de vente', NULL),
+(172, 2, 18, N'2026-11-07 10:00:00', N'Encaissement', 15000.00, N'Vente POS POS-LAV1-20261107-D001', 8, 5, 6, 6, 1, N'Validé', N'Point de vente', NULL),
+(173, 2, 18, N'2026-11-07 12:15:00', N'Encaissement', 10000.00, N'Vente POS POS-LAV1-20261107-D002', 10, 5, 5, 6, 1, N'Validé', N'Point de vente', NULL),
+(174, 2, 18, N'2026-11-07 15:15:00', N'Encaissement', 44000.00, N'Vente POS POS-LAV1-20261107-D003', 7, 5, 4, 6, 1, N'Validé', N'Point de vente', NULL),
+(175, 2, 18, N'2026-11-07 18:20:00', N'Encaissement', 7000.00, N'Vente POS POS-LAV1-20261107-D004', 9, 5, 4, 6, 1, N'Validé', N'Point de vente', NULL),
+(176, 2, 19, N'2026-11-08 08:35:00', N'Encaissement', 20000.00, N'Vente POS POS-LAV1-20261108-D001', 7, 5, 6, 6, 1, N'Validé', N'Point de vente', NULL),
+(177, 2, 19, N'2026-11-08 11:30:00', N'Encaissement', 5250.00, N'Vente POS POS-LAV1-20261108-D002', 9, 5, 5, 6, 1, N'Validé', N'Point de vente', NULL),
+(178, 2, 19, N'2026-11-08 14:20:00', N'Encaissement', 7800.00, N'Vente POS POS-LAV1-20261108-D003', 10, 5, 4, 6, 1, N'Validé', N'Point de vente', NULL),
+(179, 2, 19, N'2026-11-08 17:20:00', N'Encaissement', 7500.00, N'Vente POS POS-LAV1-20261108-D004', 8, 5, 5, 6, 1, N'Validé', N'Point de vente', NULL);
 SET IDENTITY_INSERT [OperationsCaisses] OFF;
 GO
 
--- PaiementsPos (159)
+-- PaiementsPos (179)
 SET IDENTITY_INSERT [PaiementsPos] ON;
 INSERT INTO [PaiementsPos] ([Id], [TenantId], [CommandePosId], [ModePaiementId], [Libelle], [MontantRecu], [Montant], [OperationCaisseId]) VALUES
 (1, 1, 1, 2, N'Mobile Money', 3800.00, 3800.00, 1),
@@ -2468,7 +2603,27 @@ INSERT INTO [PaiementsPos] ([Id], [TenantId], [CommandePosId], [ModePaiementId],
 (156, 1, 148, 2, N'Mobile Money', 4200.00, 4200.00, 156),
 (157, 1, 149, 1, N'Espèces', 16000.00, 15500.00, 157),
 (158, 1, 150, 1, N'Espèces', 1000.00, 500.00, 158),
-(159, 1, 151, 1, N'Espèces', 2000.00, 1500.00, 159);
+(159, 1, 151, 1, N'Espèces', 2000.00, 1500.00, 159),
+(160, 2, 152, 5, N'Mobile Money', 26000.00, 26000.00, 160),
+(161, 2, 153, 4, N'Espèces', 5400.00, 5400.00, 161),
+(162, 2, 154, 4, N'Espèces', 5500.00, 5500.00, 162),
+(163, 2, 155, 6, N'Carte bancaire', 14500.00, 14500.00, 163),
+(164, 2, 156, 5, N'Mobile Money', 6000.00, 6000.00, 164),
+(165, 2, 157, 6, N'Carte bancaire', 61500.00, 61500.00, 165),
+(166, 2, 158, 4, N'Espèces', 12000.00, 12000.00, 166),
+(167, 2, 159, 4, N'Espèces', 10000.00, 10000.00, 167),
+(168, 2, 160, 5, N'Mobile Money', 6000.00, 6000.00, 168),
+(169, 2, 161, 5, N'Mobile Money', 18000.00, 18000.00, 169),
+(170, 2, 162, 4, N'Espèces', 10500.00, 10500.00, 170),
+(171, 2, 163, 6, N'Carte bancaire', 13000.00, 13000.00, 171),
+(172, 2, 164, 6, N'Carte bancaire', 15000.00, 15000.00, 172),
+(173, 2, 165, 5, N'Mobile Money', 10000.00, 10000.00, 173),
+(174, 2, 166, 4, N'Espèces', 44000.00, 44000.00, 174),
+(175, 2, 167, 4, N'Espèces', 7000.00, 7000.00, 175),
+(176, 2, 168, 6, N'Carte bancaire', 20000.00, 20000.00, 176),
+(177, 2, 169, 5, N'Mobile Money', 5250.00, 5250.00, 177),
+(178, 2, 170, 4, N'Espèces', 7800.00, 7800.00, 178),
+(179, 2, 171, 5, N'Mobile Money', 7500.00, 7500.00, 179);
 SET IDENTITY_INSERT [PaiementsPos] OFF;
 GO
 
@@ -2679,10 +2834,10 @@ INSERT INTO [Produits] ([Id], [TenantId], [Code], [CodeBarres], [Nom], [Categori
 (57, 2, N'OPT02', NULL, N'Détachage', 18, 1000.00, 18.00, 0, 0.00, NULL, 1, NULL, N'Pièce', N'2026-11-02 00:15:20', NULL, 0, 0.00, NULL, 0),
 (58, 2, N'OPT03', NULL, N'Repassage seul', 18, 500.00, 18.00, 0, 0.00, NULL, 1, NULL, N'Pièce', N'2026-11-02 00:15:20', NULL, 0, 0.00, NULL, 0),
 (59, 2, N'OPT04', NULL, N'Collecte et livraison à domicile', 18, 1500.00, 18.00, 0, 0.00, NULL, 1, NULL, N'Unité', N'2026-11-02 00:15:20', NULL, 0, 0.00, NULL, 0),
-(60, 2, N'PRO01', NULL, N'Lessive liquide 1 L', 19, 3000.00, 18.00, 1, 24.00, 5.00, 1, 1650.00, N'Bouteille', N'2026-11-02 00:15:20', NULL, 0, 0.00, NULL, 0),
-(61, 2, N'PRO02', NULL, N'Assouplissant 1 L', 19, 2500.00, 18.00, 1, 18.00, 5.00, 1, 1375.00, N'Bouteille', N'2026-11-02 00:15:20', NULL, 0, 0.00, NULL, 0),
-(62, 2, N'PRO03', NULL, N'Détachant 500 ml', 19, 2000.00, 18.00, 1, 12.00, 5.00, 1, 1100.00, N'Bouteille', N'2026-11-02 00:15:20', NULL, 0, 0.00, NULL, 0),
-(63, 2, N'PRO04', NULL, N'Housse de protection pour vêtement', 19, 1000.00, 18.00, 1, 40.00, 5.00, 1, 550.00, N'Unité', N'2026-11-02 00:15:20', NULL, 0, 0.00, NULL, 0);
+(60, 2, N'PRO01', NULL, N'Lessive liquide 1 L', 19, 3000.00, 18.00, 1, 23.00, 5.00, 1, 1650.00, N'Bouteille', N'2026-11-02 00:15:20', NULL, 0, 0.00, NULL, 0),
+(61, 2, N'PRO02', NULL, N'Assouplissant 1 L', 19, 2500.00, 18.00, 1, 17.00, 5.00, 1, 1375.00, N'Bouteille', N'2026-11-02 00:15:20', NULL, 0, 0.00, NULL, 0),
+(62, 2, N'PRO03', NULL, N'Détachant 500 ml', 19, 2000.00, 18.00, 1, 11.00, 5.00, 1, 1100.00, N'Bouteille', N'2026-11-02 00:15:20', NULL, 0, 0.00, NULL, 0),
+(63, 2, N'PRO04', NULL, N'Housse de protection pour vêtement', 19, 1000.00, 18.00, 1, 33.00, 5.00, 1, 550.00, N'Unité', N'2026-11-02 00:15:20', NULL, 0, 0.00, NULL, 0);
 SET IDENTITY_INSERT [Produits] OFF;
 GO
 
@@ -2725,10 +2880,10 @@ INSERT INTO [StocksDepots] ([DepotId], [ProduitId], [Quantite]) VALUES
 (1, 27, 17.00),
 (1, 37, 96.00),
 (1, 38, 72.00),
-(2, 60, 24.00),
-(2, 61, 18.00),
-(2, 62, 12.00),
-(2, 63, 40.00);
+(2, 60, 23.00),
+(2, 61, 17.00),
+(2, 62, 11.00),
+(2, 63, 33.00);
 GO
 
 -- TablesRestaurant (9)
