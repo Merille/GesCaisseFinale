@@ -20,7 +20,7 @@ $nbJourneesOuvertes = (int) qv("SELECT COUNT(*) FROM JourneesCaisses WHERE Statu
 
 $rubrique = match ($module) {
     'dashboard', 'caisse', 'journee', 'client', 'facture' => 'Activité',
-    'rapport' => 'Analyse',
+    'rapport', 'rapporttiers' => 'Analyse',
     'pos', 'vente', 'stock', 'posrapport', 'cuisine' => 'Point de vente',
     'salle' => 'Activité',
     'produit', 'categorie', 'combo' => 'Configuration',
@@ -101,6 +101,7 @@ $badge = $nbJourneesOuvertes > 0
         <div class="sb-section">
             <div class="sb-section-title">Analyse</div>
             <?= $lien('rapport/operations', 'rapport', 'fa-chart-column', 'Rapports') ?>
+            <?= $lien('rapporttiers/index', 'rapporttiers', 'fa-users-viewfinder', 'Rapport des tiers') ?>
         </div>
         <?php if (module_pos_actif()): ?>
         <div class="sb-section">

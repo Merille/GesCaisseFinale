@@ -2,7 +2,7 @@
 -- Les noms de tables et de colonnes reprennent ceux de la version .NET
 -- (SQL Server) pour faciliter une éventuelle reprise des données.
 --
--- Base à jour : intègre toutes les migrations de sql/migrations (001 à 015),
+-- Base à jour : intègre toutes les migrations de sql/migrations (001 à 016),
 -- notées comme appliquées dans MigrationsAppliquees.
 --
 -- Utilisation (NOUVELLE installation uniquement) : créer une base VIDE (ex. gescaisse),
@@ -95,6 +95,7 @@ CREATE TABLE `Clients` (
   `FonctionContact` varchar(150) DEFAULT NULL,
   `TelephoneContact` varchar(50) DEFAULT NULL,
   `EmailContact` varchar(150) DEFAULT NULL,
+  `Genre` varchar(20) NOT NULL DEFAULT 'Entreprise',
   PRIMARY KEY (`Id`),
   KEY `IX_Clients_Tenant` (`TenantId`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -397,6 +398,7 @@ INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('012_modul
 INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('013_depots.sql','2026-11-02 00:15:20');
 INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('014_livraisons.sql','2026-11-02 00:15:20');
 INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('015_moyen_livraison.sql','2026-11-02 00:15:20');
+INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('016_genre_tiers.sql','2026-11-02 00:15:20');
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `ModesPaiement` (

@@ -22,7 +22,18 @@ namespace EasytransitCaisse.Controllers
 
         // Boutique (affiché « Vente en détail ») : vente au comptoir. Restaurant / Bar : plan de
         // salle, commandes sur les tables, bons de préparation envoyés en cuisine ou au bar.
-        public static readonly string[] Types = { "Boutique", "Restaurant", "Bar" };
+        // Laverie : vente au comptoir comme la vente en détail (prestations sans suivi de stock).
+        public static readonly string[] Types = { "Boutique", "Restaurant", "Bar", "Laverie" };
+
+        // Badge et icône du type dans la liste des caisses.
+        public static string Badge(string? type) => type switch
+        {
+            "Bar" => "bg-info text-dark", "Restaurant" => "bg-warning text-dark", "Laverie" => "bg-primary", _ => "bg-secondary"
+        };
+        public static string Icone(string? type) => type switch
+        {
+            "Bar" => "fa-martini-glass", "Restaurant" => "fa-utensils", "Laverie" => "fa-shirt", _ => "fa-store"
+        };
 
         // Libellé affiché du type de point de vente.
         public static string Libelle(string? type) => type is null or "Boutique" ? "Vente en détail" : type;

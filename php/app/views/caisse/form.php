@@ -50,7 +50,7 @@ require __DIR__ . '/../partials/form_debut.php';
                             <option value="<?= h($t) ?>" <?= ($caisse['TypePointVente'] ?? 'Boutique') === $t ? 'selected' : '' ?>><?= h(caisse_type_libelle($t)) ?></option>
                         <?php endforeach; ?>
                     </select>
-                    <div class="form-text">Restaurant / Bar : plan de salle, commandes sur les tables, bons cuisine / bar.</div>
+                    <div class="form-text">Restaurant / Bar : plan de salle, commandes sur les tables, bons cuisine / bar. Laverie : vente au comptoir de prestations.</div>
                 </div>
                 <div class="col-md-8">
                     <label class="form-label" for="DepotId<?= $sfxPv ?>">Dépôt de stock</label>

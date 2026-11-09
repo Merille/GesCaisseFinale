@@ -25,8 +25,8 @@
                         <td class="fw-semibold">@item.ChkCode</td>
                         <td>@item.ChkDescription</td>
                         <td>
-                            <span class="badge @(type == "Boutique" ? "bg-secondary" : type == "Bar" ? "bg-info text-dark" : "bg-warning text-dark")">
-                                <i class="fas @(type == "Boutique" ? "fa-store" : type == "Bar" ? "fa-martini-glass" : "fa-utensils")"></i> @EasytransitCaisse.Controllers.CaisseController.Libelle(type)
+                            <span class="badge @EasytransitCaisse.Controllers.CaisseController.Badge(type)">
+                                <i class="fas @EasytransitCaisse.Controllers.CaisseController.Icone(type)"></i> @EasytransitCaisse.Controllers.CaisseController.Libelle(type)
                             </span>
                         </td>
                         <td>@item.StCode</td>
@@ -43,7 +43,7 @@
                         <td>@item.CompteComptable</td>
                         <td class="text-center table-actions">
                             <a href="/Caisse/Details/@item.ID" class="btn btn-primary btn-sm">Journées</a>
-                            @if (type != "Boutique" && admin && modulePointVente)
+                            @if ((type is "Restaurant" or "Bar") && admin && modulePointVente)
                             {
                                 <a href="/Salle/Index?caisse=@item.ID" class="btn btn-info btn-sm"><i class="fas fa-chair"></i> Plan de salle</a>
                             }

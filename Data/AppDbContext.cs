@@ -133,6 +133,7 @@ namespace EasytransitCaisse.Data
             modelBuilder.Entity<Livreur>()
                 .HasQueryFilter(e => _currentTenantId == 0 || e.TenantId == _currentTenantId);
             modelBuilder.Entity<Livreur>().Property(l => l.MoyenLivraison).HasDefaultValue("Moto");
+            modelBuilder.Entity<Client>().Property(c => c.Genre).HasMaxLength(20).HasDefaultValue("Entreprise");
             modelBuilder.Entity<CommandeAttente>().ToTable("CommandesAttente")
                 .HasQueryFilter(e => _currentTenantId == 0 || e.TenantId == _currentTenantId);
             modelBuilder.Entity<CommandeAttente>()

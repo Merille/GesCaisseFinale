@@ -1,4 +1,4 @@
-
+﻿
 @model List<EasytransitCaisse.Models.Client>
 @{
     ViewData["Title"] = "Tiers";
@@ -14,11 +14,11 @@
         <a href="/Client/Create" class="btn btn-primary" data-modale="modal-xl"><i class="fas fa-plus"></i> Nouveau tiers</a>
     </div>
 </div>
-<p class="small text-muted">Import : la première ligne du fichier est un en-tête ; colonnes dans l'ordre Code, Société, Contact, Téléphone, EmailContact, Adresse, Email, Type, FonctionContact, TelephoneContact, CompteGeneral (le plus simple est de partir d'un export).</p>
+<p class="small text-muted">Import : la première ligne du fichier est un en-tête ; colonnes dans l'ordre Code, Société, Contact, Téléphone, EmailContact, Adresse, Email, Type, FonctionContact, TelephoneContact, CompteGeneral, Genre (Entreprise ou Particulier ; vide = Entreprise). Le plus simple est de partir d'un export.</p>
 <div class="card shadow-sm border-0">
     <div class="card-body table-responsive">
         <table id="clientsTable" class="table table-hover align-middle mb-0">
-            <thead class="table-dark"><tr><th>Code</th><th>Société</th><th>Adresse</th><th>Contact</th><th>Fonction</th><th>Téléphone</th><th class="text-center">Type</th><th class="text-center">Actions</th></tr></thead>
+            <thead class="table-dark"><tr><th>Code</th><th>Nom</th><th>Genre</th><th>Adresse</th><th>Contact</th><th>Fonction</th><th>Téléphone</th><th class="text-center">Type</th><th class="text-center">Actions</th></tr></thead>
             <tbody>
                 @foreach (var c in Model)
                 {
@@ -26,6 +26,7 @@
                     <tr>
                         <td>@c.CodeClient</td>
                         <td class="fw-semibold">@c.NomSociete</td>
+                        <td class="text-nowrap"><i class="fas @(c.Genre == "Particulier" ? "fa-user" : "fa-building") text-muted me-1"></i>@c.Genre</td>
                         <td>@c.Adresse</td>
                         <td>@c.NomContact</td>
                         <td>@c.FonctionContact</td>

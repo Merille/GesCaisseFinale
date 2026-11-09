@@ -16,6 +16,13 @@ namespace EasytransitCaisse.Models
         public string? Email { get; set; }
         public string? Type { get; set; }
 
+        // Genre du tiers : Entreprise (personne morale) ou Particulier (personne physique).
+        public string Genre { get; set; } = "Entreprise";
+
+        public static readonly string[] Genres = { "Entreprise", "Particulier" };
+
+        public static string GenreValide(string? genre) => genre == "Particulier" ? "Particulier" : "Entreprise";
+
         // Compte général comptable de ce tiers (ex: 411000), utilisé comme
         // contrepartie lors de l'export des écritures vers Sage quand le
         // motif de l'opération n'en précise pas.

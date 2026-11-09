@@ -197,6 +197,13 @@ namespace EasytransitCaisse.Migrations
                     b.Property<string>("FonctionContact")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("Genre")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasDefaultValue("Entreprise");
+
                     b.Property<string>("NomContact")
                         .HasColumnType("nvarchar(max)");
 

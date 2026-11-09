@@ -15,14 +15,14 @@
                     <td class="fw-semibold"><?= h($c['ChkCode']) ?></td>
                     <td><?= h($c['ChkDescription']) ?></td>
                     <td><?php $type = $c['TypePointVente'] ?? 'Boutique'; ?>
-                        <span class="badge <?= $type === 'Boutique' ? 'bg-secondary' : ($type === 'Bar' ? 'bg-info text-dark' : 'bg-warning text-dark') ?>">
-                            <i class="fa <?= $type === 'Boutique' ? 'fa-store' : ($type === 'Bar' ? 'fa-martini-glass' : 'fa-utensils') ?>"></i> <?= h(caisse_type_libelle($type)) ?></span></td>
+                        <span class="badge <?= CAISSE_TYPE_BADGES[$type] ?? 'bg-secondary' ?>">
+                            <i class="fa <?= CAISSE_TYPE_ICONES[$type] ?? 'fa-store' ?>"></i> <?= h(caisse_type_libelle($type)) ?></span></td>
                     <td><?= h($c['StCode']) ?></td>
                     <td><?= $c['Caissier'] ? h($c['Caissier']) : '<span class="text-muted">—</span>' ?></td>
                     <td><?= h($c['CompteComptable']) ?></td>
                     <td class="text-center table-actions">
                         <a href="<?= h(url('caisse/details', ['id' => $c['ID']])) ?>" class="btn btn-primary btn-sm">Journées</a>
-                        <?php if (($c['TypePointVente'] ?? 'Boutique') !== 'Boutique' && is_admin() && module_pos_actif()): ?>
+                        <?php if (in_array($type, ['Restaurant', 'Bar'], true) && is_admin() && module_pos_actif()): ?>
                             <a href="<?= h(url('salle/index', ['caisse' => $c['ID']])) ?>" class="btn btn-info btn-sm"><i class="fa fa-chair"></i> Plan de salle</a>
                         <?php endif; ?>
                         <a href="<?= h(url('caisse/edit', ['id' => $c['ID']])) ?>" class="btn btn-warning btn-sm"

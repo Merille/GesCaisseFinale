@@ -1,0 +1,63 @@
+@model EasytransitCaisse.Models.ViewModels.ReleveTiersVM
+@using EasytransitCaisse.Data
+@{
+    Layout = "_ImpressionLayout";
+    ViewData["Pdf"] = false;
+    ViewData["TitreImpression"] = "Relevé " + Model.Tiers.CodeClient;
+    var f = Model.Filtres;
+    var t = Model.Tiers;
+}
+<h1>Relevé du tiers — @t.NomSociete</h1>
+<p class="muted">
+    @t.CodeClient · @t.Genre@(string.IsNullOrEmpty(t.Type) ? "" : " · " + t.Type)
+    @(string.IsNullOrEmpty(t.Adresse) ? "" : " · " + t.Adresse)@(string.IsNullOrEmpty(t.Telephone) ? "" : " · " + t.Telephone)
+    <br>Période : du @f.Du.ToString("dd/MM/yyyy") au @f.Au.ToString("dd/MM/yyyy")
+</p>
+<table>
+    <tr><th class="r">Ventes nettes</th><th class="r">Encaissements</th><th class="r">Décaissements</th><th class="r">Solde</th></tr>
+    <tr><td class="r">@Model.VentesNettes.ToString("N0")</td><td class="r">@Model.Encaissements.ToString("N0")</td><td class="r">@Model.Decaissements.ToString("N0")</td><td class="r">@((Model.Encaissements - Model.Decaissements).ToString("N0"))</td></tr>
+</table>
+
+<h2>Opérations de caisse</h2>
+<table>
+    <tr><th>Date</th><th>Journée</th><th>Type</th><th>Libellé</th><th>Mode de paiement</th><th>Statut</th><th class="r">Encaissement</th><th class="r">Décaissement</th></tr>
+    @if (!Model.Operations.Any())
+    {
+        <tr><td colspan="8" class="muted">Aucune opération sur la période.</td></tr>
+    }
+    @foreach (var o in Model.Operations)
+    {
+        var rejete = o.StatutValidation == OperationCaisseQueries.StatutRejete;
+        <tr>
+            <td>@o.DateOperation.ToString("dd/MM/yyyy HH:mm")</td>
+            <td>@o.JourneeCaisse?.NumeroJournee</td>
+            <td>@o.TypeOperation</td>
+            <td>@o.Libelle</td>
+            <td>@(o.ModePaiement?.Libelle ?? "-")</td>
+            <td>@o.StatutValidation</td>
+            <td class="r">@if (o.TypeOperation == "Encaissement") { if (rejete) { <s>@o.Montant.ToString("N0")</s> } else { @o.Montant.ToString("N0") } }</td>
+            <td class="r">@if (o.TypeOperation == "Décaissement") { if (rejete) { <s>@o.Montant.ToString("N0")</s> } else { @o.Montant.ToString("N0") } }</td>
+        </tr>
+    }
+    <tr class="total"><td colspan="6">Total (hors opérations rejetées)</td><td class="r">@Model.Encaissements.ToString("N0")</td><td class="r">@Model.Decaissements.ToString("N0")</td></tr>
+</table>
+
+<h2>Ventes au point de vente</h2>
+<table>
+    <tr><th>Date</th><th>Ticket</th><th>Statut</th><th class="r">Total</th></tr>
+    @if (!Model.Ventes.Any())
+    {
+        <tr><td colspan="4" class="muted">Aucune vente sur la période.</td></tr>
+    }
+    @foreach (var v in Model.Ventes)
+    {
+        <tr>
+            <td>@v.DateCommande.ToString("dd/MM/yyyy HH:mm")</td>
+            <td>@v.Numero</td>
+            <td>@v.Statut</td>
+            <td class="r">@if (v.Statut == "Annulée") { <s>@v.TotalTTC.ToString("N0")</s> } else { @v.TotalTTC.ToString("N0") }</td>
+        </tr>
+    }
+    <tr class="total"><td colspan="3">Ventes nettes (retours déduits, ventes annulées exclues)</td><td class="r">@Model.VentesNettes.ToString("N0")</td></tr>
+</table>
+<p class="muted">Les ventes payées apparaissent aussi dans les opérations de caisse (encaissements « Vente POS »).</p>

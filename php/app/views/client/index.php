@@ -1,5 +1,5 @@
 <?php $titre = 'Tiers';
-$champsModale = ['CodeClient', 'NomSociete', 'Type', 'Adresse', 'Telephone', 'Email', 'CompteGeneral', 'NomContact', 'FonctionContact', 'TelephoneContact', 'EmailContact']; ?>
+$champsModale = ['CodeClient', 'NomSociete', 'Genre', 'Type', 'Adresse', 'Telephone', 'Email', 'CompteGeneral', 'NomContact', 'FonctionContact', 'TelephoneContact', 'EmailContact']; ?>
 <div class="d-flex flex-wrap justify-content-end align-items-end gap-2 mb-3">
     <div class="d-flex gap-2">
         <form method="post" action="<?= h(url('client/import')) ?>" enctype="multipart/form-data">
@@ -11,17 +11,18 @@ $champsModale = ['CodeClient', 'NomSociete', 'Type', 'Adresse', 'Telephone', 'Em
         <a href="<?= h(url('client/create')) ?>" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalCreation"><i class="fa fa-plus"></i> Nouveau tiers</a>
     </div>
 </div>
-<p class="small text-muted">Import : la première ligne du fichier est un en-tête ; colonnes dans l'ordre Code, Société, Contact, Téléphone, EmailContact, Adresse, Email, Type, FonctionContact, TelephoneContact, CompteGeneral (le plus simple est de partir d'un export).</p>
+<p class="small text-muted">Import : la première ligne du fichier est un en-tête ; colonnes dans l'ordre Code, Société, Contact, Téléphone, EmailContact, Adresse, Email, Type, FonctionContact, TelephoneContact, CompteGeneral, Genre (Entreprise ou Particulier ; vide = Entreprise). Le plus simple est de partir d'un export.</p>
 <div class="card shadow-sm border-0">
     <div class="card-body table-responsive">
         <table id="clientsTable" class="table table-hover align-middle mb-0">
-            <thead class="table-dark"><tr><th>Code</th><th>Société</th><th>Adresse</th><th>Contact</th><th>Fonction</th><th>Téléphone</th><th class="text-center">Type</th><th class="text-center">Actions</th></tr></thead>
+            <thead class="table-dark"><tr><th>Code</th><th>Nom</th><th>Genre</th><th>Adresse</th><th>Contact</th><th>Fonction</th><th>Téléphone</th><th class="text-center">Type</th><th class="text-center">Actions</th></tr></thead>
             <tbody>
             <?php foreach ($clients as $c):
                 $badge = ['Client' => 'bg-primary', 'Fournisseur' => 'bg-orange', 'Salarié' => 'bg-success', 'Autre' => 'bg-danger'][$c['Type']] ?? 'bg-secondary'; ?>
                 <tr>
                     <td><?= h($c['CodeClient']) ?></td>
                     <td class="fw-semibold"><?= h($c['NomSociete']) ?></td>
+                    <td class="text-nowrap"><i class="fa <?= $c['Genre'] === 'Particulier' ? 'fa-user' : 'fa-building' ?> text-muted me-1"></i><?= h($c['Genre']) ?></td>
                     <td><?= h($c['Adresse']) ?></td>
                     <td><?= h($c['NomContact']) ?></td>
                     <td><?= h($c['FonctionContact']) ?></td>

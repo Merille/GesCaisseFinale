@@ -1,0 +1,33 @@
+@model EasytransitCaisse.Models.ViewModels.RapportTiersVM
+@{
+    Layout = "_ImpressionLayout";
+    ViewData["Pdf"] = false;
+    ViewData["TitreImpression"] = "Rapport des tiers";
+    var f = Model.Filtres;
+}
+<h1>Rapport des tiers</h1>
+<p class="muted">
+    Période : du @f.Du.ToString("dd/MM/yyyy") au @f.Au.ToString("dd/MM/yyyy")
+    — Type : @(f.Type != "" ? f.Type : "tous")
+    — Genre : @(f.Genre != "" ? f.Genre : "tous")
+</p>
+<table>
+    <tr><th>Code</th><th>Tiers</th><th>Genre</th><th>Type</th><th class="r">Ventes</th><th class="r">Ventes nettes</th><th class="r">Encaissements</th><th class="r">Décaissements</th><th class="r">Solde</th></tr>
+    @foreach (var l in Model.Lignes)
+    {
+        <tr>
+            <td>@l.Code</td>
+            <td>@l.Nom</td>
+            <td>@l.Genre</td>
+            <td>@l.Type</td>
+            <td class="r">@l.NbVentes</td>
+            <td class="r">@l.Ventes.ToString("N0")</td>
+            <td class="r">@l.Encaissements.ToString("N0")</td>
+            <td class="r">@l.Decaissements.ToString("N0")</td>
+            <td class="r">@l.Solde.ToString("N0")</td>
+        </tr>
+    }
+    <tr class="total"><td colspan="4">Total (@Model.Lignes.Count tiers)</td><td class="r">@Model.NbVentes</td><td class="r">@Model.Ventes.ToString("N0")</td>
+        <td class="r">@Model.Encaissements.ToString("N0")</td><td class="r">@Model.Decaissements.ToString("N0")</td><td class="r">@Model.Solde.ToString("N0")</td></tr>
+</table>
+<p class="muted">Ventes : tickets du point de vente (retours déduits). Les ventes payées apparaissent aussi dans les encaissements. Les opérations rejetées et les ventes annulées ne sont pas comptées.</p>

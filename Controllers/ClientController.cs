@@ -50,6 +50,7 @@ namespace EasytransitCaisse.Controllers
             cible.Telephone = source.Telephone ?? "";
             cible.Email = source.Email ?? "";
             cible.Type = source.Type ?? "";
+            cible.Genre = Client.GenreValide(source.Genre);
             cible.CompteGeneral = source.CompteGeneral ?? "";
             cible.NomContact = source.NomContact ?? "";
             cible.FonctionContact = source.FonctionContact ?? "";
@@ -177,6 +178,7 @@ namespace EasytransitCaisse.Controllers
             sheet.Cell(1, 9).Value = "FonctionContact";
             sheet.Cell(1, 10).Value = "TelephoneContact";
             sheet.Cell(1, 11).Value = "CompteGeneral";
+            sheet.Cell(1, 12).Value = "Genre";
 
             // Style en-têtes
             var headerRow = sheet.Range("A1:D1");
@@ -199,6 +201,7 @@ namespace EasytransitCaisse.Controllers
                 sheet.Cell(i + 2, 9).Value = c.FonctionContact;
                 sheet.Cell(i + 2, 10).Value = c.TelephoneContact;
                 sheet.Cell(i + 2, 11).Value = c.CompteGeneral;
+                sheet.Cell(i + 2, 12).Value = c.Genre;
             }
 
             // Ajuster largeur des colonnes automatiquement
@@ -263,6 +266,8 @@ namespace EasytransitCaisse.Controllers
                         FonctionContact = row.Cell(9).GetString() ?? "",
                         TelephoneContact = row.Cell(10).GetString() ?? "",
                         CompteGeneral = row.Cell(11).GetString() ?? "",
+                        // Colonne Genre absente (fichier d'une version précédente) : Entreprise.
+                        Genre = Client.GenreValide(row.Cell(12).GetString().Trim()),
                     };
 
                     // Validation basique

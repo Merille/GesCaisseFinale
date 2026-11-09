@@ -75,6 +75,7 @@ function pos_index(): void
         'journee' => [
             'id' => (int) $journee['Id'],
             'caisse' => $journee['ChkCode'],
+            'type' => $journee['TypePointVente'] ?: 'Boutique',
             'libelle' => $journee['ChkDescription'] . ' · Journée du ' . date_fr($journee['DateJournee']) . ' (ouverte)',
         ],
         'produits' => $produits,

@@ -129,6 +129,7 @@ namespace EasytransitCaisse.Controllers
                 {
                     id = j.Id,
                     caisse = j.Caisse?.ChkCode ?? "",
+                    type = j.Caisse?.TypePointVente ?? "Boutique",
                     libelle = $"{j.Caisse?.ChkDescription} · Journée du {j.DateJournee:dd/MM/yyyy} (ouverte)"
                 },
                 produits,

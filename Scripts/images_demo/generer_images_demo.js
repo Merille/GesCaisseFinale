@@ -1,7 +1,7 @@
 // Illustrations des articles de démonstration (JPEG 600 × 300, sans droits d'auteur) : pictogramme
 // Font Awesome sur la couleur de la catégorie de l'article. Le pictogramme reste au centre : il est
 // entier sur les tuiles larges de l'écran de vente comme dans un recadrage carré.
-// Usage : node Scripts/images_demo/generer_images_demo.js
+// Usage : node Scripts/images_demo/generer_images_demo.js [préfixes des codes, ex. LAV PRE]
 // Prérequis : npm install playwright @fortawesome/fontawesome-free (NODE_PATH vers ces modules).
 // Les images obtenues (Scripts/images_demo/<CODE>.jpg) sont reprises dans les scripts et la base de démonstration.
 const fs = require('fs');
@@ -22,7 +22,14 @@ const ARTICLES = [
     ['PAP01', '#be185d', 'file-lines'], ['PAP02', '#be185d', 'pen'], ['PAP03', '#be185d', 'book'],
     ['ELE01', '#334155', 'battery-full'], ['ELE02', '#334155', 'plug'], ['ELE03', '#334155', 'headphones'],
     ['SNA01', '#9333ea', 'cookie'], ['SNA02', '#9333ea', 'bag-shopping'], ['SNA03', '#9333ea', 'candy-cane'],
-    ['SER01', '#64748b', 'copy'], ['SER02', '#64748b', 'print'], ['SER03', '#64748b', 'keyboard']
+    ['SER01', '#64748b', 'copy'], ['SER02', '#64748b', 'print'], ['SER03', '#64748b', 'keyboard'],
+    // Société de démonstration « Laverie » (script demo_laverie)
+    ['LAV01', '#0369a1', 'shirt'], ['LAV02', '#0369a1', 'person'], ['LAV03', '#0369a1', 'person-dress'], ['LAV04', '#0369a1', 'vest'],
+    ['PRE01', '#7c3aed', 'user-tie'], ['PRE02', '#7c3aed', 'vest-patches'], ['PRE03', '#7c3aed', 'gem'], ['PRE04', '#7c3aed', 'ring'],
+    ['LIN01', '#0f766e', 'bed'], ['LIN02', '#0f766e', 'cloud'], ['LIN03', '#0f766e', 'person-booth'], ['LIN04', '#0f766e', 'rug'],
+    ['KIL01', '#2563eb', 'weight-scale'], ['KIL02', '#2563eb', 'layer-group'], ['KIL03', '#2563eb', 'droplet'], ['KIL04', '#2563eb', 'wind'],
+    ['OPT01', '#c2410c', 'bolt'], ['OPT02', '#c2410c', 'hand-sparkles'], ['OPT03', '#c2410c', 'temperature-high'], ['OPT04', '#c2410c', 'truck'],
+    ['PRO01', '#a16207', 'jug-detergent'], ['PRO02', '#a16207', 'pump-soap'], ['PRO03', '#a16207', 'spray-can-sparkles'], ['PRO04', '#a16207', 'bag-shopping']
 ];
 
 (async () => {
@@ -50,9 +57,11 @@ const ARTICLES = [
     const p = await b.newPage({ viewport: { width: 1800, height: 300 } });
     await p.setContent(html, { waitUntil: 'load' });
     await p.evaluate(() => document.fonts.ready);
-    for (const [code] of ARTICLES) {
+    // Codes à générer (par défaut tous) : node generer_images_demo.js LAV01 PRE01 ...
+    const choix = process.argv.slice(2);
+    for (const [code] of ARTICLES.filter(a => !choix.length || choix.some(c => a[0].startsWith(c)))) {
         await p.locator('#' + code).screenshot({ path: path.join(__dirname, code + '.jpg'), type: 'jpeg', quality: 82 });
     }
     await b.close();
-    console.log(ARTICLES.length + ' images générées dans ' + __dirname);
+    console.log((choix.length ? 'Images ' + choix.join(', ') : ARTICLES.length + ' images') + ' générées dans ' + __dirname);
 })();

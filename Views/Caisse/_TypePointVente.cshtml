@@ -1,7 +1,7 @@
 @model EasytransitCaisse.Models.Caisse
 @inject EasytransitCaisse.Data.AppDbContext DbContext
 @inject EasytransitCaisse.Services.ITenantProvider TenantProvider
-@* Type de point de vente (Vente en détail, Restaurant, Bar) et impression des bons de préparation ;
+@* Type de point de vente (Vente en détail, Restaurant, Bar, Laverie) et impression des bons de préparation ;
    masqués (valeurs conservées) quand la société n'a pas le module Point de vente. *@
 @if (!await EasytransitCaisse.Services.ModulePointVenteFilter.ActifAsync(DbContext, Model.TenantId != 0 ? Model.TenantId : TenantProvider.TenantId))
 {
@@ -18,7 +18,7 @@
             <option value="@t" selected="@(Model.TypePointVente == t)">@EasytransitCaisse.Controllers.CaisseController.Libelle(t)</option>
         }
     </select>
-    <div class="form-text">Restaurant / Bar : plan de salle, commandes sur les tables, bons cuisine / bar.</div>
+    <div class="form-text">Restaurant / Bar : plan de salle, commandes sur les tables, bons cuisine / bar. Laverie : vente au comptoir de prestations.</div>
 </div>
 @{
     // Dépôts actifs de la société ; une nouvelle caisse vend par défaut depuis le dépôt par défaut.

@@ -35,7 +35,7 @@
     var rubrique = controller switch
     {
         "Dashboard" or "Caisse" or "JourneeCaisse" or "Client" => "Activité",
-        "Rapport" => "Analyse",
+        "Rapport" or "RapportTiers" => "Analyse",
         "Pos" or "Vente" or "Stock" or "PosRapport" or "Cuisine" => "Point de vente",
         "Salle" => "Activité",
         "Produit" or "Categorie" or "Combo" => "Configuration",
@@ -63,6 +63,7 @@
             "Tenant" => "Sociétés",
             "Caisse" => "Caisses",
             "Rapport" => "Rapports",
+            "RapportTiers" => "Rapport des tiers",
             "Pos" => "Vendre",
             "Vente" => "Ventes",
             "Produit" => "Produits",
@@ -192,6 +193,10 @@
                 <a class="sb-link @(controller == "Rapport" ? "active" : "")" href="/Rapport/Operations" title="Rapports">
                     <i class="fas fa-chart-column"></i>
                     <span class="sb-label">Rapports</span>
+                </a>
+                <a class="sb-link @(controller == "RapportTiers" ? "active" : "")" href="/RapportTiers/Index" title="Rapport des tiers">
+                    <i class="fas fa-users-viewfinder"></i>
+                    <span class="sb-label">Rapport des tiers</span>
                 </a>
             </div>
 

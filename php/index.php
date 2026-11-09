@@ -19,6 +19,7 @@ $routes = [
     'utilisateur' => ['index', 'create', 'edit', 'delete'],
     'tenant'      => ['index', 'create', 'edit', 'prolonger', 'consulter'],
     'rapport'     => ['operations', 'preview', 'sage'],
+    'rapporttiers' => ['index', 'imprimer', 'excel', 'releve'],
     'facture'     => ['index', 'create', 'edit', 'ligne', 'supprimerligne', 'valider', 'print'],
     'pos'         => ['index', 'vendre', 'ticket', 'plan', 'commande', 'enregistrer', 'envoyer', 'transferer', 'addition', 'bon',
                       'attentes', 'mettreenattente', 'reprendre', 'supprimerattente', 'livree'],

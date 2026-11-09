@@ -5,14 +5,23 @@ require_once __DIR__ . '/../xlsx.php';
 
 const CLIENT_CHAMPS = [
     'CodeClient', 'NomSociete', 'Adresse', 'Telephone', 'Email', 'Type', 'CompteGeneral',
-    'NomContact', 'FonctionContact', 'TelephoneContact', 'EmailContact',
+    'NomContact', 'FonctionContact', 'TelephoneContact', 'EmailContact', 'Genre',
 ];
+
+// Genre du tiers : Entreprise (personne morale) ou Particulier (personne physique).
+const CLIENT_GENRES = ['Entreprise', 'Particulier'];
+
+function client_genre(mixed $genre): string
+{
+    return trim((string) $genre) === 'Particulier' ? 'Particulier' : 'Entreprise';
+}
 
 // Ordre des colonnes du fichier Excel (export et import), identique à la version .NET.
 const CLIENT_COLONNES_EXCEL = [
     'CodeClient' => 'Code', 'NomSociete' => 'Société', 'NomContact' => 'Contact', 'Telephone' => 'Téléphone',
     'EmailContact' => 'EmailContact', 'Adresse' => 'Adresse', 'Email' => 'Email', 'Type' => 'Type',
     'FonctionContact' => 'FonctionContact', 'TelephoneContact' => 'TelephoneContact', 'CompteGeneral' => 'CompteGeneral',
+    'Genre' => 'Genre',
 ];
 
 /** Condition de recherche et ses paramètres (liste, comptage et export). */
@@ -60,6 +69,7 @@ function client_valeurs(): array
     foreach (CLIENT_CHAMPS as $c) {
         $v[$c] = (string) post($c, '');
     }
+    $v['Genre'] = client_genre($v['Genre']);
     return $v;
 }
 
@@ -162,6 +172,8 @@ function client_import(): void
         if (implode('', $client) === '') {
             continue;
         }
+        // Colonne Genre absente (fichier d'une version précédente) : Entreprise.
+        $client['Genre'] = client_genre($client['Genre']);
         if ($client['CodeClient'] === '' || $client['NomSociete'] === '') {
             $erreurs[] = "Ligne $n : Code ou Société manquant.";
             continue;

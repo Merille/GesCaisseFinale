@@ -944,7 +944,7 @@
         racine.innerHTML =
             '<div class="pos-top">'
             + '<span class="pos-logo">GC</span>'
-            + '<div class="pos-titre"><strong>' + (R ? (cmd ? echap(cmd.table) : 'Vente directe') : 'Point de vente') + ' · ' + echap(D.journee.caisse) + '</strong>'
+            + '<div class="pos-titre"><strong>' + (R ? (cmd ? echap(cmd.table) : 'Vente directe') : (D.journee.type === 'Laverie' ? 'Laverie' : 'Point de vente')) + ' · ' + echap(D.journee.caisse) + '</strong>'
             + '<small>' + echap(D.journee.libelle) + '</small></div>'
             + '<div class="pos-tabs">'
             + (R ? '<button type="button" class="pos-tab plan" data-action="plan" title="Plan de salle"><i class="fas fa-chair"></i> Plan</button>' : '')

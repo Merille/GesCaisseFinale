@@ -19,10 +19,19 @@ $action = !empty($modale) ? ($modification ? url('client/index') : url('client/c
 $retour = url('client/index');
 require __DIR__ . '/../partials/form_debut.php';
 ?>
-            <h6 class="text-muted text-uppercase small mb-3">Société</h6>
+            <h6 class="text-muted text-uppercase small mb-3">Identité</h6>
             <div class="row g-3 mb-4">
+                <div class="col-12">
+                    <span class="form-label d-block">Genre</span>
+                    <?php foreach (['Entreprise' => 'Entreprise (société, association…)', 'Particulier' => 'Particulier (personne physique)'] as $g => $libelleGenre): ?>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="Genre" id="Genre<?= $g . $sfx ?>" value="<?= $g ?>" <?= ($client['Genre'] ?? 'Entreprise') === $g ? 'checked' : '' ?>>
+                            <label class="form-check-label" for="Genre<?= $g . $sfx ?>"><?= $libelleGenre ?></label>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
                 <div class="col-md-3"><?= $champ('CodeClient', 'Code', 'required') ?></div>
-                <div class="col-md-5"><?= $champ('NomSociete', 'Nom de la société', 'required') ?></div>
+                <div class="col-md-5"><?= $champ('NomSociete', 'Nom (société ou particulier)', 'required') ?></div>
                 <div class="col-md-4">
                     <label class="form-label" for="Type<?= $sfx ?>">Type</label>
                     <select class="form-select" id="Type<?= $sfx ?>" name="Type">

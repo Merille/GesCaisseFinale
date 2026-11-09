@@ -3,7 +3,12 @@
 
 // Boutique (affiché « Vente en détail ») : vente au comptoir. Restaurant / Bar : plan de salle,
 // commandes sur les tables, bons de préparation envoyés en cuisine ou au bar.
-const CAISSE_TYPES = ['Boutique', 'Restaurant', 'Bar'];
+// Laverie : vente au comptoir comme la vente en détail (prestations sans suivi de stock).
+const CAISSE_TYPES = ['Boutique', 'Restaurant', 'Bar', 'Laverie'];
+
+/** Badge et icône du type dans la liste des caisses. */
+const CAISSE_TYPE_BADGES = ['Bar' => 'bg-info text-dark', 'Restaurant' => 'bg-warning text-dark', 'Laverie' => 'bg-primary'];
+const CAISSE_TYPE_ICONES = ['Bar' => 'fa-martini-glass', 'Restaurant' => 'fa-utensils', 'Laverie' => 'fa-shirt'];
 
 /** Libellé affiché du type de point de vente. */
 function caisse_type_libelle(?string $type): string

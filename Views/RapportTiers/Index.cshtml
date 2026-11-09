@@ -1,0 +1,118 @@
+@model EasytransitCaisse.Models.ViewModels.RapportTiersVM
+@{
+    ViewData["Title"] = "Rapport des tiers";
+    var f = Model.Filtres;
+    var requete = f.Requete();
+    var cartes = new (string Libelle, decimal Valeur, string Icone, bool Montant)[]
+    {
+        ("Tiers", Model.Lignes.Count, "fa-address-book", false), ("Ventes nettes", Model.Ventes, "fa-cart-shopping", true),
+        ("Encaissements", Model.Encaissements, "fa-arrow-down", true), ("Décaissements", Model.Decaissements, "fa-arrow-up", true),
+        ("Solde", Model.Solde, "fa-scale-balanced", true)
+    };
+}
+<form method="get" action="/RapportTiers/Index" class="card shadow-sm border-0 mb-3">
+    <div class="card-body d-flex flex-wrap align-items-end gap-3">
+        <div><label class="form-label small fw-semibold text-muted mb-1" for="du">Du</label><input type="date" class="form-control" id="du" name="du" value="@f.Du.ToString("yyyy-MM-dd")"></div>
+        <div><label class="form-label small fw-semibold text-muted mb-1" for="au">Au</label><input type="date" class="form-control" id="au" name="au" value="@f.Au.ToString("yyyy-MM-dd")"></div>
+        <div>
+            <label class="form-label small fw-semibold text-muted mb-1" for="type">Type</label>
+            <select class="form-select" id="type" name="type">
+                <option value="">Tous</option>
+                @foreach (var t in EasytransitCaisse.Models.ViewModels.FiltresRapportTiers.Types)
+                {
+                    <option selected="@(f.Type == t)">@t</option>
+                }
+            </select>
+        </div>
+        <div>
+            <label class="form-label small fw-semibold text-muted mb-1" for="genre">Genre</label>
+            <select class="form-select" id="genre" name="genre">
+                <option value="">Tous</option>
+                @foreach (var g in EasytransitCaisse.Models.Client.Genres)
+                {
+                    <option selected="@(f.Genre == g)">@g</option>
+                }
+            </select>
+        </div>
+        <div class="form-check mb-2">
+            <input class="form-check-input" type="checkbox" value="1" id="tous" name="tous" checked="@f.Tous">
+            <label class="form-check-label" for="tous">Inclure les tiers sans mouvement</label>
+        </div>
+        <button class="btn btn-primary"><i class="fas fa-search"></i> Filtrer</button>
+        <div class="ms-auto d-flex flex-wrap gap-2">
+            <a class="btn btn-outline-primary" href="/RapportTiers/Imprimer?@requete" target="_blank"><i class="fas fa-print"></i> Imprimer / PDF</a>
+            <a class="btn btn-success" href="/RapportTiers/Excel?@requete"><i class="fas fa-file-excel"></i> Exporter Excel</a>
+        </div>
+    </div>
+</form>
+
+<div class="row g-3 mb-3">
+    @foreach (var c in cartes)
+    {
+        <div class="col-6 col-lg"><div class="card border-0 shadow-sm h-100"><div class="card-body">
+            <div class="small text-muted"><i class="fas @c.Icone"></i> @c.Libelle</div>
+            <div class="fs-5 fw-bold">@if (c.Montant)
+                {
+                    @c.Valeur.ToString("N0") <small class="fs-6 fw-normal text-muted">FCFA</small>
+                }
+                else
+                {
+                    @c.Valeur.ToString("0")
+                }</div>
+        </div></div></div>
+    }
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-body table-responsive">
+        <table id="tiersRapportTable" class="table table-hover align-middle mb-0 small">
+            <thead class="table-dark"><tr><th>Code</th><th>Tiers</th><th>Genre</th><th>Type</th><th class="text-end">Ventes</th><th class="text-end">Ventes nettes</th>
+                <th class="text-end">Encaissements</th><th class="text-end">Décaissements</th><th class="text-end">Solde</th><th>Dernier mouvement</th><th class="text-center"></th></tr></thead>
+            <tbody>
+                @foreach (var l in Model.Lignes)
+                {
+                    <tr>
+                        <td>@l.Code</td>
+                        <td class="fw-semibold">@l.Nom</td>
+                        <td class="text-nowrap"><i class="fas @(l.Genre == "Particulier" ? "fa-user" : "fa-building") text-muted me-1"></i>@l.Genre</td>
+                        <td>@l.Type</td>
+                        <td class="text-end">@l.NbVentes</td>
+                        <td class="text-end text-nowrap" data-order="@l.Ventes.ToString(System.Globalization.CultureInfo.InvariantCulture)">@l.Ventes.ToString("N0")</td>
+                        <td class="text-end text-nowrap text-success" data-order="@l.Encaissements.ToString(System.Globalization.CultureInfo.InvariantCulture)">@l.Encaissements.ToString("N0")</td>
+                        <td class="text-end text-nowrap text-danger" data-order="@l.Decaissements.ToString(System.Globalization.CultureInfo.InvariantCulture)">@l.Decaissements.ToString("N0")</td>
+                        <td class="text-end text-nowrap fw-semibold" data-order="@l.Solde.ToString(System.Globalization.CultureInfo.InvariantCulture)">@l.Solde.ToString("N0")</td>
+                        <td class="text-nowrap" data-order="@(l.Dernier?.ToString("yyyy-MM-dd HH:mm:ss") ?? "")">@if (l.Dernier.HasValue)
+                            {
+                                <span title="@l.Dernier.Value.ToString("dd/MM/yyyy HH:mm")">@l.Dernier.Value.ToString("dd/MM/yyyy")</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">—</span>
+                            }</td>
+                        <td class="text-center text-nowrap"><a class="btn btn-outline-primary btn-sm" href="/RapportTiers/Releve?@f.Requete(l.Id)" target="_blank" title="Relevé du tiers" aria-label="Relevé du tiers"><i class="fas fa-file-lines"></i></a></td>
+                    </tr>
+                }
+            </tbody>
+            <tfoot>
+                <tr class="table-light fw-bold"><td colspan="4">Total (@Model.Lignes.Count tiers)</td><td class="text-end text-nowrap">@Model.NbVentes</td>
+                    <td class="text-end text-nowrap">@Model.Ventes.ToString("N0")</td><td class="text-end text-nowrap">@Model.Encaissements.ToString("N0")</td>
+                    <td class="text-end text-nowrap">@Model.Decaissements.ToString("N0")</td><td class="text-end text-nowrap">@Model.Solde.ToString("N0")</td><td colspan="2"></td></tr>
+            </tfoot>
+        </table>
+        <p class="small text-muted mt-2 mb-0">Ventes : tickets du point de vente (retours déduits). Les ventes payées apparaissent aussi dans les encaissements.
+            Les opérations rejetées et les ventes annulées ne sont pas comptées.</p>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $('#tiersRapportTable').DataTable({
+            language: { url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/fr-FR.json' },
+            pageLength: 20,
+            lengthMenu: [20, 50, 100],
+            order: [[1, 'asc']],
+            columnDefs: [{ orderable: false, targets: -1 }],
+            dom: '<"d-flex justify-content-between align-items-center mb-3"lf>rtip'
+        });
+    </script>
+}

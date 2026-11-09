@@ -1,4 +1,4 @@
-@model EasytransitCaisse.Models.Client
+﻿@model EasytransitCaisse.Models.Client
 @* Formulaire d'un tiers (création, aussi en fenêtre modale, et modification), comme la version PHP. *@
 @{
     var edition = Model.Id > 0;
@@ -9,10 +9,20 @@
     <div class="card-body">
         <form method="post" action="@(edition ? "/Client/Edit/" + Model.Id : "/Client/Create")">
             @Html.AntiForgeryToken()
-            <h6 class="text-muted text-uppercase small mb-3">Société</h6>
+            <h6 class="text-muted text-uppercase small mb-3">Identité</h6>
             <div class="row g-3 mb-4">
+                <div class="col-12">
+                    <span class="form-label d-block">Genre</span>
+                    @foreach (var g in EasytransitCaisse.Models.Client.Genres)
+                    {
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="Genre" id="Genre@(g)" value="@g" checked="@((Model.Genre ?? "Entreprise") == g)" />
+                            <label class="form-check-label" for="Genre@(g)">@(g == "Entreprise" ? "Entreprise (société, association…)" : "Particulier (personne physique)")</label>
+                        </div>
+                    }
+                </div>
                 <div class="col-md-3"><label class="form-label" for="CodeClient">Code</label><input class="form-control" id="CodeClient" name="CodeClient" value="@Model.CodeClient" required /></div>
-                <div class="col-md-5"><label class="form-label" for="NomSociete">Nom de la société</label><input class="form-control" id="NomSociete" name="NomSociete" value="@Model.NomSociete" required /></div>
+                <div class="col-md-5"><label class="form-label" for="NomSociete">Nom (société ou particulier)</label><input class="form-control" id="NomSociete" name="NomSociete" value="@Model.NomSociete" required /></div>
                 <div class="col-md-4">
                     <label class="form-label" for="Type">Type</label>
                     <select class="form-select" id="Type" name="Type">

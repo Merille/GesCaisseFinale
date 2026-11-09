@@ -98,7 +98,7 @@ const fiche = [
         ['Application', 'GesCaisse — gestion de caisse et point de vente (POS)'],
         ['Éditeur', 'M-ITECH AFRICA'],
         ['Public', 'Administrateurs, caissiers, vendeurs et serveurs des sociétés clientes'],
-        ['Version du document', '1.4'],
+        ['Version du document', '1.5'],
         ['Date', 'Novembre 2026']
     ], [3000, 6638])
 ];
@@ -204,7 +204,7 @@ const contenu = [
     pt('Code et description', 'par exemple « CASH1 · Caisse principale ».'),
     pt('Caissier par défaut', 'utilisateur habituellement affecté à la caisse.'),
     pt('Compte comptable', 'compte de trésorerie utilisé comme contrepartie dans l’export Sage (ex. 571100).'),
-    pt('Type de point de vente', '**Vente en détail** (comptoir classique), **Restaurant** ou **Bar** (plan de salle et commandes par table, voir chapitre 10).'),
+    pt('Type de point de vente', '**Vente en détail** (comptoir classique), **Restaurant** ou **Bar** (plan de salle et commandes par table, voir chapitre 10), ou **Laverie** (vente au comptoir de prestations de lavage et de pressing, voir 6.10).'),
     pt('Imprimer les bons de préparation', 'pour un restaurant ou un bar : impression automatique des bons envoyés en cuisine.'),
     pt('Dépôt de stock', 'dépôt d’où sortent les ventes de la caisse et où reviennent ses retours (voir 8 et 12.7). Une nouvelle caisse prend le dépôt par défaut.'),
     p('Les boutons de chaque ligne permettent d’ouvrir les **Journées** de la caisse, de la **Modifier** ou de la **Supprimer**. Une caisse qui a déjà des journées ne peut pas être supprimée. Le bouton **Imprimer**, en haut de la liste, édite la liste des caisses (code, description, StCode, caissier par défaut, compte comptable).'),
@@ -247,12 +247,17 @@ const contenu = [
     p('Menu **Tiers**. Les tiers sont vos clients, fournisseurs, salariés ou autres partenaires. Ils peuvent être associés aux opérations de caisse et aux ventes.'),
     ...figure('15_tiers', 'Liste des tiers'),
     h2('4.1 Créer ou modifier un tiers'),
-    p('Cliquez sur **Nouveau tiers** (ou **Modifier** sur une ligne) et renseignez le code, la raison sociale, le type (Client, Fournisseur, Salarié, Autre), l’adresse, le téléphone, l’e-mail, le contact et le compte général comptable (ex. 411000 pour un client).'),
+    p('Cliquez sur **Nouveau tiers** (ou **Modifier** sur une ligne) : la fiche s’ouvre dans une fenêtre.'),
+    pt('Genre', '**Entreprise** (société, association, administration…) ou **Particulier** (personne physique). Le genre s’affiche dans la liste et sert de filtre dans le rapport des tiers (5.3).'),
+    pt('Code, nom et type', 'le nom est la raison sociale d’une entreprise ou le nom et le prénom d’un particulier ; le type vaut Client, Fournisseur, Salarié ou Autre.'),
+    pt('Coordonnées et contact', 'adresse, téléphone, e-mail, puis le contact (nom, fonction, téléphone, e-mail) pour une entreprise.'),
+    pt('Compte général (Sage)', 'compte comptable du tiers (ex. 411000 pour un client).'),
+    ...figure('15b_tiers_genre', 'Fiche d’un tiers : genre Entreprise ou Particulier'),
     h2('4.2 Rechercher'),
     p('La zone de recherche filtre la liste par code, nom, contact ou téléphone. La liste est paginée.'),
     h2('4.3 Importer et exporter'),
     pt('Exporter Excel', 'télécharge la liste complète des tiers.'),
-    pt('Importer Excel', 'ajoute ou met à jour des tiers depuis un fichier. La première ligne est un en-tête ; les colonnes sont dans l’ordre : Code, Société, Contact, Téléphone, EmailContact, Adresse, Email, Type, FonctionContact, TelephoneContact, CompteGeneral.'),
+    pt('Importer Excel', 'ajoute ou met à jour des tiers depuis un fichier. La première ligne est un en-tête ; les colonnes sont dans l’ordre : Code, Société, Contact, Téléphone, EmailContact, Adresse, Email, Type, FonctionContact, TelephoneContact, CompteGeneral, Genre (Entreprise ou Particulier ; vide = Entreprise).'),
     astuce('Le plus simple pour préparer un import est de partir d’un export : vous obtenez directement les bonnes colonnes.'),
 
     // 5 ------------------------------------------------------------------
@@ -269,6 +274,17 @@ const contenu = [
     h2('5.2 Export vers Sage'),
     p('Le bouton **Export Sage** produit le fichier d’écritures à importer dans votre logiciel comptable, au format Excel (.xlsx), CSV (.csv) ou texte (.txt). Chaque ligne comporte le code caisse, la date, le compte général, le compte tiers, le libellé, le débit, le crédit et le numéro de pièce.'),
     attention('L’export signale les anomalies, par exemple une caisse sans compte comptable ou un tiers sans compte général. Complétez ces informations avant d’importer le fichier dans Sage.'),
+    h2('5.3 Rapport des tiers'),
+    p('Menu **Rapport des tiers** (rubrique Analyse). Le rapport résume l’activité de chaque tiers sur une période : choisissez les dates, le type (Client, Fournisseur…) et le genre (Entreprise ou Particulier), puis cliquez sur **Filtrer**. Cochez **Inclure les tiers sans mouvement** pour voir aussi les tiers inactifs sur la période.'),
+    ...figure('16b_rapport_tiers', 'Rapport des tiers'),
+    p('Les cartes du haut donnent le nombre de tiers et les totaux de la période. Pour chaque tiers, le tableau indique :'),
+    pt('Ventes et Ventes nettes', 'nombre de tickets du point de vente au nom du tiers et leur montant, retours déduits ; les ventes annulées ne sont pas comptées.'),
+    pt('Encaissements et Décaissements', 'opérations de caisse au nom du tiers ; les opérations rejetées ne sont pas comptées. Une vente payée apparaît aussi dans les encaissements (« Vente POS »).'),
+    pt('Solde', 'encaissements moins décaissements : positif quand le tiers a versé de l’argent, négatif quand la société lui en a versé (un fournisseur réglé, par exemple).'),
+    pt('Dernier mouvement', 'date de la dernière vente ou opération (l’heure s’affiche au survol).'),
+    p('Les boutons **Imprimer / PDF** et **Exporter Excel** reprennent le tableau et ses totaux. Le bouton de fin de ligne ouvre le **relevé du tiers** : le détail de ses opérations de caisse (journée, mode de paiement, statut) et de ses ventes sur la période, prêt à imprimer ou à enregistrer en PDF, par exemple pour le remettre au client.'),
+    ...figure('16c_releve_tiers', 'Relevé d’un tiers'),
+    astuce('Dans le relevé, les opérations rejetées et les ventes annulées restent visibles mais barrées, et ne comptent pas dans les totaux.'),
 
     // 6 ------------------------------------------------------------------
     h1('6. Point de vente : vendre au comptoir'),
@@ -334,6 +350,14 @@ const contenu = [
     h2('6.9 Quitter le point de vente'),
     p('Le bouton **Ventes** ouvre la liste des ventes ; le bouton **Fermer** revient à l’application. La journée reste ouverte : seule la clôture (3.5) la termine.'),
     attention('Si votre société interdit la vente sans stock (voir 8.6), un article épuisé dans le dépôt de la caisse est refusé. Sinon, la vente est acceptée avec un avertissement.'),
+
+    h2('6.10 Laverie et pressing'),
+    p('Une caisse de type **Laverie** (3.1) fonctionne comme la vente en détail : l’écran de vente s’ouvre directement sur le ticket et les articles, et son titre indique « Laverie ». Le catalogue réunit en général :'),
+    pt('Des prestations', 'lavage et repassage à la pièce, pressing (nettoyage à sec), linge de maison, lavage au kilo, options (express, détachage, livraison). Créez-les sans suivi de stock (11.2) : elles s’affichent « Service » sur la tuile.'),
+    pt('Des produits', 'lessive, assouplissant, housses… avec suivi de stock, vendus comme en boutique.'),
+    p('Pour le lavage au kilo, choisissez l’unité **Kg** sur le produit ; à la caisse, touchez la tuile puis tapez le poids sur le pavé en mode **Qté** (par exemple 2,5).'),
+    ...figure('20b_pos_laverie', 'Écran de vente d’une laverie'),
+    astuce('Associez le ticket au client (**Choisir un client**) : ses tickets et ses règlements apparaissent dans le rapport des tiers et son relevé (5.3).'),
 
     // 7 ------------------------------------------------------------------
     h1('7. Ventes, retours et annulations'),
@@ -559,7 +583,9 @@ const contenu = [
         ['Variante', 'Déclinaison d’un produit (taille, couleur…) avec son propre code, prix et stock.'],
         ['Seuil d’alerte', 'Stock en dessous duquel le produit est signalé « stock bas ».'],
         ['TTC / HT', 'Toutes taxes comprises / hors taxes.'],
-        ['NIF', 'Numéro d’identification fiscale de la société.']
+        ['NIF', 'Numéro d’identification fiscale de la société.'],
+        ['Genre du tiers', 'Entreprise (personne morale) ou Particulier (personne physique).'],
+        ['Relevé du tiers', 'Détail imprimable des ventes et des opérations de caisse d’un tiers sur une période.']
     ], [2800, 6838])
 ];
 
