@@ -339,6 +339,7 @@ const contenu = [
     h2('10.1 Livrables'),
     puce('Code source des deux versions (dépôt Git), scripts de base de données et migrations.'),
     puce('Scripts de démonstration (catalogue, ventes, mouvements de stock) — à ne pas déployer en production. Le script demo_laverie crée une seconde société « Laverie Éclat Blanc » : caisse LAV1 de type Laverie, 6 catégories, 24 articles illustrés (prestations et produits en stock) et 4 tiers ; il est intégré à la base de démonstration complète.'),
+    puce('Bases de démonstration complètes, prêtes à importer dans une base vide, avec les mêmes données dans les deux versions : gescaisse_demo_complet_mysql.sql (PHP / MySQL) et gescaisse_demo_complet_sqlserver.sql (.NET / SQL Server, généré par Scripts/generer_demo_complet_sqlserver.py).'),
     puce('Le présent cahier des charges.'),
     h2('10.2 Procédure de mise à jour (version PHP sur Hostinger)'),
     puce('Sauvegarder la base MySQL (export phpMyAdmin).'),
