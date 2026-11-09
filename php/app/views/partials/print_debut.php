@@ -18,15 +18,18 @@ $logoSociete = url_logo($infosSociete);
         h2 { font-size: 16px; margin: 24px 0 8px; }
         table { border-collapse: collapse; width: 100%; }
         th, td { border: 1px solid #999; padding: 5px 7px; }
+        /* Couleurs de fond imprimées (en-têtes de colonnes, lignes de total) même sans l'option « Graphiques d'arrière-plan ». */
+        th, .total td { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         th { background: #195d84; color: #fff; text-align: left; }
-        .r { text-align: right; }
+        .r { text-align: right; white-space: nowrap; }
         .entete { display: flex; justify-content: space-between; border-bottom: 3px solid #999997; padding-bottom: 10px; }
         .entete strong { font-size: 18px; color: #195d84; }
         .barre { margin-bottom: 16px; }
         .barre button { background: #195d84; color: #fff; border: 0; padding: 8px 16px; border-radius: 6px; cursor: pointer; }
         .total td { font-weight: bold; background: #eef1f6; }
         .muted { color: #666; }
-        @media print { .barre { display: none; } body { margin: 0; } }
+        /* Impression : 2 px de marge latérale, sinon le bord droit des tableaux (100 %) tombe hors de la zone imprimable. */
+        @media print { .barre { display: none; } body { margin: 0; padding: 0 2px; } }
     </style>
 </head>
 <body>
