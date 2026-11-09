@@ -665,9 +665,27 @@
         };
     }
 
+    // Client en compte du ticket : crédit encore possible avant le plafond (Infinity = sans plafond).
+    function creditDisponible(c) {
+        return c.plafond == null || D.peutDepasserPlafond ? Infinity : Math.max(0, c.plafond - c.du);
+    }
+
     function ajouterReglement(modeId) {
         // Montant proposé : le reste à payer (comme sur Odoo) ; la première frappe le remplace.
-        pay.lignes.push({ modeId: modeId, montant: etatPaiement().reste, auto: true });
+        let montant = etatPaiement().reste;
+        // Paiement par compte (vente à crédit) : client en compte, dans la limite de son plafond.
+        if (modes.get(modeId)?.compte) {
+            const c = clients.get(ticket().clientId);
+            if (!c) { message('Le paiement par compte demande un client : revenez au ticket et touchez « Choisir un client ».', true); return; }
+            if (!c.compte) { message('« ' + c.nom + ' » n\'est pas un client en compte : cochez « Client en compte » sur sa fiche (Tiers).', true); return; }
+            const dispo = creditDisponible(c) - pay.lignes.filter(r => modes.get(r.modeId)?.compte).reduce((s, r) => s + r.montant, 0);
+            if (dispo <= 0) { message('Plafond de crédit atteint pour « ' + c.nom + ' » : solde dû ' + fcfa(c.du) + ' FCFA, plafond ' + fcfa(c.plafond) + ' FCFA.', true); return; }
+            if (montant > dispo) {
+                montant = dispo;
+                message('Plafond de crédit : ' + fcfa(dispo) + ' FCFA possibles par compte ; le reste est à régler autrement.');
+            }
+        }
+        pay.lignes.push({ modeId: modeId, montant: montant, auto: true });
         pay.choisie = pay.lignes.length - 1;
         pay.saisie = null;
         afficher();
@@ -760,6 +778,9 @@
         }
         // Stock affiché mis à jour sans recharger la page.
         lignesAPayer().forEach(l => { const p = produits.get(l.produitId); if (p && p.suivi) p.stock -= l.qte; });
+        // Solde dû du client en compte mis à jour (plafond des ventes suivantes).
+        const client = clients.get(t.clientId);
+        if (client) client.du += pay.lignes.filter(r => modes.get(r.modeId)?.compte).reduce((s, r) => s + r.montant, 0);
         fin = { id: reponse.id, numero: reponse.numero, rendu: e.rendu, direct: !cmd, resteTable: null };
         if (cmd) {
             // Addition partagée : le reste des articles demeure sur la table.
@@ -790,6 +811,7 @@
     function iconeMode(m) {
         const t = (m.libelle || '').toLowerCase();
         if (m.especes) return 'fa-money-bill-wave';
+        if (m.compte) return 'fa-address-book';
         if (/mobile|money|airtel|moov|momo/.test(t)) return 'fa-mobile-screen-button';
         if (/carte|cb|visa|bancaire/.test(t)) return 'fa-credit-card';
         if (/ch[eè]que/.test(t)) return 'fa-money-check';
@@ -832,7 +854,7 @@
                 ? pay.lignes.map((r, i) => {
                     const m = modes.get(r.modeId) || { libelle: '?' };
                     return '<div class="pos-reglement' + (i === pay.choisie ? ' sel' : '') + '" data-reglement="' + i + '">'
-                        + '<i class="fas ' + iconeMode(m) + '"></i> ' + echap(m.libelle) + (m.especes ? ' <small>reçu</small>' : '')
+                        + '<i class="fas ' + iconeMode(m) + '"></i> ' + echap(m.libelle) + (m.especes ? ' <small>reçu</small>' : m.compte ? ' <small>à crédit</small>' : '')
                         + '<b>' + fcfa(r.montant) + '</b>'
                         + '<button type="button" class="x" data-suppr-reglement="' + i + '" aria-label="Supprimer ce règlement"><i class="fas fa-xmark"></i></button></div>';
                 }).join('')
@@ -841,7 +863,12 @@
             + '<h3>Billets rapides (espèces)</h3>'
             + '<div class="pos-billets">' + [500, 1000, 2000, 5000, 10000].map(b => '<button type="button" class="pos-billet" data-billet="' + b + '">+' + fcfa(b) + '</button>').join('')
             + '<button type="button" class="pos-billet" data-billet="exact">Montant exact</button></div>'
-            + '<div class="pos-aide"><i class="fas fa-circle-info"></i> À la validation, chaque règlement devient un encaissement validé de la journée de caisse (motif « Vente POS »).</div>'
+            + (client && client.compte
+                ? '<div class="pos-aide compte"><i class="fas fa-address-book"></i> Client en compte · solde dû <b>' + fcfa(client.du) + ' FCFA</b>'
+                    + (client.plafond != null ? ' · plafond ' + fcfa(client.plafond) + ' FCFA' + (D.peutDepasserPlafond ? '' : ' (encore ' + fcfa(creditDisponible(client)) + ' FCFA possibles)') : ' · sans plafond') + '</div>'
+                : '')
+            + '<div class="pos-aide"><i class="fas fa-circle-info"></i> À la validation, chaque règlement devient un encaissement validé de la journée de caisse (motif « Vente POS »), '
+            + 'sauf le paiement par compte, ajouté au solde dû du client.</div>'
             + '</div>'
             + '<div class="pos-droite2">'
             + '<div class="pos-pave pos-pave3">' + ['1', '2', '3', '4', '5', '6', '7', '8', '9', '00', '0'].map(v => pt(v)).join('') + pt('efface', '<i class="fas fa-delete-left"></i>') + '</div>'
@@ -1033,7 +1060,7 @@
             const trouves = D.clients.filter(c => !r || c.nom.toLowerCase().includes(r) || (c.code || '').toLowerCase().includes(r)).slice(0, 100);
             liste.innerHTML = '<button type="button" class="pos-client" data-client="">Sans client</button>'
                 + trouves.map(c => '<button type="button" class="pos-client' + (ticket().clientId === c.id ? ' sel' : '') + '" data-client="' + c.id + '">'
-                    + echap(c.nom) + '<small>' + echap(c.code) + '</small></button>').join('');
+                    + echap(c.nom) + '<small>' + echap(c.code) + (c.compte ? ' · <i class="fas fa-address-book"></i> en compte, dû ' + fcfa(c.du) + ' FCFA' : '') + '</small></button>').join('');
         };
         const fermer = () => fond.remove();
         remplir();

@@ -25,7 +25,7 @@ namespace EasytransitCaisse.Controllers
         // Création (sans Id) ou modification (avec Id).
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Save(int? id, string? code, string? libelle, bool actif)
+        public IActionResult Save(int? id, string? code, string? libelle, bool actif, bool estCompte)
         {
             if (id is > 0)
             {
@@ -35,12 +35,13 @@ namespace EasytransitCaisse.Controllers
                 mode.Code = code ?? "";
                 mode.Libelle = libelle ?? "";
                 mode.Actif = actif;
+                mode.EstCompte = estCompte;
                 _context.SaveChanges();
                 TempData["Success"] = "Mode de paiement modifié avec succès.";
             }
             else
             {
-                _context.ModesPaiement.Add(new ModePaiement { Code = code ?? "", Libelle = libelle ?? "", Actif = actif });
+                _context.ModesPaiement.Add(new ModePaiement { Code = code ?? "", Libelle = libelle ?? "", Actif = actif, EstCompte = estCompte });
                 _context.SaveChanges();
                 TempData["Success"] = "Mode de paiement créé avec succès.";
             }
@@ -54,8 +55,8 @@ namespace EasytransitCaisse.Controllers
             var mode = _context.ModesPaiement.FirstOrDefault(m => m.Id == id);
             if (mode != null)
             {
-                if (_context.OperationsCaisses.Any(o => o.ModePaiementId == id))
-                    TempData["Error"] = "Ce mode de paiement est utilisé par des opérations : désactivez-le plutôt que de le supprimer.";
+                if (_context.OperationsCaisses.Any(o => o.ModePaiementId == id) || _context.PaiementsPos.Any(p => p.ModePaiementId == id))
+                    TempData["Error"] = "Ce mode de paiement est utilisé par des opérations ou des ventes : désactivez-le plutôt que de le supprimer.";
                 else
                 {
                     _context.ModesPaiement.Remove(mode);

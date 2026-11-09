@@ -18,6 +18,18 @@
     <tr><td class="r">@Model.VentesNettes.ToString("N0")</td><td class="r">@Model.Encaissements.ToString("N0")</td><td class="r">@Model.Decaissements.ToString("N0")</td><td class="r">@((Model.Encaissements - Model.Decaissements).ToString("N0"))</td></tr>
 </table>
 
+@if (Model.Compte is { } compte)
+{
+    <h2>Compte client</h2>
+    <table>
+        <tr><th class="r">Solde dû au @f.Du.AddDays(-1).ToString("dd/MM/yyyy")</th><th class="r">Ventes par compte</th><th class="r">Règlements</th>
+            <th class="r">Solde dû au @f.Au.ToString("dd/MM/yyyy")</th></tr>
+        <tr><td class="r">@compte.Debut.ToString("N0")</td><td class="r">@compte.Ventes.ToString("N0")</td><td class="r">@compte.Reglements.ToString("N0")</td>
+            <td class="r"><b>@compte.Fin.ToString("N0")</b></td></tr>
+    </table>
+    <p class="muted">Ventes par compte : retours crédités au compte déduits.@(compte.Plafond.HasValue ? $" Plafond de crédit : {compte.Plafond.Value:N0} FCFA." : " Sans plafond de crédit.")</p>
+}
+
 <h2>Opérations de caisse</h2>
 <table>
     <tr><th>Date</th><th>Journée</th><th>Type</th><th>Libellé</th><th>Mode de paiement</th><th>Statut</th><th class="r">Encaissement</th><th class="r">Décaissement</th></tr>
@@ -44,20 +56,21 @@
 
 <h2>Ventes au point de vente</h2>
 <table>
-    <tr><th>Date</th><th>Ticket</th><th>Statut</th><th class="r">Total</th></tr>
+    <tr><th>Date</th><th>Ticket</th><th>Paiement</th><th>Statut</th><th class="r">Total</th></tr>
     @if (!Model.Ventes.Any())
     {
-        <tr><td colspan="4" class="muted">Aucune vente sur la période.</td></tr>
+        <tr><td colspan="5" class="muted">Aucune vente sur la période.</td></tr>
     }
     @foreach (var v in Model.Ventes)
     {
         <tr>
             <td>@v.DateCommande.ToString("dd/MM/yyyy HH:mm")</td>
             <td>@v.Numero</td>
+            <td>@Model.Paiements.GetValueOrDefault(v.Id)</td>
             <td>@v.Statut</td>
             <td class="r">@if (v.Statut == "Annulée") { <s>@v.TotalTTC.ToString("N0")</s> } else { @v.TotalTTC.ToString("N0") }</td>
         </tr>
     }
-    <tr class="total"><td colspan="3">Ventes nettes (retours déduits, ventes annulées exclues)</td><td class="r">@Model.VentesNettes.ToString("N0")</td></tr>
+    <tr class="total"><td colspan="4">Ventes nettes (retours déduits, ventes annulées exclues)</td><td class="r">@Model.VentesNettes.ToString("N0")</td></tr>
 </table>
-<p class="muted">Les ventes payées apparaissent aussi dans les opérations de caisse (encaissements « Vente POS »).</p>
+<p class="muted">Les ventes payées apparaissent aussi dans les opérations de caisse (encaissements « Vente POS ») ; les ventes par compte, une fois réglées (« Règlement client »).</p>

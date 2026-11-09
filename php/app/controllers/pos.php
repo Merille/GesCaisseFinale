@@ -57,17 +57,21 @@ function pos_index(): void
         'id' => (int) $c['Id'], 'nom' => $c['Nom'], 'couleur' => $c['Couleur'],
     ], q('SELECT Id, Nom, Couleur FROM Categories WHERE TenantId = ? ORDER BY Ordre, Nom', [$tenant]));
 
+    // Clients en compte : solde dû et plafond de crédit (contrôle de la vente par compte).
+    $soldes = compte_soldes($tenant);
     $clients = array_map(fn($c) => [
         'id' => (int) $c['Id'], 'nom' => $c['NomSociete'], 'code' => $c['CodeClient'], 'telephone' => $c['Telephone'], 'adresse' => $c['Adresse'],
-    ], q('SELECT Id, NomSociete, CodeClient, Telephone, Adresse FROM Clients WHERE TenantId = ? ORDER BY NomSociete', [$tenant]));
+        'compte' => (bool) $c['EnCompte'], 'du' => $soldes[(int) $c['Id']] ?? 0.0,
+        'plafond' => $c['PlafondCredit'] === null ? null : (float) $c['PlafondCredit'],
+    ], q('SELECT Id, NomSociete, CodeClient, Telephone, Adresse, EnCompte, PlafondCredit FROM Clients WHERE TenantId = ? ORDER BY NomSociete', [$tenant]));
     $livreurs = array_map(fn($l) => [
         'id' => (int) $l['Id'], 'nom' => $l['Nom'], 'telephone' => $l['Telephone'], 'moyen' => $l['MoyenLivraison'],
     ], q('SELECT Id, Nom, Telephone, MoyenLivraison FROM Livreurs WHERE Actif = 1 AND TenantId = ? ORDER BY Nom', [$tenant]));
 
-    // « Espèces » : le seul mode sur lequel on peut rendre la monnaie.
+    // « Espèces » : le seul mode sur lequel on peut rendre la monnaie ; « compte » : vente à crédit.
     $modes = array_map(fn($m) => [
-        'id' => (int) $m['Id'], 'libelle' => (string) $m['Libelle'], 'especes' => pos_est_especes($m),
-    ], q('SELECT Id, Code, Libelle FROM ModesPaiement WHERE Actif = 1 AND TenantId = ? ORDER BY Libelle', [$tenant]));
+        'id' => (int) $m['Id'], 'libelle' => (string) $m['Libelle'], 'especes' => pos_est_especes($m), 'compte' => (bool) $m['EstCompte'],
+    ], q('SELECT Id, Code, Libelle, EstCompte FROM ModesPaiement WHERE Actif = 1 AND TenantId = ? ORDER BY Libelle', [$tenant]));
 
     $u = user();
     $donnees = [
@@ -84,6 +88,8 @@ function pos_index(): void
         'livreurs' => $livreurs,
         'utilisateur' => ['nom' => $u['nomComplet'] ?: $u['nom'], 'profil' => $u['profil']],
         'peutModifierPrix' => is_admin(),
+        // Vente par compte au-delà du plafond de crédit : administrateurs seulement.
+        'peutDepasserPlafond' => is_admin(),
         'peutRemiseGlobale' => pos_peut_remise_globale(),
         'urlFermer' => url('journee/details', ['id' => $journee['Id']]),
         'modes' => $modes,
@@ -244,19 +250,22 @@ function pos_vendre(): void
 
     // Règlements : seuls les espèces peuvent dépasser le reste à payer (monnaie rendue).
     $modes = [];
-    foreach (q('SELECT Id, Code, Libelle FROM ModesPaiement WHERE Actif = 1 AND TenantId = ?', [$tenant]) as $m) {
+    foreach (q('SELECT Id, Code, Libelle, EstCompte FROM ModesPaiement WHERE Actif = 1 AND TenantId = ?', [$tenant]) as $m) {
         $modes[(int) $m['Id']] = $m;
     }
     $paiements = [];
-    $recu = $especes = 0.0;
+    $recu = $especes = $parCompte = 0.0;
     foreach ($v['paiements'] as $pm) {
         $mode = $modes[(int) ($pm['modeId'] ?? 0)] ?? null;
         $montant = round((float) ($pm['montant'] ?? 0));
         if (!$mode || $montant <= 0) {
             pos_json(['erreur' => 'Mode de paiement invalide ou montant nul.'], 400);
         }
-        $paiements[] = ['mode' => $mode, 'recu' => $montant, 'especes' => pos_est_especes($mode)];
+        $paiements[] = ['mode' => $mode, 'recu' => $montant, 'especes' => pos_est_especes($mode), 'compte' => (bool) $mode['EstCompte']];
         $recu += $montant;
+        if ($mode['EstCompte']) {
+            $parCompte += $montant;
+        }
         if (pos_est_especes($mode)) {
             $especes += $montant;
         }
@@ -272,6 +281,16 @@ function pos_vendre(): void
     $client = int_or_null($v['clientId'] ?? null);
     if ($client && !q1('SELECT Id FROM Clients WHERE Id = ? AND TenantId = ?', [$client, $tenant])) {
         $client = null;
+    }
+    // Paiement par compte : client en compte obligatoire (plafond contrôlé sous verrou, plus bas).
+    if ($parCompte > 0) {
+        $fiche = $client ? q1('SELECT NomSociete, EnCompte FROM Clients WHERE Id = ?', [$client]) : null;
+        if (!$fiche) {
+            pos_json(['erreur' => 'Le paiement par compte demande un client : choisissez le client sur le ticket.'], 400);
+        }
+        if (!$fiche['EnCompte']) {
+            pos_json(['erreur' => '« ' . $fiche['NomSociete'] . " » n'est pas un client en compte : cochez « Client en compte » sur sa fiche (Tiers)."], 400);
+        }
     }
     // Commande à livrer : livreur, destinataire, payée maintenant ou à la livraison.
     [$livraison, $erreurLivraison] = pos_controler_livraison($v['livraison'] ?? null, $tenant);
@@ -303,6 +322,16 @@ function pos_vendre(): void
                     db()->rollBack();
                     pos_json(['erreur' => 'Stock insuffisant pour « ' . $p['Nom'] . ' » : ' . quantite_fr($dispo) . ' disponible(s).'], 409);
                 }
+            }
+        }
+        // Vente par compte : plafond de crédit (sauf administrateur), sous verrou du client.
+        if ($parCompte > 0) {
+            $fiche = q1('SELECT NomSociete, PlafondCredit FROM Clients WHERE Id = ? FOR UPDATE', [$client]);
+            $du = compte_solde($tenant, $client);
+            if ($fiche['PlafondCredit'] !== null && !is_admin() && $du + $parCompte > (float) $fiche['PlafondCredit'] + 0.001) {
+                db()->rollBack();
+                pos_json(['erreur' => 'Plafond de crédit dépassé pour « ' . $fiche['NomSociete'] . ' » : solde dû ' . fcfa($du) . ' FCFA, plafond '
+                    . fcfa($fiche['PlafondCredit']) . ' FCFA (encore ' . fcfa(max(0, (float) $fiche['PlafondCredit'] - $du)) . ' FCFA possibles).'], 409);
             }
         }
         // Commande de table : payée en entier (table libérée) ou en partie (addition partagée : le
@@ -370,7 +399,8 @@ function pos_vendre(): void
                 $aRendre -= $deduit;
             }
             $operation = null;
-            if ($net > 0) {
+            // Paiement par compte : pas d'encaissement en caisse, le montant s'ajoute au solde dû.
+            if ($net > 0 && !$pm['compte']) {
                 $operation = run(
                     "INSERT INTO OperationsCaisses (TenantId, JourneeCaisseId, DateOperation, TypeOperation, Montant, Libelle,
                         ClientId, MotifId, ModePaiementId, UtilisateurId, EstJustifie, StatutValidation, Valideur)
@@ -424,6 +454,10 @@ function pos_ticket(): void
         'commande' => $commande,
         'lignes' => $lignes,
         'paiements' => q('SELECT * FROM PaiementsPos WHERE CommandePosId = ? ORDER BY Id', [$commande['Id']]),
+        // Vente ou retour par compte : solde dû du client (à la date d'impression).
+        'soldeCompte' => $commande['ClientId'] && qv('SELECT COUNT(*) FROM PaiementsPos p JOIN ModesPaiement m ON m.Id = p.ModePaiementId
+                                                       WHERE p.CommandePosId = ? AND m.EstCompte = 1', [$commande['Id']])
+            ? compte_solde((int) $commande['TenantId'], (int) $commande['ClientId']) : null,
         'taxes' => vente_taxes((int) $commande['Id']),
         'logo' => url_logo($societe),
         'coordonnees' => societe_coordonnees($societe),

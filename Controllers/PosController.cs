@@ -101,11 +101,15 @@ namespace EasytransitCaisse.Controllers
                 .OrderBy(c => c.Ordre).ThenBy(c => c.Nom)
                 .Select(c => new { id = c.Id, nom = c.Nom, couleur = c.Couleur })
                 .ToListAsync();
-            var clients = await _context.Clients
+            // Clients en compte : solde dû et plafond de crédit (contrôle de la vente par compte).
+            var soldes = await _context.SoldesComptesAsync(tenant);
+            var clients = (await _context.Clients
                 .Where(c => c.TenantId == tenant)
                 .OrderBy(c => c.NomSociete)
-                .Select(c => new { id = c.Id, nom = c.NomSociete, code = c.CodeClient, telephone = c.Telephone, adresse = c.Adresse })
-                .ToListAsync();
+                .ToListAsync())
+                .Select(c => new { id = c.Id, nom = c.NomSociete, code = c.CodeClient, telephone = c.Telephone, adresse = c.Adresse,
+                                   compte = c.EnCompte, du = soldes.GetValueOrDefault(c.Id), plafond = c.PlafondCredit })
+                .ToList();
             var livreurs = await _context.Livreurs
                 .Where(l => l.Actif && l.TenantId == tenant)
                 .OrderBy(l => l.Nom)
@@ -116,7 +120,7 @@ namespace EasytransitCaisse.Controllers
                     .Where(m => m.Actif && m.TenantId == tenant)
                     .OrderBy(m => m.Libelle)
                     .ToListAsync())
-                .Select(m => new { id = m.Id, libelle = m.Libelle ?? "", especes = EstEspeces(m) })
+                .Select(m => new { id = m.Id, libelle = m.Libelle ?? "", especes = EstEspeces(m), compte = m.EstCompte })
                 .ToList();
             var jetons = _antiforgery.GetAndStoreTokens(HttpContext);
 
@@ -142,6 +146,8 @@ namespace EasytransitCaisse.Controllers
                     profil
                 },
                 peutModifierPrix = profil is "Admin" or "SuperAdmin",
+                // Vente par compte au-delà du plafond de crédit : administrateurs seulement.
+                peutDepasserPlafond = profil is "Admin" or "SuperAdmin",
                 peutRemiseGlobale = PeutRemiseGlobale,
                 urlFermer = $"/JourneeCaisse/Details/{j.Id}",
                 modes,
@@ -334,7 +340,7 @@ namespace EasytransitCaisse.Controllers
             // Règlements : seuls les espèces peuvent dépasser le reste à payer (monnaie rendue).
             var modes = await _context.ModesPaiement.Where(m => m.Actif && m.TenantId == tenant).ToListAsync();
             var paiements = new List<(ModePaiement Mode, decimal Recu)>();
-            decimal recu = 0, especes = 0;
+            decimal recu = 0, especes = 0, parCompte = 0;
             foreach (var pm in v.Paiements)
             {
                 var mode = modes.FirstOrDefault(m => m.Id == pm.ModeId);
@@ -343,6 +349,8 @@ namespace EasytransitCaisse.Controllers
                     return Erreur(400, "Mode de paiement invalide ou montant nul.");
                 paiements.Add((mode, montant));
                 recu += montant;
+                if (mode.EstCompte)
+                    parCompte += montant;
                 if (EstEspeces(mode))
                     especes += montant;
             }
@@ -354,6 +362,15 @@ namespace EasytransitCaisse.Controllers
 
             int? clientId = v.ClientId.HasValue && await _context.Clients.AnyAsync(c => c.Id == v.ClientId && c.TenantId == tenant)
                 ? v.ClientId : null;
+            // Paiement par compte : client en compte obligatoire (plafond contrôlé sous verrou, plus bas).
+            if (parCompte > 0)
+            {
+                var fiche = clientId.HasValue ? await _context.Clients.AsNoTracking().FirstOrDefaultAsync(c => c.Id == clientId) : null;
+                if (fiche == null)
+                    return Erreur(400, "Le paiement par compte demande un client : choisissez le client sur le ticket.");
+                if (!fiche.EnCompte)
+                    return Erreur(400, $"« {fiche.NomSociete} » n'est pas un client en compte : cochez « Client en compte » sur sa fiche (Tiers).");
+            }
             int.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var utilisateurId);
             var (livraison, erreurLivraison) = await ControlerLivraisonAsync(v.Livraison, tenant);
             if (erreurLivraison != null)
@@ -381,6 +398,19 @@ namespace EasytransitCaisse.Controllers
                     var dispo = await _context.StockDepotAsync(g.Key, depotVente);
                     if (stock.SuiviStock && dispo < g.Sum(x => x.Qte) - 0.001m)
                         return Erreur(409, $"Stock insuffisant pour « {stock.Nom} » : {dispo:0.##} disponible(s).");
+                }
+            }
+            // Vente par compte : plafond de crédit (sauf administrateur), sous verrou du client.
+            if (parCompte > 0)
+            {
+                await _context.Database.ExecuteSqlInterpolatedAsync($"SELECT Id FROM Clients WITH (UPDLOCK, HOLDLOCK) WHERE Id = {clientId}");
+                var fiche = await _context.Clients.AsNoTracking().FirstAsync(c => c.Id == clientId);
+                var du = await _context.SoldeCompteAsync(tenant, clientId!.Value);
+                if (fiche.PlafondCredit.HasValue && !EstAdmin && du + parCompte > fiche.PlafondCredit.Value + 0.001m)
+                {
+                    var fr = System.Globalization.CultureInfo.GetCultureInfo("fr-FR");
+                    return Erreur(409, $"Plafond de crédit dépassé pour « {fiche.NomSociete} » : solde dû {du.ToString("N0", fr)} FCFA, plafond "
+                        + $"{fiche.PlafondCredit.Value.ToString("N0", fr)} FCFA (encore {Math.Max(0, fiche.PlafondCredit.Value - du).ToString("N0", fr)} FCFA possibles).");
                 }
             }
             // Commande de table : payée en entier (table libérée) ou en partie (addition partagée : le
@@ -463,7 +493,8 @@ namespace EasytransitCaisse.Controllers
                     aRendre -= deduit;
                 }
                 OperationCaisse? operation = null;
-                if (net > 0)
+                // Paiement par compte : pas d'encaissement en caisse, le montant s'ajoute au solde dû.
+                if (net > 0 && !mode.EstCompte)
                 {
                     operation = new OperationCaisse
                     {
@@ -512,6 +543,12 @@ namespace EasytransitCaisse.Controllers
             ViewBag.Client = commande.ClientId.HasValue
                 ? (await _context.Clients.FirstOrDefaultAsync(c => c.Id == commande.ClientId))?.NomSociete
                 : null;
+            // Vente ou retour par compte : solde dû du client (à la date d'impression).
+            var parCompte = commande.ClientId.HasValue && await (from p in _context.PaiementsPos
+                                                                  join m in _context.ModesPaiement on p.ModePaiementId equals m.Id
+                                                                  where p.CommandePosId == commande.Id && m.EstCompte
+                                                                  select p.Id).AnyAsync();
+            ViewBag.SoldeCompte = parCompte ? await _context.SoldeCompteAsync(commande.TenantId, commande.ClientId!.Value) : (decimal?)null;
             var livreurTicket = commande.LivreurId.HasValue
                 ? await _context.Livreurs.IgnoreQueryFilters().FirstOrDefaultAsync(l => l.Id == commande.LivreurId) : null;
             ViewBag.Livreur = livreurTicket == null ? null : $"{livreurTicket.Nom} ({livreurTicket.MoyenLivraison})";

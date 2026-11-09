@@ -1,6 +1,7 @@
 ﻿using ClosedXML.Excel;
 using EasytransitCaisse.Data;
 using EasytransitCaisse.Models;
+using EasytransitCaisse.Services;
 using Microsoft.AspNetCore.Mvc;
 
 using Microsoft.EntityFrameworkCore; // ← ICI
@@ -38,6 +39,12 @@ namespace EasytransitCaisse.Controllers
                 .OrderBy(c => c.NomSociete)
                 .ToListAsync();
 
+            // Solde dû des clients en compte (société consultée ; toutes pour le super-administrateur).
+            var soldes = new Dictionary<int, decimal>();
+            foreach (var t in clients.Select(c => c.TenantId).Distinct())
+                foreach (var s in await _context.SoldesComptesAsync(t))
+                    soldes[s.Key] = s.Value;
+            ViewBag.Soldes = soldes;
             return View(clients); // ← List<Client> directement
         }
 
@@ -56,6 +63,25 @@ namespace EasytransitCaisse.Controllers
             cible.FonctionContact = source.FonctionContact ?? "";
             cible.TelephoneContact = source.TelephoneContact ?? "";
             cible.EmailContact = source.EmailContact ?? "";
+            cible.EnCompte = source.EnCompte;
+            cible.PlafondCredit = source.PlafondCredit;
+        }
+
+        // Client en compte (case cochée, « Oui », « 1 »…) et plafond de crédit saisi (vide = sans plafond),
+        // lus comme dans la version PHP (espaces et virgule acceptés).
+        public static bool EnCompteValide(string? v) =>
+            new[] { "1", "oui", "true", "vrai", "on", "x" }.Contains((v ?? "").Trim().ToLowerInvariant());
+
+        public static decimal? PlafondValide(string? v)
+        {
+            v = (v ?? "").Replace(" ", "").Replace("\u00a0", "").Replace("\u202f", "").Trim();
+            return v == "" ? null : Math.Max(0, Math.Round(MontantHelper.Parse(v), 2));
+        }
+
+        private void LireCompte(Client c)
+        {
+            c.EnCompte = Request.Form["EnCompte"].Any(EnCompteValide);
+            c.PlafondCredit = PlafondValide(Request.Form["PlafondCredit"].FirstOrDefault());
         }
 
         // CREATE GET
@@ -71,6 +97,7 @@ namespace EasytransitCaisse.Controllers
         {
             var client = new Client();
             Copier(saisie, client);
+            LireCompte(client);
             if (client.CodeClient == "" || client.NomSociete == "")
                 TempData["Error"] = "Le code et le nom de la société sont obligatoires.";
             else if (_context.Clients.Any(c => c.CodeClient == client.CodeClient))
@@ -105,6 +132,7 @@ namespace EasytransitCaisse.Controllers
 
             var verif = new Client();
             Copier(saisie, verif);
+            LireCompte(verif);
             if (verif.CodeClient == "" || verif.NomSociete == "")
             {
                 TempData["Error"] = "Le code et le nom de la société sont obligatoires.";
@@ -112,6 +140,7 @@ namespace EasytransitCaisse.Controllers
                 return View(verif);
             }
             Copier(saisie, client);
+            LireCompte(client);
             _context.SaveChanges();
             TempData["Success"] = "Tiers modifié.";
             return RedirectToAction("Index");
@@ -179,6 +208,8 @@ namespace EasytransitCaisse.Controllers
             sheet.Cell(1, 10).Value = "TelephoneContact";
             sheet.Cell(1, 11).Value = "CompteGeneral";
             sheet.Cell(1, 12).Value = "Genre";
+            sheet.Cell(1, 13).Value = "EnCompte";
+            sheet.Cell(1, 14).Value = "PlafondCredit";
 
             // Style en-têtes
             var headerRow = sheet.Range("A1:D1");
@@ -202,6 +233,9 @@ namespace EasytransitCaisse.Controllers
                 sheet.Cell(i + 2, 10).Value = c.TelephoneContact;
                 sheet.Cell(i + 2, 11).Value = c.CompteGeneral;
                 sheet.Cell(i + 2, 12).Value = c.Genre;
+                sheet.Cell(i + 2, 13).Value = c.EnCompte ? "Oui" : "Non";
+                if (c.PlafondCredit.HasValue)
+                    sheet.Cell(i + 2, 14).Value = c.PlafondCredit.Value;
             }
 
             // Ajuster largeur des colonnes automatiquement
@@ -268,6 +302,8 @@ namespace EasytransitCaisse.Controllers
                         CompteGeneral = row.Cell(11).GetString() ?? "",
                         // Colonne Genre absente (fichier d'une version précédente) : Entreprise.
                         Genre = Client.GenreValide(row.Cell(12).GetString().Trim()),
+                        EnCompte = EnCompteValide(row.Cell(13).GetString()),
+                        PlafondCredit = PlafondValide(row.Cell(14).GetString()),
                     };
 
                     // Validation basique

@@ -46,37 +46,40 @@ CATEGORIES = [  # nom, couleur, articles : code, nom, prix TTC, unité, stock (N
         ('PRO03', 'Détachant 500 ml', 2000, 'Bouteille', 12),
         ('PRO04', 'Housse de protection pour vêtement', 1000, 'Unité', 40)]),
 ]
-TIERS = [('LAVC001', 'Hôtel Le Palmier', 'Entreprise', 'Client', 'Quartier Glass, Libreville', '+241 01 11 22 33'),
-         ('LAVC002', 'Nadia Ondo', 'Particulier', 'Client', 'Akanda', '+241 06 12 34 56'),
-         ('LAVC003', 'Pierre Nguema', 'Particulier', 'Client', 'Owendo', '+241 07 65 43 21'),
-         ('LAVF001', 'Chimie Propre SARL', 'Entreprise', 'Fournisseur', 'Zone industrielle d\'Oloumi', '+241 01 44 55 66')]
+TIERS = [  # code, nom, genre, type, adresse, téléphone, client en compte, plafond de crédit
+    ('LAVC001', 'Hôtel Le Palmier', 'Entreprise', 'Client', 'Quartier Glass, Libreville', '+241 01 11 22 33', 1, 300000),
+    ('LAVC002', 'Nadia Ondo', 'Particulier', 'Client', 'Akanda', '+241 06 12 34 56', 1, 50000),
+    ('LAVC003', 'Pierre Nguema', 'Particulier', 'Client', 'Owendo', '+241 07 65 43 21', 0, None),
+    ('LAVF001', 'Chimie Propre SARL', 'Entreprise', 'Fournisseur', 'Zone industrielle d\'Oloumi', '+241 01 44 55 66', 0, None)]
 
 
 # 20 ventes : 5 par tiers, réparties sur 5 journées clôturées (J-5 à J-1, 4 ventes par jour).
 # Chaque vente : lignes, TVA 18 % incluse, paiement, encaissement « Vente POS » au nom du tiers
 # et, pour les produits en stock, sortie du dépôt de la caisse.
-VENTES = [  # jour (J-n), minute de la journée, tiers, mode de paiement, lignes (code, quantité)
-    (5, 545, 'LAVC001', 'MM', [('LIN01', 12), ('LIN03', 4)]),
+VENTES = [  # jour (J-n), minute de la journée, tiers, mode de paiement (CPT : par compte), lignes (code, quantité)
+    (5, 545, 'LAVC001', 'CPT', [('LIN01', 12), ('LIN03', 4)]),
     (5, 640, 'LAVC002', 'ESP', [('LAV01', 3), ('LAV02', 2)]),
     (5, 830, 'LAVC003', 'ESP', [('KIL01', 4.5), ('OPT03', 2)]),
     (5, 1010, 'LAVF001', 'CB', [('LIN04', 2), ('PRE02', 1)]),
-    (4, 520, 'LAVC002', 'MM', [('PRE03', 1), ('OPT02', 1)]),
-    (4, 700, 'LAVC001', 'CB', [('LIN01', 20), ('LIN02', 6), ('OPT04', 1)]),
+    (4, 520, 'LAVC002', 'CPT', [('PRE03', 1), ('OPT02', 1)]),
+    (4, 700, 'LAVC001', 'CPT', [('LIN01', 20), ('LIN02', 6), ('OPT04', 1)]),
     (4, 905, 'LAVC003', 'ESP', [('KIL02', 6), ('PRO01', 1)]),
     (4, 1080, 'LAVF001', 'ESP', [('LAV01', 5), ('PRO04', 5)]),
     (3, 560, 'LAVC003', 'MM', [('PRE01', 1), ('LAV01', 2)]),
-    (3, 760, 'LAVC001', 'MM', [('LIN03', 8), ('OPT01', 1)]),
+    (3, 760, 'LAVC001', 'CPT', [('LIN03', 8), ('OPT01', 1)]),
     (3, 880, 'LAVC002', 'ESP', [('KIL03', 2), ('KIL04', 2), ('PRO02', 1)]),
     (3, 1050, 'LAVF001', 'CB', [('PRE01', 2), ('PRE02', 2)]),
     (2, 600, 'LAVC002', 'CB', [('PRE04', 1)]),
     (2, 735, 'LAVF001', 'MM', [('KIL01', 10)]),
-    (2, 915, 'LAVC001', 'ESP', [('LIN01', 15), ('LIN02', 4), ('OPT04', 1)]),
+    (2, 915, 'LAVC001', 'CPT', [('LIN01', 15), ('LIN02', 4), ('OPT04', 1)]),
     (2, 1100, 'LAVC003', 'ESP', [('LAV03', 2), ('LAV04', 1), ('PRO03', 1)]),
-    (1, 515, 'LAVC001', 'CB', [('LIN04', 3), ('OPT01', 1)]),
+    (1, 515, 'LAVC001', 'CPT', [('LIN04', 3), ('OPT01', 1)]),
     (1, 690, 'LAVC003', 'MM', [('KIL02', 3.5)]),
     (1, 860, 'LAVF001', 'ESP', [('LAV02', 4), ('OPT03', 6)]),
-    (1, 1040, 'LAVC002', 'MM', [('LAV01', 4), ('LAV03', 1), ('PRO04', 2)]),
+    (1, 1040, 'LAVC002', 'CPT', [('LAV01', 4), ('LAV03', 1), ('PRO04', 2)]),
 ]
+# Règlements des clients en compte : jour (J-n), minute, tiers, mode, montant.
+REGLEMENTS = [(2, 1000, 'LAVC001', 'ESP', 100000), (1, 1100, 'LAVC002', 'MM', 10000)]
 SOLDE_INITIAL = 20000
 
 
@@ -108,16 +111,23 @@ def ventes(a, s, sqlserver):
     # Modes de paiement (repli sur le premier mode actif s'ils ont été renommés).
     for v, code in [('@esp', 'ESP'), ('@mm', 'MM'), ('@cb', 'CB')]:
         a("SET %s = COALESCE((SELECT MIN(Id) FROM ModesPaiement WHERE TenantId = @t AND Code = '%s'), (SELECT MIN(Id) FROM ModesPaiement WHERE TenantId = @t AND Actif = 1));" % (v, code))
+    a("SET @cpt = (SELECT MIN(Id) FROM ModesPaiement WHERE TenantId = @t AND EstCompte = 1);")
     a("SET @motif = (SELECT MIN(ID) FROM Motifs WHERE TenantId = @t AND LibelleMotif = 'Vente POS');")
+    a("INSERT INTO Motifs (LibelleMotif, TypeModif, TenantId) SELECT %s, 'Client', @t%s WHERE NOT EXISTS (SELECT 1 FROM Motifs WHERE TenantId = @t AND LibelleMotif = %s);"
+      % (N + "'Règlement client'", dual, N + "'Règlement client'"))
+    a("SET @motifRegl = (SELECT MIN(ID) FROM Motifs WHERE TenantId = @t AND LibelleMotif = %s);" % (N + "'Règlement client'"))
     a("SET @ventes = (SELECT COUNT(*) FROM CommandesPos WHERE TenantId = @t AND CleClient LIKE 'demo-lav-%');")
     if sqlserver:
         a('IF @ventes = 0')
         a('BEGIN')
     for n in sorted({v[0] for v in VENTES}, reverse=True):
         du_jour = [v for v in VENTES if v[0] == n]
+        # Fond de caisse en fin de journée : ventes payées (hors compte) et règlements reçus.
         total = 0
         for v in du_jour:
-            total += sum(round(articles[c][2] * q) for c, q in v[4])
+            if v[3] != 'CPT':
+                total += sum(round(articles[c][2] * q) for c, q in v[4])
+        total += sum(r[4] for r in REGLEMENTS if r[0] == n)
         num_j = concat('@code', "'-'", dstr(n), "'-DEMO'")
         a('')
         a('-- Journée J-%d (clôturée)' % n)
@@ -151,13 +161,24 @@ def ventes(a, s, sqlserver):
                     a("    SELECT @t, p.Id, %s, 'Vente', -%s, s.Quantite, %s, @cmd, @caissier, @dep, NULL FROM Produits p JOIN StocksDepots s ON s.ProduitId = p.Id AND s.DepotId = @dep"
                       % (date, qte, num))
                     a("    WHERE p.TenantId = @t AND p.Code = '%s'%s;" % (c, g))
+            mv = {'ESP': '@esp', 'MM': '@mm', 'CB': '@cb', 'CPT': '@cpt'}[mode]
+            if mode == 'CPT':
+                # Vente par compte : pas d'encaissement en caisse, le montant s'ajoute au solde dû.
+                a('INSERT INTO PaiementsPos (TenantId, CommandePosId, ModePaiementId, Libelle, MontantRecu, Montant, OperationCaisseId)')
+                a("    SELECT @t, @cmd, Id, Libelle, %d, %d, NULL FROM ModesPaiement WHERE Id = @cpt%s;" % (ttc, ttc, g))
+                continue
             a('INSERT INTO OperationsCaisses (TenantId, JourneeCaisseId, DateOperation, TypeOperation, Montant, Libelle, ClientId, MotifId, ModePaiementId, UtilisateurId, EstJustifie, StatutValidation, Valideur)')
-            mv = {'ESP': '@esp', 'MM': '@mm', 'CB': '@cb'}[mode]
             a("    SELECT @t, @j, %s, 'Encaissement', %d, %s, (SELECT MIN(Id) FROM Clients WHERE TenantId = @t AND CodeClient = '%s'), @motif, %s, @caissier, 1, %s, 'Point de vente'%s%s;"
               % (date, ttc, concat("'Vente POS '", num), tiers, mv, N + "'Validé'", dual, w))
             a('SET @op = %s;' % last)
             a('INSERT INTO PaiementsPos (TenantId, CommandePosId, ModePaiementId, Libelle, MontantRecu, Montant, OperationCaisseId)')
             a("    SELECT @t, @cmd, Id, Libelle, %d, %d, @op FROM ModesPaiement WHERE Id = %s%s;" % (ttc, ttc, mv, g))
+        for jr, minute, tiers, mode, montant in [r for r in REGLEMENTS if r[0] == n]:
+            nom = [t[1] for t in TIERS if t[0] == tiers][0]
+            a('INSERT INTO OperationsCaisses (TenantId, JourneeCaisseId, DateOperation, TypeOperation, Montant, Libelle, ClientId, MotifId, ModePaiementId, UtilisateurId, EstJustifie, StatutValidation, Valideur, ReglementCompte)')
+            a("    SELECT @t, @j, %s, 'Encaissement', %d, %s, (SELECT MIN(Id) FROM Clients WHERE TenantId = @t AND CodeClient = '%s'), @motifRegl, %s, @caissier, 1, %s, %s, 1%s%s;"
+              % (jour(n, minute), montant, N + "'Règlement compte client %s — %s'" % (tiers, nom.replace("'", "''")), tiers,
+                 {'ESP': '@esp', 'MM': '@mm', 'CB': '@cb'}[mode], N + "'Validé'", N + "'Caissière de la laverie'", dual, w))
     if sqlserver:
         a('END')
 
@@ -174,8 +195,9 @@ def ecrire(sqlserver):
     a('-- GesCaisse : société de démonstration « Laverie » — ' + ('SQL Server (version .NET)' if sqlserver else 'MySQL (version PHP)'))
     a('-- Société « %s » avec sa caisse LAV1 de type Laverie, son dépôt, ses modes de paiement,' % SOCIETE['Nom'])
     a('-- 6 catégories et 24 articles avec leur image (20 prestations sans suivi de stock et 4 produits')
-    a('-- en stock), 4 tiers (entreprises et particuliers) et 20 ventes à ces tiers (5 chacun) sur les')
-    a('-- 5 jours précédant l\'exécution, en journées clôturées. La société de démonstration existante')
+    a('-- en stock), 4 tiers (entreprises et particuliers, dont 2 clients en compte) et 20 ventes à ces')
+    a('-- tiers (5 chacun, dont 7 par compte, et 2 règlements) sur les 5 jours précédant l\'exécution,')
+    a('-- en journées clôturées. Mode « Compte client » créé. La société de démonstration existante')
     a('-- n\'est pas modifiée.')
     a('--')
     a('-- À exécuter sur la base LOCALE de test (jamais en production), après avoir lancé une fois l\'application.')
@@ -189,7 +211,7 @@ def ecrire(sqlserver):
         a('SET NOCOUNT ON;')
         a('SET XACT_ABORT ON;')
         a('DECLARE @t INT, @admin INT, @caissier INT, @dep INT, @tva INT, @c INT;')
-        a('DECLARE @caisse INT, @code NVARCHAR(50), @motif INT, @ventes INT, @j INT, @cmd INT, @l INT, @op INT, @esp INT, @mm INT, @cb INT;')
+        a('DECLARE @caisse INT, @code NVARCHAR(50), @motif INT, @motifRegl INT, @ventes INT, @j INT, @cmd INT, @l INT, @op INT, @esp INT, @mm INT, @cb INT, @cpt INT;')
         a('BEGIN TRANSACTION;')
     else:
         a('SET NAMES utf8mb4;')
@@ -221,6 +243,9 @@ def ecrire(sqlserver):
     for code, lib in [('ESP', 'Espèces'), ('MM', 'Mobile Money'), ('CB', 'Carte bancaire')]:
         a('INSERT INTO ModesPaiement (Code, Libelle, Actif, TenantId) SELECT %s, %s, 1, @t%s WHERE NOT EXISTS (SELECT 1 FROM ModesPaiement WHERE TenantId = @t AND Code = %s);'
           % (s(code), s(lib), dual, s(code)))
+    # Mode « Compte client » (vente par compte des clients en compte).
+    a("INSERT INTO ModesPaiement (Code, Libelle, Actif, TenantId, EstCompte) SELECT 'CPT', %s, 1, @t, 1%s WHERE NOT EXISTS (SELECT 1 FROM ModesPaiement WHERE TenantId = @t AND EstCompte = 1);"
+      % (s('Compte client'), dual))
     a("INSERT INTO Motifs (LibelleMotif, TypeModif, TenantId) SELECT 'Vente POS', 'Client', @t%s WHERE NOT EXISTS (SELECT 1 FROM Motifs WHERE TenantId = @t AND LibelleMotif = 'Vente POS');" % dual)
     a('')
     a('-- Dépôt par défaut et caisse LAV1 de type Laverie (créés seulement si la société n\'en a pas encore)')
@@ -266,10 +291,10 @@ def ecrire(sqlserver):
         a('    AND NOT EXISTS (SELECT 1 FROM ProduitImages i WHERE i.ProduitId = p.Id);')
     a('UPDATE Produits SET ImageMaj = %s WHERE TenantId = @t AND ImageMaj IS NULL AND Code IN (%s);' % (maintenant, liste))
     a('')
-    a('-- Tiers : entreprises et particuliers')
-    for code, nom, genre, typ, adr, tel in TIERS:
-        a('INSERT INTO Clients (TenantId, CodeClient, NomSociete, Adresse, Telephone, Type, Genre) SELECT @t, %s, %s, %s, %s, %s, %s%s'
-          % (s(code), s(nom), s(adr), s(tel), s(typ), s(genre), dual))
+    a('-- Tiers : entreprises et particuliers (deux clients en compte, avec plafond de crédit)')
+    for code, nom, genre, typ, adr, tel, en_compte, plafond in TIERS:
+        a('INSERT INTO Clients (TenantId, CodeClient, NomSociete, Adresse, Telephone, Type, Genre, EnCompte, PlafondCredit) SELECT @t, %s, %s, %s, %s, %s, %s, %d, %s%s'
+          % (s(code), s(nom), s(adr), s(tel), s(typ), s(genre), en_compte, 'NULL' if plafond is None else plafond, dual))
         a('    WHERE NOT EXISTS (SELECT 1 FROM Clients WHERE TenantId = @t AND CodeClient = %s);' % s(code))
     a('')
     ventes(a, s, sqlserver)

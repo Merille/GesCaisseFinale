@@ -53,4 +53,21 @@ require __DIR__ . '/../partials/form_debut.php';
                 <div class="col-md-3"><?= $champ('TelephoneContact', 'Téléphone') ?></div>
                 <div class="col-md-3"><?= $champ('EmailContact', 'Email', 'type="email"') ?></div>
             </div>
+            <?php $plafond = $client['PlafondCredit'] ?? null; ?>
+            <h6 class="text-muted text-uppercase small mb-3 mt-4">Compte client</h6>
+            <div class="row g-3 align-items-end">
+                <div class="col-md-6">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" value="1" name="EnCompte" id="EnCompte<?= $sfx ?>" <?= !empty($client['EnCompte']) ? 'checked' : '' ?>>
+                        <label class="form-check-label" for="EnCompte<?= $sfx ?>">Client en compte
+                            <span class="d-block small text-muted">Peut payer « par compte » au point de vente (vente à crédit) et régler plus tard.</span></label>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="PlafondCredit<?= $sfx ?>">Plafond de crédit (FCFA)</label>
+                    <input class="form-control" id="PlafondCredit<?= $sfx ?>" name="PlafondCredit" inputmode="decimal" placeholder="Sans plafond"
+                           value="<?= $plafond === null || $plafond === '' ? '' : h((string) round((float) $plafond)) ?>">
+                </div>
+                <div class="col-md-3 small text-muted">Au-delà du plafond, la vente par compte est refusée (sauf pour un administrateur).</div>
+            </div>
 <?php require __DIR__ . '/../partials/form_fin.php'; ?>

@@ -98,7 +98,7 @@ const fiche = [
         ['Application', 'GesCaisse — gestion de caisse et point de vente (POS)'],
         ['Éditeur', 'M-ITECH AFRICA'],
         ['Public', 'Administrateurs, caissiers, vendeurs et serveurs des sociétés clientes'],
-        ['Version du document', '1.5'],
+        ['Version du document', '1.6'],
         ['Date', 'Novembre 2026']
     ], [3000, 6638])
 ];
@@ -241,6 +241,16 @@ const contenu = [
         'Cliquez sur **Clôturer la journée** et confirmez.'
     ]),
     attention('La clôture est définitive : plus aucune opération ne peut être ajoutée à la journée. Elle est refusée tant qu’une commande est en attente au point de vente ou, dans un restaurant, tant qu’une table a une commande en cours.'),
+    h2('3.6 Règlement d’un client en compte'),
+    p('Quand un client en compte (4.2) vient régler ce qu’il doit, enregistrez son règlement dans la journée ouverte :'),
+    ...etapes([
+        'Dans la page de la journée, cliquez sur **Règlement client**.',
+        'Choisissez le client : la liste indique son solde dû, proposé comme montant.',
+        'Saisissez le montant réglé, le mode de paiement (espèces par défaut) et au besoin une observation (n° de chèque, reçu…).',
+        'Cliquez sur **Enregistrer le règlement**.'
+    ]),
+    ...figure('14b_reglement_client', 'Règlement d’un client en compte'),
+    p('Le règlement est un encaissement de la journée (motif « Règlement client ») : il entre dans la caisse et diminue le solde dû du client. Il ne peut pas dépasser ce solde. S’il est rejeté à la validation (3.4), le solde dû est rétabli.'),
 
     // 4 ------------------------------------------------------------------
     h1('4. Tiers'),
@@ -253,11 +263,19 @@ const contenu = [
     pt('Coordonnées et contact', 'adresse, téléphone, e-mail, puis le contact (nom, fonction, téléphone, e-mail) pour une entreprise.'),
     pt('Compte général (Sage)', 'compte comptable du tiers (ex. 411000 pour un client).'),
     ...figure('15b_tiers_genre', 'Fiche d’un tiers : genre Entreprise ou Particulier'),
-    h2('4.2 Rechercher'),
+    h2('4.2 Clients en compte'),
+    p('Un client en compte peut payer « par compte » au point de vente : la vente est faite à crédit et le client la règle plus tard. Sur la fiche du tiers, section **Compte client** :'),
+    pt('Client en compte', 'cochez la case pour autoriser le paiement par compte.'),
+    pt('Plafond de crédit', 'montant dû à ne pas dépasser (laissez vide pour ne fixer aucun plafond). Au-delà, la vente par compte est refusée, sauf pour un administrateur.'),
+    ...figure('15c_tiers_compte', 'Fiche d’un tiers : client en compte et plafond de crédit'),
+    p('La colonne **Solde dû** de la liste des tiers indique, pour chaque client en compte, ce qu’il doit encore et son plafond.'),
+    ...figure('15_tiers', 'Liste des tiers avec le solde dû des clients en compte'),
+    p('Le solde dû est la somme des ventes payées par compte, moins les règlements du client (3.6) et les retours crédités sur son compte (7.3). Une vente annulée ne compte plus.'),
+    h2('4.3 Rechercher'),
     p('La zone de recherche filtre la liste par code, nom, contact ou téléphone. La liste est paginée.'),
-    h2('4.3 Importer et exporter'),
+    h2('4.4 Importer et exporter'),
     pt('Exporter Excel', 'télécharge la liste complète des tiers.'),
-    pt('Importer Excel', 'ajoute ou met à jour des tiers depuis un fichier. La première ligne est un en-tête ; les colonnes sont dans l’ordre : Code, Société, Contact, Téléphone, EmailContact, Adresse, Email, Type, FonctionContact, TelephoneContact, CompteGeneral, Genre (Entreprise ou Particulier ; vide = Entreprise).'),
+    pt('Importer Excel', 'ajoute ou met à jour des tiers depuis un fichier. La première ligne est un en-tête ; les colonnes sont dans l’ordre : Code, Société, Contact, Téléphone, EmailContact, Adresse, Email, Type, FonctionContact, TelephoneContact, CompteGeneral, Genre (Entreprise ou Particulier ; vide = Entreprise), EnCompte (Oui ou Non), PlafondCredit (vide = sans plafond).'),
     astuce('Le plus simple pour préparer un import est de partir d’un export : vous obtenez directement les bonnes colonnes.'),
 
     // 5 ------------------------------------------------------------------
@@ -281,10 +299,13 @@ const contenu = [
     pt('Ventes et Ventes nettes', 'nombre de tickets du point de vente au nom du tiers et leur montant, retours déduits ; les ventes annulées ne sont pas comptées.'),
     pt('Encaissements et Décaissements', 'opérations de caisse au nom du tiers ; les opérations rejetées ne sont pas comptées. Une vente payée apparaît aussi dans les encaissements (« Vente POS »).'),
     pt('Solde', 'encaissements moins décaissements : positif quand le tiers a versé de l’argent, négatif quand la société lui en a versé (un fournisseur réglé, par exemple).'),
+    pt('Dû (compte)', 'pour un client en compte, ce qu’il doit à la fin de la période. Une vente par compte n’entre dans les encaissements qu’au moment de son règlement.'),
     pt('Dernier mouvement', 'date de la dernière vente ou opération (l’heure s’affiche au survol).'),
     p('Les boutons **Imprimer / PDF** et **Exporter Excel** reprennent le tableau et ses totaux. Le bouton de fin de ligne ouvre le **relevé du tiers** : le détail de ses opérations de caisse (journée, mode de paiement, statut) et de ses ventes sur la période, prêt à imprimer ou à enregistrer en PDF, par exemple pour le remettre au client.'),
     ...figure('16c_releve_tiers', 'Relevé d’un tiers'),
     astuce('Dans le relevé, les opérations rejetées et les ventes annulées restent visibles mais barrées, et ne comptent pas dans les totaux.'),
+    p('Pour un client en compte, le relevé ajoute une section **Compte client** : le solde dû la veille du début de la période, les ventes par compte, les règlements et le solde dû à la fin de la période. La liste des ventes indique le mode de paiement de chacune.'),
+    ...figure('16d_releve_compte', 'Relevé d’un client en compte'),
 
     // 6 ------------------------------------------------------------------
     h1('6. Point de vente : vendre au comptoir'),
@@ -344,6 +365,15 @@ const contenu = [
     ]),
     ...figure('21_pos_paiement', 'Paiement : modes, montant reçu et monnaie à rendre'),
     p('La monnaie à rendre est calculée sur les espèces uniquement. Chaque règlement devient un encaissement validé de la journée de caisse.'),
+    h3('Paiement par compte (client en compte)'),
+    ...etapes([
+        'Sur le ticket, touchez **Choisir un client** et sélectionnez le client : la liste indique « en compte » et son solde dû.',
+        'Touchez **Paiement**, puis **Compte client** : le montant proposé est le reste à payer, limité au crédit encore possible sous le plafond.',
+        'Complétez au besoin avec un autre mode (espèces, Mobile Money…), puis touchez **Valider le paiement**.'
+    ]),
+    ...figure('21d_paiement_compte', 'Paiement par compte : solde dû et plafond du client'),
+    p('Le paiement par compte n’est pas un encaissement : il n’entre pas dans la caisse et ne se compte pas à la clôture. Il s’ajoute au solde dû du client, rappelé en bas du ticket (« Solde dû du compte »).'),
+    attention('Sans client, ou avec un client qui n’est pas en compte, le paiement par compte est refusé. Au-delà du plafond de crédit, seul un administrateur peut valider la vente.'),
     h2('6.8 Le ticket'),
     p('Après le paiement, le ticket s’affiche avec le logo et les coordonnées de la société, les articles, le total, les taxes, les règlements et la monnaie rendue. Touchez **Imprimer le ticket** (imprimante 80 mm), puis **Nouvelle vente**.'),
     ...figure('22_pos_ticket', 'Vente terminée et ticket de caisse'),
@@ -374,6 +404,7 @@ const contenu = [
         'Choisissez la **journée où rembourser**, le **mode de remboursement** et le **motif** (ex. « produit défectueux »).',
         'Validez : le client est remboursé au prix réellement payé (remises comprises) et les articles reviennent en stock.'
     ]),
+    p('Pour la vente d’un client en compte, le mode **Compte client** est proposé : le montant est alors crédité sur son compte (son solde dû diminue) au lieu d’être rendu en caisse.'),
     h2('7.4 Annuler une vente'),
     p('Le bouton **Annuler la vente** annule entièrement une vente de la journée en cours : ses encaissements sont rejetés et le stock est rétabli. Une vente d’une journée clôturée ne peut plus être annulée : utilisez un retour.'),
     attention('Les retours et les annulations sont réservés aux administrateurs et aux utilisateurs ayant le droit de validation.'),
@@ -527,7 +558,7 @@ const contenu = [
     p('Les motifs qualifient les encaissements et les décaissements (« Règlement client », « Achat fournitures »…) et précisent le type de tiers concerné et le compte comptable. Le motif « Vente POS » est créé automatiquement pour les ventes du point de vente.'),
     ...figure('42_motifs', 'Motifs'),
     h2('12.4 Modes de paiement'),
-    p('Code, libellé et statut actif de chaque mode (Espèces, Mobile Money, Carte, Chèque…). Un mode déjà utilisé ne peut pas être supprimé ; désactivez-le plutôt. Le mode « Espèces » est reconnu pour le calcul de la monnaie.'),
+    p('Code, libellé et statut actif de chaque mode (Espèces, Mobile Money, Carte, Chèque…). Un mode déjà utilisé ne peut pas être supprimé ; désactivez-le plutôt. Le mode « Espèces » est reconnu pour le calcul de la monnaie. La case **Paiement par compte client** désigne le mode utilisé pour les ventes à crédit des clients en compte (« Compte client », créé pour chaque société) : il n’est pas proposé pour les opérations de caisse.'),
     ...figure('43_modes_paiement', 'Modes de paiement'),
     h2('12.5 Taxes'),
     p('Code, libellé, taux et case **Par défaut** (taxe cochée automatiquement sur les nouveaux produits). La TVA 18 % et la CSS 1 % sont créées pour chaque société. Les prix étant saisis TTC, le hors taxes est calculé : HT = TTC / (1 + somme des taux).'),
@@ -585,7 +616,9 @@ const contenu = [
         ['TTC / HT', 'Toutes taxes comprises / hors taxes.'],
         ['NIF', 'Numéro d’identification fiscale de la société.'],
         ['Genre du tiers', 'Entreprise (personne morale) ou Particulier (personne physique).'],
-        ['Relevé du tiers', 'Détail imprimable des ventes et des opérations de caisse d’un tiers sur une période.']
+        ['Relevé du tiers', 'Détail imprimable des ventes et des opérations de caisse d’un tiers sur une période.'],
+        ['Client en compte', 'Client autorisé à payer par compte (vente à crédit), dans la limite de son plafond.'],
+        ['Solde dû', 'Ce que doit un client en compte : ventes par compte, moins ses règlements et les retours crédités.']
     ], [2800, 6838])
 ];
 

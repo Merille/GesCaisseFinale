@@ -2,7 +2,7 @@
 -- Les noms de tables et de colonnes reprennent ceux de la version .NET
 -- (SQL Server) pour faciliter une éventuelle reprise des données.
 --
--- Base à jour : intègre toutes les migrations de sql/migrations (001 à 016),
+-- Base à jour : intègre toutes les migrations de sql/migrations (001 à 017),
 -- notées comme appliquées dans MigrationsAppliquees.
 --
 -- Utilisation (NOUVELLE installation uniquement) : créer une base VIDE (ex. gescaisse),
@@ -96,6 +96,8 @@ CREATE TABLE `Clients` (
   `TelephoneContact` varchar(50) DEFAULT NULL,
   `EmailContact` varchar(150) DEFAULT NULL,
   `Genre` varchar(20) NOT NULL DEFAULT 'Entreprise',
+  `EnCompte` tinyint(1) NOT NULL DEFAULT '0',
+  `PlafondCredit` decimal(18,2) DEFAULT NULL,
   PRIMARY KEY (`Id`),
   KEY `IX_Clients_Tenant` (`TenantId`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -399,6 +401,7 @@ INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('013_depot
 INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('014_livraisons.sql','2026-11-02 00:15:20');
 INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('015_moyen_livraison.sql','2026-11-02 00:15:20');
 INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('016_genre_tiers.sql','2026-11-02 00:15:20');
+INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('017_clients_en_compte.sql','2026-11-02 00:15:20');
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `ModesPaiement` (
@@ -407,6 +410,7 @@ CREATE TABLE `ModesPaiement` (
   `Libelle` varchar(100) DEFAULT NULL,
   `Actif` tinyint(1) NOT NULL DEFAULT '1',
   `TenantId` int NOT NULL DEFAULT '0',
+  `EstCompte` tinyint(1) NOT NULL DEFAULT '0',
   PRIMARY KEY (`Id`),
   KEY `IX_ModesPaiement_Tenant` (`TenantId`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -467,6 +471,7 @@ CREATE TABLE `OperationsCaisses` (
   `StatutValidation` varchar(20) NOT NULL DEFAULT 'En attente',
   `Valideur` varchar(200) DEFAULT NULL,
   `Observation` varchar(500) DEFAULT NULL,
+  `ReglementCompte` tinyint(1) NOT NULL DEFAULT '0',
   PRIMARY KEY (`Id`),
   KEY `IX_Operations_Tenant` (`TenantId`),
   KEY `IX_Operations_Journee` (`JourneeCaisseId`),
@@ -683,6 +688,7 @@ CREATE TABLE `Tenants` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 INSERT INTO `Tenants` (`Id`, `Nom`, `Code`, `Actif`, `ModeAcces`, `DateExpiration`, `DateCreation`, `PosVenteSansStock`, `Adresse`, `Ville`, `Pays`, `Email`, `Telephone`, `NIF`, `LogoMaj`, `ModulePointVente`) VALUES (1,'Société de démonstration','DEMO',1,'Licence',NULL,'2026-11-02 00:14:59',1,NULL,NULL,NULL,NULL,NULL,NULL,NULL,1);
+INSERT INTO `ModesPaiement` (`Id`, `Code`, `Libelle`, `Actif`, `TenantId`, `EstCompte`) VALUES (1,'CPT','Compte client',1,1,1);
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `Unites` (

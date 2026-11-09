@@ -9,6 +9,7 @@ $ouverte = $journee['Statut'] === 'Ouverte';
             <a href="<?= h(url('pos/index', ['journee' => $journee['Id']])) ?>" class="btn btn-primary"><i class="fa fa-store"></i> Ouvrir le POS</a>
             <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalEncaissement">+ Encaissement</button>
             <button class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#modalDecaissement">− Décaissement</button>
+            <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalReglement"><i class="fa fa-address-book"></i> Règlement client</button>
             <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#modalCloture">Clôturer</button>
             <form method="post" action="<?= h(url('journee/supprimer')) ?>" onsubmit="return confirm('Supprimer cette journée et toutes ses opérations ?');">
                 <?= csrf_field() ?><input type="hidden" name="id" value="<?= (int) $journee['Id'] ?>">
@@ -124,6 +125,55 @@ $ouverte = $journee['Statut'] === 'Ouverte';
     <?php $type = 'Encaissement'; $idModal = 'modalEncaissement'; require __DIR__ . '/_form_operation.php'; ?>
     <?php $type = 'Décaissement'; $idModal = 'modalDecaissement'; require __DIR__ . '/_form_operation.php'; ?>
 
+    <div class="modal fade" id="modalReglement" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-brand text-white">
+                    <h5 class="modal-title">Règlement d'un client en compte</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                </div>
+                <form method="post" action="<?= h(url('journee/reglement')) ?>">
+                    <?= csrf_field() ?>
+                    <input type="hidden" name="journeeId" value="<?= (int) $journee['Id'] ?>">
+                    <div class="modal-body">
+                        <?php if (!$clientsEnCompte): ?>
+                            <div class="alert alert-info mb-0">Aucun client en compte : cochez « Client en compte » sur la fiche du tiers (menu Tiers).</div>
+                        <?php else: ?>
+                            <div class="mb-3">
+                                <label class="form-label" for="reglementClient">Client</label>
+                                <select class="form-select" id="reglementClient" name="clientId" required>
+                                    <option value="">-- Choisir --</option>
+                                    <?php foreach ($clientsEnCompte as $c): ?>
+                                        <option value="<?= (int) $c['Id'] ?>" data-du="<?= h((string) round($c['Du'])) ?>"><?= h($c['NomSociete'] . ' (' . $c['CodeClient'] . ') — dû ' . fcfa($c['Du']) . ' FCFA') ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="row g-3 mb-3">
+                                <div class="col-6">
+                                    <label class="form-label" for="reglementMontant">Montant (FCFA)</label>
+                                    <input class="form-control" id="reglementMontant" name="montant" inputmode="decimal" required>
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label" for="reglementMode">Mode de paiement</label>
+                                    <select class="form-select" id="reglementMode" name="modePaiementId" required>
+                                        <?php foreach ($modes as $m): ?><option value="<?= (int) $m['Id'] ?>" <?= preg_match('/^esp/i', (string) $m['Libelle']) ? 'selected' : '' ?>><?= h($m['Libelle']) ?></option><?php endforeach; ?>
+                                    </select>
+                                </div>
+                            </div>
+                            <label class="form-label" for="reglementObservation">Observation</label>
+                            <input class="form-control" id="reglementObservation" name="observation" placeholder="Ex : chèque n° 123, reçu remis">
+                            <p class="small text-muted mt-3 mb-0">Le règlement est un encaissement de la journée (motif « Règlement client ») ; il diminue le solde dû du client, sans le dépasser.</p>
+                        <?php endif; ?>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <?php if ($clientsEnCompte): ?><button class="btn btn-primary">Enregistrer le règlement</button><?php endif; ?>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <div class="modal fade" id="modalCloture" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
@@ -222,6 +272,14 @@ $ouverte = $journee['Statut'] === 'Ouverte';
             });
         }
 
+        // Règlement client : montant proposé = solde dû du client choisi.
+        const reglementClient = document.getElementById('reglementClient');
+        if (reglementClient) {
+            reglementClient.addEventListener('change', function () {
+                const o = this.selectedOptions[0];
+                document.getElementById('reglementMontant').value = o && o.dataset.du && Number(o.dataset.du) > 0 ? o.dataset.du : '';
+            });
+        }
         const cloture = document.getElementById('modalCloture');
         function recalculer() {
             let th = 0, co = 0;

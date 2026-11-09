@@ -36,7 +36,7 @@ $params = rapporttiers_params($f);
 <div class="row g-3 mb-3">
     <?php foreach ([['Tiers', count($lignes), 'fa-address-book', false], ['Ventes nettes', $totaux['Ventes'], 'fa-cart-shopping', true],
                     ['Encaissements', $totaux['Encaissements'], 'fa-arrow-down', true], ['Décaissements', $totaux['Decaissements'], 'fa-arrow-up', true],
-                    ['Solde', $totaux['Solde'], 'fa-scale-balanced', true]] as [$lib, $val, $ico, $montant]): ?>
+                    ['Solde', $totaux['Solde'], 'fa-scale-balanced', true], ['Dû (comptes clients)', $totaux['Du'], 'fa-file-invoice-dollar', true]] as [$lib, $val, $ico, $montant]): ?>
         <div class="col-6 col-lg"><div class="card border-0 shadow-sm h-100"><div class="card-body">
             <div class="small text-muted"><i class="fa <?= $ico ?>"></i> <?= $lib ?></div>
             <div class="fs-5 fw-bold"><?= $montant ? fcfa($val) . ' <small class="fs-6 fw-normal text-muted">FCFA</small>' : (int) $val ?></div>
@@ -47,32 +47,34 @@ $params = rapporttiers_params($f);
 <div class="card shadow-sm border-0">
     <div class="card-body table-responsive">
         <table id="tiersRapportTable" class="table table-hover align-middle mb-0 small">
-            <thead class="table-dark"><tr><th>Code</th><th>Tiers</th><th>Genre</th><th>Type</th><th class="text-end">Ventes</th><th class="text-end">Ventes nettes</th>
-                <th class="text-end">Encaissements</th><th class="text-end">Décaissements</th><th class="text-end">Solde</th><th>Dernier mouvement</th><th class="text-center"></th></tr></thead>
+            <thead class="table-dark"><tr><th>Code</th><th>Tiers</th><th>Type</th><th class="text-end">Ventes</th><th class="text-end">Ventes nettes</th>
+                <th class="text-end">Encaissements</th><th class="text-end">Décaissements</th><th class="text-end">Solde</th><th class="text-end">Dû (compte)</th><th>Dernier mouvement</th><th class="text-center"></th></tr></thead>
             <tbody>
             <?php foreach ($lignes as $l): ?>
                 <tr>
                     <td><?= h($l['CodeClient']) ?></td>
-                    <td class="fw-semibold"><?= h($l['NomSociete']) ?></td>
-                    <td class="text-nowrap"><i class="fa <?= $l['Genre'] === 'Particulier' ? 'fa-user' : 'fa-building' ?> text-muted me-1"></i><?= h($l['Genre']) ?></td>
+                    <td class="fw-semibold" data-order="<?= h($l['NomSociete']) ?>"><i class="fa <?= $l['Genre'] === 'Particulier' ? 'fa-user' : 'fa-building' ?> text-muted me-1" title="<?= h($l['Genre']) ?>"></i><span class="visually-hidden"><?= h($l['Genre']) ?> </span><?= h($l['NomSociete']) ?></td>
                     <td><?= h((string) $l['Type']) ?></td>
                     <td class="text-end"><?= (int) $l['NbVentes'] ?></td>
                     <td class="text-end text-nowrap" data-order="<?= (float) $l['Ventes'] ?>"><?= fcfa($l['Ventes']) ?></td>
                     <td class="text-end text-nowrap text-success" data-order="<?= (float) $l['Encaissements'] ?>"><?= fcfa($l['Encaissements']) ?></td>
                     <td class="text-end text-nowrap text-danger" data-order="<?= (float) $l['Decaissements'] ?>"><?= fcfa($l['Decaissements']) ?></td>
                     <td class="text-end text-nowrap fw-semibold" data-order="<?= $l['Solde'] ?>"><?= fcfa($l['Solde']) ?></td>
+                    <td class="text-end text-nowrap <?= ($l['Du'] ?? 0) > 0 ? 'text-danger fw-semibold' : '' ?>" data-order="<?= $l['Du'] ?? -1e15 ?>"><?= $l['Du'] === null ? '<span class="text-muted">—</span>' : fcfa($l['Du']) ?></td>
                     <td class="text-nowrap" data-order="<?= h((string) $l['Dernier']) ?>"><?= $l['Dernier'] ? '<span title="' . h(date_fr($l['Dernier'], 'd/m/Y H:i')) . '">' . date_fr($l['Dernier'], 'd/m/Y') . '</span>' : '<span class="text-muted">—</span>' ?></td>
                     <td class="text-center text-nowrap"><a class="btn btn-outline-primary btn-sm" href="<?= h(url('rapporttiers/releve', $params + ['id' => $l['Id']])) ?>" target="_blank" title="Relevé du tiers" aria-label="Relevé du tiers"><i class="fa fa-file-lines"></i></a></td>
                 </tr>
             <?php endforeach; ?>
             </tbody>
             <tfoot>
-                <tr class="table-light fw-bold"><td colspan="4">Total (<?= count($lignes) ?> tiers)</td><td class="text-end text-nowrap"><?= (int) $totaux['NbVentes'] ?></td>
+                <tr class="table-light fw-bold"><td colspan="3">Total (<?= count($lignes) ?> tiers)</td><td class="text-end text-nowrap"><?= (int) $totaux['NbVentes'] ?></td>
                     <td class="text-end text-nowrap"><?= fcfa($totaux['Ventes']) ?></td><td class="text-end text-nowrap"><?= fcfa($totaux['Encaissements']) ?></td>
-                    <td class="text-end text-nowrap"><?= fcfa($totaux['Decaissements']) ?></td><td class="text-end text-nowrap"><?= fcfa($totaux['Solde']) ?></td><td colspan="2"></td></tr>
+                    <td class="text-end text-nowrap"><?= fcfa($totaux['Decaissements']) ?></td><td class="text-end text-nowrap"><?= fcfa($totaux['Solde']) ?></td>
+                    <td class="text-end text-nowrap"><?= fcfa($totaux['Du']) ?></td><td colspan="2"></td></tr>
             </tfoot>
         </table>
-        <p class="small text-muted mt-2 mb-0">Ventes : tickets du point de vente (retours déduits). Les ventes payées apparaissent aussi dans les encaissements.
+        <p class="small text-muted mt-2 mb-0">Ventes : tickets du point de vente (retours déduits). Les ventes payées apparaissent aussi dans les encaissements ;
+            les ventes par compte n'y sont qu'une fois réglées. Dû (compte) : solde dû des clients en compte à la fin de la période.
             Les opérations rejetées et les ventes annulées ne sont pas comptées.</p>
     </div>
 </div>

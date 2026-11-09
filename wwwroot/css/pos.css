@@ -157,6 +157,8 @@ body.pos-body { margin: 0; background: var(--pos-bg); color: #1d2a35; font-famil
 .pos-billet { flex: 1; min-width: 90px; padding: 13px 0; text-align: center; border-radius: 10px; background: #fff; border: 1px solid #cfd8df; font-weight: 700; font-size: 16px; color: var(--pos-brand-dark); cursor: pointer; }
 .pos-billet:hover { background: #eef3f7; }
 .pos-aide { font-size: 13.5px; color: #6b6b69; }
+/* Client en compte : solde dû et plafond, à l'écran de paiement. */
+.pos-aide.compte { margin-top: 10px; padding: 10px 12px; border-radius: 10px; background: #eef3f7; color: #1f3b4d; border: 1px solid #cfd8df; }
 .pos-droite2 { width: 340px; flex-shrink: 0; padding: 20px 16px; display: flex; flex-direction: column; gap: 12px; }
 .pos-pave3 { padding: 0; grid-template-columns: repeat(3, 1fr); }
 .pos-retour { padding: 12px; border-radius: 10px; border: 1px solid #cfd8df; text-align: center; background: #fff; color: #33444f; font-weight: 600; cursor: pointer; font-size: 15px; }

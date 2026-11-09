@@ -11,11 +11,11 @@
             <?php foreach ($modes as $m): ?>
                 <tr>
                     <td><?= h($m['Code']) ?></td>
-                    <td><?= h($m['Libelle']) ?></td>
+                    <td><?= h($m['Libelle']) ?><?php if ($m['EstCompte']): ?> <span class="badge text-bg-light border"><i class="fa fa-address-book"></i> Compte client</span><?php endif; ?></td>
                     <td><?= $m['Actif'] ? '<span class="badge bg-success">Actif</span>' : '<span class="badge bg-secondary">Inactif</span>' ?></td>
                     <td class="text-center table-actions">
                         <button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#modalMode"
-                                data-id="<?= (int) $m['Id'] ?>" data-code="<?= h($m['Code']) ?>" data-libelle="<?= h($m['Libelle']) ?>" data-actif="<?= $m['Actif'] ? '1' : '0' ?>">Modifier</button>
+                                data-id="<?= (int) $m['Id'] ?>" data-code="<?= h($m['Code']) ?>" data-libelle="<?= h($m['Libelle']) ?>" data-actif="<?= $m['Actif'] ? '1' : '0' ?>" data-compte="<?= $m['EstCompte'] ? '1' : '0' ?>">Modifier</button>
                         <form method="post" action="<?= h(url('modepaiement/delete')) ?>" onsubmit="return confirm('Supprimer ce mode de paiement ?');">
                             <?= csrf_field() ?><input type="hidden" name="id" value="<?= (int) $m['Id'] ?>">
                             <button class="btn btn-danger btn-sm">Supprimer</button>
@@ -42,6 +42,8 @@
                     <div class="mb-3"><label class="form-label" for="modeCode">Code</label><input id="modeCode" name="Code" class="form-control" placeholder="Ex : ESP"></div>
                     <div class="mb-3"><label class="form-label" for="modeLibelle">Libellé</label><input id="modeLibelle" name="Libelle" class="form-control" placeholder="Ex : Espèces" required></div>
                     <div class="form-check"><input class="form-check-input" type="checkbox" value="1" name="Actif" id="modeActif"><label class="form-check-label" for="modeActif">Actif (proposé lors de la saisie des opérations)</label></div>
+                    <div class="form-check mt-2"><input class="form-check-input" type="checkbox" value="1" name="EstCompte" id="modeCompte"><label class="form-check-label" for="modeCompte">Paiement par compte client (vente à crédit)
+                        <span class="d-block small text-muted">Réservé aux clients en compte ; pas d'encaissement en caisse : le montant s'ajoute au solde dû du client.</span></label></div>
                 </div>
                 <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button><button class="btn btn-primary">Enregistrer</button></div>
             </form>
@@ -57,6 +59,7 @@
         document.getElementById('modeCode').value = d.code || '';
         document.getElementById('modeLibelle').value = d.libelle || '';
         document.getElementById('modeActif').checked = d.actif === '1';
+        document.getElementById('modeCompte').checked = d.compte === '1';
     });
 </script>
 <?php $scripts = ob_get_clean(); ?>

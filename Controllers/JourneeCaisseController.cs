@@ -83,10 +83,12 @@ namespace EasytransitCaisse.Controllers
                 .OrderBy(m => m.LibelleMotif)
                 .ToList();
 
+            // Le paiement par compte n'est pas un mouvement de caisse : absent des opérations et des règlements.
             ViewBag.ModesPaiement = _context.ModesPaiement
-                .Where(m => m.Actif)
+                .Where(m => m.Actif && !m.EstCompte)
                 .OrderBy(m => m.Libelle)
                 .ToList();
+            ViewBag.ClientsEnCompte = ClientsEnCompte(journee.TenantId);
 
             ViewBag.PeutValider = bool.TryParse(
                 User.FindFirst(AppClaimTypes.PeutValiderOperations)?.Value, out var pv) && pv;
@@ -163,6 +165,11 @@ namespace EasytransitCaisse.Controllers
                 TempData["Error"] = "Le montant doit être supérieur à zéro.";
                 return RedirectToAction("Details", new { id = journeeId });
             }
+            if (modePaiementId.HasValue && _context.ModesPaiement.Any(m => m.Id == modePaiementId && m.EstCompte))
+            {
+                TempData["Error"] = "Le paiement par compte n'est pas un mouvement de caisse : choisissez un autre mode (pour un client en compte, utilisez « Règlement client »).";
+                return RedirectToAction("Details", new { id = journeeId });
+            }
             typeOperation = typeOperation == "Décaissement" ? "Décaissement" : "Encaissement";
             var statutsPermis = new[] { "En attente", "Validé", "Rejeté" };
 
@@ -200,6 +207,69 @@ namespace EasytransitCaisse.Controllers
             return RedirectToAction(
                 "Details",
                 new { id = journeeId });
+        }
+
+        // Clients en compte de la société avec leur solde dû (règlement client).
+        private List<(int Id, string Code, string Nom, decimal Du)> ClientsEnCompte(int tenantId)
+        {
+            var soldes = _context.SoldesComptesAsync(tenantId).GetAwaiter().GetResult();
+            return _context.Clients.Where(c => c.EnCompte && c.TenantId == tenantId).OrderBy(c => c.NomSociete)
+                .AsEnumerable().Select(c => (c.Id, c.CodeClient, c.NomSociete, soldes.GetValueOrDefault(c.Id))).ToList();
+        }
+
+        // Règlement d'un client en compte : encaissement de la journée (motif « Règlement client »)
+        // qui diminue son solde dû. Montant limité au solde dû (comme la version PHP).
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Reglement(int journeeId, int clientId, string? montant, int modePaiementId, string? observation)
+        {
+            var journee = await _context.JourneesCaisses.FirstOrDefaultAsync(j => j.Id == journeeId);
+            if (journee == null)
+                return NotFound();
+            IActionResult Retour(string? erreur = null)
+            {
+                if (erreur != null)
+                    TempData["Error"] = erreur;
+                return RedirectToAction("Details", new { id = journeeId });
+            }
+            if (journee.Statut == "Cloturee")
+                return Retour("Cette journée est clôturée. Aucune opération autorisée.");
+            var tenant = journee.TenantId;
+            var client = await _context.Clients.FirstOrDefaultAsync(c => c.Id == clientId && c.TenantId == tenant && c.EnCompte);
+            var mode = await _context.ModesPaiement.FirstOrDefaultAsync(m => m.Id == modePaiementId && m.TenantId == tenant && m.Actif && !m.EstCompte);
+            var somme = Math.Round(MontantHelper.Parse((montant ?? "").Replace(" ", "").Replace("\u00a0", "").Replace("\u202f", "")), 0, MidpointRounding.AwayFromZero);
+            if (client == null)
+                return Retour("Choisissez un client en compte.");
+            if (mode == null)
+                return Retour("Choisissez le mode de paiement du règlement.");
+            var du = await _context.SoldeCompteAsync(tenant, client.Id);
+            var fr = System.Globalization.CultureInfo.GetCultureInfo("fr-FR");
+            if (somme <= 0)
+                return Retour("Le montant doit être supérieur à zéro.");
+            if (somme > Math.Round(du, 0, MidpointRounding.AwayFromZero))
+                return Retour($"Le montant dépasse le solde dû de « {client.NomSociete} » ({Math.Max(0, du).ToString("N0", fr)} FCFA).");
+            var motif = await _context.Motifs.FirstOrDefaultAsync(m => m.LibelleMotif == "Règlement client" && m.TenantId == tenant);
+            if (motif == null)
+            {
+                motif = new Motif { LibelleMotif = "Règlement client", TypeModif = "Client", TenantId = tenant };
+                _context.Motifs.Add(motif);
+                await _context.SaveChangesAsync();
+            }
+            // Comme une opération saisie : validée d'office pour un utilisateur autorisé à valider.
+            var peutValider = bool.TryParse(User.FindFirst(AppClaimTypes.PeutValiderOperations)?.Value, out var pv) && pv;
+            _context.OperationsCaisses.Add(new OperationCaisse
+            {
+                TenantId = tenant, JourneeCaisseId = journee.Id, DateOperation = DateTime.Now, TypeOperation = "Encaissement",
+                Montant = somme, Libelle = $"Règlement compte client {client.CodeClient} — {client.NomSociete}",
+                ClientId = client.Id, MotifId = motif.ID, ModePaiementId = mode.Id,
+                UtilisateurId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!), EstJustifie = true,
+                StatutValidation = peutValider ? "Validé" : "En attente",
+                Valideur = peutValider ? User.FindFirst(AppClaimTypes.NomComplet)?.Value : null,
+                Observation = string.IsNullOrWhiteSpace(observation) ? null : observation, ReglementCompte = true
+            });
+            await _context.SaveChangesAsync();
+            TempData["Success"] = $"Règlement de {somme.ToString("N0", fr)} FCFA enregistré pour « {client.NomSociete} » : reste dû {(du - somme).ToString("N0", fr)} FCFA.";
+            return Retour();
         }
 
         [HttpPost]

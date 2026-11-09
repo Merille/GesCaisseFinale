@@ -7,7 +7,8 @@
     {
         ("Tiers", Model.Lignes.Count, "fa-address-book", false), ("Ventes nettes", Model.Ventes, "fa-cart-shopping", true),
         ("Encaissements", Model.Encaissements, "fa-arrow-down", true), ("Décaissements", Model.Decaissements, "fa-arrow-up", true),
-        ("Solde", Model.Solde, "fa-scale-balanced", true)
+        ("Solde", Model.Solde, "fa-scale-balanced", true),
+        ("Dû (comptes clients)", Model.Du, "fa-file-invoice-dollar", true)
     };
 }
 <form method="get" action="/RapportTiers/Index" class="card shadow-sm border-0 mb-3">
@@ -66,21 +67,28 @@
 <div class="card shadow-sm border-0">
     <div class="card-body table-responsive">
         <table id="tiersRapportTable" class="table table-hover align-middle mb-0 small">
-            <thead class="table-dark"><tr><th>Code</th><th>Tiers</th><th>Genre</th><th>Type</th><th class="text-end">Ventes</th><th class="text-end">Ventes nettes</th>
-                <th class="text-end">Encaissements</th><th class="text-end">Décaissements</th><th class="text-end">Solde</th><th>Dernier mouvement</th><th class="text-center"></th></tr></thead>
+            <thead class="table-dark"><tr><th>Code</th><th>Tiers</th><th>Type</th><th class="text-end">Ventes</th><th class="text-end">Ventes nettes</th>
+                <th class="text-end">Encaissements</th><th class="text-end">Décaissements</th><th class="text-end">Solde</th><th class="text-end">Dû (compte)</th><th>Dernier mouvement</th><th class="text-center"></th></tr></thead>
             <tbody>
                 @foreach (var l in Model.Lignes)
                 {
                     <tr>
                         <td>@l.Code</td>
-                        <td class="fw-semibold">@l.Nom</td>
-                        <td class="text-nowrap"><i class="fas @(l.Genre == "Particulier" ? "fa-user" : "fa-building") text-muted me-1"></i>@l.Genre</td>
+                        <td class="fw-semibold" data-order="@l.Nom"><i class="fas @(l.Genre == "Particulier" ? "fa-user" : "fa-building") text-muted me-1" title="@l.Genre"></i><span class="visually-hidden">@l.Genre </span>@l.Nom</td>
                         <td>@l.Type</td>
                         <td class="text-end">@l.NbVentes</td>
                         <td class="text-end text-nowrap" data-order="@l.Ventes.ToString(System.Globalization.CultureInfo.InvariantCulture)">@l.Ventes.ToString("N0")</td>
                         <td class="text-end text-nowrap text-success" data-order="@l.Encaissements.ToString(System.Globalization.CultureInfo.InvariantCulture)">@l.Encaissements.ToString("N0")</td>
                         <td class="text-end text-nowrap text-danger" data-order="@l.Decaissements.ToString(System.Globalization.CultureInfo.InvariantCulture)">@l.Decaissements.ToString("N0")</td>
                         <td class="text-end text-nowrap fw-semibold" data-order="@l.Solde.ToString(System.Globalization.CultureInfo.InvariantCulture)">@l.Solde.ToString("N0")</td>
+                        <td class="text-end text-nowrap @((l.Du ?? 0) > 0 ? "text-danger fw-semibold" : "")" data-order="@((l.Du ?? -1000000000000000m).ToString(System.Globalization.CultureInfo.InvariantCulture))">@if (l.Du.HasValue)
+                            {
+                                @l.Du.Value.ToString("N0")
+                            }
+                            else
+                            {
+                                <span class="text-muted">—</span>
+                            }</td>
                         <td class="text-nowrap" data-order="@(l.Dernier?.ToString("yyyy-MM-dd HH:mm:ss") ?? "")">@if (l.Dernier.HasValue)
                             {
                                 <span title="@l.Dernier.Value.ToString("dd/MM/yyyy HH:mm")">@l.Dernier.Value.ToString("dd/MM/yyyy")</span>
@@ -94,12 +102,14 @@
                 }
             </tbody>
             <tfoot>
-                <tr class="table-light fw-bold"><td colspan="4">Total (@Model.Lignes.Count tiers)</td><td class="text-end text-nowrap">@Model.NbVentes</td>
+                <tr class="table-light fw-bold"><td colspan="3">Total (@Model.Lignes.Count tiers)</td><td class="text-end text-nowrap">@Model.NbVentes</td>
                     <td class="text-end text-nowrap">@Model.Ventes.ToString("N0")</td><td class="text-end text-nowrap">@Model.Encaissements.ToString("N0")</td>
-                    <td class="text-end text-nowrap">@Model.Decaissements.ToString("N0")</td><td class="text-end text-nowrap">@Model.Solde.ToString("N0")</td><td colspan="2"></td></tr>
+                    <td class="text-end text-nowrap">@Model.Decaissements.ToString("N0")</td><td class="text-end text-nowrap">@Model.Solde.ToString("N0")</td>
+                    <td class="text-end text-nowrap">@Model.Du.ToString("N0")</td><td colspan="2"></td></tr>
             </tfoot>
         </table>
-        <p class="small text-muted mt-2 mb-0">Ventes : tickets du point de vente (retours déduits). Les ventes payées apparaissent aussi dans les encaissements.
+        <p class="small text-muted mt-2 mb-0">Ventes : tickets du point de vente (retours déduits). Les ventes payées apparaissent aussi dans les encaissements ;
+            les ventes par compte n'y sont qu'une fois réglées. Dû (compte) : solde dû des clients en compte à la fin de la période.
             Les opérations rejetées et les ventes annulées ne sont pas comptées.</p>
     </div>
 </div>

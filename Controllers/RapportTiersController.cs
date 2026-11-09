@@ -60,6 +60,11 @@ namespace EasytransitCaisse.Controllers
                     Dec: g.Where(o => o.TypeOperation == "Décaissement").Sum(o => o.Montant),
                     Derniere: g.Max(o => o.DateOperation)));
 
+            // Clients en compte : solde dû à la fin de la période.
+            var soldes = new Dictionary<int, decimal>();
+            foreach (var t in listeClients.Where(c => c.EnCompte).Select(c => c.TenantId).Distinct())
+                foreach (var s in await _context.SoldesComptesAsync(t, au: f.Au))
+                    soldes[s.Key] = s.Value;
             var lignes = new List<LigneRapportTiers>();
             foreach (var c in listeClients)
             {
@@ -74,7 +79,8 @@ namespace EasytransitCaisse.Controllers
                 {
                     Id = c.Id, Code = c.CodeClient, Nom = c.NomSociete, Genre = c.Genre, Type = c.Type,
                     NbVentes = aVentes ? v.Nb : 0, Ventes = aVentes ? v.Total : 0,
-                    Encaissements = aOps ? o.Enc : 0, Decaissements = aOps ? o.Dec : 0, Dernier = dernier
+                    Encaissements = aOps ? o.Enc : 0, Decaissements = aOps ? o.Dec : 0, Dernier = dernier,
+                    Du = c.EnCompte ? soldes.GetValueOrDefault(c.Id) : null
                 });
             }
             return new RapportTiersVM { Filtres = f, Lignes = lignes };
@@ -91,7 +97,7 @@ namespace EasytransitCaisse.Controllers
             var d = await Donnees(Filtres(du, au, type, genre, tous));
             using var classeur = new XLWorkbook();
             var feuille = classeur.Worksheets.Add("Tiers");
-            var entetes = new[] { "Code", "Tiers", "Genre", "Type", "Nombre de ventes", "Ventes nettes", "Encaissements", "Décaissements", "Solde", "Dernier mouvement" };
+            var entetes = new[] { "Code", "Tiers", "Genre", "Type", "Nombre de ventes", "Ventes nettes", "Encaissements", "Décaissements", "Solde", "Dû (compte)", "Dernier mouvement" };
             for (var i = 0; i < entetes.Length; i++)
                 feuille.Cell(1, i + 1).Value = entetes[i];
             var ligne = 2;
@@ -106,7 +112,9 @@ namespace EasytransitCaisse.Controllers
                 feuille.Cell(ligne, 7).Value = l.Encaissements;
                 feuille.Cell(ligne, 8).Value = l.Decaissements;
                 feuille.Cell(ligne, 9).Value = l.Solde;
-                feuille.Cell(ligne, 10).Value = l.Dernier?.ToString("dd/MM/yyyy HH:mm") ?? "";
+                if (l.Du.HasValue)
+                    feuille.Cell(ligne, 10).Value = l.Du.Value;
+                feuille.Cell(ligne, 11).Value = l.Dernier?.ToString("dd/MM/yyyy HH:mm") ?? "";
                 ligne++;
             }
             feuille.Cell(ligne, 1).Value = "Total";
@@ -116,6 +124,7 @@ namespace EasytransitCaisse.Controllers
             feuille.Cell(ligne, 7).Value = d.Encaissements;
             feuille.Cell(ligne, 8).Value = d.Decaissements;
             feuille.Cell(ligne, 9).Value = d.Solde;
+            feuille.Cell(ligne, 10).Value = d.Du;
             var entete = feuille.Row(1);
             entete.Style.Font.Bold = true;
             entete.Style.Fill.BackgroundColor = XLColor.FromHtml("#195D84");
@@ -142,9 +151,23 @@ namespace EasytransitCaisse.Controllers
                 .Where(c => c.ClientId == id && c.DateCommande >= f.Du && c.DateCommande < fin)
                 .OrderBy(c => c.DateCommande).ThenBy(c => c.Id).ToListAsync();
             var retenues = operations.NonRejetees().ToList();
+            var idsVentes = ventes.Select(v => v.Id).ToList();
+            var paiements = (await _context.PaiementsPos.Where(p => idsVentes.Contains(p.CommandePosId)).OrderBy(p => p.Id)
+                    .Select(p => new { p.CommandePosId, p.Libelle }).ToListAsync())
+                .GroupBy(p => p.CommandePosId).ToDictionary(g => g.Key, g => string.Join(", ", g.Select(p => p.Libelle)));
+            // Client en compte : solde dû au début et à la fin de la période, ventes par compte et règlements.
+            CompteReleve? compte = null;
+            if (tiers.EnCompte)
+                compte = new CompteReleve
+                {
+                    Debut = await _context.SoldeCompteAsync(tiers.TenantId, tiers.Id, f.Du.AddDays(-1)),
+                    Fin = await _context.SoldeCompteAsync(tiers.TenantId, tiers.Id, f.Au),
+                    Reglements = retenues.Where(o => o.ReglementCompte).Sum(o => o.Montant),
+                    Plafond = tiers.PlafondCredit
+                };
             return View(new ReleveTiersVM
             {
-                Filtres = f, Tiers = tiers, Operations = operations, Ventes = ventes,
+                Filtres = f, Tiers = tiers, Operations = operations, Ventes = ventes, Paiements = paiements, Compte = compte,
                 Encaissements = retenues.Where(o => o.TypeOperation == "Encaissement").Sum(o => o.Montant),
                 Decaissements = retenues.Where(o => o.TypeOperation == "Décaissement").Sum(o => o.Montant),
                 VentesNettes = ventes.Where(v => v.Statut != "Annulée").Sum(v => v.TotalTTC)

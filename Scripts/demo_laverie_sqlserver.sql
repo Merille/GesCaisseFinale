@@ -2,8 +2,9 @@
 -- GesCaisse : société de démonstration « Laverie » — SQL Server (version .NET)
 -- Société « Laverie Éclat Blanc » avec sa caisse LAV1 de type Laverie, son dépôt, ses modes de paiement,
 -- 6 catégories et 24 articles avec leur image (20 prestations sans suivi de stock et 4 produits
--- en stock), 4 tiers (entreprises et particuliers) et 20 ventes à ces tiers (5 chacun) sur les
--- 5 jours précédant l'exécution, en journées clôturées. La société de démonstration existante
+-- en stock), 4 tiers (entreprises et particuliers, dont 2 clients en compte) et 20 ventes à ces
+-- tiers (5 chacun, dont 7 par compte, et 2 règlements) sur les 5 jours précédant l'exécution,
+-- en journées clôturées. Mode « Compte client » créé. La société de démonstration existante
 -- n'est pas modifiée.
 --
 -- À exécuter sur la base LOCALE de test (jamais en production), après avoir lancé une fois l'application.
@@ -16,7 +17,7 @@
 SET NOCOUNT ON;
 SET XACT_ABORT ON;
 DECLARE @t INT, @admin INT, @caissier INT, @dep INT, @tva INT, @c INT;
-DECLARE @caisse INT, @code NVARCHAR(50), @motif INT, @ventes INT, @j INT, @cmd INT, @l INT, @op INT, @esp INT, @mm INT, @cb INT;
+DECLARE @caisse INT, @code NVARCHAR(50), @motif INT, @motifRegl INT, @ventes INT, @j INT, @cmd INT, @l INT, @op INT, @esp INT, @mm INT, @cb INT, @cpt INT;
 BEGIN TRANSACTION;
 
 -- Société (code LAVERIE)
@@ -54,6 +55,7 @@ SET @tva = (SELECT MIN(Id) FROM Taxes WHERE TenantId = @t AND Code = 'TVA');
 INSERT INTO ModesPaiement (Code, Libelle, Actif, TenantId) SELECT N'ESP', N'Espèces', 1, @t WHERE NOT EXISTS (SELECT 1 FROM ModesPaiement WHERE TenantId = @t AND Code = N'ESP');
 INSERT INTO ModesPaiement (Code, Libelle, Actif, TenantId) SELECT N'MM', N'Mobile Money', 1, @t WHERE NOT EXISTS (SELECT 1 FROM ModesPaiement WHERE TenantId = @t AND Code = N'MM');
 INSERT INTO ModesPaiement (Code, Libelle, Actif, TenantId) SELECT N'CB', N'Carte bancaire', 1, @t WHERE NOT EXISTS (SELECT 1 FROM ModesPaiement WHERE TenantId = @t AND Code = N'CB');
+INSERT INTO ModesPaiement (Code, Libelle, Actif, TenantId, EstCompte) SELECT 'CPT', N'Compte client', 1, @t, 1 WHERE NOT EXISTS (SELECT 1 FROM ModesPaiement WHERE TenantId = @t AND EstCompte = 1);
 INSERT INTO Motifs (LibelleMotif, TypeModif, TenantId) SELECT 'Vente POS', 'Client', @t WHERE NOT EXISTS (SELECT 1 FROM Motifs WHERE TenantId = @t AND LibelleMotif = 'Vente POS');
 
 -- Dépôt par défaut et caisse LAV1 de type Laverie (créés seulement si la société n'en a pas encore)
@@ -203,14 +205,14 @@ INSERT INTO ProduitImages (ProduitId, TypeContenu, Donnees) SELECT p.Id, 'image/
     AND NOT EXISTS (SELECT 1 FROM ProduitImages i WHERE i.ProduitId = p.Id);
 UPDATE Produits SET ImageMaj = GETDATE() WHERE TenantId = @t AND ImageMaj IS NULL AND Code IN ('LAV01', 'LAV02', 'LAV03', 'LAV04', 'PRE01', 'PRE02', 'PRE03', 'PRE04', 'LIN01', 'LIN02', 'LIN03', 'LIN04', 'KIL01', 'KIL02', 'KIL03', 'KIL04', 'OPT01', 'OPT02', 'OPT03', 'OPT04', 'PRO01', 'PRO02', 'PRO03', 'PRO04');
 
--- Tiers : entreprises et particuliers
-INSERT INTO Clients (TenantId, CodeClient, NomSociete, Adresse, Telephone, Type, Genre) SELECT @t, N'LAVC001', N'Hôtel Le Palmier', N'Quartier Glass, Libreville', N'+241 01 11 22 33', N'Client', N'Entreprise'
+-- Tiers : entreprises et particuliers (deux clients en compte, avec plafond de crédit)
+INSERT INTO Clients (TenantId, CodeClient, NomSociete, Adresse, Telephone, Type, Genre, EnCompte, PlafondCredit) SELECT @t, N'LAVC001', N'Hôtel Le Palmier', N'Quartier Glass, Libreville', N'+241 01 11 22 33', N'Client', N'Entreprise', 1, 300000
     WHERE NOT EXISTS (SELECT 1 FROM Clients WHERE TenantId = @t AND CodeClient = N'LAVC001');
-INSERT INTO Clients (TenantId, CodeClient, NomSociete, Adresse, Telephone, Type, Genre) SELECT @t, N'LAVC002', N'Nadia Ondo', N'Akanda', N'+241 06 12 34 56', N'Client', N'Particulier'
+INSERT INTO Clients (TenantId, CodeClient, NomSociete, Adresse, Telephone, Type, Genre, EnCompte, PlafondCredit) SELECT @t, N'LAVC002', N'Nadia Ondo', N'Akanda', N'+241 06 12 34 56', N'Client', N'Particulier', 1, 50000
     WHERE NOT EXISTS (SELECT 1 FROM Clients WHERE TenantId = @t AND CodeClient = N'LAVC002');
-INSERT INTO Clients (TenantId, CodeClient, NomSociete, Adresse, Telephone, Type, Genre) SELECT @t, N'LAVC003', N'Pierre Nguema', N'Owendo', N'+241 07 65 43 21', N'Client', N'Particulier'
+INSERT INTO Clients (TenantId, CodeClient, NomSociete, Adresse, Telephone, Type, Genre, EnCompte, PlafondCredit) SELECT @t, N'LAVC003', N'Pierre Nguema', N'Owendo', N'+241 07 65 43 21', N'Client', N'Particulier', 0, NULL
     WHERE NOT EXISTS (SELECT 1 FROM Clients WHERE TenantId = @t AND CodeClient = N'LAVC003');
-INSERT INTO Clients (TenantId, CodeClient, NomSociete, Adresse, Telephone, Type, Genre) SELECT @t, N'LAVF001', N'Chimie Propre SARL', N'Zone industrielle d''Oloumi', N'+241 01 44 55 66', N'Fournisseur', N'Entreprise'
+INSERT INTO Clients (TenantId, CodeClient, NomSociete, Adresse, Telephone, Type, Genre, EnCompte, PlafondCredit) SELECT @t, N'LAVF001', N'Chimie Propre SARL', N'Zone industrielle d''Oloumi', N'+241 01 44 55 66', N'Fournisseur', N'Entreprise', 0, NULL
     WHERE NOT EXISTS (SELECT 1 FROM Clients WHERE TenantId = @t AND CodeClient = N'LAVF001');
 
 -- Ventes de démonstration aux tiers (une seule fois : ignorées si elles existent déjà)
@@ -221,14 +223,17 @@ SET @code = (SELECT ChkCode FROM Caisses WHERE ID = @caisse);
 SET @esp = COALESCE((SELECT MIN(Id) FROM ModesPaiement WHERE TenantId = @t AND Code = 'ESP'), (SELECT MIN(Id) FROM ModesPaiement WHERE TenantId = @t AND Actif = 1));
 SET @mm = COALESCE((SELECT MIN(Id) FROM ModesPaiement WHERE TenantId = @t AND Code = 'MM'), (SELECT MIN(Id) FROM ModesPaiement WHERE TenantId = @t AND Actif = 1));
 SET @cb = COALESCE((SELECT MIN(Id) FROM ModesPaiement WHERE TenantId = @t AND Code = 'CB'), (SELECT MIN(Id) FROM ModesPaiement WHERE TenantId = @t AND Actif = 1));
+SET @cpt = (SELECT MIN(Id) FROM ModesPaiement WHERE TenantId = @t AND EstCompte = 1);
 SET @motif = (SELECT MIN(ID) FROM Motifs WHERE TenantId = @t AND LibelleMotif = 'Vente POS');
+INSERT INTO Motifs (LibelleMotif, TypeModif, TenantId) SELECT N'Règlement client', 'Client', @t WHERE NOT EXISTS (SELECT 1 FROM Motifs WHERE TenantId = @t AND LibelleMotif = N'Règlement client');
+SET @motifRegl = (SELECT MIN(ID) FROM Motifs WHERE TenantId = @t AND LibelleMotif = N'Règlement client');
 SET @ventes = (SELECT COUNT(*) FROM CommandesPos WHERE TenantId = @t AND CleClient LIKE 'demo-lav-%');
 IF @ventes = 0
 BEGIN
 
 -- Journée J-5 (clôturée)
 INSERT INTO JourneesCaisses (TenantId, CaisseId, NumeroJournee, DateJournee, DateOuverture, DateFermeture, SoldeInitial, SoldeFinal, EcartCloture, NoteCloture, Statut)
-    SELECT @t, @caisse, @code + '-' + FORMAT(DATEADD(DAY, -5, GETDATE()), 'yyyyMMdd') + '-DEMO', CAST(DATEADD(DAY, -5, GETDATE()) AS date), DATEADD(MINUTE, 480, CAST(DATEADD(DAY, -5, CAST(GETDATE() AS date)) AS datetime2)), DATEADD(MINUTE, 1170, CAST(DATEADD(DAY, -5, CAST(GETDATE() AS date)) AS datetime2)), 20000, 71400, 0, N'Journée de démonstration', 'Cloturee';
+    SELECT @t, @caisse, @code + '-' + FORMAT(DATEADD(DAY, -5, GETDATE()), 'yyyyMMdd') + '-DEMO', CAST(DATEADD(DAY, -5, GETDATE()) AS date), DATEADD(MINUTE, 480, CAST(DATEADD(DAY, -5, CAST(GETDATE() AS date)) AS datetime2)), DATEADD(MINUTE, 1170, CAST(DATEADD(DAY, -5, CAST(GETDATE() AS date)) AS datetime2)), 20000, 45400, 0, N'Journée de démonstration', 'Cloturee';
 SET @j = SCOPE_IDENTITY();
 INSERT INTO CommandesPos (TenantId, Numero, CleClient, JourneeCaisseId, ClientId, UtilisateurId, DateCommande, TotalHT, TotalTVA, TotalTTC, MontantRecu, MonnaieRendue, Statut, RemiseGlobale, Pourboire)
     SELECT @t, 'POS-' + @code + '-' + FORMAT(DATEADD(DAY, -5, GETDATE()), 'yyyyMMdd') + '-D001', 'demo-lav-' + 'POS-' + @code + '-' + FORMAT(DATEADD(DAY, -5, GETDATE()), 'yyyyMMdd') + '-D001', @j, (SELECT MIN(Id) FROM Clients WHERE TenantId = @t AND CodeClient = 'LAVC001'), @caissier, DATEADD(MINUTE, 545, CAST(DATEADD(DAY, -5, CAST(GETDATE() AS date)) AS datetime2)), 22034, 3966, 26000, 26000, 0, N'Payée', 0, 0;
@@ -241,11 +246,8 @@ INSERT INTO LignesCommandePos (TenantId, CommandePosId, ProduitId, Libelle, Quan
     SELECT @t, @cmd, Id, Nom, 4, 2000, 0, 18, 8000, 0 FROM Produits WHERE TenantId = @t AND Code = 'LIN03';
 SET @l = SCOPE_IDENTITY();
 INSERT INTO LignesCommandePosTaxes (TenantId, LigneCommandePosId, TaxeId, Code, Taux, Montant) SELECT @t, @l, @tva, 'TVA', 18, 1220.34;
-INSERT INTO OperationsCaisses (TenantId, JourneeCaisseId, DateOperation, TypeOperation, Montant, Libelle, ClientId, MotifId, ModePaiementId, UtilisateurId, EstJustifie, StatutValidation, Valideur)
-    SELECT @t, @j, DATEADD(MINUTE, 545, CAST(DATEADD(DAY, -5, CAST(GETDATE() AS date)) AS datetime2)), 'Encaissement', 26000, 'Vente POS ' + 'POS-' + @code + '-' + FORMAT(DATEADD(DAY, -5, GETDATE()), 'yyyyMMdd') + '-D001', (SELECT MIN(Id) FROM Clients WHERE TenantId = @t AND CodeClient = 'LAVC001'), @motif, @mm, @caissier, 1, N'Validé', 'Point de vente';
-SET @op = SCOPE_IDENTITY();
 INSERT INTO PaiementsPos (TenantId, CommandePosId, ModePaiementId, Libelle, MontantRecu, Montant, OperationCaisseId)
-    SELECT @t, @cmd, Id, Libelle, 26000, 26000, @op FROM ModesPaiement WHERE Id = @mm;
+    SELECT @t, @cmd, Id, Libelle, 26000, 26000, NULL FROM ModesPaiement WHERE Id = @cpt;
 INSERT INTO CommandesPos (TenantId, Numero, CleClient, JourneeCaisseId, ClientId, UtilisateurId, DateCommande, TotalHT, TotalTVA, TotalTTC, MontantRecu, MonnaieRendue, Statut, RemiseGlobale, Pourboire)
     SELECT @t, 'POS-' + @code + '-' + FORMAT(DATEADD(DAY, -5, GETDATE()), 'yyyyMMdd') + '-D002', 'demo-lav-' + 'POS-' + @code + '-' + FORMAT(DATEADD(DAY, -5, GETDATE()), 'yyyyMMdd') + '-D002', @j, (SELECT MIN(Id) FROM Clients WHERE TenantId = @t AND CodeClient = 'LAVC002'), @caissier, DATEADD(MINUTE, 640, CAST(DATEADD(DAY, -5, CAST(GETDATE() AS date)) AS datetime2)), 4576, 824, 5400, 5400, 0, N'Payée', 0, 0;
 SET @cmd = SCOPE_IDENTITY();
@@ -297,7 +299,7 @@ INSERT INTO PaiementsPos (TenantId, CommandePosId, ModePaiementId, Libelle, Mont
 
 -- Journée J-4 (clôturée)
 INSERT INTO JourneesCaisses (TenantId, CaisseId, NumeroJournee, DateJournee, DateOuverture, DateFermeture, SoldeInitial, SoldeFinal, EcartCloture, NoteCloture, Statut)
-    SELECT @t, @caisse, @code + '-' + FORMAT(DATEADD(DAY, -4, GETDATE()), 'yyyyMMdd') + '-DEMO', CAST(DATEADD(DAY, -4, GETDATE()) AS date), DATEADD(MINUTE, 480, CAST(DATEADD(DAY, -4, CAST(GETDATE() AS date)) AS datetime2)), DATEADD(MINUTE, 1170, CAST(DATEADD(DAY, -4, CAST(GETDATE() AS date)) AS datetime2)), 20000, 109500, 0, N'Journée de démonstration', 'Cloturee';
+    SELECT @t, @caisse, @code + '-' + FORMAT(DATEADD(DAY, -4, GETDATE()), 'yyyyMMdd') + '-DEMO', CAST(DATEADD(DAY, -4, GETDATE()) AS date), DATEADD(MINUTE, 480, CAST(DATEADD(DAY, -4, CAST(GETDATE() AS date)) AS datetime2)), DATEADD(MINUTE, 1170, CAST(DATEADD(DAY, -4, CAST(GETDATE() AS date)) AS datetime2)), 20000, 42000, 0, N'Journée de démonstration', 'Cloturee';
 SET @j = SCOPE_IDENTITY();
 INSERT INTO CommandesPos (TenantId, Numero, CleClient, JourneeCaisseId, ClientId, UtilisateurId, DateCommande, TotalHT, TotalTVA, TotalTTC, MontantRecu, MonnaieRendue, Statut, RemiseGlobale, Pourboire)
     SELECT @t, 'POS-' + @code + '-' + FORMAT(DATEADD(DAY, -4, GETDATE()), 'yyyyMMdd') + '-D001', 'demo-lav-' + 'POS-' + @code + '-' + FORMAT(DATEADD(DAY, -4, GETDATE()), 'yyyyMMdd') + '-D001', @j, (SELECT MIN(Id) FROM Clients WHERE TenantId = @t AND CodeClient = 'LAVC002'), @caissier, DATEADD(MINUTE, 520, CAST(DATEADD(DAY, -4, CAST(GETDATE() AS date)) AS datetime2)), 5085, 915, 6000, 6000, 0, N'Payée', 0, 0;
@@ -310,11 +312,8 @@ INSERT INTO LignesCommandePos (TenantId, CommandePosId, ProduitId, Libelle, Quan
     SELECT @t, @cmd, Id, Nom, 1, 1000, 0, 18, 1000, 0 FROM Produits WHERE TenantId = @t AND Code = 'OPT02';
 SET @l = SCOPE_IDENTITY();
 INSERT INTO LignesCommandePosTaxes (TenantId, LigneCommandePosId, TaxeId, Code, Taux, Montant) SELECT @t, @l, @tva, 'TVA', 18, 152.54;
-INSERT INTO OperationsCaisses (TenantId, JourneeCaisseId, DateOperation, TypeOperation, Montant, Libelle, ClientId, MotifId, ModePaiementId, UtilisateurId, EstJustifie, StatutValidation, Valideur)
-    SELECT @t, @j, DATEADD(MINUTE, 520, CAST(DATEADD(DAY, -4, CAST(GETDATE() AS date)) AS datetime2)), 'Encaissement', 6000, 'Vente POS ' + 'POS-' + @code + '-' + FORMAT(DATEADD(DAY, -4, GETDATE()), 'yyyyMMdd') + '-D001', (SELECT MIN(Id) FROM Clients WHERE TenantId = @t AND CodeClient = 'LAVC002'), @motif, @mm, @caissier, 1, N'Validé', 'Point de vente';
-SET @op = SCOPE_IDENTITY();
 INSERT INTO PaiementsPos (TenantId, CommandePosId, ModePaiementId, Libelle, MontantRecu, Montant, OperationCaisseId)
-    SELECT @t, @cmd, Id, Libelle, 6000, 6000, @op FROM ModesPaiement WHERE Id = @mm;
+    SELECT @t, @cmd, Id, Libelle, 6000, 6000, NULL FROM ModesPaiement WHERE Id = @cpt;
 INSERT INTO CommandesPos (TenantId, Numero, CleClient, JourneeCaisseId, ClientId, UtilisateurId, DateCommande, TotalHT, TotalTVA, TotalTTC, MontantRecu, MonnaieRendue, Statut, RemiseGlobale, Pourboire)
     SELECT @t, 'POS-' + @code + '-' + FORMAT(DATEADD(DAY, -4, GETDATE()), 'yyyyMMdd') + '-D002', 'demo-lav-' + 'POS-' + @code + '-' + FORMAT(DATEADD(DAY, -4, GETDATE()), 'yyyyMMdd') + '-D002', @j, (SELECT MIN(Id) FROM Clients WHERE TenantId = @t AND CodeClient = 'LAVC001'), @caissier, DATEADD(MINUTE, 700, CAST(DATEADD(DAY, -4, CAST(GETDATE() AS date)) AS datetime2)), 52119, 9381, 61500, 61500, 0, N'Payée', 0, 0;
 SET @cmd = SCOPE_IDENTITY();
@@ -330,11 +329,8 @@ INSERT INTO LignesCommandePos (TenantId, CommandePosId, ProduitId, Libelle, Quan
     SELECT @t, @cmd, Id, Nom, 1, 1500, 0, 18, 1500, 0 FROM Produits WHERE TenantId = @t AND Code = 'OPT04';
 SET @l = SCOPE_IDENTITY();
 INSERT INTO LignesCommandePosTaxes (TenantId, LigneCommandePosId, TaxeId, Code, Taux, Montant) SELECT @t, @l, @tva, 'TVA', 18, 228.81;
-INSERT INTO OperationsCaisses (TenantId, JourneeCaisseId, DateOperation, TypeOperation, Montant, Libelle, ClientId, MotifId, ModePaiementId, UtilisateurId, EstJustifie, StatutValidation, Valideur)
-    SELECT @t, @j, DATEADD(MINUTE, 700, CAST(DATEADD(DAY, -4, CAST(GETDATE() AS date)) AS datetime2)), 'Encaissement', 61500, 'Vente POS ' + 'POS-' + @code + '-' + FORMAT(DATEADD(DAY, -4, GETDATE()), 'yyyyMMdd') + '-D002', (SELECT MIN(Id) FROM Clients WHERE TenantId = @t AND CodeClient = 'LAVC001'), @motif, @cb, @caissier, 1, N'Validé', 'Point de vente';
-SET @op = SCOPE_IDENTITY();
 INSERT INTO PaiementsPos (TenantId, CommandePosId, ModePaiementId, Libelle, MontantRecu, Montant, OperationCaisseId)
-    SELECT @t, @cmd, Id, Libelle, 61500, 61500, @op FROM ModesPaiement WHERE Id = @cb;
+    SELECT @t, @cmd, Id, Libelle, 61500, 61500, NULL FROM ModesPaiement WHERE Id = @cpt;
 INSERT INTO CommandesPos (TenantId, Numero, CleClient, JourneeCaisseId, ClientId, UtilisateurId, DateCommande, TotalHT, TotalTVA, TotalTTC, MontantRecu, MonnaieRendue, Statut, RemiseGlobale, Pourboire)
     SELECT @t, 'POS-' + @code + '-' + FORMAT(DATEADD(DAY, -4, GETDATE()), 'yyyyMMdd') + '-D003', 'demo-lav-' + 'POS-' + @code + '-' + FORMAT(DATEADD(DAY, -4, GETDATE()), 'yyyyMMdd') + '-D003', @j, (SELECT MIN(Id) FROM Clients WHERE TenantId = @t AND CodeClient = 'LAVC003'), @caissier, DATEADD(MINUTE, 905, CAST(DATEADD(DAY, -4, CAST(GETDATE() AS date)) AS datetime2)), 10169, 1831, 12000, 12000, 0, N'Payée', 0, 0;
 SET @cmd = SCOPE_IDENTITY();
@@ -380,7 +376,7 @@ INSERT INTO PaiementsPos (TenantId, CommandePosId, ModePaiementId, Libelle, Mont
 
 -- Journée J-3 (clôturée)
 INSERT INTO JourneesCaisses (TenantId, CaisseId, NumeroJournee, DateJournee, DateOuverture, DateFermeture, SoldeInitial, SoldeFinal, EcartCloture, NoteCloture, Statut)
-    SELECT @t, @caisse, @code + '-' + FORMAT(DATEADD(DAY, -3, GETDATE()), 'yyyyMMdd') + '-DEMO', CAST(DATEADD(DAY, -3, GETDATE()) AS date), DATEADD(MINUTE, 480, CAST(DATEADD(DAY, -3, CAST(GETDATE() AS date)) AS datetime2)), DATEADD(MINUTE, 1170, CAST(DATEADD(DAY, -3, CAST(GETDATE() AS date)) AS datetime2)), 20000, 67500, 0, N'Journée de démonstration', 'Cloturee';
+    SELECT @t, @caisse, @code + '-' + FORMAT(DATEADD(DAY, -3, GETDATE()), 'yyyyMMdd') + '-DEMO', CAST(DATEADD(DAY, -3, GETDATE()) AS date), DATEADD(MINUTE, 480, CAST(DATEADD(DAY, -3, CAST(GETDATE() AS date)) AS datetime2)), DATEADD(MINUTE, 1170, CAST(DATEADD(DAY, -3, CAST(GETDATE() AS date)) AS datetime2)), 20000, 49500, 0, N'Journée de démonstration', 'Cloturee';
 SET @j = SCOPE_IDENTITY();
 INSERT INTO CommandesPos (TenantId, Numero, CleClient, JourneeCaisseId, ClientId, UtilisateurId, DateCommande, TotalHT, TotalTVA, TotalTTC, MontantRecu, MonnaieRendue, Statut, RemiseGlobale, Pourboire)
     SELECT @t, 'POS-' + @code + '-' + FORMAT(DATEADD(DAY, -3, GETDATE()), 'yyyyMMdd') + '-D001', 'demo-lav-' + 'POS-' + @code + '-' + FORMAT(DATEADD(DAY, -3, GETDATE()), 'yyyyMMdd') + '-D001', @j, (SELECT MIN(Id) FROM Clients WHERE TenantId = @t AND CodeClient = 'LAVC003'), @caissier, DATEADD(MINUTE, 560, CAST(DATEADD(DAY, -3, CAST(GETDATE() AS date)) AS datetime2)), 5085, 915, 6000, 6000, 0, N'Payée', 0, 0;
@@ -409,11 +405,8 @@ INSERT INTO LignesCommandePos (TenantId, CommandePosId, ProduitId, Libelle, Quan
     SELECT @t, @cmd, Id, Nom, 1, 2000, 0, 18, 2000, 0 FROM Produits WHERE TenantId = @t AND Code = 'OPT01';
 SET @l = SCOPE_IDENTITY();
 INSERT INTO LignesCommandePosTaxes (TenantId, LigneCommandePosId, TaxeId, Code, Taux, Montant) SELECT @t, @l, @tva, 'TVA', 18, 305.08;
-INSERT INTO OperationsCaisses (TenantId, JourneeCaisseId, DateOperation, TypeOperation, Montant, Libelle, ClientId, MotifId, ModePaiementId, UtilisateurId, EstJustifie, StatutValidation, Valideur)
-    SELECT @t, @j, DATEADD(MINUTE, 760, CAST(DATEADD(DAY, -3, CAST(GETDATE() AS date)) AS datetime2)), 'Encaissement', 18000, 'Vente POS ' + 'POS-' + @code + '-' + FORMAT(DATEADD(DAY, -3, GETDATE()), 'yyyyMMdd') + '-D002', (SELECT MIN(Id) FROM Clients WHERE TenantId = @t AND CodeClient = 'LAVC001'), @motif, @mm, @caissier, 1, N'Validé', 'Point de vente';
-SET @op = SCOPE_IDENTITY();
 INSERT INTO PaiementsPos (TenantId, CommandePosId, ModePaiementId, Libelle, MontantRecu, Montant, OperationCaisseId)
-    SELECT @t, @cmd, Id, Libelle, 18000, 18000, @op FROM ModesPaiement WHERE Id = @mm;
+    SELECT @t, @cmd, Id, Libelle, 18000, 18000, NULL FROM ModesPaiement WHERE Id = @cpt;
 INSERT INTO CommandesPos (TenantId, Numero, CleClient, JourneeCaisseId, ClientId, UtilisateurId, DateCommande, TotalHT, TotalTVA, TotalTTC, MontantRecu, MonnaieRendue, Statut, RemiseGlobale, Pourboire)
     SELECT @t, 'POS-' + @code + '-' + FORMAT(DATEADD(DAY, -3, GETDATE()), 'yyyyMMdd') + '-D003', 'demo-lav-' + 'POS-' + @code + '-' + FORMAT(DATEADD(DAY, -3, GETDATE()), 'yyyyMMdd') + '-D003', @j, (SELECT MIN(Id) FROM Clients WHERE TenantId = @t AND CodeClient = 'LAVC002'), @caissier, DATEADD(MINUTE, 880, CAST(DATEADD(DAY, -3, CAST(GETDATE() AS date)) AS datetime2)), 8898, 1602, 10500, 10500, 0, N'Payée', 0, 0;
 SET @cmd = SCOPE_IDENTITY();
@@ -458,7 +451,7 @@ INSERT INTO PaiementsPos (TenantId, CommandePosId, ModePaiementId, Libelle, Mont
 
 -- Journée J-2 (clôturée)
 INSERT INTO JourneesCaisses (TenantId, CaisseId, NumeroJournee, DateJournee, DateOuverture, DateFermeture, SoldeInitial, SoldeFinal, EcartCloture, NoteCloture, Statut)
-    SELECT @t, @caisse, @code + '-' + FORMAT(DATEADD(DAY, -2, GETDATE()), 'yyyyMMdd') + '-DEMO', CAST(DATEADD(DAY, -2, GETDATE()) AS date), DATEADD(MINUTE, 480, CAST(DATEADD(DAY, -2, CAST(GETDATE() AS date)) AS datetime2)), DATEADD(MINUTE, 1170, CAST(DATEADD(DAY, -2, CAST(GETDATE() AS date)) AS datetime2)), 20000, 96000, 0, N'Journée de démonstration', 'Cloturee';
+    SELECT @t, @caisse, @code + '-' + FORMAT(DATEADD(DAY, -2, GETDATE()), 'yyyyMMdd') + '-DEMO', CAST(DATEADD(DAY, -2, GETDATE()) AS date), DATEADD(MINUTE, 480, CAST(DATEADD(DAY, -2, CAST(GETDATE() AS date)) AS datetime2)), DATEADD(MINUTE, 1170, CAST(DATEADD(DAY, -2, CAST(GETDATE() AS date)) AS datetime2)), 20000, 152000, 0, N'Journée de démonstration', 'Cloturee';
 SET @j = SCOPE_IDENTITY();
 INSERT INTO CommandesPos (TenantId, Numero, CleClient, JourneeCaisseId, ClientId, UtilisateurId, DateCommande, TotalHT, TotalTVA, TotalTTC, MontantRecu, MonnaieRendue, Statut, RemiseGlobale, Pourboire)
     SELECT @t, 'POS-' + @code + '-' + FORMAT(DATEADD(DAY, -2, GETDATE()), 'yyyyMMdd') + '-D001', 'demo-lav-' + 'POS-' + @code + '-' + FORMAT(DATEADD(DAY, -2, GETDATE()), 'yyyyMMdd') + '-D001', @j, (SELECT MIN(Id) FROM Clients WHERE TenantId = @t AND CodeClient = 'LAVC002'), @caissier, DATEADD(MINUTE, 600, CAST(DATEADD(DAY, -2, CAST(GETDATE() AS date)) AS datetime2)), 12712, 2288, 15000, 15000, 0, N'Payée', 0, 0;
@@ -499,11 +492,8 @@ INSERT INTO LignesCommandePos (TenantId, CommandePosId, ProduitId, Libelle, Quan
     SELECT @t, @cmd, Id, Nom, 1, 1500, 0, 18, 1500, 0 FROM Produits WHERE TenantId = @t AND Code = 'OPT04';
 SET @l = SCOPE_IDENTITY();
 INSERT INTO LignesCommandePosTaxes (TenantId, LigneCommandePosId, TaxeId, Code, Taux, Montant) SELECT @t, @l, @tva, 'TVA', 18, 228.81;
-INSERT INTO OperationsCaisses (TenantId, JourneeCaisseId, DateOperation, TypeOperation, Montant, Libelle, ClientId, MotifId, ModePaiementId, UtilisateurId, EstJustifie, StatutValidation, Valideur)
-    SELECT @t, @j, DATEADD(MINUTE, 915, CAST(DATEADD(DAY, -2, CAST(GETDATE() AS date)) AS datetime2)), 'Encaissement', 44000, 'Vente POS ' + 'POS-' + @code + '-' + FORMAT(DATEADD(DAY, -2, GETDATE()), 'yyyyMMdd') + '-D003', (SELECT MIN(Id) FROM Clients WHERE TenantId = @t AND CodeClient = 'LAVC001'), @motif, @esp, @caissier, 1, N'Validé', 'Point de vente';
-SET @op = SCOPE_IDENTITY();
 INSERT INTO PaiementsPos (TenantId, CommandePosId, ModePaiementId, Libelle, MontantRecu, Montant, OperationCaisseId)
-    SELECT @t, @cmd, Id, Libelle, 44000, 44000, @op FROM ModesPaiement WHERE Id = @esp;
+    SELECT @t, @cmd, Id, Libelle, 44000, 44000, NULL FROM ModesPaiement WHERE Id = @cpt;
 INSERT INTO CommandesPos (TenantId, Numero, CleClient, JourneeCaisseId, ClientId, UtilisateurId, DateCommande, TotalHT, TotalTVA, TotalTTC, MontantRecu, MonnaieRendue, Statut, RemiseGlobale, Pourboire)
     SELECT @t, 'POS-' + @code + '-' + FORMAT(DATEADD(DAY, -2, GETDATE()), 'yyyyMMdd') + '-D004', 'demo-lav-' + 'POS-' + @code + '-' + FORMAT(DATEADD(DAY, -2, GETDATE()), 'yyyyMMdd') + '-D004', @j, (SELECT MIN(Id) FROM Clients WHERE TenantId = @t AND CodeClient = 'LAVC003'), @caissier, DATEADD(MINUTE, 1100, CAST(DATEADD(DAY, -2, CAST(GETDATE() AS date)) AS datetime2)), 5932, 1068, 7000, 7000, 0, N'Payée', 0, 0;
 SET @cmd = SCOPE_IDENTITY();
@@ -529,10 +519,12 @@ INSERT INTO OperationsCaisses (TenantId, JourneeCaisseId, DateOperation, TypeOpe
 SET @op = SCOPE_IDENTITY();
 INSERT INTO PaiementsPos (TenantId, CommandePosId, ModePaiementId, Libelle, MontantRecu, Montant, OperationCaisseId)
     SELECT @t, @cmd, Id, Libelle, 7000, 7000, @op FROM ModesPaiement WHERE Id = @esp;
+INSERT INTO OperationsCaisses (TenantId, JourneeCaisseId, DateOperation, TypeOperation, Montant, Libelle, ClientId, MotifId, ModePaiementId, UtilisateurId, EstJustifie, StatutValidation, Valideur, ReglementCompte)
+    SELECT @t, @j, DATEADD(MINUTE, 1000, CAST(DATEADD(DAY, -2, CAST(GETDATE() AS date)) AS datetime2)), 'Encaissement', 100000, N'Règlement compte client LAVC001 — Hôtel Le Palmier', (SELECT MIN(Id) FROM Clients WHERE TenantId = @t AND CodeClient = 'LAVC001'), @motifRegl, @esp, @caissier, 1, N'Validé', N'Caissière de la laverie', 1;
 
 -- Journée J-1 (clôturée)
 INSERT INTO JourneesCaisses (TenantId, CaisseId, NumeroJournee, DateJournee, DateOuverture, DateFermeture, SoldeInitial, SoldeFinal, EcartCloture, NoteCloture, Statut)
-    SELECT @t, @caisse, @code + '-' + FORMAT(DATEADD(DAY, -1, GETDATE()), 'yyyyMMdd') + '-DEMO', CAST(DATEADD(DAY, -1, GETDATE()) AS date), DATEADD(MINUTE, 480, CAST(DATEADD(DAY, -1, CAST(GETDATE() AS date)) AS datetime2)), DATEADD(MINUTE, 1170, CAST(DATEADD(DAY, -1, CAST(GETDATE() AS date)) AS datetime2)), 20000, 60550, 0, N'Journée de démonstration', 'Cloturee';
+    SELECT @t, @caisse, @code + '-' + FORMAT(DATEADD(DAY, -1, GETDATE()), 'yyyyMMdd') + '-DEMO', CAST(DATEADD(DAY, -1, GETDATE()) AS date), DATEADD(MINUTE, 480, CAST(DATEADD(DAY, -1, CAST(GETDATE() AS date)) AS datetime2)), DATEADD(MINUTE, 1170, CAST(DATEADD(DAY, -1, CAST(GETDATE() AS date)) AS datetime2)), 20000, 43050, 0, N'Journée de démonstration', 'Cloturee';
 SET @j = SCOPE_IDENTITY();
 INSERT INTO CommandesPos (TenantId, Numero, CleClient, JourneeCaisseId, ClientId, UtilisateurId, DateCommande, TotalHT, TotalTVA, TotalTTC, MontantRecu, MonnaieRendue, Statut, RemiseGlobale, Pourboire)
     SELECT @t, 'POS-' + @code + '-' + FORMAT(DATEADD(DAY, -1, GETDATE()), 'yyyyMMdd') + '-D001', 'demo-lav-' + 'POS-' + @code + '-' + FORMAT(DATEADD(DAY, -1, GETDATE()), 'yyyyMMdd') + '-D001', @j, (SELECT MIN(Id) FROM Clients WHERE TenantId = @t AND CodeClient = 'LAVC001'), @caissier, DATEADD(MINUTE, 515, CAST(DATEADD(DAY, -1, CAST(GETDATE() AS date)) AS datetime2)), 16949, 3051, 20000, 20000, 0, N'Payée', 0, 0;
@@ -545,11 +537,8 @@ INSERT INTO LignesCommandePos (TenantId, CommandePosId, ProduitId, Libelle, Quan
     SELECT @t, @cmd, Id, Nom, 1, 2000, 0, 18, 2000, 0 FROM Produits WHERE TenantId = @t AND Code = 'OPT01';
 SET @l = SCOPE_IDENTITY();
 INSERT INTO LignesCommandePosTaxes (TenantId, LigneCommandePosId, TaxeId, Code, Taux, Montant) SELECT @t, @l, @tva, 'TVA', 18, 305.08;
-INSERT INTO OperationsCaisses (TenantId, JourneeCaisseId, DateOperation, TypeOperation, Montant, Libelle, ClientId, MotifId, ModePaiementId, UtilisateurId, EstJustifie, StatutValidation, Valideur)
-    SELECT @t, @j, DATEADD(MINUTE, 515, CAST(DATEADD(DAY, -1, CAST(GETDATE() AS date)) AS datetime2)), 'Encaissement', 20000, 'Vente POS ' + 'POS-' + @code + '-' + FORMAT(DATEADD(DAY, -1, GETDATE()), 'yyyyMMdd') + '-D001', (SELECT MIN(Id) FROM Clients WHERE TenantId = @t AND CodeClient = 'LAVC001'), @motif, @cb, @caissier, 1, N'Validé', 'Point de vente';
-SET @op = SCOPE_IDENTITY();
 INSERT INTO PaiementsPos (TenantId, CommandePosId, ModePaiementId, Libelle, MontantRecu, Montant, OperationCaisseId)
-    SELECT @t, @cmd, Id, Libelle, 20000, 20000, @op FROM ModesPaiement WHERE Id = @cb;
+    SELECT @t, @cmd, Id, Libelle, 20000, 20000, NULL FROM ModesPaiement WHERE Id = @cpt;
 INSERT INTO CommandesPos (TenantId, Numero, CleClient, JourneeCaisseId, ClientId, UtilisateurId, DateCommande, TotalHT, TotalTVA, TotalTTC, MontantRecu, MonnaieRendue, Statut, RemiseGlobale, Pourboire)
     SELECT @t, 'POS-' + @code + '-' + FORMAT(DATEADD(DAY, -1, GETDATE()), 'yyyyMMdd') + '-D002', 'demo-lav-' + 'POS-' + @code + '-' + FORMAT(DATEADD(DAY, -1, GETDATE()), 'yyyyMMdd') + '-D002', @j, (SELECT MIN(Id) FROM Clients WHERE TenantId = @t AND CodeClient = 'LAVC003'), @caissier, DATEADD(MINUTE, 690, CAST(DATEADD(DAY, -1, CAST(GETDATE() AS date)) AS datetime2)), 4449, 801, 5250, 5250, 0, N'Payée', 0, 0;
 SET @cmd = SCOPE_IDENTITY();
@@ -598,11 +587,10 @@ UPDATE StocksDepots SET Quantite = Quantite - 2 WHERE DepotId = @dep AND Produit
 INSERT INTO MouvementsStock (TenantId, ProduitId, DateMouvement, TypeMouvement, Quantite, StockApres, Reference, CommandePosId, UtilisateurId, DepotId, Commentaire)
     SELECT @t, p.Id, DATEADD(MINUTE, 1040, CAST(DATEADD(DAY, -1, CAST(GETDATE() AS date)) AS datetime2)), 'Vente', -2, s.Quantite, 'POS-' + @code + '-' + FORMAT(DATEADD(DAY, -1, GETDATE()), 'yyyyMMdd') + '-D004', @cmd, @caissier, @dep, NULL FROM Produits p JOIN StocksDepots s ON s.ProduitId = p.Id AND s.DepotId = @dep
     WHERE p.TenantId = @t AND p.Code = 'PRO04';
-INSERT INTO OperationsCaisses (TenantId, JourneeCaisseId, DateOperation, TypeOperation, Montant, Libelle, ClientId, MotifId, ModePaiementId, UtilisateurId, EstJustifie, StatutValidation, Valideur)
-    SELECT @t, @j, DATEADD(MINUTE, 1040, CAST(DATEADD(DAY, -1, CAST(GETDATE() AS date)) AS datetime2)), 'Encaissement', 7500, 'Vente POS ' + 'POS-' + @code + '-' + FORMAT(DATEADD(DAY, -1, GETDATE()), 'yyyyMMdd') + '-D004', (SELECT MIN(Id) FROM Clients WHERE TenantId = @t AND CodeClient = 'LAVC002'), @motif, @mm, @caissier, 1, N'Validé', 'Point de vente';
-SET @op = SCOPE_IDENTITY();
 INSERT INTO PaiementsPos (TenantId, CommandePosId, ModePaiementId, Libelle, MontantRecu, Montant, OperationCaisseId)
-    SELECT @t, @cmd, Id, Libelle, 7500, 7500, @op FROM ModesPaiement WHERE Id = @mm;
+    SELECT @t, @cmd, Id, Libelle, 7500, 7500, NULL FROM ModesPaiement WHERE Id = @cpt;
+INSERT INTO OperationsCaisses (TenantId, JourneeCaisseId, DateOperation, TypeOperation, Montant, Libelle, ClientId, MotifId, ModePaiementId, UtilisateurId, EstJustifie, StatutValidation, Valideur, ReglementCompte)
+    SELECT @t, @j, DATEADD(MINUTE, 1100, CAST(DATEADD(DAY, -1, CAST(GETDATE() AS date)) AS datetime2)), 'Encaissement', 10000, N'Règlement compte client LAVC002 — Nadia Ondo', (SELECT MIN(Id) FROM Clients WHERE TenantId = @t AND CodeClient = 'LAVC002'), @motifRegl, @mm, @caissier, 1, N'Validé', N'Caissière de la laverie', 1;
 END
 
 COMMIT TRANSACTION;

@@ -71,8 +71,67 @@ function journee_details(): void
         'operations' => $operations,
         'clients' => q('SELECT Id, NomSociete FROM Clients WHERE ' . tf() . ' ORDER BY NomSociete'),
         'motifs' => q('SELECT ID, LibelleMotif FROM Motifs WHERE ' . tf() . ' ORDER BY LibelleMotif'),
-        'modes' => q('SELECT Id, Libelle FROM ModesPaiement WHERE Actif = 1 AND ' . tf() . ' ORDER BY Libelle'),
+        // Le paiement par compte n'est pas un mouvement de caisse : absent des opérations et des règlements.
+        'modes' => q('SELECT Id, Libelle FROM ModesPaiement WHERE Actif = 1 AND EstCompte = 0 AND ' . tf() . ' ORDER BY Libelle'),
+        'clientsEnCompte' => journee_clients_en_compte((int) $journee['TenantId']),
     ]);
+}
+
+/** Clients en compte de la société avec leur solde dû (règlement client). */
+function journee_clients_en_compte(int $tenant): array
+{
+    $soldes = compte_soldes($tenant);
+    return array_map(fn($c) => $c + ['Du' => $soldes[(int) $c['Id']] ?? 0.0],
+        q('SELECT Id, CodeClient, NomSociete FROM Clients WHERE EnCompte = 1 AND TenantId = ? ORDER BY NomSociete', [$tenant]));
+}
+
+/**
+ * Règlement d'un client en compte : encaissement de la journée (motif « Règlement client »)
+ * qui diminue son solde dû. Montant limité au solde dû.
+ */
+function journee_reglement(): void
+{
+    $journee = journee_charger((int) post('journeeId'));
+    $retour = fn() => redirect('journee/details', ['id' => $journee['Id']]);
+    if ($journee['Statut'] === 'Cloturee') {
+        flash('danger', 'Cette journée est clôturée. Aucune opération autorisée.');
+        $retour();
+    }
+    $tenant = (int) $journee['TenantId'];
+    $client = q1('SELECT * FROM Clients WHERE Id = ? AND TenantId = ? AND EnCompte = 1', [(int) post('clientId'), $tenant]);
+    $mode = q1('SELECT * FROM ModesPaiement WHERE Id = ? AND TenantId = ? AND Actif = 1 AND EstCompte = 0', [(int) post('modePaiementId'), $tenant]);
+    $montant = round(montant(post('montant')));
+    if (!$client) {
+        flash('danger', 'Choisissez un client en compte.');
+        $retour();
+    }
+    if (!$mode) {
+        flash('danger', 'Choisissez le mode de paiement du règlement.');
+        $retour();
+    }
+    $du = compte_solde($tenant, (int) $client['Id']);
+    if ($montant <= 0) {
+        flash('danger', 'Le montant doit être supérieur à zéro.');
+        $retour();
+    }
+    if ($montant > round($du)) {
+        flash('danger', 'Le montant dépasse le solde dû de « ' . $client['NomSociete'] . ' » (' . fcfa(max(0, $du)) . ' FCFA).');
+        $retour();
+    }
+    $motif = qv("SELECT ID FROM Motifs WHERE LibelleMotif = 'Règlement client' AND TenantId = ?", [$tenant])
+        ?: run("INSERT INTO Motifs (LibelleMotif, TypeModif, TenantId) VALUES ('Règlement client', 'Client', ?)", [$tenant]);
+    // Comme une opération saisie : validée d'office pour un utilisateur autorisé à valider.
+    $statut = peut_valider() ? 'Validé' : 'En attente';
+    run(
+        'INSERT INTO OperationsCaisses
+            (TenantId, JourneeCaisseId, DateOperation, TypeOperation, Montant, Libelle, ClientId, MotifId,
+             ModePaiementId, UtilisateurId, EstJustifie, StatutValidation, Valideur, Observation, ReglementCompte)
+         VALUES (?, ?, NOW(), \'Encaissement\', ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, 1)',
+        [$tenant, $journee['Id'], $montant, 'Règlement compte client ' . $client['CodeClient'] . ' — ' . $client['NomSociete'],
+         $client['Id'], $motif, $mode['Id'], user()['id'], $statut, $statut === 'Validé' ? user()['nomComplet'] : null, post('observation') ?: null]
+    );
+    flash('success', 'Règlement de ' . fcfa($montant) . ' FCFA enregistré pour « ' . $client['NomSociete'] . ' » : reste dû ' . fcfa($du - $montant) . ' FCFA.');
+    $retour();
 }
 
 /** Nouvelle opération (encaissement ou décaissement). */
@@ -89,6 +148,10 @@ function journee_operation(): void
     $montant = montant(post('montant'));
     if ($montant <= 0) {
         flash('danger', 'Le montant doit être supérieur à zéro.');
+        redirect('journee/details', ['id' => $journee['Id']]);
+    }
+    if (qv('SELECT EstCompte FROM ModesPaiement WHERE Id = ?', [(int) post('modePaiementId')])) {
+        flash('danger', 'Le paiement par compte n\'est pas un mouvement de caisse : choisissez un autre mode (pour un client en compte, utilisez « Règlement client »).');
         redirect('journee/details', ['id' => $journee['Id']]);
     }
 

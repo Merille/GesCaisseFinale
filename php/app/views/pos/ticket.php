@@ -66,6 +66,9 @@ $c = $commande;
     <?php if ((float) $c['MonnaieRendue'] > 0): ?>
         <div class="r b"><span>Monnaie rendue</span><span><?= fcfa($c['MonnaieRendue']) ?></span></div>
     <?php endif; ?>
+    <?php if ($soldeCompte !== null): ?>
+        <div class="r b"><span>Solde dû du compte</span><span><?= fcfa($soldeCompte) ?> FCFA</span></div>
+    <?php endif; ?>
     <hr>
     <?php if ($c['Motif']): ?><div>Motif : <?= h($c['Motif']) ?></div><hr><?php endif; ?>
     <div class="c">Merci de votre visite !</div>

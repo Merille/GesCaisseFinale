@@ -43,6 +43,8 @@ public class LigneRapportTiers
     public decimal Decaissements { get; set; }
     public decimal Solde => Encaissements - Decaissements;
     public DateTime? Dernier { get; set; }
+    // Client en compte : solde dû à la fin de la période (null pour les autres tiers).
+    public decimal? Du { get; set; }
 }
 
 public class RapportTiersVM
@@ -54,6 +56,7 @@ public class RapportTiersVM
     public decimal Encaissements => Lignes.Sum(l => l.Encaissements);
     public decimal Decaissements => Lignes.Sum(l => l.Decaissements);
     public decimal Solde => Encaissements - Decaissements;
+    public decimal Du => Lignes.Sum(l => l.Du ?? 0);
 }
 
 // Relevé d'un tiers sur la période : opérations de caisse et ventes du point de vente.
@@ -66,4 +69,17 @@ public class ReleveTiersVM
     public decimal Encaissements { get; set; }
     public decimal Decaissements { get; set; }
     public decimal VentesNettes { get; set; }
+    // Libellés des paiements de chaque vente (Id de la vente → « Espèces, Compte client »).
+    public Dictionary<int, string> Paiements { get; set; } = new();
+    // Client en compte : solde dû au début et à la fin de la période, ventes par compte, règlements.
+    public CompteReleve? Compte { get; set; }
+}
+
+public class CompteReleve
+{
+    public decimal Debut { get; set; }
+    public decimal Fin { get; set; }
+    public decimal Reglements { get; set; }
+    public decimal Ventes => Fin - Debut + Reglements;
+    public decimal? Plafond { get; set; }
 }

@@ -750,3 +750,52 @@ function vente_sans_stock(int $tenant): bool
     return (bool) (qv('SELECT PosVenteSansStock FROM Tenants WHERE Id = ?', [$tenant]) ?? 1);
 }
 
+
+// ---------------------------------------------------------------------------
+// Clients en compte (vente à crédit)
+// ---------------------------------------------------------------------------
+
+/**
+ * Soldes dus des clients en compte : [ClientId => montant]. Solde = ventes payées « par compte »
+ * (retours crédités au compte déduits, ventes annulées exclues) − règlements (hors rejetés).
+ * $client : un seul client ; $au (AAAA-MM-JJ) : solde à la fin de cette journée.
+ */
+function compte_soldes(int $tenant, ?int $client = null, ?string $au = null): array
+{
+    $fv = $fr = '';
+    if ($au !== null) {
+        $fv = ' AND cmd.DateCommande < DATE_ADD(?, INTERVAL 1 DAY)';
+        $fr = ' AND o.DateOperation < DATE_ADD(?, INTERVAL 1 DAY)';
+    }
+    $sql = "SELECT cmd.ClientId AS Id, SUM(p.Montant) AS Montant FROM PaiementsPos p
+            JOIN CommandesPos cmd ON cmd.Id = p.CommandePosId JOIN ModesPaiement m ON m.Id = p.ModePaiementId
+            WHERE m.EstCompte = 1 AND cmd.Statut <> 'Annulée' AND cmd.ClientId IS NOT NULL AND cmd.TenantId = ?$fv"
+        . ($client ? ' AND cmd.ClientId = ?' : '') . ' GROUP BY cmd.ClientId';
+    $pv = $au !== null ? [$tenant, $au] : [$tenant];
+    if ($client) {
+        $pv[] = $client;
+    }
+    $soldes = [];
+    foreach (q($sql, $pv) as $r) {
+        $soldes[(int) $r['Id']] = (float) $r['Montant'];
+    }
+    $sql = "SELECT o.ClientId AS Id, SUM(o.Montant) AS Montant FROM OperationsCaisses o
+            WHERE o.ReglementCompte = 1 AND o.StatutValidation <> 'Rejeté' AND o.ClientId IS NOT NULL AND o.TenantId = ?$fr"
+        . ($client ? ' AND o.ClientId = ?' : '') . ' GROUP BY o.ClientId';
+    foreach (q($sql, $pv) as $r) {
+        $soldes[(int) $r['Id']] = ($soldes[(int) $r['Id']] ?? 0.0) - (float) $r['Montant'];
+    }
+    return $soldes;
+}
+
+/** Solde dû d'un client en compte. */
+function compte_solde(int $tenant, int $client, ?string $au = null): float
+{
+    return compte_soldes($tenant, $client, $au)[$client] ?? 0.0;
+}
+
+/** Mode « Compte client » d'une nouvelle société (vente par compte des clients en compte). */
+function compte_mode_initial(int $tenant): void
+{
+    run("INSERT INTO ModesPaiement (Code, Libelle, Actif, TenantId, EstCompte) VALUES ('CPT', 'Compte client', 1, ?, 1)", [$tenant]);
+}

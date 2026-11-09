@@ -2,8 +2,9 @@
 -- GesCaisse : société de démonstration « Laverie » — MySQL (version PHP)
 -- Société « Laverie Éclat Blanc » avec sa caisse LAV1 de type Laverie, son dépôt, ses modes de paiement,
 -- 6 catégories et 24 articles avec leur image (20 prestations sans suivi de stock et 4 produits
--- en stock), 4 tiers (entreprises et particuliers) et 20 ventes à ces tiers (5 chacun) sur les
--- 5 jours précédant l'exécution, en journées clôturées. La société de démonstration existante
+-- en stock), 4 tiers (entreprises et particuliers, dont 2 clients en compte) et 20 ventes à ces
+-- tiers (5 chacun, dont 7 par compte, et 2 règlements) sur les 5 jours précédant l'exécution,
+-- en journées clôturées. Mode « Compte client » créé. La société de démonstration existante
 -- n'est pas modifiée.
 --
 -- À exécuter sur la base LOCALE de test (jamais en production), après avoir lancé une fois l'application.
@@ -51,6 +52,7 @@ SET @tva = (SELECT MIN(Id) FROM Taxes WHERE TenantId = @t AND Code = 'TVA');
 INSERT INTO ModesPaiement (Code, Libelle, Actif, TenantId) SELECT 'ESP', 'Espèces', 1, @t FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM ModesPaiement WHERE TenantId = @t AND Code = 'ESP');
 INSERT INTO ModesPaiement (Code, Libelle, Actif, TenantId) SELECT 'MM', 'Mobile Money', 1, @t FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM ModesPaiement WHERE TenantId = @t AND Code = 'MM');
 INSERT INTO ModesPaiement (Code, Libelle, Actif, TenantId) SELECT 'CB', 'Carte bancaire', 1, @t FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM ModesPaiement WHERE TenantId = @t AND Code = 'CB');
+INSERT INTO ModesPaiement (Code, Libelle, Actif, TenantId, EstCompte) SELECT 'CPT', 'Compte client', 1, @t, 1 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM ModesPaiement WHERE TenantId = @t AND EstCompte = 1);
 INSERT INTO Motifs (LibelleMotif, TypeModif, TenantId) SELECT 'Vente POS', 'Client', @t FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM Motifs WHERE TenantId = @t AND LibelleMotif = 'Vente POS');
 
 -- Dépôt par défaut et caisse LAV1 de type Laverie (créés seulement si la société n'en a pas encore)
@@ -200,14 +202,14 @@ INSERT INTO ProduitImages (ProduitId, TypeContenu, Donnees) SELECT p.Id, 'image/
     AND NOT EXISTS (SELECT 1 FROM ProduitImages i WHERE i.ProduitId = p.Id);
 UPDATE Produits SET ImageMaj = NOW() WHERE TenantId = @t AND ImageMaj IS NULL AND Code IN ('LAV01', 'LAV02', 'LAV03', 'LAV04', 'PRE01', 'PRE02', 'PRE03', 'PRE04', 'LIN01', 'LIN02', 'LIN03', 'LIN04', 'KIL01', 'KIL02', 'KIL03', 'KIL04', 'OPT01', 'OPT02', 'OPT03', 'OPT04', 'PRO01', 'PRO02', 'PRO03', 'PRO04');
 
--- Tiers : entreprises et particuliers
-INSERT INTO Clients (TenantId, CodeClient, NomSociete, Adresse, Telephone, Type, Genre) SELECT @t, 'LAVC001', 'Hôtel Le Palmier', 'Quartier Glass, Libreville', '+241 01 11 22 33', 'Client', 'Entreprise' FROM DUAL
+-- Tiers : entreprises et particuliers (deux clients en compte, avec plafond de crédit)
+INSERT INTO Clients (TenantId, CodeClient, NomSociete, Adresse, Telephone, Type, Genre, EnCompte, PlafondCredit) SELECT @t, 'LAVC001', 'Hôtel Le Palmier', 'Quartier Glass, Libreville', '+241 01 11 22 33', 'Client', 'Entreprise', 1, 300000 FROM DUAL
     WHERE NOT EXISTS (SELECT 1 FROM Clients WHERE TenantId = @t AND CodeClient = 'LAVC001');
-INSERT INTO Clients (TenantId, CodeClient, NomSociete, Adresse, Telephone, Type, Genre) SELECT @t, 'LAVC002', 'Nadia Ondo', 'Akanda', '+241 06 12 34 56', 'Client', 'Particulier' FROM DUAL
+INSERT INTO Clients (TenantId, CodeClient, NomSociete, Adresse, Telephone, Type, Genre, EnCompte, PlafondCredit) SELECT @t, 'LAVC002', 'Nadia Ondo', 'Akanda', '+241 06 12 34 56', 'Client', 'Particulier', 1, 50000 FROM DUAL
     WHERE NOT EXISTS (SELECT 1 FROM Clients WHERE TenantId = @t AND CodeClient = 'LAVC002');
-INSERT INTO Clients (TenantId, CodeClient, NomSociete, Adresse, Telephone, Type, Genre) SELECT @t, 'LAVC003', 'Pierre Nguema', 'Owendo', '+241 07 65 43 21', 'Client', 'Particulier' FROM DUAL
+INSERT INTO Clients (TenantId, CodeClient, NomSociete, Adresse, Telephone, Type, Genre, EnCompte, PlafondCredit) SELECT @t, 'LAVC003', 'Pierre Nguema', 'Owendo', '+241 07 65 43 21', 'Client', 'Particulier', 0, NULL FROM DUAL
     WHERE NOT EXISTS (SELECT 1 FROM Clients WHERE TenantId = @t AND CodeClient = 'LAVC003');
-INSERT INTO Clients (TenantId, CodeClient, NomSociete, Adresse, Telephone, Type, Genre) SELECT @t, 'LAVF001', 'Chimie Propre SARL', 'Zone industrielle d''Oloumi', '+241 01 44 55 66', 'Fournisseur', 'Entreprise' FROM DUAL
+INSERT INTO Clients (TenantId, CodeClient, NomSociete, Adresse, Telephone, Type, Genre, EnCompte, PlafondCredit) SELECT @t, 'LAVF001', 'Chimie Propre SARL', 'Zone industrielle d''Oloumi', '+241 01 44 55 66', 'Fournisseur', 'Entreprise', 0, NULL FROM DUAL
     WHERE NOT EXISTS (SELECT 1 FROM Clients WHERE TenantId = @t AND CodeClient = 'LAVF001');
 
 -- Ventes de démonstration aux tiers (une seule fois : ignorées si elles existent déjà)
@@ -218,12 +220,15 @@ SET @code = (SELECT ChkCode FROM Caisses WHERE ID = @caisse);
 SET @esp = COALESCE((SELECT MIN(Id) FROM ModesPaiement WHERE TenantId = @t AND Code = 'ESP'), (SELECT MIN(Id) FROM ModesPaiement WHERE TenantId = @t AND Actif = 1));
 SET @mm = COALESCE((SELECT MIN(Id) FROM ModesPaiement WHERE TenantId = @t AND Code = 'MM'), (SELECT MIN(Id) FROM ModesPaiement WHERE TenantId = @t AND Actif = 1));
 SET @cb = COALESCE((SELECT MIN(Id) FROM ModesPaiement WHERE TenantId = @t AND Code = 'CB'), (SELECT MIN(Id) FROM ModesPaiement WHERE TenantId = @t AND Actif = 1));
+SET @cpt = (SELECT MIN(Id) FROM ModesPaiement WHERE TenantId = @t AND EstCompte = 1);
 SET @motif = (SELECT MIN(ID) FROM Motifs WHERE TenantId = @t AND LibelleMotif = 'Vente POS');
+INSERT INTO Motifs (LibelleMotif, TypeModif, TenantId) SELECT 'Règlement client', 'Client', @t FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM Motifs WHERE TenantId = @t AND LibelleMotif = 'Règlement client');
+SET @motifRegl = (SELECT MIN(ID) FROM Motifs WHERE TenantId = @t AND LibelleMotif = 'Règlement client');
 SET @ventes = (SELECT COUNT(*) FROM CommandesPos WHERE TenantId = @t AND CleClient LIKE 'demo-lav-%');
 
 -- Journée J-5 (clôturée)
 INSERT INTO JourneesCaisses (TenantId, CaisseId, NumeroJournee, DateJournee, DateOuverture, DateFermeture, SoldeInitial, SoldeFinal, EcartCloture, NoteCloture, Statut)
-    SELECT @t, @caisse, CONCAT(@code, '-', DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 5 DAY), '%Y%m%d'), '-DEMO'), DATE_SUB(CURDATE(), INTERVAL 5 DAY), (DATE_SUB(CURDATE(), INTERVAL 5 DAY) + INTERVAL 480 MINUTE), (DATE_SUB(CURDATE(), INTERVAL 5 DAY) + INTERVAL 1170 MINUTE), 20000, 71400, 0, 'Journée de démonstration', 'Cloturee' FROM DUAL WHERE @ventes = 0;
+    SELECT @t, @caisse, CONCAT(@code, '-', DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 5 DAY), '%Y%m%d'), '-DEMO'), DATE_SUB(CURDATE(), INTERVAL 5 DAY), (DATE_SUB(CURDATE(), INTERVAL 5 DAY) + INTERVAL 480 MINUTE), (DATE_SUB(CURDATE(), INTERVAL 5 DAY) + INTERVAL 1170 MINUTE), 20000, 45400, 0, 'Journée de démonstration', 'Cloturee' FROM DUAL WHERE @ventes = 0;
 SET @j = LAST_INSERT_ID();
 INSERT INTO CommandesPos (TenantId, Numero, CleClient, JourneeCaisseId, ClientId, UtilisateurId, DateCommande, TotalHT, TotalTVA, TotalTTC, MontantRecu, MonnaieRendue, Statut, RemiseGlobale, Pourboire)
     SELECT @t, CONCAT('POS-', @code, '-', DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 5 DAY), '%Y%m%d'), '-D001'), CONCAT('demo-lav-', CONCAT('POS-', @code, '-', DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 5 DAY), '%Y%m%d'), '-D001')), @j, (SELECT MIN(Id) FROM Clients WHERE TenantId = @t AND CodeClient = 'LAVC001'), @caissier, (DATE_SUB(CURDATE(), INTERVAL 5 DAY) + INTERVAL 545 MINUTE), 22034, 3966, 26000, 26000, 0, 'Payée', 0, 0 FROM DUAL WHERE @ventes = 0;
@@ -236,11 +241,8 @@ INSERT INTO LignesCommandePos (TenantId, CommandePosId, ProduitId, Libelle, Quan
     SELECT @t, @cmd, Id, Nom, 4, 2000, 0, 18, 8000, 0 FROM Produits WHERE TenantId = @t AND Code = 'LIN03' AND @ventes = 0;
 SET @l = LAST_INSERT_ID();
 INSERT INTO LignesCommandePosTaxes (TenantId, LigneCommandePosId, TaxeId, Code, Taux, Montant) SELECT @t, @l, @tva, 'TVA', 18, 1220.34 FROM DUAL WHERE @ventes = 0;
-INSERT INTO OperationsCaisses (TenantId, JourneeCaisseId, DateOperation, TypeOperation, Montant, Libelle, ClientId, MotifId, ModePaiementId, UtilisateurId, EstJustifie, StatutValidation, Valideur)
-    SELECT @t, @j, (DATE_SUB(CURDATE(), INTERVAL 5 DAY) + INTERVAL 545 MINUTE), 'Encaissement', 26000, CONCAT('Vente POS ', CONCAT('POS-', @code, '-', DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 5 DAY), '%Y%m%d'), '-D001')), (SELECT MIN(Id) FROM Clients WHERE TenantId = @t AND CodeClient = 'LAVC001'), @motif, @mm, @caissier, 1, 'Validé', 'Point de vente' FROM DUAL WHERE @ventes = 0;
-SET @op = LAST_INSERT_ID();
 INSERT INTO PaiementsPos (TenantId, CommandePosId, ModePaiementId, Libelle, MontantRecu, Montant, OperationCaisseId)
-    SELECT @t, @cmd, Id, Libelle, 26000, 26000, @op FROM ModesPaiement WHERE Id = @mm AND @ventes = 0;
+    SELECT @t, @cmd, Id, Libelle, 26000, 26000, NULL FROM ModesPaiement WHERE Id = @cpt AND @ventes = 0;
 INSERT INTO CommandesPos (TenantId, Numero, CleClient, JourneeCaisseId, ClientId, UtilisateurId, DateCommande, TotalHT, TotalTVA, TotalTTC, MontantRecu, MonnaieRendue, Statut, RemiseGlobale, Pourboire)
     SELECT @t, CONCAT('POS-', @code, '-', DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 5 DAY), '%Y%m%d'), '-D002'), CONCAT('demo-lav-', CONCAT('POS-', @code, '-', DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 5 DAY), '%Y%m%d'), '-D002')), @j, (SELECT MIN(Id) FROM Clients WHERE TenantId = @t AND CodeClient = 'LAVC002'), @caissier, (DATE_SUB(CURDATE(), INTERVAL 5 DAY) + INTERVAL 640 MINUTE), 4576, 824, 5400, 5400, 0, 'Payée', 0, 0 FROM DUAL WHERE @ventes = 0;
 SET @cmd = LAST_INSERT_ID();
@@ -292,7 +294,7 @@ INSERT INTO PaiementsPos (TenantId, CommandePosId, ModePaiementId, Libelle, Mont
 
 -- Journée J-4 (clôturée)
 INSERT INTO JourneesCaisses (TenantId, CaisseId, NumeroJournee, DateJournee, DateOuverture, DateFermeture, SoldeInitial, SoldeFinal, EcartCloture, NoteCloture, Statut)
-    SELECT @t, @caisse, CONCAT(@code, '-', DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 4 DAY), '%Y%m%d'), '-DEMO'), DATE_SUB(CURDATE(), INTERVAL 4 DAY), (DATE_SUB(CURDATE(), INTERVAL 4 DAY) + INTERVAL 480 MINUTE), (DATE_SUB(CURDATE(), INTERVAL 4 DAY) + INTERVAL 1170 MINUTE), 20000, 109500, 0, 'Journée de démonstration', 'Cloturee' FROM DUAL WHERE @ventes = 0;
+    SELECT @t, @caisse, CONCAT(@code, '-', DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 4 DAY), '%Y%m%d'), '-DEMO'), DATE_SUB(CURDATE(), INTERVAL 4 DAY), (DATE_SUB(CURDATE(), INTERVAL 4 DAY) + INTERVAL 480 MINUTE), (DATE_SUB(CURDATE(), INTERVAL 4 DAY) + INTERVAL 1170 MINUTE), 20000, 42000, 0, 'Journée de démonstration', 'Cloturee' FROM DUAL WHERE @ventes = 0;
 SET @j = LAST_INSERT_ID();
 INSERT INTO CommandesPos (TenantId, Numero, CleClient, JourneeCaisseId, ClientId, UtilisateurId, DateCommande, TotalHT, TotalTVA, TotalTTC, MontantRecu, MonnaieRendue, Statut, RemiseGlobale, Pourboire)
     SELECT @t, CONCAT('POS-', @code, '-', DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 4 DAY), '%Y%m%d'), '-D001'), CONCAT('demo-lav-', CONCAT('POS-', @code, '-', DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 4 DAY), '%Y%m%d'), '-D001')), @j, (SELECT MIN(Id) FROM Clients WHERE TenantId = @t AND CodeClient = 'LAVC002'), @caissier, (DATE_SUB(CURDATE(), INTERVAL 4 DAY) + INTERVAL 520 MINUTE), 5085, 915, 6000, 6000, 0, 'Payée', 0, 0 FROM DUAL WHERE @ventes = 0;
@@ -305,11 +307,8 @@ INSERT INTO LignesCommandePos (TenantId, CommandePosId, ProduitId, Libelle, Quan
     SELECT @t, @cmd, Id, Nom, 1, 1000, 0, 18, 1000, 0 FROM Produits WHERE TenantId = @t AND Code = 'OPT02' AND @ventes = 0;
 SET @l = LAST_INSERT_ID();
 INSERT INTO LignesCommandePosTaxes (TenantId, LigneCommandePosId, TaxeId, Code, Taux, Montant) SELECT @t, @l, @tva, 'TVA', 18, 152.54 FROM DUAL WHERE @ventes = 0;
-INSERT INTO OperationsCaisses (TenantId, JourneeCaisseId, DateOperation, TypeOperation, Montant, Libelle, ClientId, MotifId, ModePaiementId, UtilisateurId, EstJustifie, StatutValidation, Valideur)
-    SELECT @t, @j, (DATE_SUB(CURDATE(), INTERVAL 4 DAY) + INTERVAL 520 MINUTE), 'Encaissement', 6000, CONCAT('Vente POS ', CONCAT('POS-', @code, '-', DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 4 DAY), '%Y%m%d'), '-D001')), (SELECT MIN(Id) FROM Clients WHERE TenantId = @t AND CodeClient = 'LAVC002'), @motif, @mm, @caissier, 1, 'Validé', 'Point de vente' FROM DUAL WHERE @ventes = 0;
-SET @op = LAST_INSERT_ID();
 INSERT INTO PaiementsPos (TenantId, CommandePosId, ModePaiementId, Libelle, MontantRecu, Montant, OperationCaisseId)
-    SELECT @t, @cmd, Id, Libelle, 6000, 6000, @op FROM ModesPaiement WHERE Id = @mm AND @ventes = 0;
+    SELECT @t, @cmd, Id, Libelle, 6000, 6000, NULL FROM ModesPaiement WHERE Id = @cpt AND @ventes = 0;
 INSERT INTO CommandesPos (TenantId, Numero, CleClient, JourneeCaisseId, ClientId, UtilisateurId, DateCommande, TotalHT, TotalTVA, TotalTTC, MontantRecu, MonnaieRendue, Statut, RemiseGlobale, Pourboire)
     SELECT @t, CONCAT('POS-', @code, '-', DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 4 DAY), '%Y%m%d'), '-D002'), CONCAT('demo-lav-', CONCAT('POS-', @code, '-', DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 4 DAY), '%Y%m%d'), '-D002')), @j, (SELECT MIN(Id) FROM Clients WHERE TenantId = @t AND CodeClient = 'LAVC001'), @caissier, (DATE_SUB(CURDATE(), INTERVAL 4 DAY) + INTERVAL 700 MINUTE), 52119, 9381, 61500, 61500, 0, 'Payée', 0, 0 FROM DUAL WHERE @ventes = 0;
 SET @cmd = LAST_INSERT_ID();
@@ -325,11 +324,8 @@ INSERT INTO LignesCommandePos (TenantId, CommandePosId, ProduitId, Libelle, Quan
     SELECT @t, @cmd, Id, Nom, 1, 1500, 0, 18, 1500, 0 FROM Produits WHERE TenantId = @t AND Code = 'OPT04' AND @ventes = 0;
 SET @l = LAST_INSERT_ID();
 INSERT INTO LignesCommandePosTaxes (TenantId, LigneCommandePosId, TaxeId, Code, Taux, Montant) SELECT @t, @l, @tva, 'TVA', 18, 228.81 FROM DUAL WHERE @ventes = 0;
-INSERT INTO OperationsCaisses (TenantId, JourneeCaisseId, DateOperation, TypeOperation, Montant, Libelle, ClientId, MotifId, ModePaiementId, UtilisateurId, EstJustifie, StatutValidation, Valideur)
-    SELECT @t, @j, (DATE_SUB(CURDATE(), INTERVAL 4 DAY) + INTERVAL 700 MINUTE), 'Encaissement', 61500, CONCAT('Vente POS ', CONCAT('POS-', @code, '-', DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 4 DAY), '%Y%m%d'), '-D002')), (SELECT MIN(Id) FROM Clients WHERE TenantId = @t AND CodeClient = 'LAVC001'), @motif, @cb, @caissier, 1, 'Validé', 'Point de vente' FROM DUAL WHERE @ventes = 0;
-SET @op = LAST_INSERT_ID();
 INSERT INTO PaiementsPos (TenantId, CommandePosId, ModePaiementId, Libelle, MontantRecu, Montant, OperationCaisseId)
-    SELECT @t, @cmd, Id, Libelle, 61500, 61500, @op FROM ModesPaiement WHERE Id = @cb AND @ventes = 0;
+    SELECT @t, @cmd, Id, Libelle, 61500, 61500, NULL FROM ModesPaiement WHERE Id = @cpt AND @ventes = 0;
 INSERT INTO CommandesPos (TenantId, Numero, CleClient, JourneeCaisseId, ClientId, UtilisateurId, DateCommande, TotalHT, TotalTVA, TotalTTC, MontantRecu, MonnaieRendue, Statut, RemiseGlobale, Pourboire)
     SELECT @t, CONCAT('POS-', @code, '-', DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 4 DAY), '%Y%m%d'), '-D003'), CONCAT('demo-lav-', CONCAT('POS-', @code, '-', DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 4 DAY), '%Y%m%d'), '-D003')), @j, (SELECT MIN(Id) FROM Clients WHERE TenantId = @t AND CodeClient = 'LAVC003'), @caissier, (DATE_SUB(CURDATE(), INTERVAL 4 DAY) + INTERVAL 905 MINUTE), 10169, 1831, 12000, 12000, 0, 'Payée', 0, 0 FROM DUAL WHERE @ventes = 0;
 SET @cmd = LAST_INSERT_ID();
@@ -375,7 +371,7 @@ INSERT INTO PaiementsPos (TenantId, CommandePosId, ModePaiementId, Libelle, Mont
 
 -- Journée J-3 (clôturée)
 INSERT INTO JourneesCaisses (TenantId, CaisseId, NumeroJournee, DateJournee, DateOuverture, DateFermeture, SoldeInitial, SoldeFinal, EcartCloture, NoteCloture, Statut)
-    SELECT @t, @caisse, CONCAT(@code, '-', DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 3 DAY), '%Y%m%d'), '-DEMO'), DATE_SUB(CURDATE(), INTERVAL 3 DAY), (DATE_SUB(CURDATE(), INTERVAL 3 DAY) + INTERVAL 480 MINUTE), (DATE_SUB(CURDATE(), INTERVAL 3 DAY) + INTERVAL 1170 MINUTE), 20000, 67500, 0, 'Journée de démonstration', 'Cloturee' FROM DUAL WHERE @ventes = 0;
+    SELECT @t, @caisse, CONCAT(@code, '-', DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 3 DAY), '%Y%m%d'), '-DEMO'), DATE_SUB(CURDATE(), INTERVAL 3 DAY), (DATE_SUB(CURDATE(), INTERVAL 3 DAY) + INTERVAL 480 MINUTE), (DATE_SUB(CURDATE(), INTERVAL 3 DAY) + INTERVAL 1170 MINUTE), 20000, 49500, 0, 'Journée de démonstration', 'Cloturee' FROM DUAL WHERE @ventes = 0;
 SET @j = LAST_INSERT_ID();
 INSERT INTO CommandesPos (TenantId, Numero, CleClient, JourneeCaisseId, ClientId, UtilisateurId, DateCommande, TotalHT, TotalTVA, TotalTTC, MontantRecu, MonnaieRendue, Statut, RemiseGlobale, Pourboire)
     SELECT @t, CONCAT('POS-', @code, '-', DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 3 DAY), '%Y%m%d'), '-D001'), CONCAT('demo-lav-', CONCAT('POS-', @code, '-', DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 3 DAY), '%Y%m%d'), '-D001')), @j, (SELECT MIN(Id) FROM Clients WHERE TenantId = @t AND CodeClient = 'LAVC003'), @caissier, (DATE_SUB(CURDATE(), INTERVAL 3 DAY) + INTERVAL 560 MINUTE), 5085, 915, 6000, 6000, 0, 'Payée', 0, 0 FROM DUAL WHERE @ventes = 0;
@@ -404,11 +400,8 @@ INSERT INTO LignesCommandePos (TenantId, CommandePosId, ProduitId, Libelle, Quan
     SELECT @t, @cmd, Id, Nom, 1, 2000, 0, 18, 2000, 0 FROM Produits WHERE TenantId = @t AND Code = 'OPT01' AND @ventes = 0;
 SET @l = LAST_INSERT_ID();
 INSERT INTO LignesCommandePosTaxes (TenantId, LigneCommandePosId, TaxeId, Code, Taux, Montant) SELECT @t, @l, @tva, 'TVA', 18, 305.08 FROM DUAL WHERE @ventes = 0;
-INSERT INTO OperationsCaisses (TenantId, JourneeCaisseId, DateOperation, TypeOperation, Montant, Libelle, ClientId, MotifId, ModePaiementId, UtilisateurId, EstJustifie, StatutValidation, Valideur)
-    SELECT @t, @j, (DATE_SUB(CURDATE(), INTERVAL 3 DAY) + INTERVAL 760 MINUTE), 'Encaissement', 18000, CONCAT('Vente POS ', CONCAT('POS-', @code, '-', DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 3 DAY), '%Y%m%d'), '-D002')), (SELECT MIN(Id) FROM Clients WHERE TenantId = @t AND CodeClient = 'LAVC001'), @motif, @mm, @caissier, 1, 'Validé', 'Point de vente' FROM DUAL WHERE @ventes = 0;
-SET @op = LAST_INSERT_ID();
 INSERT INTO PaiementsPos (TenantId, CommandePosId, ModePaiementId, Libelle, MontantRecu, Montant, OperationCaisseId)
-    SELECT @t, @cmd, Id, Libelle, 18000, 18000, @op FROM ModesPaiement WHERE Id = @mm AND @ventes = 0;
+    SELECT @t, @cmd, Id, Libelle, 18000, 18000, NULL FROM ModesPaiement WHERE Id = @cpt AND @ventes = 0;
 INSERT INTO CommandesPos (TenantId, Numero, CleClient, JourneeCaisseId, ClientId, UtilisateurId, DateCommande, TotalHT, TotalTVA, TotalTTC, MontantRecu, MonnaieRendue, Statut, RemiseGlobale, Pourboire)
     SELECT @t, CONCAT('POS-', @code, '-', DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 3 DAY), '%Y%m%d'), '-D003'), CONCAT('demo-lav-', CONCAT('POS-', @code, '-', DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 3 DAY), '%Y%m%d'), '-D003')), @j, (SELECT MIN(Id) FROM Clients WHERE TenantId = @t AND CodeClient = 'LAVC002'), @caissier, (DATE_SUB(CURDATE(), INTERVAL 3 DAY) + INTERVAL 880 MINUTE), 8898, 1602, 10500, 10500, 0, 'Payée', 0, 0 FROM DUAL WHERE @ventes = 0;
 SET @cmd = LAST_INSERT_ID();
@@ -453,7 +446,7 @@ INSERT INTO PaiementsPos (TenantId, CommandePosId, ModePaiementId, Libelle, Mont
 
 -- Journée J-2 (clôturée)
 INSERT INTO JourneesCaisses (TenantId, CaisseId, NumeroJournee, DateJournee, DateOuverture, DateFermeture, SoldeInitial, SoldeFinal, EcartCloture, NoteCloture, Statut)
-    SELECT @t, @caisse, CONCAT(@code, '-', DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 2 DAY), '%Y%m%d'), '-DEMO'), DATE_SUB(CURDATE(), INTERVAL 2 DAY), (DATE_SUB(CURDATE(), INTERVAL 2 DAY) + INTERVAL 480 MINUTE), (DATE_SUB(CURDATE(), INTERVAL 2 DAY) + INTERVAL 1170 MINUTE), 20000, 96000, 0, 'Journée de démonstration', 'Cloturee' FROM DUAL WHERE @ventes = 0;
+    SELECT @t, @caisse, CONCAT(@code, '-', DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 2 DAY), '%Y%m%d'), '-DEMO'), DATE_SUB(CURDATE(), INTERVAL 2 DAY), (DATE_SUB(CURDATE(), INTERVAL 2 DAY) + INTERVAL 480 MINUTE), (DATE_SUB(CURDATE(), INTERVAL 2 DAY) + INTERVAL 1170 MINUTE), 20000, 152000, 0, 'Journée de démonstration', 'Cloturee' FROM DUAL WHERE @ventes = 0;
 SET @j = LAST_INSERT_ID();
 INSERT INTO CommandesPos (TenantId, Numero, CleClient, JourneeCaisseId, ClientId, UtilisateurId, DateCommande, TotalHT, TotalTVA, TotalTTC, MontantRecu, MonnaieRendue, Statut, RemiseGlobale, Pourboire)
     SELECT @t, CONCAT('POS-', @code, '-', DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 2 DAY), '%Y%m%d'), '-D001'), CONCAT('demo-lav-', CONCAT('POS-', @code, '-', DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 2 DAY), '%Y%m%d'), '-D001')), @j, (SELECT MIN(Id) FROM Clients WHERE TenantId = @t AND CodeClient = 'LAVC002'), @caissier, (DATE_SUB(CURDATE(), INTERVAL 2 DAY) + INTERVAL 600 MINUTE), 12712, 2288, 15000, 15000, 0, 'Payée', 0, 0 FROM DUAL WHERE @ventes = 0;
@@ -494,11 +487,8 @@ INSERT INTO LignesCommandePos (TenantId, CommandePosId, ProduitId, Libelle, Quan
     SELECT @t, @cmd, Id, Nom, 1, 1500, 0, 18, 1500, 0 FROM Produits WHERE TenantId = @t AND Code = 'OPT04' AND @ventes = 0;
 SET @l = LAST_INSERT_ID();
 INSERT INTO LignesCommandePosTaxes (TenantId, LigneCommandePosId, TaxeId, Code, Taux, Montant) SELECT @t, @l, @tva, 'TVA', 18, 228.81 FROM DUAL WHERE @ventes = 0;
-INSERT INTO OperationsCaisses (TenantId, JourneeCaisseId, DateOperation, TypeOperation, Montant, Libelle, ClientId, MotifId, ModePaiementId, UtilisateurId, EstJustifie, StatutValidation, Valideur)
-    SELECT @t, @j, (DATE_SUB(CURDATE(), INTERVAL 2 DAY) + INTERVAL 915 MINUTE), 'Encaissement', 44000, CONCAT('Vente POS ', CONCAT('POS-', @code, '-', DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 2 DAY), '%Y%m%d'), '-D003')), (SELECT MIN(Id) FROM Clients WHERE TenantId = @t AND CodeClient = 'LAVC001'), @motif, @esp, @caissier, 1, 'Validé', 'Point de vente' FROM DUAL WHERE @ventes = 0;
-SET @op = LAST_INSERT_ID();
 INSERT INTO PaiementsPos (TenantId, CommandePosId, ModePaiementId, Libelle, MontantRecu, Montant, OperationCaisseId)
-    SELECT @t, @cmd, Id, Libelle, 44000, 44000, @op FROM ModesPaiement WHERE Id = @esp AND @ventes = 0;
+    SELECT @t, @cmd, Id, Libelle, 44000, 44000, NULL FROM ModesPaiement WHERE Id = @cpt AND @ventes = 0;
 INSERT INTO CommandesPos (TenantId, Numero, CleClient, JourneeCaisseId, ClientId, UtilisateurId, DateCommande, TotalHT, TotalTVA, TotalTTC, MontantRecu, MonnaieRendue, Statut, RemiseGlobale, Pourboire)
     SELECT @t, CONCAT('POS-', @code, '-', DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 2 DAY), '%Y%m%d'), '-D004'), CONCAT('demo-lav-', CONCAT('POS-', @code, '-', DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 2 DAY), '%Y%m%d'), '-D004')), @j, (SELECT MIN(Id) FROM Clients WHERE TenantId = @t AND CodeClient = 'LAVC003'), @caissier, (DATE_SUB(CURDATE(), INTERVAL 2 DAY) + INTERVAL 1100 MINUTE), 5932, 1068, 7000, 7000, 0, 'Payée', 0, 0 FROM DUAL WHERE @ventes = 0;
 SET @cmd = LAST_INSERT_ID();
@@ -524,10 +514,12 @@ INSERT INTO OperationsCaisses (TenantId, JourneeCaisseId, DateOperation, TypeOpe
 SET @op = LAST_INSERT_ID();
 INSERT INTO PaiementsPos (TenantId, CommandePosId, ModePaiementId, Libelle, MontantRecu, Montant, OperationCaisseId)
     SELECT @t, @cmd, Id, Libelle, 7000, 7000, @op FROM ModesPaiement WHERE Id = @esp AND @ventes = 0;
+INSERT INTO OperationsCaisses (TenantId, JourneeCaisseId, DateOperation, TypeOperation, Montant, Libelle, ClientId, MotifId, ModePaiementId, UtilisateurId, EstJustifie, StatutValidation, Valideur, ReglementCompte)
+    SELECT @t, @j, (DATE_SUB(CURDATE(), INTERVAL 2 DAY) + INTERVAL 1000 MINUTE), 'Encaissement', 100000, 'Règlement compte client LAVC001 — Hôtel Le Palmier', (SELECT MIN(Id) FROM Clients WHERE TenantId = @t AND CodeClient = 'LAVC001'), @motifRegl, @esp, @caissier, 1, 'Validé', 'Caissière de la laverie', 1 FROM DUAL WHERE @ventes = 0;
 
 -- Journée J-1 (clôturée)
 INSERT INTO JourneesCaisses (TenantId, CaisseId, NumeroJournee, DateJournee, DateOuverture, DateFermeture, SoldeInitial, SoldeFinal, EcartCloture, NoteCloture, Statut)
-    SELECT @t, @caisse, CONCAT(@code, '-', DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 1 DAY), '%Y%m%d'), '-DEMO'), DATE_SUB(CURDATE(), INTERVAL 1 DAY), (DATE_SUB(CURDATE(), INTERVAL 1 DAY) + INTERVAL 480 MINUTE), (DATE_SUB(CURDATE(), INTERVAL 1 DAY) + INTERVAL 1170 MINUTE), 20000, 60550, 0, 'Journée de démonstration', 'Cloturee' FROM DUAL WHERE @ventes = 0;
+    SELECT @t, @caisse, CONCAT(@code, '-', DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 1 DAY), '%Y%m%d'), '-DEMO'), DATE_SUB(CURDATE(), INTERVAL 1 DAY), (DATE_SUB(CURDATE(), INTERVAL 1 DAY) + INTERVAL 480 MINUTE), (DATE_SUB(CURDATE(), INTERVAL 1 DAY) + INTERVAL 1170 MINUTE), 20000, 43050, 0, 'Journée de démonstration', 'Cloturee' FROM DUAL WHERE @ventes = 0;
 SET @j = LAST_INSERT_ID();
 INSERT INTO CommandesPos (TenantId, Numero, CleClient, JourneeCaisseId, ClientId, UtilisateurId, DateCommande, TotalHT, TotalTVA, TotalTTC, MontantRecu, MonnaieRendue, Statut, RemiseGlobale, Pourboire)
     SELECT @t, CONCAT('POS-', @code, '-', DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 1 DAY), '%Y%m%d'), '-D001'), CONCAT('demo-lav-', CONCAT('POS-', @code, '-', DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 1 DAY), '%Y%m%d'), '-D001')), @j, (SELECT MIN(Id) FROM Clients WHERE TenantId = @t AND CodeClient = 'LAVC001'), @caissier, (DATE_SUB(CURDATE(), INTERVAL 1 DAY) + INTERVAL 515 MINUTE), 16949, 3051, 20000, 20000, 0, 'Payée', 0, 0 FROM DUAL WHERE @ventes = 0;
@@ -540,11 +532,8 @@ INSERT INTO LignesCommandePos (TenantId, CommandePosId, ProduitId, Libelle, Quan
     SELECT @t, @cmd, Id, Nom, 1, 2000, 0, 18, 2000, 0 FROM Produits WHERE TenantId = @t AND Code = 'OPT01' AND @ventes = 0;
 SET @l = LAST_INSERT_ID();
 INSERT INTO LignesCommandePosTaxes (TenantId, LigneCommandePosId, TaxeId, Code, Taux, Montant) SELECT @t, @l, @tva, 'TVA', 18, 305.08 FROM DUAL WHERE @ventes = 0;
-INSERT INTO OperationsCaisses (TenantId, JourneeCaisseId, DateOperation, TypeOperation, Montant, Libelle, ClientId, MotifId, ModePaiementId, UtilisateurId, EstJustifie, StatutValidation, Valideur)
-    SELECT @t, @j, (DATE_SUB(CURDATE(), INTERVAL 1 DAY) + INTERVAL 515 MINUTE), 'Encaissement', 20000, CONCAT('Vente POS ', CONCAT('POS-', @code, '-', DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 1 DAY), '%Y%m%d'), '-D001')), (SELECT MIN(Id) FROM Clients WHERE TenantId = @t AND CodeClient = 'LAVC001'), @motif, @cb, @caissier, 1, 'Validé', 'Point de vente' FROM DUAL WHERE @ventes = 0;
-SET @op = LAST_INSERT_ID();
 INSERT INTO PaiementsPos (TenantId, CommandePosId, ModePaiementId, Libelle, MontantRecu, Montant, OperationCaisseId)
-    SELECT @t, @cmd, Id, Libelle, 20000, 20000, @op FROM ModesPaiement WHERE Id = @cb AND @ventes = 0;
+    SELECT @t, @cmd, Id, Libelle, 20000, 20000, NULL FROM ModesPaiement WHERE Id = @cpt AND @ventes = 0;
 INSERT INTO CommandesPos (TenantId, Numero, CleClient, JourneeCaisseId, ClientId, UtilisateurId, DateCommande, TotalHT, TotalTVA, TotalTTC, MontantRecu, MonnaieRendue, Statut, RemiseGlobale, Pourboire)
     SELECT @t, CONCAT('POS-', @code, '-', DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 1 DAY), '%Y%m%d'), '-D002'), CONCAT('demo-lav-', CONCAT('POS-', @code, '-', DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 1 DAY), '%Y%m%d'), '-D002')), @j, (SELECT MIN(Id) FROM Clients WHERE TenantId = @t AND CodeClient = 'LAVC003'), @caissier, (DATE_SUB(CURDATE(), INTERVAL 1 DAY) + INTERVAL 690 MINUTE), 4449, 801, 5250, 5250, 0, 'Payée', 0, 0 FROM DUAL WHERE @ventes = 0;
 SET @cmd = LAST_INSERT_ID();
@@ -593,11 +582,10 @@ UPDATE StocksDepots SET Quantite = Quantite - 2 WHERE DepotId = @dep AND Produit
 INSERT INTO MouvementsStock (TenantId, ProduitId, DateMouvement, TypeMouvement, Quantite, StockApres, Reference, CommandePosId, UtilisateurId, DepotId, Commentaire)
     SELECT @t, p.Id, (DATE_SUB(CURDATE(), INTERVAL 1 DAY) + INTERVAL 1040 MINUTE), 'Vente', -2, s.Quantite, CONCAT('POS-', @code, '-', DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 1 DAY), '%Y%m%d'), '-D004'), @cmd, @caissier, @dep, NULL FROM Produits p JOIN StocksDepots s ON s.ProduitId = p.Id AND s.DepotId = @dep
     WHERE p.TenantId = @t AND p.Code = 'PRO04' AND @ventes = 0;
-INSERT INTO OperationsCaisses (TenantId, JourneeCaisseId, DateOperation, TypeOperation, Montant, Libelle, ClientId, MotifId, ModePaiementId, UtilisateurId, EstJustifie, StatutValidation, Valideur)
-    SELECT @t, @j, (DATE_SUB(CURDATE(), INTERVAL 1 DAY) + INTERVAL 1040 MINUTE), 'Encaissement', 7500, CONCAT('Vente POS ', CONCAT('POS-', @code, '-', DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 1 DAY), '%Y%m%d'), '-D004')), (SELECT MIN(Id) FROM Clients WHERE TenantId = @t AND CodeClient = 'LAVC002'), @motif, @mm, @caissier, 1, 'Validé', 'Point de vente' FROM DUAL WHERE @ventes = 0;
-SET @op = LAST_INSERT_ID();
 INSERT INTO PaiementsPos (TenantId, CommandePosId, ModePaiementId, Libelle, MontantRecu, Montant, OperationCaisseId)
-    SELECT @t, @cmd, Id, Libelle, 7500, 7500, @op FROM ModesPaiement WHERE Id = @mm AND @ventes = 0;
+    SELECT @t, @cmd, Id, Libelle, 7500, 7500, NULL FROM ModesPaiement WHERE Id = @cpt AND @ventes = 0;
+INSERT INTO OperationsCaisses (TenantId, JourneeCaisseId, DateOperation, TypeOperation, Montant, Libelle, ClientId, MotifId, ModePaiementId, UtilisateurId, EstJustifie, StatutValidation, Valideur, ReglementCompte)
+    SELECT @t, @j, (DATE_SUB(CURDATE(), INTERVAL 1 DAY) + INTERVAL 1100 MINUTE), 'Encaissement', 10000, 'Règlement compte client LAVC002 — Nadia Ondo', (SELECT MIN(Id) FROM Clients WHERE TenantId = @t AND CodeClient = 'LAVC002'), @motifRegl, @mm, @caissier, 1, 'Validé', 'Caissière de la laverie', 1 FROM DUAL WHERE @ventes = 0;
 
 COMMIT;
 SELECT 'Société de démonstration « Laverie » prête : connectez-vous avec le compte laverie (mot de passe 123).' AS Resultat;

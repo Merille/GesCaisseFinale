@@ -103,6 +103,10 @@
         {
             <div class="r b"><span>Monnaie rendue</span><span>@Fcfa(c.MonnaieRendue)</span></div>
         }
+        @if (ViewBag.SoldeCompte is decimal soldeCompte)
+        {
+            <div class="r b"><span>Solde dû du compte</span><span>@Fcfa(soldeCompte) FCFA</span></div>
+        }
         <hr />
         @if (!string.IsNullOrEmpty(c.Motif))
         {

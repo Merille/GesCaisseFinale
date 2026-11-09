@@ -5,6 +5,11 @@ require_once __DIR__ . '/../xlsx.php';
 
 const CLIENT_CHAMPS = [
     'CodeClient', 'NomSociete', 'Adresse', 'Telephone', 'Email', 'Type', 'CompteGeneral',
+    'NomContact', 'FonctionContact', 'TelephoneContact', 'EmailContact', 'Genre', 'EnCompte', 'PlafondCredit',
+];
+// Champs texte (recherche dans la liste et l'export).
+const CLIENT_CHAMPS_TEXTE = [
+    'CodeClient', 'NomSociete', 'Adresse', 'Telephone', 'Email', 'Type', 'CompteGeneral',
     'NomContact', 'FonctionContact', 'TelephoneContact', 'EmailContact', 'Genre',
 ];
 
@@ -21,8 +26,20 @@ const CLIENT_COLONNES_EXCEL = [
     'CodeClient' => 'Code', 'NomSociete' => 'Société', 'NomContact' => 'Contact', 'Telephone' => 'Téléphone',
     'EmailContact' => 'EmailContact', 'Adresse' => 'Adresse', 'Email' => 'Email', 'Type' => 'Type',
     'FonctionContact' => 'FonctionContact', 'TelephoneContact' => 'TelephoneContact', 'CompteGeneral' => 'CompteGeneral',
-    'Genre' => 'Genre',
+    'Genre' => 'Genre', 'EnCompte' => 'EnCompte', 'PlafondCredit' => 'PlafondCredit',
 ];
+
+/** Client en compte : case cochée, « Oui », « 1 »… ; plafond de crédit vide = sans plafond. */
+function client_en_compte(mixed $v): int
+{
+    return in_array(mb_strtolower(trim((string) $v)), ['1', 'oui', 'true', 'vrai', 'on', 'x'], true) ? 1 : 0;
+}
+
+function client_plafond(mixed $v): ?float
+{
+    $v = trim((string) $v);
+    return $v === '' ? null : max(0.0, round(montant($v), 2));
+}
 
 /** Condition de recherche et ses paramètres (liste, comptage et export). */
 function client_filtre(string $search, bool $etendue): array
@@ -30,7 +47,7 @@ function client_filtre(string $search, bool $etendue): array
     $sql = tf();
     $p = [];
     if ($search !== '') {
-        $champs = $etendue ? CLIENT_CHAMPS : ['CodeClient', 'NomSociete', 'NomContact', 'Telephone', 'Type'];
+        $champs = $etendue ? CLIENT_CHAMPS_TEXTE : ['CodeClient', 'NomSociete', 'NomContact', 'Telephone', 'Type'];
         $conds = [];
         foreach ($champs as $i => $c) {
             $conds[] = "$c LIKE :s$i";
@@ -51,7 +68,12 @@ function client_index(): void
 {
     [$where, $p] = client_filtre('', false);
     $clients = q('SELECT * FROM Clients WHERE ' . $where . ' ORDER BY NomSociete, Id', $p);
-    render('client/index', ['clients' => $clients]);
+    // Solde dû des clients en compte (société consultée ; toutes pour le super-administrateur).
+    $soldes = [];
+    foreach (array_unique(array_column($clients, 'TenantId')) as $t) {
+        $soldes += compte_soldes((int) $t);
+    }
+    render('client/index', ['clients' => $clients, 'soldes' => $soldes]);
 }
 
 function client_charger(int $id): array
@@ -70,6 +92,8 @@ function client_valeurs(): array
         $v[$c] = (string) post($c, '');
     }
     $v['Genre'] = client_genre($v['Genre']);
+    $v['EnCompte'] = client_en_compte($v['EnCompte']);
+    $v['PlafondCredit'] = client_plafond($v['PlafondCredit']);
     return $v;
 }
 
@@ -133,7 +157,11 @@ function client_export(): void
     foreach (client_recherche((string) get('search', ''), true) as $c) {
         $ligne = [];
         foreach (array_keys(CLIENT_COLONNES_EXCEL) as $champ) {
-            $ligne[] = (string) ($c[$champ] ?? '');
+            $ligne[] = match ($champ) {
+                'EnCompte' => $c['EnCompte'] ? 'Oui' : 'Non',
+                'PlafondCredit' => $c['PlafondCredit'] === null ? '' : (float) $c['PlafondCredit'],
+                default => (string) ($c[$champ] ?? ''),
+            };
         }
         $lignes[] = $ligne;
     }
@@ -174,6 +202,8 @@ function client_import(): void
         }
         // Colonne Genre absente (fichier d'une version précédente) : Entreprise.
         $client['Genre'] = client_genre($client['Genre']);
+        $client['EnCompte'] = client_en_compte($client['EnCompte']);
+        $client['PlafondCredit'] = client_plafond($client['PlafondCredit']);
         if ($client['CodeClient'] === '' || $client['NomSociete'] === '') {
             $erreurs[] = "Ligne $n : Code ou Société manquant.";
             continue;

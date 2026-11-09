@@ -33,6 +33,9 @@ namespace EasytransitCaisse.Models
 
         public string? Observation { get; set; }
 
+        // Règlement d'un client en compte : diminue son solde dû.
+        public bool ReglementCompte { get; set; }
+
         public virtual JourneeCaisse JourneeCaisse { get; set; }
         public virtual Motif Motif { get; set; }
 

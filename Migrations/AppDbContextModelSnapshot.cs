@@ -194,6 +194,11 @@ namespace EasytransitCaisse.Migrations
                     b.Property<string>("EmailContact")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<bool>("EnCompte")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
                     b.Property<string>("FonctionContact")
                         .HasColumnType("nvarchar(max)");
 
@@ -210,6 +215,10 @@ namespace EasytransitCaisse.Migrations
                     b.Property<string>("NomSociete")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal?>("PlafondCredit")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("Telephone")
                         .HasColumnType("nvarchar(max)");
@@ -911,6 +920,11 @@ namespace EasytransitCaisse.Migrations
                     b.Property<string>("Code")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<bool>("EstCompte")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
                     b.Property<string>("Libelle")
                         .HasColumnType("nvarchar(max)");
 
@@ -1040,6 +1054,11 @@ namespace EasytransitCaisse.Migrations
 
                     b.Property<string>("Observation")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("ReglementCompte")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
 
                     b.Property<string>("StatutValidation")
                         .IsRequired()

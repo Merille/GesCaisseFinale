@@ -37,6 +37,7 @@ namespace EasytransitCaisse.Data
                 context.SaveChanges();
                 context.AjouterTaxesInitiales(tenant.Id);
                 context.AjouterUnitesInitiales(tenant.Id);
+                context.AjouterModeCompte(tenant.Id);
 
                 context.Utilisateurs.Add(new Utilisateur
                 {

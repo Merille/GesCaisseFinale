@@ -2,6 +2,7 @@
 @model List<EasytransitCaisse.Models.Client>
 @{
     ViewData["Title"] = "Tiers";
+    var soldes = ViewBag.Soldes as Dictionary<int, decimal> ?? new Dictionary<int, decimal>();
 }
 
 <div class="d-flex flex-wrap justify-content-end align-items-end gap-2 mb-3">
@@ -14,11 +15,11 @@
         <a href="/Client/Create" class="btn btn-primary" data-modale="modal-xl"><i class="fas fa-plus"></i> Nouveau tiers</a>
     </div>
 </div>
-<p class="small text-muted">Import : la première ligne du fichier est un en-tête ; colonnes dans l'ordre Code, Société, Contact, Téléphone, EmailContact, Adresse, Email, Type, FonctionContact, TelephoneContact, CompteGeneral, Genre (Entreprise ou Particulier ; vide = Entreprise). Le plus simple est de partir d'un export.</p>
+<p class="small text-muted">Import : la première ligne du fichier est un en-tête ; colonnes dans l'ordre Code, Société, Contact, Téléphone, EmailContact, Adresse, Email, Type, FonctionContact, TelephoneContact, CompteGeneral, Genre (Entreprise ou Particulier ; vide = Entreprise), EnCompte (Oui ou Non), PlafondCredit (vide = sans plafond). Le plus simple est de partir d'un export.</p>
 <div class="card shadow-sm border-0">
     <div class="card-body table-responsive">
         <table id="clientsTable" class="table table-hover align-middle mb-0">
-            <thead class="table-dark"><tr><th>Code</th><th>Nom</th><th>Genre</th><th>Adresse</th><th>Contact</th><th>Fonction</th><th>Téléphone</th><th class="text-center">Type</th><th class="text-center">Actions</th></tr></thead>
+            <thead class="table-dark"><tr><th>Code</th><th>Nom</th><th>Genre</th><th>Adresse</th><th>Contact</th><th>Téléphone</th><th class="text-center">Type</th><th class="text-end">Solde dû</th><th class="text-center">Actions</th></tr></thead>
             <tbody>
                 @foreach (var c in Model)
                 {
@@ -28,12 +29,28 @@
                         <td class="fw-semibold">@c.NomSociete</td>
                         <td class="text-nowrap"><i class="fas @(c.Genre == "Particulier" ? "fa-user" : "fa-building") text-muted me-1"></i>@c.Genre</td>
                         <td>@c.Adresse</td>
-                        <td>@c.NomContact</td>
-                        <td>@c.FonctionContact</td>
+                        <td>@c.NomContact@if (!string.IsNullOrEmpty(c.FonctionContact))
+                            {
+                                <small class="d-block text-muted">@c.FonctionContact</small>
+                            }</td>
                         <td>@c.Telephone</td>
                         <td class="text-center">@if (!string.IsNullOrEmpty(c.Type))
                             {
                                 <span class="badge @badge">@c.Type</span>
+                            }</td>
+                        @{ var du = soldes.GetValueOrDefault(c.Id); }
+                        <td class="text-end text-nowrap" data-order="@(c.EnCompte ? du.ToString(System.Globalization.CultureInfo.InvariantCulture) : "-1000000000000000")">@if (c.EnCompte)
+                            {
+                                <span class="badge text-bg-light border"><i class="fas fa-address-book"></i> En compte</span>
+                                <div class="fw-semibold @(du > 0 ? "text-danger" : "")">@du.ToString("N0")</div>
+                                @if (c.PlafondCredit.HasValue)
+                                {
+                                    <small class="text-muted">plafond @c.PlafondCredit.Value.ToString("N0")</small>
+                                }
+                            }
+                            else
+                            {
+                                <span class="text-muted">—</span>
                             }</td>
                         <td class="text-center table-actions">
                             <a href="/Client/Edit/@c.Id" class="btn btn-warning btn-sm" data-modale="modal-xl">Modifier</a>

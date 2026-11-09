@@ -9,6 +9,16 @@
     <tr><th class="r">Ventes nettes</th><th class="r">Encaissements</th><th class="r">Décaissements</th><th class="r">Solde</th></tr>
     <tr><td class="r"><?= fcfa($ventesNettes) ?></td><td class="r"><?= fcfa($encaissements) ?></td><td class="r"><?= fcfa($decaissements) ?></td><td class="r"><?= fcfa($encaissements - $decaissements) ?></td></tr>
 </table>
+<?php if ($compte): ?>
+    <h2>Compte client</h2>
+    <table>
+        <tr><th class="r">Solde dû au <?= date_fr(date('Y-m-d', strtotime($f['du'] . ' -1 day'))) ?></th><th class="r">Ventes par compte</th><th class="r">Règlements</th>
+            <th class="r">Solde dû au <?= date_fr($f['au']) ?></th></tr>
+        <tr><td class="r"><?= fcfa($compte['debut']) ?></td><td class="r"><?= fcfa($compte['ventes']) ?></td><td class="r"><?= fcfa($compte['reglements']) ?></td>
+            <td class="r"><b><?= fcfa($compte['fin']) ?></b></td></tr>
+    </table>
+    <p class="muted">Ventes par compte : retours crédités au compte déduits.<?= $compte['plafond'] !== null ? ' Plafond de crédit : ' . fcfa($compte['plafond']) . ' FCFA.' : ' Sans plafond de crédit.' ?></p>
+<?php endif; ?>
 
 <h2>Opérations de caisse</h2>
 <table>
@@ -31,17 +41,18 @@
 
 <h2>Ventes au point de vente</h2>
 <table>
-    <tr><th>Date</th><th>Ticket</th><th>Statut</th><th class="r">Total</th></tr>
-    <?php if (!$ventes): ?><tr><td colspan="4" class="muted">Aucune vente sur la période.</td></tr><?php endif; ?>
+    <tr><th>Date</th><th>Ticket</th><th>Paiement</th><th>Statut</th><th class="r">Total</th></tr>
+    <?php if (!$ventes): ?><tr><td colspan="5" class="muted">Aucune vente sur la période.</td></tr><?php endif; ?>
     <?php foreach ($ventes as $v): ?>
         <tr>
             <td><?= date_fr($v['DateCommande'], 'd/m/Y H:i') ?></td>
             <td><?= h($v['Numero']) ?></td>
+            <td><?= h((string) $v['Paiement']) ?></td>
             <td><?= h($v['Statut']) ?></td>
             <td class="r"><?= $v['Statut'] === 'Annulée' ? '<s>' . fcfa($v['TotalTTC']) . '</s>' : fcfa($v['TotalTTC']) ?></td>
         </tr>
     <?php endforeach; ?>
-    <tr class="total"><td colspan="3">Ventes nettes (retours déduits, ventes annulées exclues)</td><td class="r"><?= fcfa($ventesNettes) ?></td></tr>
+    <tr class="total"><td colspan="4">Ventes nettes (retours déduits, ventes annulées exclues)</td><td class="r"><?= fcfa($ventesNettes) ?></td></tr>
 </table>
-<p class="muted">Les ventes payées apparaissent aussi dans les opérations de caisse (encaissements « Vente POS »).</p>
+<p class="muted">Les ventes payées apparaissent aussi dans les opérations de caisse (encaissements « Vente POS ») ; les ventes par compte, une fois réglées (« Règlement client »).</p>
 <?php require __DIR__ . '/../partials/print_fin.php'; ?>

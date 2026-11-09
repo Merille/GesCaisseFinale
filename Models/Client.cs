@@ -23,6 +23,11 @@ namespace EasytransitCaisse.Models
 
         public static string GenreValide(string? genre) => genre == "Particulier" ? "Particulier" : "Entreprise";
 
+        // Client en compte : peut payer « par compte » au point de vente (vente à crédit),
+        // dans la limite du plafond de crédit (vide = sans plafond).
+        public bool EnCompte { get; set; }
+        public decimal? PlafondCredit { get; set; }
+
         // Compte général comptable de ce tiers (ex: 411000), utilisé comme
         // contrepartie lors de l'export des écritures vers Sage quand le
         // motif de l'opération n'en précise pas.

@@ -85,7 +85,10 @@ namespace EasytransitCaisse.Controllers
                 .Where(j => j.Statut == "Ouverte" && j.TenantId == vente.TenantId)
                 .OrderByDescending(j => j.CaisseId == caisseId).ThenByDescending(j => j.DateJournee)
                 .ToListAsync();
-            ViewBag.Modes = await _context.ModesPaiement.Where(m => m.Actif && m.TenantId == vente.TenantId).OrderBy(m => m.Libelle).ToListAsync();
+            // Remboursement : « par compte » seulement pour une vente d'un client en compte.
+            var clientEnCompte = await _context.Clients.AnyAsync(c => c.Id == vente.ClientId && c.EnCompte);
+            ViewBag.Modes = await _context.ModesPaiement.Where(m => m.Actif && m.TenantId == vente.TenantId && (!m.EstCompte || clientEnCompte))
+                .OrderBy(m => m.Libelle).ToListAsync();
             ViewBag.PeutRembourser = PeutRembourser;
             return View(vente);
         }
@@ -177,6 +180,9 @@ namespace EasytransitCaisse.Controllers
             var mode = await _context.ModesPaiement.FirstOrDefaultAsync(m => m.Id == modeId && m.TenantId == vente.TenantId && m.Actif);
             if (mode == null)
                 return VersDetails(id, "Choisissez le mode de remboursement.");
+            // Remboursement « par compte » : le montant est crédité au compte du client (pas de sortie de caisse).
+            if (mode.EstCompte && !await _context.Clients.AnyAsync(c => c.Id == vente.ClientId && c.EnCompte))
+                return VersDetails(id, "Le remboursement par compte est réservé aux ventes d'un client en compte.");
 
             var retournees = await QuantitesRetournees(vente.Id);
             var lignesRetour = new List<(LigneCommandePos Origine, decimal Qte, decimal Total)>();
@@ -228,22 +234,26 @@ namespace EasytransitCaisse.Controllers
             }
             await _context.SaveChangesAsync();
 
-            var operation = new OperationCaisse
+            OperationCaisse? operation = null;
+            if (!mode.EstCompte)
             {
-                TenantId = vente.TenantId, JourneeCaisseId = journee.Id, DateOperation = DateTime.Now,
-                TypeOperation = "Décaissement", Montant = ttc, Libelle = $"Retour POS {numero} (vente {vente.Numero})",
-                ClientId = vente.ClientId, MotifId = motifRetour.ID, ModePaiementId = mode.Id, UtilisateurId = UtilisateurId,
-                EstJustifie = true, StatutValidation = "Validé", Valideur = "Point de vente", Observation = motif
-            };
-            _context.OperationsCaisses.Add(operation);
-            await _context.SaveChangesAsync();
+                operation = new OperationCaisse
+                {
+                    TenantId = vente.TenantId, JourneeCaisseId = journee.Id, DateOperation = DateTime.Now,
+                    TypeOperation = "Décaissement", Montant = ttc, Libelle = $"Retour POS {numero} (vente {vente.Numero})",
+                    ClientId = vente.ClientId, MotifId = motifRetour.ID, ModePaiementId = mode.Id, UtilisateurId = UtilisateurId,
+                    EstJustifie = true, StatutValidation = "Validé", Valideur = "Point de vente", Observation = motif
+                };
+                _context.OperationsCaisses.Add(operation);
+                await _context.SaveChangesAsync();
+            }
             foreach (var r in lignesRetour.Where(r => r.Origine.ProduitId.HasValue))
                 await _context.MouvementLigneAsync(r.Origine.ProduitId!.Value, r.Origine.Composants, r.Qte, "Retour", numero, retour.Id, UtilisateurId, motif,
                     await _context.DepotCaisseAsync(journee.CaisseId));
             _context.PaiementsPos.Add(new PaiementPos
             {
                 TenantId = vente.TenantId, CommandePosId = retour.Id, ModePaiementId = mode.Id, Libelle = mode.Libelle ?? "",
-                MontantRecu = -ttc, Montant = -ttc, OperationCaisseId = operation.Id
+                MontantRecu = -ttc, Montant = -ttc, OperationCaisseId = operation?.Id
             });
             // Statut de la vente d'origine : remboursée en totalité ou en partie.
             var restant = vente.Lignes.Sum(l => l.Quantite - retournees.GetValueOrDefault(l.Id))
@@ -252,7 +262,8 @@ namespace EasytransitCaisse.Controllers
             await _context.SaveChangesAsync();
             await transaction.CommitAsync();
 
-            return VersDetails(retour.Id, succes: $"Retour {numero} enregistré : {ttc.ToString("N0", CultureInfo.GetCultureInfo("fr-FR"))} FCFA à rembourser ({mode.Libelle}).");
+            return VersDetails(retour.Id, succes: $"Retour {numero} enregistré : {ttc.ToString("N0", CultureInfo.GetCultureInfo("fr-FR"))} "
+                + (mode.EstCompte ? "FCFA crédités au compte du client." : $"FCFA à rembourser ({mode.Libelle})."));
         }
 
         // Livraison d'une vente payée à la commande : le retour du livreur la marque « Livrée ».

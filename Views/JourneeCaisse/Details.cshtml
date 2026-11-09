@@ -22,6 +22,7 @@
             <a href="/Pos/Index?journee=@Model.Id" class="btn btn-primary"><i class="fas fa-store"></i> Ouvrir le POS</a>
             <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalEncaissement">+ Encaissement</button>
             <button class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#modalDecaissement">− Décaissement</button>
+            <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalReglement"><i class="fas fa-address-book"></i> Règlement client</button>
             <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#modalCloture">Clôturer</button>
             <form method="post" asp-action="Supprimer" asp-route-id="@Model.Id" onsubmit="return confirm('Supprimer cette journée et toutes ses opérations ?');">
                 <button class="btn btn-danger">Supprimer</button>
@@ -250,6 +251,66 @@
         </div>
     }
 
+    var clientsEnCompte = (List<(int Id, string Code, string Nom, decimal Du)>)ViewBag.ClientsEnCompte;
+    <div class="modal fade" id="modalReglement" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-brand text-white">
+                    <h5 class="modal-title">Règlement d'un client en compte</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                </div>
+                <form method="post" action="/JourneeCaisse/Reglement">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="journeeId" value="@Model.Id" />
+                    <div class="modal-body">
+                        @if (!clientsEnCompte.Any())
+                        {
+                            <div class="alert alert-info mb-0">Aucun client en compte : cochez « Client en compte » sur la fiche du tiers (menu Tiers).</div>
+                        }
+                        else
+                        {
+                            <div class="mb-3">
+                                <label class="form-label" for="reglementClient">Client</label>
+                                <select class="form-select" id="reglementClient" name="clientId" required>
+                                    <option value="">-- Choisir --</option>
+                                    @foreach (var c in clientsEnCompte)
+                                    {
+                                        <option value="@c.Id" data-du="@Math.Round(c.Du).ToString("0")">@($"{c.Nom} ({c.Code}) — dû {c.Du:N0} FCFA")</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="row g-3 mb-3">
+                                <div class="col-6">
+                                    <label class="form-label" for="reglementMontant">Montant (FCFA)</label>
+                                    <input class="form-control" id="reglementMontant" name="montant" inputmode="decimal" required />
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label" for="reglementMode">Mode de paiement</label>
+                                    <select class="form-select" id="reglementMode" name="modePaiementId" required>
+                                        @foreach (var m in (List<EasytransitCaisse.Models.ModePaiement>)ViewBag.ModesPaiement)
+                                        {
+                                            <option value="@m.Id" selected="@((m.Libelle ?? "").StartsWith("Esp", StringComparison.OrdinalIgnoreCase))">@m.Libelle</option>
+                                        }
+                                    </select>
+                                </div>
+                            </div>
+                            <label class="form-label" for="reglementObservation">Observation</label>
+                            <input class="form-control" id="reglementObservation" name="observation" placeholder="Ex : chèque n° 123, reçu remis" />
+                            <p class="small text-muted mt-3 mb-0">Le règlement est un encaissement de la journée (motif « Règlement client ») ; il diminue le solde dû du client, sans le dépasser.</p>
+                        }
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+                        @if (clientsEnCompte.Any())
+                        {
+                            <button class="btn btn-primary">Enregistrer le règlement</button>
+                        }
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <div class="modal fade" id="modalCloture" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
@@ -350,6 +411,15 @@
                     document.getElementById('valJustifie').checked = b.dataset.justifie === '1';
                     document.getElementById('valObservation').value = b.dataset.observation || '';
                     validation.querySelectorAll('input[name=statutValidation]').forEach(r => r.checked = (r.value === b.dataset.statut));
+                });
+            }
+
+            // Règlement client : montant proposé = solde dû du client choisi.
+            const reglementClient = document.getElementById('reglementClient');
+            if (reglementClient) {
+                reglementClient.addEventListener('change', function () {
+                    const o = this.selectedOptions[0];
+                    document.getElementById('reglementMontant').value = o && o.dataset.du && Number(o.dataset.du) > 0 ? o.dataset.du : '';
                 });
             }
 

@@ -88,7 +88,10 @@ function vente_details(): void
              WHERE j.Statut = 'Ouverte' AND j.TenantId = ? ORDER BY (j.CaisseId = ?) DESC, j.DateJournee DESC",
             [$vente['TenantId'], $vente['CaisseId']]
         ),
-        'modes' => q('SELECT Id, Code, Libelle FROM ModesPaiement WHERE Actif = 1 AND TenantId = ? ORDER BY Libelle', [$vente['TenantId']]),
+        // Remboursement : « par compte » seulement pour une vente d'un client en compte.
+        'modes' => q('SELECT Id, Code, Libelle FROM ModesPaiement WHERE Actif = 1 AND TenantId = ?
+                      AND (EstCompte = 0 OR EXISTS (SELECT 1 FROM Clients WHERE Id = ? AND EnCompte = 1)) ORDER BY Libelle',
+                     [$vente['TenantId'], (int) $vente['ClientId']]),
         'peutRembourser' => vente_peut_rembourser(),
     ]);
 }
@@ -183,6 +186,10 @@ function vente_retour(): void
     if (!$mode) {
         $echec('Choisissez le mode de remboursement.');
     }
+    // Remboursement « par compte » : le montant est crédité au compte du client (pas de sortie de caisse).
+    if ($mode['EstCompte'] && !q1('SELECT Id FROM Clients WHERE Id = ? AND EnCompte = 1', [(int) $vente['ClientId']])) {
+        $echec('Le remboursement par compte est réservé aux ventes d\'un client en compte.');
+    }
 
     $quantites = (array) ($_POST['qte'] ?? []);
     $retours = [];
@@ -234,7 +241,7 @@ function vente_retour(): void
         }
         $motifId = qv("SELECT ID FROM Motifs WHERE LibelleMotif = 'Retour POS' AND TenantId = ?", [$vente['TenantId']])
             ?: run("INSERT INTO Motifs (LibelleMotif, TypeModif, TenantId) VALUES ('Retour POS', 'Client', ?)", [$vente['TenantId']]);
-        $operation = run(
+        $operation = $mode['EstCompte'] ? null : run(
             "INSERT INTO OperationsCaisses (TenantId, JourneeCaisseId, DateOperation, TypeOperation, Montant, Libelle,
                 ClientId, MotifId, ModePaiementId, UtilisateurId, EstJustifie, StatutValidation, Valideur, Observation)
              VALUES (?, ?, NOW(), 'Décaissement', ?, ?, ?, ?, ?, ?, 1, 'Validé', 'Point de vente', ?)",
@@ -254,7 +261,7 @@ function vente_retour(): void
         db()->rollBack();
         throw $e;
     }
-    flash('success', "Retour $numero enregistré : " . fcfa($ttc) . ' FCFA à rembourser (' . $mode['Libelle'] . ').');
+    flash('success', "Retour $numero enregistré : " . fcfa($ttc) . ($mode['EstCompte'] ? ' FCFA crédités au compte du client.' : ' FCFA à rembourser (' . $mode['Libelle'] . ').'));
     redirect('vente/details', ['id' => $retourId]);
 }
 
