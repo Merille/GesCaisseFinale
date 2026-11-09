@@ -94,6 +94,10 @@
         const ttc = brut - remise;
         return { brut: brut, remise: remise, ttc: ttc, tva: Math.round(brut > 0 ? tva * ttc / brut : 0), unites: unites };
     }
+    // Frais de livraison du ticket (commande à livrer) : en plus du total, hors taxes.
+    function fraisLivraison(t) {
+        return !cmd && t && t.livraison ? Math.max(0, Math.round(t.livraison.frais || 0)) : 0;
+    }
     function quantiteAuTicket(produitId) {
         return ticket().lignes.filter(l => l.produitId === produitId).reduce((s, l) => s + l.qte, 0);
     }
@@ -651,7 +655,8 @@
     // ------------------------------------------------------------------
     function etatPaiement() {
         const ttc = totaux({ lignes: lignesAPayer(), remise: pay.partage ? null : ticket().remise }).ttc;
-        const total = ttc + (pay.pourboire || 0);
+        const frais = pay.partage ? 0 : fraisLivraison(ticket());
+        const total = ttc + (pay.pourboire || 0) + frais;
         let recu = 0, especes = 0;
         pay.lignes.forEach(r => {
             recu += r.montant;
@@ -659,7 +664,7 @@
         });
         const rendu = Math.max(0, recu - total);
         return {
-            ttc: ttc, total: total, recu: recu, especes: especes, rendu: rendu,
+            ttc: ttc, total: total, frais: frais, recu: recu, especes: especes, rendu: rendu,
             reste: Math.max(0, total - recu),
             ok: pay.lignes.length > 0 && recu >= total && rendu <= especes && !pay.lignes.some(r => r.montant <= 0)
         };
@@ -844,7 +849,8 @@
             + '<div class="pos-centre">'
             + '<div class="pos-blocs">'
             + '<div class="pos-bloc"><small>Total à payer</small><div class="v">' + fcfa(e.total) + '</div>'
-            + (pay.pourboire ? '<small>dont pourboire ' + fcfa(pay.pourboire) + '</small>' : '') + '</div>'
+            + (pay.pourboire ? '<small>dont pourboire ' + fcfa(pay.pourboire) + '</small>' : '')
+            + (e.frais ? '<small>dont frais de livraison ' + fcfa(e.frais) + '</small>' : '') + '</div>'
             + '<div class="pos-bloc' + (e.reste > 0 ? ' reste' : '') + '"><small>Reste à payer</small><div class="v">' + fcfa(e.reste) + '</div></div>'
             + '<div class="pos-bloc rendre"><small>Monnaie à rendre</small><div class="v">' + fcfa(e.rendu) + '</div></div>'
             + '</div>'
@@ -994,7 +1000,8 @@
             + '<div class="pos-totaux">'
             + (tot.remise ? '<div class="pos-tva">Sous-total ' + fcfa(tot.brut) + ' · <span class="remise">remise globale'
                 + (t.remise.type === 'pct' ? ' ' + qte(t.remise.valeur) + ' %' : '') + ' −' + fcfa(tot.remise) + '</span></div>' : '')
-            + '<div class="pos-grand">' + fcfa(tot.ttc) + ' FCFA</div>'
+            + '<div class="pos-grand">' + fcfa(tot.ttc + fraisLivraison(t)) + ' FCFA</div>'
+            + (fraisLivraison(t) ? '<div class="pos-tva">dont frais de livraison : ' + fcfa(fraisLivraison(t)) + ' (hors taxes)</div>' : '')
             + '<div class="pos-tva">dont taxes : ' + fcfa(tot.tva) + ' · ' + t.lignes.length + ' article(s), ' + qte(tot.unites) + ' unité(s)</div></div>'
             + '<div class="pos-actions' + (cmd ? '' : ' quatre') + '">'
             + '<button type="button" class="pos-act" data-action="client"><i class="fas fa-user"></i> ' + (client ? 'Client : <b>' + echap(client.nom) + '</b>' : 'Choisir un client') + '</button>'
@@ -1004,7 +1011,7 @@
             + '<i class="fas fa-percent"></i> ' + (t.remise ? 'Remise : <b>' + (t.remise.type === 'pct' ? qte(t.remise.valeur) + ' %' : fcfa(t.remise.valeur)) + '</b>' : 'Remise globale') + '</button>'
             + (cmd ? '' : '<button type="button" class="pos-act' + (t.livraison ? ' livraison' : '') + '" data-action="livraison"><i class="fas '
                 + iconeMoyen(t.livraison ? (livreurs.get(t.livraison.livreurId) || {}).moyen : null) + '"></i> '
-                + (t.livraison ? 'Livraison : <b>' + echap(nomLivreur(t.livraison.livreurId)) + '</b>' + (t.livraison.paiement === 'livraison' ? ' (à encaisser)' : '')
+                + (t.livraison ? 'Livraison : <b>' + echap(nomLivreur(t.livraison.livreurId)) + '</b>' + (fraisLivraison(t) ? ' + ' + fcfa(fraisLivraison(t)) : '') + (t.livraison.paiement === 'livraison' ? ' (à encaisser)' : '')
                     : 'Livraison') + '</button>')
             + '</div>'
             + (cmd ? '<div class="pos-actions resto">'
@@ -1387,7 +1394,8 @@
         if (!t.lignes.length) { message('Le ticket est vide.'); return; }
         if (!livreurs.size) { message('Aucun livreur actif : créez-en dans Paramètres › Livreurs.', true); return; }
         const client = clients.get(t.clientId) || {};
-        const l = t.livraison || { livreurId: null, nom: client.nom || '', telephone: client.telephone || '', adresse: client.adresse || '', paiement: 'livraison' };
+        const l = t.livraison || { livreurId: null, nom: client.nom || '', telephone: client.telephone || '', adresse: client.adresse || '', paiement: 'livraison',
+            frais: Math.round(D.fraisLivraison || 0) };
         const fond = document.createElement('div');
         fond.className = 'pos-modal-fond';
         fond.innerHTML = '<div class="pos-modal pos-modal-livraison" role="dialog" aria-modal="true" aria-label="Livraison">'
@@ -1399,6 +1407,7 @@
             + '<div class="pos-form-2"><label>Destinataire<input name="nom" maxlength="100" value="' + echap(l.nom) + '"></label>'
             + '<label>Téléphone<input name="telephone" maxlength="30" inputmode="tel" value="' + echap(l.telephone) + '"></label></div>'
             + '<label>Adresse de livraison<textarea name="adresse" rows="2" maxlength="200">' + echap(l.adresse) + '</textarea></label>'
+            + '<label>Frais de livraison (FCFA, hors taxes)<input name="frais" inputmode="numeric" maxlength="9" value="' + (l.frais || 0) + '"></label>'
             + '<div class="pos-remise-types"><button type="button" data-paiement="maintenant">Payée maintenant</button><button type="button" data-paiement="livraison">À encaisser à la livraison</button></div>'
             + '<div class="pos-form-aide"></div>'
             + '<div class="pos-remise-boutons">'
@@ -1421,7 +1430,8 @@
             const adresse = champ('adresse').value.trim();
             if (!livreurId) { message('Choisissez un livreur.', true); champ('livreurId').focus(); return; }
             if (!adresse) { message('Indiquez l\'adresse de livraison.', true); champ('adresse').focus(); return; }
-            t.livraison = { livreurId: livreurId, nom: champ('nom').value.trim(), telephone: champ('telephone').value.trim(), adresse: adresse, paiement: paiement };
+            const frais = Math.max(0, parseInt(String(champ('frais').value).replace(/[^0-9]/g, '') || '0', 10));
+            t.livraison = { livreurId: livreurId, nom: champ('nom').value.trim(), telephone: champ('telephone').value.trim(), adresse: adresse, paiement: paiement, frais: frais };
             enregistrer();
             fermer();
             if (paiement === 'livraison') {

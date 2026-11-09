@@ -65,6 +65,10 @@ namespace EasytransitCaisse.Models
         [Precision(18, 2)]
         public decimal Pourboire { get; set; }
 
+        // Frais de livraison : en plus du total TTC (hors taxes), recette de la société.
+        [Precision(18, 2)]
+        public decimal FraisLivraison { get; set; }
+
         // Commande livrée : livreur, destinataire et statut de la livraison (« À livrer » tant
         // qu'une vente payée à la commande n'est pas livrée, puis « Livrée »). Vide hors livraison.
         public int? LivreurId { get; set; }

@@ -139,6 +139,9 @@ namespace EasytransitCaisse.Data
             modelBuilder.Entity<Client>().Property(c => c.PlafondCredit).HasPrecision(18, 2);
             modelBuilder.Entity<ModePaiement>().Property(m => m.EstCompte).HasDefaultValue(false);
             modelBuilder.Entity<OperationCaisse>().Property(o => o.ReglementCompte).HasDefaultValue(false);
+            // Frais de livraison (0 par défaut, aussi pour les lignes insérées par script).
+            modelBuilder.Entity<Tenant>().Property(t => t.FraisLivraisonDefaut).HasDefaultValue(0m);
+            modelBuilder.Entity<CommandePos>().Property(c => c.FraisLivraison).HasDefaultValue(0m);
             modelBuilder.Entity<CommandeAttente>().ToTable("CommandesAttente")
                 .HasQueryFilter(e => _currentTenantId == 0 || e.TenantId == _currentTenantId);
             modelBuilder.Entity<CommandeAttente>()

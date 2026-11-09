@@ -89,10 +89,17 @@
         {
             <div class="r"><span>@t.Key</span><span>@Fcfa(t.Value)</span></div>
         }
+        @if (c.FraisLivraison > 0)
+        {
+            <div class="r"><span>Frais de livraison</span><span>@Fcfa(c.FraisLivraison)</span></div>
+        }
         @if (c.Pourboire > 0)
         {
             <div class="r"><span>Pourboire</span><span>@Fcfa(c.Pourboire)</span></div>
-            <div class="r b"><span>TOTAL PAYÉ</span><span>@Fcfa(c.TotalTTC + c.Pourboire) FCFA</span></div>
+        }
+        @if (c.Pourboire > 0 || c.FraisLivraison > 0)
+        {
+            <div class="r b"><span>TOTAL PAYÉ</span><span>@Fcfa(c.TotalTTC + c.Pourboire + c.FraisLivraison) FCFA</span></div>
         }
         <hr />
         @foreach (var p in c.Paiements.OrderBy(x => x.Id))

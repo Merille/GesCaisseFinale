@@ -114,6 +114,9 @@ $peutAnnuler = $peutRembourser && !$estRetour && $vente['Statut'] === 'Payée' &
                 <?php if ((float) ($vente['Pourboire'] ?? 0) > 0): ?>
                     <li class="list-group-item d-flex justify-content-between"><span><i class="fa fa-hand-holding-heart"></i> Pourboire</span><span class="fw-semibold"><?= fcfa($vente['Pourboire']) ?></span></li>
                 <?php endif; ?>
+                <?php if ((float) ($vente['FraisLivraison'] ?? 0) > 0): ?>
+                    <li class="list-group-item d-flex justify-content-between"><span><i class="fa fa-truck-fast"></i> Frais de livraison</span><span class="fw-semibold"><?= fcfa($vente['FraisLivraison']) ?></span></li>
+                <?php endif; ?>
             </ul>
         </div>
         <?php if ($retours): ?>

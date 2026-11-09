@@ -161,6 +161,10 @@
                 {
                     <li class="list-group-item d-flex justify-content-between"><span><i class="fas fa-hand-holding-heart"></i> Pourboire</span><span class="fw-semibold">@Fcfa(v.Pourboire)</span></li>
                 }
+                @if (v.FraisLivraison > 0)
+                {
+                    <li class="list-group-item d-flex justify-content-between"><span><i class="fas fa-truck-fast"></i> Frais de livraison</span><span class="fw-semibold">@Fcfa(v.FraisLivraison)</span></li>
+                }
             </ul>
         </div>
         @if (retours.Any())

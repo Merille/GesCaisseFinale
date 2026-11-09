@@ -63,7 +63,7 @@ const fiche = [
         ['Projet', 'GesCaisse — gestion de caisse et point de vente (POS)'],
         ['Éditeur', 'M-ITECH AFRICA'],
         ['Versions', 'ASP.NET Core (.NET 10) / SQL Server — PHP 8 / MySQL'],
-        ['Version du document', '1.7'],
+        ['Version du document', '1.8'],
         ['Date', 'Novembre 2026'],
         ['Statut', 'Document de référence (fonctionnalités réalisées)']
     ], [3000, 6638])
@@ -196,6 +196,7 @@ const contenu = [
     puce('Plusieurs tickets en parallèle sur un poste (onglets), gardés dans le navigateur jusqu\'au paiement.'),
     puce('« Mettre en attente » : le ticket est enregistré sur le serveur et quitte l\'écran ; la liste « Commandes en attente » (journée de caisse) est partagée entre les postes, avec reprise (un seul poste à la fois) et suppression.'),
     puce('Commande à livrer : livreur (Paramètres › Livreurs : nom, téléphone, moyen de livraison Moto, Voiture, Vélo ou Autre), destinataire, téléphone, adresse ; payée maintenant (vente encaissée, statut « À livrer » puis « Livrée » au retour du livreur) ou à encaisser à la livraison (commande en attente reprise au retour du livreur, vente enregistrée « Livrée »). Livreur, destinataire et statut figurent sur le ticket et le détail de la vente.'),
+    puce('Frais de livraison en option : montant par défaut de la société (Paramètres › Livreurs, 0 = sans frais), proposé dans la fenêtre Livraison et modifiable à chaque vente ; ajoutés au total à payer hors taxes (comme le pourboire), encaissés avec la vente (libellé « dont frais de livraison »), conservés sur une commande en attente, enregistrés sur la vente (CommandesPos.FraisLivraison) et détaillés sur le ticket et le détail de la vente ; non compris dans le TTC des articles ni remboursés par un retour.'),
     puce('Pavé numérique : quantité, remise par ligne (%), prix (administrateurs seulement), suppression.'),
     puce('Remise globale sur le ticket, en % ou en montant (administrateurs et utilisateurs habilités).'),
     puce('Choix du client ; affichage du stock restant dans le dépôt de la caisse et alerte de stock bas.'),
@@ -333,7 +334,7 @@ const contenu = [
         ['Facturation', 'Factures, LignesFactures'],
         ['Catalogue', 'Categories, Produits, ProduitImages, Taxes, ProduitTaxes, Unites, ProduitAttributs, ProduitAttributValeurs, VarianteValeurs'],
         ['Combos', 'Combos, ComboChoix, ProduitCombos'],
-        ['Ventes', 'CommandesPos, LignesCommandePos, LignesCommandePosTaxes, PaiementsPos, CommandesAttente, Livreurs'],
+        ['Ventes', 'CommandesPos (dont frais de livraison), LignesCommandePos, LignesCommandePosTaxes, PaiementsPos, CommandesAttente, Livreurs'],
         ['Stock', 'Depots, StocksDepots, MouvementsStock'],
         ['Restaurant', 'Salles, TablesRestaurant, CommandesOuvertes, BonsPreparation, LignesBonPreparation']
     ], [2400, 7238]),

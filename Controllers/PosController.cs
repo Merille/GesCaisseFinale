@@ -148,6 +148,8 @@ namespace EasytransitCaisse.Controllers
                 peutModifierPrix = profil is "Admin" or "SuperAdmin",
                 // Vente par compte au-delà du plafond de crédit : administrateurs seulement.
                 peutDepasserPlafond = profil is "Admin" or "SuperAdmin",
+                // Frais de livraison proposés par défaut (modifiables à chaque vente).
+                fraisLivraison = await _context.Tenants.Where(t => t.Id == tenant).Select(t => t.FraisLivraisonDefaut).FirstOrDefaultAsync(),
                 peutRemiseGlobale = PeutRemiseGlobale,
                 urlFermer = $"/JourneeCaisse/Details/{j.Id}",
                 modes,
@@ -354,9 +356,11 @@ namespace EasytransitCaisse.Controllers
                 if (EstEspeces(mode))
                     especes += montant;
             }
-            if (recu < ttc + pourboire)
+            // Frais de livraison (commande à livrer) : en plus du total, hors taxes, comme le pourboire.
+            var fraisLivraison = v.Livraison != null ? Math.Max(0, Math.Round(v.Livraison.Frais, 0, MidpointRounding.AwayFromZero)) : 0;
+            if (recu < ttc + pourboire + fraisLivraison)
                 return Erreur(400, "Le montant payé est inférieur au total.");
-            var rendu = recu - ttc - pourboire;
+            var rendu = recu - ttc - pourboire - fraisLivraison;
             if (rendu > especes)
                 return Erreur(400, "Seule la monnaie sur les espèces peut être rendue : le montant payé par les autres modes dépasse le total.");
 
@@ -469,6 +473,7 @@ namespace EasytransitCaisse.Controllers
                 commande.AdresseLivraison = livraison.Adresse;
                 commande.StatutLivraison = livree ? "Livrée" : "À livrer";
                 commande.DateLivraison = livree ? DateTime.Now : null;
+                commande.FraisLivraison = fraisLivraison;
             }
             var motif = await _context.Motifs.FirstOrDefaultAsync(m => m.LibelleMotif == "Vente POS" && m.TenantId == tenant);
             if (motif == null)
@@ -500,7 +505,8 @@ namespace EasytransitCaisse.Controllers
                     {
                         TenantId = tenant, JourneeCaisseId = j.Id, DateOperation = DateTime.Now,
                         TypeOperation = "Encaissement", Montant = net,
-                        Libelle = "Vente POS " + numero + (pourboire > 0 ? " (dont pourboire " + pourboire.ToString("N0", System.Globalization.CultureInfo.GetCultureInfo("fr-FR")) + ")" : ""),
+                        Libelle = "Vente POS " + numero + (pourboire > 0 ? " (dont pourboire " + pourboire.ToString("N0", System.Globalization.CultureInfo.GetCultureInfo("fr-FR")) + ")" : "")
+                            + (livraison != null && fraisLivraison > 0 ? " (dont frais de livraison " + fraisLivraison.ToString("N0", System.Globalization.CultureInfo.GetCultureInfo("fr-FR")) + ")" : ""),
                         ClientId = clientId, MotifId = motif.ID, ModePaiementId = mode.Id,
                         UtilisateurId = utilisateurId, EstJustifie = true,
                         // Validé d'office : vente payée et justifiée par le ticket.

@@ -25,6 +25,8 @@ namespace EasytransitCaisse.Controllers
             public string? Adresse { get; set; }
             // « maintenant » : vente payée à la commande, livrée ensuite ; « livraison » : encaissée au retour du livreur.
             public string? Paiement { get; set; }
+            // Frais de livraison (en plus du total, hors taxes).
+            public decimal Frais { get; set; }
         }
 
         private sealed class AttenteLigne
@@ -70,7 +72,8 @@ namespace EasytransitCaisse.Controllers
             return (new LivraisonSaisie
             {
                 LivreurId = l.LivreurId, Nom = Texte(l.Nom, 100), Telephone = Texte(l.Telephone, 30), Adresse = adresse,
-                Paiement = l.Paiement == "livraison" ? "livraison" : "maintenant"
+                Paiement = l.Paiement == "livraison" ? "livraison" : "maintenant",
+                Frais = Math.Max(0, Math.Round(l.Frais, 0, MidpointRounding.AwayFromZero))
             }, null);
         }
 
@@ -118,7 +121,7 @@ namespace EasytransitCaisse.Controllers
                 {
                     id = c.Id, numero = c.Numero, heure = c.DateCommande.ToString("HH:mm"),
                     client = c.ClientId.HasValue ? clients.GetValueOrDefault(c.ClientId.Value) : null,
-                    total = c.TotalTTC,
+                    total = c.TotalTTC + c.FraisLivraison,
                     livreur = c.LivreurId.HasValue ? livreurs.GetValueOrDefault(c.LivreurId.Value)?.Nom : null,
                     moyen = c.LivreurId.HasValue ? livreurs.GetValueOrDefault(c.LivreurId.Value)?.MoyenLivraison : null,
                     nom = c.NomLivraison, telephone = c.TelephoneLivraison, adresse = c.AdresseLivraison
@@ -183,7 +186,7 @@ namespace EasytransitCaisse.Controllers
                 TenantId = tenant, JourneeCaisseId = j.Id, Numero = numero, DateCreation = DateTime.Now,
                 UtilisateurId = UtilisateurConnecte, ClientId = clientId,
                 Contenu = JsonSerializer.Serialize(new AttenteSaisie { Lignes = lignes, ClientId = clientId, Remise = remise, Livraison = livraison }, JsonAttente),
-                Total = brut - montantRemise, NbArticles = lignes.Count,
+                Total = brut - montantRemise + (livraison?.Frais ?? 0), NbArticles = lignes.Count,
                 LivreurId = livraison?.LivreurId, NomLivraison = livraison?.Nom,
                 TelephoneLivraison = livraison?.Telephone, AdresseLivraison = livraison?.Adresse
             };

@@ -98,7 +98,7 @@ const fiche = [
         ['Application', 'GesCaisse — gestion de caisse et point de vente (POS)'],
         ['Éditeur', 'M-ITECH AFRICA'],
         ['Public', 'Administrateurs, caissiers, vendeurs et serveurs des sociétés clientes'],
-        ['Version du document', '1.6'],
+        ['Version du document', '1.7'],
         ['Date', 'Novembre 2026']
     ], [3000, 6638])
 ];
@@ -350,11 +350,15 @@ const contenu = [
     ...etapes([
         'Ajoutez les articles, choisissez au besoin le client, puis touchez **Livraison**.',
         'Choisissez le **livreur** (son moyen de livraison est indiqué : moto, voiture, vélo…) ; vérifiez le **destinataire**, le **téléphone** et l’**adresse de livraison** (repris de la fiche du client s’il est choisi).',
+        'Vérifiez les **frais de livraison** : le montant par défaut (12.8) est proposé ; modifiez-le ou mettez 0 pour une livraison gratuite.',
         'Choisissez **À encaisser à la livraison** : la commande est mise en attente et confiée au livreur. À son retour, ouvrez **Commandes en attente**, touchez **Reprendre** puis encaissez : la vente est enregistrée comme livrée.',
         'Ou choisissez **Payée maintenant** : l’écran de paiement s’ouvre et la vente est encaissée tout de suite. Elle apparaît dans **Livraisons payées à effectuer** jusqu’au retour du livreur (bouton **Livrée**).'
     ]),
     ...figure('21b_livraison', 'Commande à livrer : livreur, destinataire et paiement'),
     p('Le ticket et le détail de la vente indiquent le livreur, le destinataire, l’adresse et le statut de la livraison (**À livrer** ou **Livrée**).'),
+    p('Les frais de livraison s’ajoutent au total à payer, hors taxes, comme un pourboire : le total du ticket à l’écran et l’écran de paiement indiquent « dont frais de livraison ». Ils sont encaissés avec la vente et reviennent à la société ; le ticket imprimé les détaille avant le **TOTAL PAYÉ**. Une commande à encaisser à la livraison garde ses frais jusqu’à sa reprise.'),
+    ...figure('21e_paiement_frais', 'Paiement d’une commande à livrer, frais de livraison compris'),
+    astuce('Les frais ne font pas partie du chiffre d’affaires des articles (ventes TTC) et ne sont pas remboursés par un retour d’articles.'),
     h2('6.7 Encaisser'),
     ...etapes([
         'Touchez **Paiement**.',
@@ -577,6 +581,7 @@ const contenu = [
     p('Menu **Paramètres** › **Livreurs**. Les livreurs sont proposés au point de vente sur une commande à livrer ; ils n’ont pas de compte de connexion. Cliquez sur **Nouveau livreur** (ou **Modifier**) et renseignez le **nom**, le **téléphone** et le **moyen de livraison** : **Moto**, **Voiture**, **Vélo** ou **Autre**. La liste indique le moyen et le nombre de livraisons de chacun.'),
     pt('Moyen de livraison', 'il apparaît au point de vente dans le choix du livreur et dans la liste des commandes en attente, ainsi que sur le ticket et le détail de la vente (ex. « Jean Moussavou (Moto) »).'),
     ...figure('47_livreurs', 'Livreurs'),
+    pt('Frais de livraison par défaut', 'en haut de la page : montant proposé dans la fenêtre « Livraison » du point de vente (0 = sans frais), modifiable à chaque vente. Cliquez sur **Enregistrer** après l’avoir changé.'),
     pt('Désactiver', 'un livreur désactivé n’est plus proposé au point de vente mais reste sur ses livraisons passées.'),
     pt('Supprimer', 'seul un livreur sans livraison peut être supprimé ; sinon, désactivez-le.'),
     h2('12.9 Sociétés (super-administrateur)'),

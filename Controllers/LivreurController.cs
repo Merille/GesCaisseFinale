@@ -27,7 +27,29 @@ namespace EasytransitCaisse.Controllers
             var livreurs = await _context.Livreurs.OrderByDescending(l => l.Actif).ThenBy(l => l.Nom).ThenBy(l => l.Id).ToListAsync();
             ViewBag.NbLivraisons = await _context.CommandesPos.Where(c => c.LivreurId != null)
                 .GroupBy(c => c.LivreurId!.Value).Select(g => new { g.Key, Nb = g.Count() }).ToDictionaryAsync(x => x.Key, x => x.Nb);
+            // Frais de livraison par défaut de la société consultée (null : aucune société choisie).
+            ViewBag.FraisDefaut = _tenant.TenantId != 0
+                ? await _context.Tenants.Where(t => t.Id == _tenant.TenantId).Select(t => (decimal?)t.FraisLivraisonDefaut).FirstOrDefaultAsync()
+                : null;
             return View(livreurs);
+        }
+
+        // Frais de livraison proposés par défaut au point de vente (modifiables à chaque vente).
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Frais(string? fraisLivraison)
+        {
+            var societe = await _context.Tenants.FirstOrDefaultAsync(t => t.Id == _tenant.TenantId);
+            if (societe == null)
+            {
+                TempData["Error"] = "Choisissez d'abord la société concernée dans le menu « Société consultée », puis recommencez.";
+                return RedirectToAction(nameof(Index));
+            }
+            var saisie = (fraisLivraison ?? "").Replace(" ", "").Replace("\u00a0", "").Replace("\u202f", "");
+            societe.FraisLivraisonDefaut = Math.Max(0, Math.Round(MontantHelper.Parse(saisie), 0, MidpointRounding.AwayFromZero));
+            await _context.SaveChangesAsync();
+            TempData["Success"] = "Frais de livraison par défaut enregistrés.";
+            return RedirectToAction(nameof(Index));
         }
 
         private static string? Texte(string? valeur, int max)

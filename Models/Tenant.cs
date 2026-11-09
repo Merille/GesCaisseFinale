@@ -28,6 +28,10 @@ namespace EasytransitCaisse.Models
         // de caisse (journées, opérations, tiers, factures, rapports).
         public bool ModulePointVente { get; set; } = true;
 
+        // Frais de livraison proposés par défaut au point de vente (modifiables à chaque vente).
+        [Microsoft.EntityFrameworkCore.Precision(18, 2)]
+        public decimal FraisLivraisonDefaut { get; set; }
+
         // Coordonnées (en-tête des tickets, factures et impressions).
         [MaxLength(250)]
         public string? Adresse { get; set; }

@@ -17,7 +17,20 @@ function livreur_index(): void
             'SELECT l.*, (SELECT COUNT(*) FROM CommandesPos c WHERE c.LivreurId = l.Id) AS NbLivraisons
              FROM Livreurs l WHERE ' . tf('l') . ' ORDER BY l.Actif DESC, l.Nom, l.Id'
         ),
+        // Frais de livraison par défaut de la société consultée (null : aucune société choisie).
+        'fraisDefaut' => tenant_id() ? (float) qv('SELECT FraisLivraisonDefaut FROM Tenants WHERE Id = ?', [tenant_id()]) : null,
     ]);
+}
+
+/** Frais de livraison proposés par défaut au point de vente (modifiables à chaque vente). */
+function livreur_frais(): void
+{
+    if (is_post()) {
+        $t = tenant_insert();
+        run('UPDATE Tenants SET FraisLivraisonDefaut = ? WHERE Id = ?', [max(0, round(montant(post('fraisLivraison')))), $t]);
+        flash('success', 'Frais de livraison par défaut enregistrés.');
+    }
+    redirect('livreur/index');
 }
 
 function livreur_charger(int $id): array

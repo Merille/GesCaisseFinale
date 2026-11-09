@@ -443,6 +443,12 @@ namespace EasytransitCaisse.Migrations
                     b.Property<int?>("FactureId")
                         .HasColumnType("int");
 
+                    b.Property<decimal>("FraisLivraison")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(0m);
+
                     b.Property<int>("JourneeCaisseId")
                         .HasColumnType("int");
 
@@ -1485,6 +1491,12 @@ namespace EasytransitCaisse.Migrations
                     b.Property<string>("Email")
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
+
+                    b.Property<decimal>("FraisLivraisonDefaut")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(0m);
 
                     b.Property<DateTime?>("LogoMaj")
                         .HasColumnType("datetime2");

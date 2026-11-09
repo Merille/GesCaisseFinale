@@ -55,9 +55,15 @@ $c = $commande;
     <?php foreach ($taxes as $libelle => $montant): ?>
         <div class="r"><span><?= h($libelle) ?></span><span><?= fcfa($montant) ?></span></div>
     <?php endforeach; ?>
+    <?php $fraisLivraison = (float) ($c['FraisLivraison'] ?? 0); ?>
+    <?php if ($fraisLivraison > 0): ?>
+        <div class="r"><span>Frais de livraison</span><span><?= fcfa($fraisLivraison) ?></span></div>
+    <?php endif; ?>
     <?php if ((float) ($c['Pourboire'] ?? 0) > 0): ?>
         <div class="r"><span>Pourboire</span><span><?= fcfa($c['Pourboire']) ?></span></div>
-        <div class="r b"><span>TOTAL PAYÉ</span><span><?= fcfa((float) $c['TotalTTC'] + (float) $c['Pourboire']) ?> FCFA</span></div>
+    <?php endif; ?>
+    <?php if ((float) ($c['Pourboire'] ?? 0) > 0 || $fraisLivraison > 0): ?>
+        <div class="r b"><span>TOTAL PAYÉ</span><span><?= fcfa((float) $c['TotalTTC'] + (float) $c['Pourboire'] + $fraisLivraison) ?> FCFA</span></div>
     <?php endif; ?>
     <hr>
     <?php foreach ($paiements as $p): ?>

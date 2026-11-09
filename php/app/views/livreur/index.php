@@ -5,6 +5,20 @@
 </div>
 <p class="small text-muted">Les livreurs (à moto, en voiture, à vélo…) sont proposés au point de vente sur une commande à livrer (bouton « Livraison »). Ils n'ont pas de compte de connexion.
     Un livreur désactivé n'est plus proposé mais reste sur ses livraisons passées.</p>
+<?php if ($fraisDefaut !== null): ?>
+    <form method="post" action="<?= h(url('livreur/frais')) ?>" class="card shadow-sm border-0 mb-3">
+        <?= csrf_field() ?>
+        <div class="card-body d-flex flex-wrap align-items-end gap-3">
+            <div>
+                <label class="form-label" for="fraisLivraison"><i class="fa fa-truck-fast"></i> Frais de livraison par défaut (FCFA)</label>
+                <input class="form-control" id="fraisLivraison" name="fraisLivraison" inputmode="decimal" style="max-width:200px" value="<?= h((string) round($fraisDefaut)) ?>">
+            </div>
+            <button class="btn btn-primary">Enregistrer</button>
+            <div class="small text-muted flex-grow-1" style="min-width:260px">Proposés dans la fenêtre « Livraison » du point de vente, modifiables à chaque vente (0 = sans frais).
+                Ils s'ajoutent au total à payer, hors taxes, et reviennent à la société.</div>
+        </div>
+    </form>
+<?php endif; ?>
 <div class="card shadow-sm border-0">
     <div class="card-body">
         <table id="livreursTable" class="table table-hover align-middle mb-0">

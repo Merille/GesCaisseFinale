@@ -90,6 +90,8 @@ function pos_index(): void
         'peutModifierPrix' => is_admin(),
         // Vente par compte au-delà du plafond de crédit : administrateurs seulement.
         'peutDepasserPlafond' => is_admin(),
+        // Frais de livraison proposés par défaut (modifiables à chaque vente).
+        'fraisLivraison' => (float) qv('SELECT FraisLivraisonDefaut FROM Tenants WHERE Id = ?', [$tenant]),
         'peutRemiseGlobale' => pos_peut_remise_globale(),
         'urlFermer' => url('journee/details', ['id' => $journee['Id']]),
         'modes' => $modes,
@@ -270,10 +272,12 @@ function pos_vendre(): void
             $especes += $montant;
         }
     }
-    if ($recu < $ttc + $pourboire) {
+    // Frais de livraison (commande à livrer) : en plus du total, hors taxes, comme le pourboire.
+    $fraisLivraison = is_array($v['livraison'] ?? null) ? max(0, round((float) ($v['livraison']['frais'] ?? 0))) : 0.0;
+    if ($recu < $ttc + $pourboire + $fraisLivraison) {
         pos_json(['erreur' => 'Le montant payé est inférieur au total.'], 400);
     }
-    $rendu = $recu - $ttc - $pourboire;
+    $rendu = $recu - $ttc - $pourboire - $fraisLivraison;
     if ($rendu > $especes) {
         pos_json(['erreur' => 'Seule la monnaie sur les espèces peut être rendue : le montant payé par les autres modes dépasse le total.'], 400);
     }
@@ -369,11 +373,11 @@ function pos_vendre(): void
         $commandeId = run(
             "INSERT INTO CommandesPos (TenantId, Numero, CleClient, JourneeCaisseId, ClientId, UtilisateurId, DateCommande,
                 TotalHT, TotalTVA, TotalTTC, MontantRecu, MonnaieRendue, Statut, RemiseGlobale, RemiseGlobaleTaux, TableNom, Couverts, Pourboire,
-                LivreurId, NomLivraison, TelephoneLivraison, AdresseLivraison, StatutLivraison, DateLivraison)
-             VALUES (?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?, ?, 'Payée', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, " . ($livree ? 'NOW()' : 'NULL') . ")",
+                LivreurId, NomLivraison, TelephoneLivraison, AdresseLivraison, StatutLivraison, DateLivraison, FraisLivraison)
+             VALUES (?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?, ?, 'Payée', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, " . ($livree ? 'NOW()' : 'NULL') . ", ?)",
             [$tenant, $numero, $cle, $journee['Id'], $client, user()['id'], $ttc - $tva, $tva, $ttc, $recu, $rendu, $remiseGlobale, $tauxRemise, $tableNom, $couverts, $pourboire,
              $livraison['livreurId'] ?? null, $livraison['nom'] ?? null, $livraison['telephone'] ?? null, $livraison['adresse'] ?? null,
-             $livraison ? ($livree ? 'Livrée' : 'À livrer') : null]
+             $livraison ? ($livree ? 'Livrée' : 'À livrer') : null, $livraison ? $fraisLivraison : 0]
         );
         foreach ($lignes as $l) {
             $ligneId = run(
@@ -405,7 +409,8 @@ function pos_vendre(): void
                     "INSERT INTO OperationsCaisses (TenantId, JourneeCaisseId, DateOperation, TypeOperation, Montant, Libelle,
                         ClientId, MotifId, ModePaiementId, UtilisateurId, EstJustifie, StatutValidation, Valideur)
                      VALUES (?, ?, NOW(), 'Encaissement', ?, ?, ?, ?, ?, ?, 1, 'Validé', 'Point de vente')",
-                    [$tenant, $journee['Id'], $net, 'Vente POS ' . $numero . ($pourboire > 0 ? ' (dont pourboire ' . fcfa($pourboire) . ')' : ''), $client, $motif, $pm['mode']['Id'], user()['id']]
+                    [$tenant, $journee['Id'], $net, 'Vente POS ' . $numero . ($pourboire > 0 ? ' (dont pourboire ' . fcfa($pourboire) . ')' : '')
+                        . ($livraison && $fraisLivraison > 0 ? ' (dont frais de livraison ' . fcfa($fraisLivraison) . ')' : ''), $client, $motif, $pm['mode']['Id'], user()['id']]
                 );
             }
             run(
@@ -723,6 +728,7 @@ function pos_controler_livraison(mixed $l, int $tenant): array
     return [[
         'livreurId' => $livreur, 'nom' => pos_texte($l['nom'] ?? null, 100), 'telephone' => pos_texte($l['telephone'] ?? null, 30),
         'adresse' => $adresse, 'paiement' => ($l['paiement'] ?? '') === 'livraison' ? 'livraison' : 'maintenant',
+        'frais' => max(0, round((float) ($l['frais'] ?? 0))),
     ], null];
 }
 
@@ -749,7 +755,7 @@ function pos_attentes(): void
     ));
     $livraisons = array_map(fn($c) => [
         'id' => (int) $c['Id'], 'numero' => $c['Numero'], 'heure' => date('H:i', strtotime($c['DateCommande'])),
-        'client' => $c['Client'], 'total' => (float) $c['TotalTTC'], 'livreur' => $c['Livreur'], 'moyen' => $c['MoyenLivreur'],
+        'client' => $c['Client'], 'total' => (float) $c['TotalTTC'] + (float) $c['FraisLivraison'], 'livreur' => $c['Livreur'], 'moyen' => $c['MoyenLivreur'],
         'nom' => $c['NomLivraison'], 'telephone' => $c['TelephoneLivraison'], 'adresse' => $c['AdresseLivraison'],
     ], q(
         "SELECT c.*, l.Nom AS Livreur, l.MoyenLivraison AS MoyenLivreur, cl.NomSociete AS Client
@@ -825,7 +831,7 @@ function pos_mettreenattente(): void
              VALUES (?, ?, ?, NOW(), ?, ?, ?, ?, ?, ?, ?, ?, ?)',
             [$tenant, $journee['Id'], $numero, user()['id'], $client,
              json_encode(['lignes' => $lignes, 'clientId' => $client, 'remise' => $remise, 'livraison' => $livraison], JSON_UNESCAPED_UNICODE),
-             $brut - $montantRemise, count($lignes),
+             $brut - $montantRemise + ($livraison['frais'] ?? 0), count($lignes),
              $livraison['livreurId'] ?? null, $livraison['nom'] ?? null, $livraison['telephone'] ?? null, $livraison['adresse'] ?? null]
         );
         db()->commit();
