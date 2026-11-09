@@ -98,7 +98,7 @@ const fiche = [
         ['Application', 'GesCaisse — gestion de caisse et point de vente (POS)'],
         ['Éditeur', 'M-ITECH AFRICA'],
         ['Public', 'Administrateurs, caissiers, vendeurs et serveurs des sociétés clientes'],
-        ['Version du document', '1.7'],
+        ['Version du document', '1.8'],
         ['Date', 'Novembre 2026']
     ], [3000, 6638])
 ];
@@ -455,6 +455,14 @@ const contenu = [
     p('Le rapport présente le chiffre d’affaires TTC, le nombre de tickets, le panier moyen, les taxes, les retours, le chiffre d’affaires par jour, les ventes par mode de paiement, par catégorie et par vendeur, et le classement des produits les plus vendus.'),
     pt('Imprimer / PDF', 'aperçu imprimable du rapport.'),
     pt('Excel', 'export du rapport pour vos analyses.'),
+    h2('9.1 Rapport des livraisons'),
+    p('Menu **Rapport des livraisons** (administrateurs, rubrique Point de vente). Choisissez la période, au besoin un **livreur** et un **statut** (Livrée, À livrer, À encaisser), puis **Filtrer**.'),
+    ...figure('28b_rapport_livraisons', 'Rapport des livraisons'),
+    p('Les cartes donnent le nombre de livraisons, les livraisons effectuées, celles en cours, le montant des ventes livrées et le total des frais de livraison. Le rapport présente ensuite :'),
+    pt('Par livreur', 'pour chaque livreur et son moyen de livraison : nombre de livraisons, livrées, à livrer, à encaisser, montant des ventes et frais de livraison, avec le total.'),
+    pt('Détail des livraisons', 'date, numéro du ticket (lien vers la vente), livreur, destinataire et téléphone, adresse, montant des articles, frais, statut et date de livraison.'),
+    p('Statuts : **Livrée** (livraison effectuée), **À livrer** (vente payée, livreur pas encore revenu), **À encaisser** (commande confiée au livreur, à encaisser à son retour depuis **Commandes en attente**). Les ventes annulées ne sont pas comptées.'),
+    pt('Imprimer / PDF et Exporter Excel', 'reprennent la synthèse par livreur et le détail (deux feuilles dans le fichier Excel).'),
 
     // 10 -----------------------------------------------------------------
     h1('10. Restaurant et bar'),

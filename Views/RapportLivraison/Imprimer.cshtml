@@ -1,0 +1,42 @@
+@model EasytransitCaisse.Models.ViewModels.RapportLivraisonVM
+@{
+    Layout = "_ImpressionLayout";
+    ViewData["Pdf"] = false;
+    ViewData["TitreImpression"] = "Rapport des livraisons";
+    var f = Model.Filtres;
+    var t = Model.Total;
+    var nomLivreur = Model.Livreurs.FirstOrDefault(l => l.Id == f.Livreur)?.Nom;
+}
+<h1>Rapport des livraisons</h1>
+<p class="muted">
+    Période : du @f.Du.ToString("dd/MM/yyyy") au @f.Au.ToString("dd/MM/yyyy")
+    — Livreur : @(nomLivreur ?? "tous")
+    — Statut : @(f.Statut != "" ? f.Statut : "tous")
+</p>
+<h2>Par livreur</h2>
+<table>
+    <tr><th>Livreur</th><th>Moyen</th><th class="r">Livraisons</th><th class="r">Livrées</th><th class="r">À livrer</th><th class="r">À encaisser</th><th class="r">Montant des ventes</th><th class="r">Frais de livraison</th></tr>
+    @foreach (var l in Model.ParLivreur)
+    {
+        <tr><td>@l.Livreur</td><td>@l.Moyen</td><td class="r">@l.Livraisons</td><td class="r">@l.Livrees</td>
+            <td class="r">@l.ALivrer</td><td class="r">@l.AEncaisser</td><td class="r">@l.Montant.ToString("N0")</td><td class="r">@l.Frais.ToString("N0")</td></tr>
+    }
+    <tr class="total"><td colspan="2">Total</td><td class="r">@t.Livraisons</td><td class="r">@t.Livrees</td><td class="r">@t.ALivrer</td>
+        <td class="r">@t.AEncaisser</td><td class="r">@t.Montant.ToString("N0")</td><td class="r">@t.Frais.ToString("N0")</td></tr>
+</table>
+<h2>Détail des livraisons</h2>
+<table>
+    <tr><th>Date</th><th>N°</th><th>Livreur</th><th>Destinataire</th><th>Adresse</th><th class="r">Montant</th><th class="r">Frais</th><th>Statut</th></tr>
+    @if (!Model.Lignes.Any())
+    {
+        <tr><td colspan="8" class="muted">Aucune livraison sur la période.</td></tr>
+    }
+    @foreach (var l in Model.Lignes)
+    {
+        <tr><td>@l.Date.ToString("dd/MM/yyyy HH:mm")</td><td>@l.Numero</td><td>@l.Livreur</td>
+            <td>@(string.IsNullOrEmpty(l.Destinataire) ? l.Client : l.Destinataire)@(string.IsNullOrEmpty(l.Telephone) ? "" : " · " + l.Telephone)</td>
+            <td>@l.Adresse</td><td class="r">@l.Montant.ToString("N0")</td><td class="r">@l.Frais.ToString("N0")</td>
+            <td>@l.Statut@(l.DateLivraison.HasValue ? " le " + l.DateLivraison.Value.ToString("dd/MM/yyyy HH:mm") : "")</td></tr>
+    }
+</table>
+<p class="muted">Montant : articles de la vente (TTC), frais de livraison en plus. « À encaisser » : commande confiée au livreur, encaissée à son retour. Les ventes annulées ne sont pas comptées.</p>
