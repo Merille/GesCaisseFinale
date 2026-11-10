@@ -157,7 +157,7 @@ const contenu = [
     puce('Création, modification, suppression (refusée si la caisse a des journées), impression de la liste.'),
     puce('Informations : code, description, caissier par défaut, compte comptable (contrepartie Sage).'),
     puce('Type de point de vente : Vente en détail, Restaurant, Bar ou Laverie ; option d\'impression des bons de préparation. Une laverie vend au comptoir comme la vente en détail (prestations sans suivi de stock et produits en stock) ; seuls le titre de l\'écran de vente et l\'icône du type changent.'),
-    puce('Dépôt principal : dépôt d\'où sortent d\'abord les ventes de la caisse et où reviennent ses retours (dépôt par défaut de la société pour une nouvelle caisse).'),
+    puce('Dépôt de la caisse (principal) : dépôt d\'où sortent d\'abord les ventes de la caisse et où reviennent ses retours. Facultatif : sans dépôt choisi, la caisse utilise le dépôt par défaut de la société (et suit tout changement de dépôt par défaut). La liste des caisses affiche les dépôts de chaque caisse.'),
     puce('Dépôts secondaires : autres dépôts actifs, avec un ordre d\'utilisation, où la caisse complète une vente quand le stock du principal ne suffit pas (un mouvement de stock par dépôt utilisé ; le manque éventuel, si la vente sans stock est autorisée, sort du principal). Un même dépôt peut être secondaire de plusieurs caisses. Le stock affiché et contrôlé à la caisse est le total du principal et des secondaires ; une vente annulée remet chaque quantité dans son dépôt d\'origine.'),
     h2('3.3 Journées de caisse'),
     pt('Ouverture', 'numéro de journée, date de gestion, fond initial (suggestion : solde de la dernière clôture).'),

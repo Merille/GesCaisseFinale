@@ -38,7 +38,8 @@ namespace EasytransitCaisse.Controllers
         // Libellé affiché du type de point de vente.
         public static string Libelle(string? type) => type is null or "Boutique" ? "Vente en détail" : type;
 
-        // Dépôt saisi sur la fiche caisse, s'il est actif et de la société ; sinon null (dépôt par défaut).
+        // Dépôt saisi sur la fiche caisse, s'il est actif et de la société ; sinon null : la caisse utilise
+        // le dépôt par défaut de la société.
         private int? DepotValide(int? depotId)
             => depotId.HasValue && _context.Depots.Any(d => d.Id == depotId && d.Actif) ? depotId : null;
 
@@ -80,10 +81,23 @@ namespace EasytransitCaisse.Controllers
                     StCode = x.c.StCode,
                     TypePointVente = x.c.TypePointVente,
                     CompteComptable = x.c.CompteComptable,
-                    CashierName = u != null ? u.NomComplet : null
+                    CashierName = u != null ? u.NomComplet : null,
+                    DepotCode = x.c.DepotId != null
+                        ? _context.Depots.Where(d => d.Id == x.c.DepotId).Select(d => d.Code).FirstOrDefault()
+                        : _context.Depots.Where(d => d.TenantId == x.c.TenantId && d.ParDefaut).Select(d => d.Code).FirstOrDefault(),
+                    DepotParDefaut = x.c.DepotId == null
                 })
             .OrderBy(c => c.ChkCode)
             .ToList();
+            // Dépôts secondaires de chaque caisse, dans l'ordre d'utilisation.
+            var ids = caisses.Select(c => c.ID).ToList();
+            var secondaires = (from cd in _context.CaissesDepots
+                               join d in _context.Depots on cd.DepotId equals d.Id
+                               where ids.Contains(cd.CaisseId)
+                               orderby cd.Ordre, cd.DepotId
+                               select new { cd.CaisseId, d.Code }).ToList();
+            foreach (var c in caisses)
+                c.Secondaires = secondaires.Where(s => s.CaisseId == c.ID).Select(s => s.Code).ToList();
             ViewBag.Users = _context.Utilisateurs
                 .Select(u => new SelectListItem { Value = u.Id.ToString(), Text = u.NomComplet })
                 .ToList();
@@ -133,12 +147,10 @@ namespace EasytransitCaisse.Controllers
                 return View(caisse);
             }
 
-            var tenantCreation = _tenantProvider.TenantId;
-            caisse.DepotId = DepotValide(caisse.DepotId)
-                ?? (tenantCreation > 0 ? _context.DepotParDefautAsync(tenantCreation).GetAwaiter().GetResult() : null);
+            caisse.DepotId = DepotValide(caisse.DepotId);
             _context.Caisses.Add(caisse);
             _context.SaveChanges();
-            EnregistrerSecondaires(caisse.ID, caisse.DepotId);
+            EnregistrerSecondaires(caisse.ID, _context.DepotCaisseAsync(caisse.ID).GetAwaiter().GetResult());
             TempData["Success"] = "Caisse créée.";
 
             return RedirectToAction(nameof(Index));
@@ -183,11 +195,10 @@ namespace EasytransitCaisse.Controllers
             existing.CompteComptable = caisse.CompteComptable;
             existing.TypePointVente = Types.Contains(caisse.TypePointVente) ? caisse.TypePointVente : "Boutique";
             existing.ImprimerBons = caisse.ImprimerBons;
-            existing.DepotId = DepotValide(caisse.DepotId) ?? existing.DepotId
-                ?? _context.DepotParDefautAsync(existing.TenantId).GetAwaiter().GetResult();
+            existing.DepotId = DepotValide(caisse.DepotId);
 
             _context.SaveChanges();
-            EnregistrerSecondaires(existing.ID, existing.DepotId);
+            EnregistrerSecondaires(existing.ID, _context.DepotCaisseAsync(existing.ID).GetAwaiter().GetResult());
             TempData["Success"] = "Caisse modifiée.";
 
             return RedirectToAction("Index");

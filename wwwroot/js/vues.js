@@ -27,14 +27,16 @@
     });
 })();
 
-// Fiche caisse : le dépôt choisi comme principal ne peut pas être aussi un dépôt secondaire.
+// Fiche caisse : le dépôt de la caisse (principal) ne peut pas être aussi un dépôt secondaire.
 (function () {
     function majSecondaires(form) {
         const liste = form && form.querySelector('.depots-secondaires');
         const principal = form && form.querySelector('[name="DepotId"]');
         if (!liste || !principal) return;
         liste.querySelectorAll('[data-depot]').forEach(function (ligne) {
-            const estPrincipal = ligne.dataset.depot === String(principal.value);
+            // Sans dépôt choisi, la caisse utilise le dépôt par défaut de la société (data-depot de l'option vide).
+            const choisi = principal.value || (principal.selectedOptions[0] && principal.selectedOptions[0].dataset.depot) || '';
+            const estPrincipal = ligne.dataset.depot === String(choisi);
             ligne.querySelectorAll('input').forEach(function (c) { c.disabled = estPrincipal; });
             if (estPrincipal) ligne.querySelector('[type="checkbox"]').checked = false;
             ligne.classList.toggle('text-muted', estPrincipal);

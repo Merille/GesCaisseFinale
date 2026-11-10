@@ -36,7 +36,7 @@ function caisse_depots(): array
     return q('SELECT Id, Code, Nom, ParDefaut FROM Depots WHERE Actif = 1 AND ' . tf() . ' ORDER BY ParDefaut DESC, Code');
 }
 
-/** Dépôt saisi sur la fiche caisse, s'il est actif et de la société ; sinon null (dépôt par défaut). */
+/** Dépôt saisi sur la fiche caisse, s'il est actif et de la société ; sinon null : la caisse utilise le dépôt par défaut de la société. */
 function caisse_depot_saisi(): ?int
 {
     $id = int_or_null(post('DepotId'));
@@ -72,15 +72,17 @@ function caisse_secondaires_enregistrer(int $caisseId, int $principal): void
 function caisse_index(): void
 {
     $caisses = q(
-        'SELECT c.*, u.NomComplet AS Caissier
-         FROM Caisses c LEFT JOIN Utilisateurs u ON u.Id = c.CashierDefault
+        'SELECT c.*, u.NomComplet AS Caissier, COALESCE(d.Code, dd.Code) AS DepotCode
+         FROM Caisses c LEFT JOIN Utilisateurs u ON u.Id = c.CashierDefault LEFT JOIN Depots d ON d.Id = c.DepotId
+              LEFT JOIN Depots dd ON dd.TenantId = c.TenantId AND dd.ParDefaut = 1
          WHERE ' . tf('c') . ' ORDER BY c.ChkCode'
     );
     $secondaires = [];
     foreach (q('SELECT cd.CaisseId, cd.DepotId, cd.Ordre FROM CaissesDepots cd JOIN Caisses c ON c.ID = cd.CaisseId WHERE ' . tf('c') . ' ORDER BY cd.Ordre, cd.DepotId') as $r) {
         $secondaires[(int) $r['CaisseId']][(int) $r['DepotId']] = (int) $r['Ordre'];
     }
-    render('caisse/index', ['caisses' => $caisses, 'utilisateurs' => caisse_utilisateurs(), 'depots' => caisse_depots(), 'secondaires' => $secondaires]);
+    $codes = array_column(q('SELECT Id, Code FROM Depots WHERE ' . tf()), 'Code', 'Id');
+    render('caisse/index', ['caisses' => $caisses, 'codesDepots' => $codes, 'utilisateurs' => caisse_utilisateurs(), 'depots' => caisse_depots(), 'secondaires' => $secondaires]);
 }
 
 function caisse_valeurs(): array
@@ -102,12 +104,11 @@ function caisse_create(): void
     if (is_post()) {
         [$code, $desc, $st, $caissier, $compte, $type, $bons, $depot] = caisse_valeurs();
         $tenant = tenant_insert();
-        $depot ??= depot_par_defaut($tenant);
         $id = run(
             'INSERT INTO Caisses (ChkCode, ChkDescription, StCode, CashierDefault, CompteComptable, TypePointVente, ImprimerBons, DepotId, TenantId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
             [$code, $desc, $st, $caissier, $compte, $type, $bons, $depot, $tenant]
         );
-        caisse_secondaires_enregistrer((int) $id, (int) $depot);
+        caisse_secondaires_enregistrer((int) $id, $depot ?? depot_par_defaut($tenant));
         flash('success', 'Caisse créée.');
         redirect('caisse/index');
     }
@@ -119,12 +120,11 @@ function caisse_edit(): void
     $caisse = caisse_charger((int) get('id'));
     if (is_post()) {
         [$code, $desc, $st, $caissier, $compte, $type, $bons, $depot] = caisse_valeurs();
-        $depot ??= $caisse['DepotId'] ?? depot_par_defaut((int) $caisse['TenantId']);
         run(
             'UPDATE Caisses SET ChkCode = ?, ChkDescription = ?, StCode = ?, CashierDefault = ?, CompteComptable = ?, TypePointVente = ?, ImprimerBons = ?, DepotId = ? WHERE ID = ?',
             [$code, $desc, $st, $caissier, $compte, $type, $bons, $depot, $caisse['ID']]
         );
-        caisse_secondaires_enregistrer((int) $caisse['ID'], (int) $depot);
+        caisse_secondaires_enregistrer((int) $caisse['ID'], $depot ?? depot_par_defaut((int) $caisse['TenantId']));
         flash('success', 'Caisse modifiée.');
         redirect('caisse/index');
     }

@@ -13,7 +13,8 @@ function depot_index(): void
         'depots' => q(
             'SELECT d.*,
                 (SELECT COUNT(*) FROM StocksDepots s WHERE s.DepotId = d.Id AND s.Quantite <> 0) AS NbProduits,
-                (SELECT COUNT(*) FROM Caisses c WHERE c.DepotId = d.Id OR EXISTS (SELECT 1 FROM CaissesDepots cd WHERE cd.CaisseId = c.ID AND cd.DepotId = d.Id)) AS NbCaisses
+                (SELECT COUNT(*) FROM Caisses c WHERE c.DepotId = d.Id OR (c.DepotId IS NULL AND d.ParDefaut = 1 AND c.TenantId = d.TenantId)
+                    OR EXISTS (SELECT 1 FROM CaissesDepots cd WHERE cd.CaisseId = c.ID AND cd.DepotId = d.Id)) AS NbCaisses
              FROM Depots d WHERE ' . tf('d') . ' ORDER BY d.ParDefaut DESC, d.Actif DESC, d.Code, d.Id'
         ),
     ]);

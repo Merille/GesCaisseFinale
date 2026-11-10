@@ -33,9 +33,13 @@ namespace EasytransitCaisse.Controllers
             var ids = depots.Select(d => d.Id).ToList();
             ViewBag.NbProduits = await _context.StocksDepots.Where(s => ids.Contains(s.DepotId) && s.Quantite != 0)
                 .GroupBy(s => s.DepotId).Select(g => new { g.Key, Nb = g.Count() }).ToDictionaryAsync(x => x.Key, x => x.Nb);
-            // Caisses qui vendent depuis le dépôt : comme dépôt principal ou secondaire.
-            var principaux = await _context.Caisses.IgnoreQueryFilters().Where(c => c.DepotId != null && ids.Contains(c.DepotId.Value))
-                .Select(c => new { Depot = c.DepotId!.Value, Caisse = c.ID }).ToListAsync();
+            // Caisses qui vendent depuis le dépôt : comme dépôt principal (une caisse sans dépôt choisi utilise
+            // le dépôt par défaut de sa société) ou secondaire.
+            var defauts = depots.Where(d => d.ParDefaut).ToDictionary(d => d.TenantId, d => d.Id);
+            var principaux = (await _context.Caisses.IgnoreQueryFilters()
+                    .Where(c => (c.DepotId != null && ids.Contains(c.DepotId.Value)) || (c.DepotId == null && defauts.Keys.Contains(c.TenantId)))
+                    .Select(c => new { c.DepotId, c.TenantId, c.ID }).ToListAsync())
+                .Select(c => new { Depot = c.DepotId ?? defauts[c.TenantId], Caisse = c.ID }).ToList();
             var secondaires = await _context.CaissesDepots.Where(c => ids.Contains(c.DepotId))
                 .Select(c => new { Depot = c.DepotId, Caisse = c.CaisseId }).ToListAsync();
             ViewBag.NbCaisses = principaux.Concat(secondaires).Distinct()

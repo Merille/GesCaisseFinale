@@ -21,18 +21,20 @@
     <div class="form-text">Restaurant / Bar : plan de salle, commandes sur les tables, bons cuisine / bar. Laverie : vente au comptoir de prestations.</div>
 </div>
 @{
-    // Dépôts actifs de la société ; une nouvelle caisse vend par défaut depuis le dépôt par défaut.
+    // Dépôts actifs de la société ; sans dépôt choisi, la caisse vend depuis le dépôt par défaut.
     var depots = DbContext.Depots.Where(d => d.Actif).OrderByDescending(d => d.ParDefaut).ThenBy(d => d.Code).ToList();
 }
 <div class="col-md-8">
-    <label class="form-label" for="DepotId">Dépôt principal</label>
+    <label class="form-label" for="DepotId">Dépôt de la caisse</label>
+    @{ var defaut = depots.FirstOrDefault(d => d.ParDefaut); }
     <select class="form-select" id="DepotId" name="DepotId">
+        <option value="" data-depot="@(defaut?.Id)">Dépôt par défaut de la société@(defaut != null ? " (" + defaut.Code + " · " + defaut.Nom + ")" : "")</option>
         @foreach (var d in depots)
         {
-            <option value="@d.Id" selected="@(Model.DepotId.HasValue ? Model.DepotId == d.Id : d.ParDefaut)">@(d.Code + " · " + d.Nom)</option>
+            <option value="@d.Id" selected="@(Model.DepotId == d.Id)">@(d.Code + " · " + d.Nom)</option>
         }
     </select>
-    <div class="form-text">Dépôt principal : les ventes en sortent d'abord et les retours y reviennent.</div>
+    <div class="form-text">Dépôt principal de la caisse : les ventes en sortent d'abord et les retours y reviennent. Sans choix, la caisse utilise le dépôt par défaut de la société (Paramètres › Dépôts).</div>
 </div>
 @{
     // Dépôts secondaires de la caisse : DepotId → ordre d'utilisation.

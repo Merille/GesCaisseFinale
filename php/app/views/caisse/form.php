@@ -53,14 +53,15 @@ require __DIR__ . '/../partials/form_debut.php';
                     <div class="form-text">Restaurant / Bar : plan de salle, commandes sur les tables, bons cuisine / bar. Laverie : vente au comptoir de prestations.</div>
                 </div>
                 <div class="col-md-8">
-                    <label class="form-label" for="DepotId<?= $sfxPv ?>">Dépôt principal</label>
+                    <label class="form-label" for="DepotId<?= $sfxPv ?>">Dépôt de la caisse</label>
                     <select class="form-select" id="DepotId<?= $sfxPv ?>" name="DepotId">
-                        <?php $depotChoisi = (int) ($caisse['DepotId'] ?? 0); ?>
+                        <?php $depotChoisi = (int) ($caisse['DepotId'] ?? 0); $defaut = current(array_filter($depots ?? [], fn($d) => $d['ParDefaut'])); ?>
+                        <option value="" data-depot="<?= $defaut ? (int) $defaut['Id'] : '' ?>">Dépôt par défaut de la société<?= $defaut ? h(' (' . $defaut['Code'] . ' · ' . $defaut['Nom'] . ')') : '' ?></option>
                         <?php foreach ($depots ?? [] as $d): ?>
-                            <option value="<?= (int) $d['Id'] ?>" <?= ($depotChoisi ? $depotChoisi === (int) $d['Id'] : $d['ParDefaut']) ? 'selected' : '' ?>><?= h($d['Code'] . ' · ' . $d['Nom']) ?></option>
+                            <option value="<?= (int) $d['Id'] ?>" <?= $depotChoisi === (int) $d['Id'] ? 'selected' : '' ?>><?= h($d['Code'] . ' · ' . $d['Nom']) ?></option>
                         <?php endforeach; ?>
                     </select>
-                    <div class="form-text">Dépôt principal : les ventes en sortent d'abord et les retours y reviennent.</div>
+                    <div class="form-text">Dépôt principal de la caisse : les ventes en sortent d'abord et les retours y reviennent. Sans choix, la caisse utilise le dépôt par défaut de la société (Paramètres › Dépôts).</div>
                 </div>
                 <div class="col-12">
                     <input type="hidden" name="SecondairesSaisis" value="1">

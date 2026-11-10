@@ -7,23 +7,28 @@
     <div class="card-body">
         <table id="caissesTable" class="table table-hover align-middle mb-0">
             <thead class="table-dark">
-            <tr><th>Code</th><th>Description</th><th>Type</th><th>StCode</th><th>Caissier par défaut</th><th>Compte comptable</th><th class="text-center">Actions</th></tr>
+            <tr><th>Code</th><th>Description</th><th>Type</th><th>Caissier par défaut</th><th>Compte comptable</th><?php if (module_pos_actif()): ?><th>Dépôts</th><?php endif; ?><th class="text-center">Actions</th></tr>
             </thead>
             <tbody>
             <?php foreach ($caisses as $c): ?>
                 <tr>
-                    <td class="fw-semibold"><?= h($c['ChkCode']) ?></td>
+                    <td><span class="fw-semibold"><?= h($c['ChkCode']) ?></span><?php if ($c['StCode']): ?><div class="small text-muted" title="StCode"><?= h($c['StCode']) ?></div><?php endif; ?></td>
                     <td><?= h($c['ChkDescription']) ?></td>
                     <td><?php $type = $c['TypePointVente'] ?? 'Boutique'; ?>
                         <span class="badge <?= CAISSE_TYPE_BADGES[$type] ?? 'bg-secondary' ?>">
                             <i class="fa <?= CAISSE_TYPE_ICONES[$type] ?? 'fa-store' ?>"></i> <?= h(caisse_type_libelle($type)) ?></span></td>
-                    <td><?= h($c['StCode']) ?></td>
                     <td><?= $c['Caissier'] ? h($c['Caissier']) : '<span class="text-muted">—</span>' ?></td>
                     <td><?= h($c['CompteComptable']) ?></td>
+                    <?php if (module_pos_actif()): ?>
+                    <td><?php // Dépôt de la caisse (sinon dépôt par défaut de la société), puis ses dépôts secondaires. ?>
+                        <?= h((string) $c['DepotCode']) ?><?php if (!$c['DepotId']): ?> <span class="small text-muted text-nowrap">(par défaut)</span><?php endif; ?>
+                        <?php $sec = array_map(fn($id) => $codesDepots[$id] ?? '', array_keys($secondaires[(int) $c['ID']] ?? [])); ?>
+                        <?php if ($sec): ?><div class="small text-muted">+ <?= h(implode(', ', $sec)) ?></div><?php endif; ?></td>
+                    <?php endif; ?>
                     <td class="text-center table-actions">
                         <a href="<?= h(url('caisse/details', ['id' => $c['ID']])) ?>" class="btn btn-primary btn-sm">Journées</a>
                         <?php if (in_array($type, ['Restaurant', 'Bar'], true) && is_admin() && module_pos_actif()): ?>
-                            <a href="<?= h(url('salle/index', ['caisse' => $c['ID']])) ?>" class="btn btn-info btn-sm"><i class="fa fa-chair"></i> Plan de salle</a>
+                            <a href="<?= h(url('salle/index', ['caisse' => $c['ID']])) ?>" class="btn btn-info btn-sm" title="Plan de salle" aria-label="Plan de salle"><i class="fa fa-chair"></i></a>
                         <?php endif; ?>
                         <a href="<?= h(url('caisse/edit', ['id' => $c['ID']])) ?>" class="btn btn-warning btn-sm"
                            data-caisse="<?= h(json_encode([
