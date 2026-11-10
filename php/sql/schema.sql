@@ -2,7 +2,7 @@
 -- Les noms de tables et de colonnes reprennent ceux de la version .NET
 -- (SQL Server) pour faciliter une éventuelle reprise des données.
 --
--- Base à jour : intègre toutes les migrations de sql/migrations (001 à 018),
+-- Base à jour : intègre toutes les migrations de sql/migrations (001 à 019),
 -- notées comme appliquées dans MigrationsAppliquees.
 --
 -- Utilisation (NOUVELLE installation uniquement) : créer une base VIDE (ex. gescaisse),
@@ -65,6 +65,18 @@ CREATE TABLE `Caisses` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 INSERT INTO `Caisses` (`ID`, `ChkCode`, `ChkDescription`, `StCode`, `SalesPersonDefault`, `CashierDefault`, `CustomerDefaultCode`, `JournalDefaultCode`, `CompteComptable`, `TenantId`, `TypePointVente`, `ImprimerBons`, `DepotId`) VALUES (1,'CASH1','Caisse principale','ST01',NULL,NULL,'CUST001','JRN01',NULL,1,'Boutique',1,1);
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `CaissesDepots` (
+  `CaisseId` int NOT NULL,
+  `DepotId` int NOT NULL,
+  `Ordre` int NOT NULL DEFAULT '1',
+  PRIMARY KEY (`CaisseId`,`DepotId`),
+  KEY `IX_CaissesDepots_DepotId` (`DepotId`),
+  CONSTRAINT `FK_CaissesDepots_Caisses` FOREIGN KEY (`CaisseId`) REFERENCES `Caisses` (`ID`) ON DELETE CASCADE,
+  CONSTRAINT `FK_CaissesDepots_Depots` FOREIGN KEY (`DepotId`) REFERENCES `Depots` (`Id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `Categories` (
@@ -404,6 +416,7 @@ INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('015_moyen
 INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('016_genre_tiers.sql','2026-11-02 00:15:20');
 INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('017_clients_en_compte.sql','2026-11-02 00:15:20');
 INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('018_frais_livraison.sql','2026-11-02 00:15:20');
+INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('019_depots_secondaires.sql','2026-11-02 00:15:20');
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `ModesPaiement` (

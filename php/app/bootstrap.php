@@ -711,6 +711,74 @@ function depot_caisse(int $caisseId): int
     return $c && $c['DepotId'] ? (int) $c['DepotId'] : depot_par_defaut((int) ($c['TenantId'] ?? tenant_id()));
 }
 
+/**
+ * Dépôts où vend une caisse : son dépôt principal, puis ses dépôts secondaires actifs dans l'ordre
+ * choisi (complément quand le stock du principal ne suffit pas).
+ */
+function depots_caisse(int $caisseId): array
+{
+    $principal = depot_caisse($caisseId);
+    $secondaires = array_map('intval', array_column(q(
+        'SELECT cd.DepotId FROM CaissesDepots cd JOIN Depots d ON d.Id = cd.DepotId
+         WHERE cd.CaisseId = ? AND d.Actif = 1 AND cd.DepotId <> ? ORDER BY cd.Ordre, cd.DepotId',
+        [$caisseId, $principal]
+    ), 'DepotId'));
+    return array_merge([$principal], $secondaires);
+}
+
+/** Stock disponible d'un produit pour une caisse : total de ses dépôts (principal et secondaires). */
+function stock_caisse(int $produitId, array $depots): float
+{
+    $marques = implode(',', array_fill(0, count($depots), '?'));
+    return (float) (qv("SELECT SUM(Quantite) FROM StocksDepots WHERE ProduitId = ? AND DepotId IN ($marques)",
+        array_merge([$produitId], $depots)) ?? 0);
+}
+
+/**
+ * Sortie de stock d'une vente (quantité positive) répartie entre les dépôts de la caisse : le dépôt
+ * principal d'abord, puis les secondaires dans l'ordre, chacun à hauteur de son stock ; ce qui manque
+ * encore (vente sans stock autorisée) sort du principal. Un mouvement par dépôt utilisé.
+ */
+function sortie_stock_caisse(int $produitId, float $quantite, string $type, ?string $reference, ?int $commandeId,
+                             ?string $commentaire, array $depots): void
+{
+    $p = q1('SELECT SuiviStock FROM Produits WHERE Id = ? FOR UPDATE', [$produitId]);
+    if (!$p || !$p['SuiviStock'] || $quantite < 0.0001) {
+        return;
+    }
+    $parts = [];
+    $reste = $quantite;
+    foreach ($depots as $depot) {
+        if ($reste < 0.0001) {
+            break;
+        }
+        $prend = min($reste, max(0.0, stock_depot($produitId, (int) $depot)));
+        if ($prend >= 0.0001) {
+            $parts[(int) $depot] = $prend;
+            $reste -= $prend;
+        }
+    }
+    if ($reste >= 0.0001) {
+        $parts[(int) $depots[0]] = ($parts[(int) $depots[0]] ?? 0) + $reste;
+    }
+    foreach ($parts as $depot => $q) {
+        mouvement_stock($produitId, -round($q, 4), $type, $reference, $commandeId, $commentaire, $depot);
+    }
+}
+
+/**
+ * Annulation d'une vente : chaque quantité sortie revient dans le dépôt d'où elle est sortie
+ * (d'après les mouvements « Vente » de la vente).
+ */
+function remise_stock_annulation(int $commandeId, string $reference, ?string $commentaire): void
+{
+    foreach (q("SELECT ProduitId, DepotId, SUM(Quantite) AS Q FROM MouvementsStock
+                WHERE CommandePosId = ? AND TypeMouvement = 'Vente' GROUP BY ProduitId, DepotId ORDER BY ProduitId, DepotId", [$commandeId]) as $m) {
+        mouvement_stock((int) $m['ProduitId'], -(float) $m['Q'], 'Annulation', $reference, $commandeId, $commentaire,
+            $m['DepotId'] !== null ? (int) $m['DepotId'] : null);
+    }
+}
+
 /** Quantité d'un produit dans un dépôt. */
 function stock_depot(int $produitId, int $depotId): float
 {

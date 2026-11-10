@@ -98,7 +98,7 @@ const fiche = [
         ['Application', 'GesCaisse — gestion de caisse et point de vente (POS)'],
         ['Éditeur', 'M-ITECH AFRICA'],
         ['Public', 'Administrateurs, caissiers, vendeurs et serveurs des sociétés clientes'],
-        ['Version du document', '1.8'],
+        ['Version du document', '1.9'],
         ['Date', 'Novembre 2026']
     ], [3000, 6638])
 ];
@@ -206,7 +206,9 @@ const contenu = [
     pt('Compte comptable', 'compte de trésorerie utilisé comme contrepartie dans l’export Sage (ex. 571100).'),
     pt('Type de point de vente', '**Vente en détail** (comptoir classique), **Restaurant** ou **Bar** (plan de salle et commandes par table, voir chapitre 10), ou **Laverie** (vente au comptoir de prestations de lavage et de pressing, voir 6.10).'),
     pt('Imprimer les bons de préparation', 'pour un restaurant ou un bar : impression automatique des bons envoyés en cuisine.'),
-    pt('Dépôt de stock', 'dépôt d’où sortent les ventes de la caisse et où reviennent ses retours (voir 8 et 12.7). Une nouvelle caisse prend le dépôt par défaut.'),
+    pt('Dépôt principal', 'dépôt d’où sortent d’abord les ventes de la caisse et où reviennent ses retours (voir 8 et 12.7). Une nouvelle caisse prend le dépôt par défaut.'),
+    pt('Dépôts secondaires', 'cochez les autres dépôts où la caisse peut compléter une vente quand le stock du dépôt principal ne suffit pas, et indiquez leur **ordre** d’utilisation (1 d’abord, puis 2…). Un même dépôt peut servir de complément à plusieurs caisses. Le dépôt principal ne peut pas être coché comme secondaire.'),
+    ...figure('10b_caisse_depots', 'Dépôt principal et dépôts secondaires d’une caisse'),
     p('Les boutons de chaque ligne permettent d’ouvrir les **Journées** de la caisse, de la **Modifier** ou de la **Supprimer**. Une caisse qui a déjà des journées ne peut pas être supprimée. Le bouton **Imprimer**, en haut de la liste, édite la liste des caisses (code, description, StCode, caissier par défaut, compte comptable).'),
     h2('3.2 Ouvrir une journée'),
     ...etapes([
@@ -383,7 +385,7 @@ const contenu = [
     ...figure('22_pos_ticket', 'Vente terminée et ticket de caisse'),
     h2('6.9 Quitter le point de vente'),
     p('Le bouton **Ventes** ouvre la liste des ventes ; le bouton **Fermer** revient à l’application. La journée reste ouverte : seule la clôture (3.5) la termine.'),
-    attention('Si votre société interdit la vente sans stock (voir 8.6), un article épuisé dans le dépôt de la caisse est refusé. Sinon, la vente est acceptée avec un avertissement.'),
+    attention('Si votre société interdit la vente sans stock (voir 8.6), un article épuisé dans les dépôts de la caisse (principal et secondaires) est refusé. Sinon, la vente est acceptée avec un avertissement.'),
 
     h2('6.10 Laverie et pressing'),
     p('Une caisse de type **Laverie** (3.1) fonctionne comme la vente en détail : l’écran de vente s’ouvre directement sur le ticket et les articles, et son titre indique « Laverie ». Le catalogue réunit en général :'),
@@ -416,7 +418,8 @@ const contenu = [
     // 8 ------------------------------------------------------------------
     h1('8. Stock'),
     p('Menu **Stock** (administrateurs). Le stock de chaque produit suivi est tenu **par dépôt** (magasin, entrepôt, réserve… voir 12.7). Il évolue à chaque entrée, vente, retour, annulation, inventaire ou transfert. Le stock d’un produit affiché dans les listes et sur sa fiche est le total de tous les dépôts.'),
-    pt('Ventes et retours', 'ils sortent du dépôt de la caisse (et y reviennent). L’écran de vente affiche le stock de ce dépôt.'),
+    pt('Ventes', 'elles sortent d’abord du dépôt principal de la caisse ; si son stock ne suffit pas, le reste est pris dans ses dépôts secondaires, dans l’ordre choisi sur la caisse (voir 3.1). L’écran de vente affiche le stock total du principal et des secondaires. Ce qui manque encore (vente sans stock autorisée) sort du dépôt principal.'),
+    pt('Retours et annulations', 'un retour revient dans le dépôt principal de la caisse ; une vente annulée remet chaque quantité dans le dépôt d’où elle était sortie.'),
     pt('Entrées, inventaires et transferts', 'ils se font dans le dépôt choisi sur la page.'),
     pt('Nouveaux produits', 'leur stock initial est placé dans le dépôt par défaut.'),
     h2('8.1 Mouvements et alertes'),
@@ -581,9 +584,9 @@ const contenu = [
     h2('12.7 Dépôts'),
     p('Menu **Paramètres** › **Dépôts**. Un dépôt est un lieu de stockage : magasin, entrepôt, réserve… Chaque société a au moins un dépôt, le **Dépôt principal**, créé automatiquement : il a reçu tout le stock existant lors de la mise à jour.'),
     ...figure('46_depots', 'Dépôts de stockage'),
-    p('Cliquez sur **Nouveau dépôt** (ou **Modifier** sur une ligne) et renseignez le **code**, le **nom**, l’adresse et le responsable. La liste indique pour chaque dépôt le nombre de produits en stock et de caisses rattachées.'),
+    p('Cliquez sur **Nouveau dépôt** (ou **Modifier** sur une ligne) et renseignez le **code**, le **nom**, l’adresse et le responsable. La liste indique pour chaque dépôt le nombre de produits en stock et de caisses rattachées (comme dépôt principal ou secondaire).'),
     pt('Par défaut', 'le dépôt par défaut reçoit le stock initial des nouveaux produits et sert aux caisses sans dépôt choisi. Il ne peut être ni désactivé ni supprimé : choisissez d’abord un autre dépôt par défaut.'),
-    pt('Désactiver', 'un dépôt désactivé n’est plus proposé pour les caisses ni les mouvements de stock. Un dépôt rattaché à une caisse ne peut pas être désactivé.'),
+    pt('Désactiver', 'un dépôt désactivé n’est plus proposé pour les caisses ni les mouvements de stock, et les caisses ne s’en servent plus comme dépôt secondaire. Un dépôt principal d’une caisse ne peut pas être désactivé.'),
     pt('Supprimer', 'seul un dépôt sans mouvement de stock ni caisse peut être supprimé ; sinon, désactivez-le.'),
     h2('12.8 Livreurs'),
     p('Menu **Paramètres** › **Livreurs**. Les livreurs sont proposés au point de vente sur une commande à livrer ; ils n’ont pas de compte de connexion. Cliquez sur **Nouveau livreur** (ou **Modifier**) et renseignez le **nom**, le **téléphone** et le **moyen de livraison** : **Moto**, **Voiture**, **Vélo** ou **Autre**. La liste indique le moyen et le nombre de livraisons de chacun.'),
@@ -603,7 +606,7 @@ const contenu = [
         ['Le bouton Prix du pavé est refusé.', 'La modification du prix à la caisse est réservée aux administrateurs.'],
         ['La remise globale, le retour ou l’annulation sont refusés.', 'Ces actions demandent le profil Admin ou le droit « Peut valider ».'],
         ['Je ne peux pas clôturer la journée.', 'Dans un restaurant, encaissez ou transférez d’abord les commandes des tables.'],
-        ['Un article épuisé est refusé à la caisse.', 'La vente sans stock est interdite (8.6) et l’article est épuisé dans le dépôt de la caisse : enregistrez une entrée, un transfert ou un inventaire dans ce dépôt.'],
+        ['Un article épuisé est refusé à la caisse.', 'La vente sans stock est interdite (8.6) et l’article est épuisé dans les dépôts de la caisse : enregistrez une entrée, un transfert ou un inventaire dans l’un d’eux, ou rattachez un dépôt secondaire à la caisse (3.1).'],
         ['Mon ticket a disparu après une coupure.', 'Rouvrez le point de vente sur le même poste et le même navigateur : les tickets en cours y sont conservés.'],
         ['Le ticket n’affiche pas notre logo ou notre adresse.', 'Complétez Paramètres › Ma société (12.1).'],
         ['La page indique « compte suspendu ».', 'La licence de la société a expiré : contactez votre fournisseur.'],

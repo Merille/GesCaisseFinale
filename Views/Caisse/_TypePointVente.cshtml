@@ -25,14 +25,45 @@
     var depots = DbContext.Depots.Where(d => d.Actif).OrderByDescending(d => d.ParDefaut).ThenBy(d => d.Code).ToList();
 }
 <div class="col-md-8">
-    <label class="form-label" for="DepotId">Dépôt de stock</label>
+    <label class="form-label" for="DepotId">Dépôt principal</label>
     <select class="form-select" id="DepotId" name="DepotId">
         @foreach (var d in depots)
         {
             <option value="@d.Id" selected="@(Model.DepotId.HasValue ? Model.DepotId == d.Id : d.ParDefaut)">@(d.Code + " · " + d.Nom)</option>
         }
     </select>
-    <div class="form-text">Les ventes et les retours de la caisse sortent du stock de ce dépôt (et y reviennent).</div>
+    <div class="form-text">Dépôt principal : les ventes en sortent d'abord et les retours y reviennent.</div>
+</div>
+@{
+    // Dépôts secondaires de la caisse : DepotId → ordre d'utilisation.
+    var secondaires = Model.ID > 0
+        ? DbContext.CaissesDepots.Where(c => c.CaisseId == Model.ID).ToDictionary(c => c.DepotId, c => c.Ordre)
+        : new Dictionary<int, int>();
+}
+<div class="col-12">
+    <input type="hidden" name="SecondairesSaisis" value="1" />
+    <label class="form-label mb-1">Dépôts secondaires (complément)</label>
+    <div class="border rounded px-2 py-1 depots-secondaires" data-sfx="">
+        @if (depots.Count < 2)
+        {
+            <div class="small text-muted py-1">Créez d'autres dépôts (Paramètres › Dépôts) pour compléter le stock de cette caisse.</div>
+        }
+        @for (var i = 0; i < depots.Count; i++)
+        {
+            var d = depots[i];
+            var coche = secondaires.ContainsKey(d.Id);
+            <div class="d-flex align-items-center gap-2 py-1" data-depot="@d.Id">
+                <div class="form-check mb-0 flex-grow-1">
+                    <input class="form-check-input" type="checkbox" name="Secondaires[]" value="@d.Id" id="Secondaire@(d.Id)" checked="@coche" />
+                    <label class="form-check-label" for="Secondaire@(d.Id)">@(d.Code + " · " + d.Nom)</label>
+                </div>
+                <label class="small text-muted mb-0" for="Ordre@(d.Id)">Ordre</label>
+                <input type="number" class="form-control form-control-sm" style="width:4.5rem;" min="1" max="99" name="Ordre[@d.Id]" id="Ordre@(d.Id)" value="@(coche ? secondaires[d.Id] : i + 1)" />
+            </div>
+        }
+    </div>
+    <div class="form-text">Quand le stock du dépôt principal ne suffit pas, la vente complète dans ces dépôts, dans l'ordre indiqué.
+        Le stock affiché à la caisse est le total du principal et des secondaires.</div>
 </div>
 <div class="col-12 d-flex align-items-center">
     <div class="form-check">

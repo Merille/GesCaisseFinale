@@ -312,9 +312,8 @@ namespace EasytransitCaisse.Controllers
                 op.Observation = "Vente annulée" + (motif != null ? " : " + motif : "");
             }
             await using var transaction = await _context.Database.BeginTransactionAsync();
-            foreach (var l in vente.Lignes.Where(l => l.ProduitId.HasValue))
-                await _context.MouvementLigneAsync(l.ProduitId!.Value, l.Composants, l.Quantite, "Annulation", vente.Numero, vente.Id, UtilisateurId, motif,
-                    await _context.DepotCaisseAsync(vente.JourneeCaisse!.CaisseId));
+            // Le stock revient dans les dépôts d'où il est sorti (principal ou secondaires).
+            await _context.RemiseStockAnnulationAsync(vente.Id, vente.Numero, UtilisateurId, motif);
             await _context.SaveChangesAsync();
             await transaction.CommitAsync();
             return VersDetails(id, succes: $"Vente {vente.Numero} annulée : ses encaissements sont rejetés et le stock est remis.");

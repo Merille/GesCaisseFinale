@@ -42,6 +42,23 @@ namespace EasytransitCaisse.Controllers
         private int? DepotValide(int? depotId)
             => depotId.HasValue && _context.Depots.Any(d => d.Id == depotId && d.Actif) ? depotId : null;
 
+        // Enregistre les dépôts secondaires cochés sur la fiche (dépôts actifs de la société, autres que le
+        // principal), avec leur ordre d'utilisation. Sans effet si la fiche ne les proposait pas.
+        private void EnregistrerSecondaires(int caisseId, int? principal)
+        {
+            if (string.IsNullOrEmpty(Request.Form["SecondairesSaisis"]))
+                return;
+            var actifs = _context.Depots.Where(d => d.Actif).Select(d => d.Id).ToHashSet();
+            _context.CaissesDepots.Where(c => c.CaisseId == caisseId).ExecuteDelete();
+            var ids = Request.Form["Secondaires[]"].Select(v => int.TryParse(v, out var x) ? x : 0).Distinct();
+            foreach (var id in ids.Where(id => id != principal && actifs.Contains(id)))
+            {
+                var ordre = int.TryParse(Request.Form[$"Ordre[{id}]"], out var o) && o != 0 ? Math.Clamp(o, 1, 99) : 1;
+                _context.CaissesDepots.Add(new CaisseDepot { CaisseId = caisseId, DepotId = id, Ordre = ordre });
+            }
+            _context.SaveChanges();
+        }
+
         // LISTE
         public IActionResult Index()
         {
@@ -121,6 +138,7 @@ namespace EasytransitCaisse.Controllers
                 ?? (tenantCreation > 0 ? _context.DepotParDefautAsync(tenantCreation).GetAwaiter().GetResult() : null);
             _context.Caisses.Add(caisse);
             _context.SaveChanges();
+            EnregistrerSecondaires(caisse.ID, caisse.DepotId);
             TempData["Success"] = "Caisse créée.";
 
             return RedirectToAction(nameof(Index));
@@ -169,6 +187,7 @@ namespace EasytransitCaisse.Controllers
                 ?? _context.DepotParDefautAsync(existing.TenantId).GetAwaiter().GetResult();
 
             _context.SaveChanges();
+            EnregistrerSecondaires(existing.ID, existing.DepotId);
             TempData["Success"] = "Caisse modifiée.";
 
             return RedirectToAction("Index");

@@ -89,3 +89,12 @@ function ligne_mouvement_stock(array $ligne, float $qte, string $type, ?string $
         mouvement_stock((int) $c['produitId'], $qte * (float) $c['qte'], $type, $reference, $commandeId, $commentaire, $depotId);
     }
 }
+
+/** Sortie de stock d'une ligne vendue, répartie entre les dépôts de la caisse : le produit, ou les composants d'un combo. */
+function ligne_sortie_stock(array $ligne, float $qte, ?string $reference, ?int $commandeId, array $depots): void
+{
+    $composants = ligne_composants($ligne['Composants'] ?? null);
+    foreach ($composants ?: [['produitId' => (int) $ligne['ProduitId'], 'qte' => 1]] as $c) {
+        sortie_stock_caisse((int) $c['produitId'], $qte * (float) $c['qte'], 'Vente', $reference, $commandeId, null, $depots);
+    }
+}

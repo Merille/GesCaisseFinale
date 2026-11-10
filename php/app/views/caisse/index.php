@@ -31,6 +31,7 @@
                                'ChkCode' => $c['ChkCode'], 'ChkDescription' => $c['ChkDescription'], 'StCode' => $c['StCode'],
                                'CashierDefault' => $c['CashierDefault'], 'CompteComptable' => $c['CompteComptable'],
                                'TypePointVente' => $c['TypePointVente'] ?? 'Boutique', 'ImprimerBons' => (bool) ($c['ImprimerBons'] ?? 1), 'DepotId' => $c['DepotId'],
+                               'Secondaires' => (object) ($secondaires[(int) $c['ID']] ?? []),
                            ])) ?>">Modifier</a>
                         <form method="post" action="<?= h(url('caisse/delete')) ?>" onsubmit="return confirm('Supprimer cette caisse ?');">
                             <?= csrf_field() ?><input type="hidden" name="id" value="<?= (int) $c['ID'] ?>">
@@ -67,6 +68,12 @@
         ['ChkCode', 'ChkDescription', 'StCode', 'CashierDefault', 'CompteComptable', 'TypePointVente', 'DepotId'].forEach(function (nom) {
             const champ = form.elements[nom];
             if (champ) champ.value = c[nom] == null ? '' : c[nom];
+        });
+        // Dépôts secondaires : cochés avec leur ordre ; les autres gardent l'ordre proposé.
+        form.querySelectorAll('.depots-secondaires [data-depot]').forEach(function (ligne, i) {
+            const ordre = c.Secondaires[ligne.dataset.depot];
+            ligne.querySelector('[type="checkbox"]').checked = ordre !== undefined;
+            ligne.querySelector('[type="number"]').value = ordre !== undefined ? ordre : i + 1;
         });
         const bons = form.querySelector('[name="ImprimerBons"]');
         if (bons && bons.type === 'checkbox') bons.checked = c.ImprimerBons;

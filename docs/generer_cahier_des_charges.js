@@ -63,7 +63,7 @@ const fiche = [
         ['Projet', 'GesCaisse — gestion de caisse et point de vente (POS)'],
         ['Éditeur', 'M-ITECH AFRICA'],
         ['Versions', 'ASP.NET Core (.NET 10) / SQL Server — PHP 8 / MySQL'],
-        ['Version du document', '1.9'],
+        ['Version du document', '2.0'],
         ['Date', 'Novembre 2026'],
         ['Statut', 'Document de référence (fonctionnalités réalisées)']
     ], [3000, 6638])
@@ -157,7 +157,8 @@ const contenu = [
     puce('Création, modification, suppression (refusée si la caisse a des journées), impression de la liste.'),
     puce('Informations : code, description, caissier par défaut, compte comptable (contrepartie Sage).'),
     puce('Type de point de vente : Vente en détail, Restaurant, Bar ou Laverie ; option d\'impression des bons de préparation. Une laverie vend au comptoir comme la vente en détail (prestations sans suivi de stock et produits en stock) ; seuls le titre de l\'écran de vente et l\'icône du type changent.'),
-    puce('Dépôt de stock : dépôt d\'où sortent les ventes de la caisse et où reviennent ses retours (dépôt par défaut de la société pour une nouvelle caisse).'),
+    puce('Dépôt principal : dépôt d\'où sortent d\'abord les ventes de la caisse et où reviennent ses retours (dépôt par défaut de la société pour une nouvelle caisse).'),
+    puce('Dépôts secondaires : autres dépôts actifs, avec un ordre d\'utilisation, où la caisse complète une vente quand le stock du principal ne suffit pas (un mouvement de stock par dépôt utilisé ; le manque éventuel, si la vente sans stock est autorisée, sort du principal). Un même dépôt peut être secondaire de plusieurs caisses. Le stock affiché et contrôlé à la caisse est le total du principal et des secondaires ; une vente annulée remet chaque quantité dans son dépôt d\'origine.'),
     h2('3.3 Journées de caisse'),
     pt('Ouverture', 'numéro de journée, date de gestion, fond initial (suggestion : solde de la dernière clôture).'),
     pt('Opérations', 'encaissements et décaissements avec montant, libellé, client, motif, mode de paiement, justificatif.'),
@@ -336,7 +337,7 @@ const contenu = [
         ['Catalogue', 'Categories, Produits, ProduitImages, Taxes, ProduitTaxes, Unites, ProduitAttributs, ProduitAttributValeurs, VarianteValeurs'],
         ['Combos', 'Combos, ComboChoix, ProduitCombos'],
         ['Ventes', 'CommandesPos (dont frais de livraison), LignesCommandePos, LignesCommandePosTaxes, PaiementsPos, CommandesAttente, Livreurs'],
-        ['Stock', 'Depots, StocksDepots, MouvementsStock'],
+        ['Stock', 'Depots, StocksDepots, CaissesDepots (dépôts secondaires des caisses), MouvementsStock'],
         ['Restaurant', 'Salles, TablesRestaurant, CommandesOuvertes, BonsPreparation, LignesBonPreparation']
     ], [2400, 7238]),
 

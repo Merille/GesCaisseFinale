@@ -136,6 +136,26 @@ namespace EasytransitCaisse.Migrations
                     b.ToTable("Caisses");
                 });
 
+            modelBuilder.Entity("EasytransitCaisse.Models.CaisseDepot", b =>
+                {
+                    b.Property<int>("CaisseId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("DepotId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Ordre")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
+
+                    b.HasKey("CaisseId", "DepotId");
+
+                    b.HasIndex("DepotId");
+
+                    b.ToTable("CaissesDepots", (string)null);
+                });
+
             modelBuilder.Entity("EasytransitCaisse.Models.Categorie", b =>
                 {
                     b.Property<int>("Id")
@@ -1655,6 +1675,21 @@ namespace EasytransitCaisse.Migrations
                         .WithMany()
                         .HasForeignKey("DepotId")
                         .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("EasytransitCaisse.Models.CaisseDepot", b =>
+                {
+                    b.HasOne("EasytransitCaisse.Models.Caisse", null)
+                        .WithMany()
+                        .HasForeignKey("CaisseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("EasytransitCaisse.Models.Depot", null)
+                        .WithMany()
+                        .HasForeignKey("DepotId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("EasytransitCaisse.Models.ComboChoix", b =>

@@ -1,5 +1,5 @@
 -- GesCaisse (version PHP / MySQL) : base COMPLÈTE et à jour, avec données de démonstration.
--- Structure identique à sql/schema.sql (migrations 001 à 018 intégrées) et données fictives :
+-- Structure identique à sql/schema.sql (migrations 001 à 019 intégrées) et données fictives :
 --   société « Société de démonstration » (coordonnées), 4 utilisateurs, 2 caisses (Caisse principale,
 --   Restaurant Le Jardin avec 2 salles et 9 tables), 6 tiers (entreprises et particulier), 3 modes de paiement, 4 motifs,
 --   catégories et 39 produits avec leur image (dont un menu combo et 3 combos), 151 ventes réparties sur 14 journées
@@ -68,6 +68,18 @@ CREATE TABLE `Caisses` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 INSERT INTO `Caisses` (`ID`, `ChkCode`, `ChkDescription`, `StCode`, `SalesPersonDefault`, `CashierDefault`, `CustomerDefaultCode`, `JournalDefaultCode`, `CompteComptable`, `TenantId`, `TypePointVente`, `ImprimerBons`, `DepotId`) VALUES (1,'CASH1','Caisse principale','ST01',NULL,NULL,'CUST001','JRN01','571100',1,'Boutique',1,1),(2,'RESTO','Restaurant Le Jardin',NULL,NULL,NULL,'C0001','J0001','571200',1,'Restaurant',0,1),(3,'LAV1','Comptoir de la laverie',NULL,NULL,6,'C0001','J0001',NULL,2,'Laverie',0,2);
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `CaissesDepots` (
+  `CaisseId` int NOT NULL,
+  `DepotId` int NOT NULL,
+  `Ordre` int NOT NULL DEFAULT '1',
+  PRIMARY KEY (`CaisseId`,`DepotId`),
+  KEY `IX_CaissesDepots_DepotId` (`DepotId`),
+  CONSTRAINT `FK_CaissesDepots_Caisses` FOREIGN KEY (`CaisseId`) REFERENCES `Caisses` (`ID`) ON DELETE CASCADE,
+  CONSTRAINT `FK_CaissesDepots_Depots` FOREIGN KEY (`DepotId`) REFERENCES `Depots` (`Id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `Categories` (
@@ -383,7 +395,7 @@ CREATE TABLE `MigrationsAppliquees` (
   PRIMARY KEY (`Nom`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('001_pos_catalogue.sql','2026-11-02 00:15:19'),('002_pos_ventes.sql','2026-11-02 00:15:19'),('003_pos_apres_vente.sql','2026-11-02 00:15:19'),('004_pos_stock.sql','2026-11-02 00:15:19'),('005_pos_taxes.sql','2026-11-02 00:15:19'),('006_societe_produits.sql','2026-11-02 00:15:19'),('007_variantes_remise.sql','2026-11-02 00:15:20'),('008_unites.sql','2026-11-02 00:15:20'),('009_restaurant.sql','2026-11-02 00:15:20'),('010_combos.sql','2026-11-02 00:15:20'),('011_combos_odoo.sql','2026-11-02 00:15:20'),('012_module_point_vente.sql','2026-11-02 00:15:20'),('013_depots.sql','2026-11-02 00:15:20'),('014_livraisons.sql','2026-11-02 00:15:20'),('015_moyen_livraison.sql','2026-11-02 00:15:20'),('016_genre_tiers.sql','2026-11-02 00:15:20'),('017_clients_en_compte.sql','2026-11-02 00:15:20'),('018_frais_livraison.sql','2026-11-02 00:15:20');
+INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('001_pos_catalogue.sql','2026-11-02 00:15:19'),('002_pos_ventes.sql','2026-11-02 00:15:19'),('003_pos_apres_vente.sql','2026-11-02 00:15:19'),('004_pos_stock.sql','2026-11-02 00:15:19'),('005_pos_taxes.sql','2026-11-02 00:15:19'),('006_societe_produits.sql','2026-11-02 00:15:19'),('007_variantes_remise.sql','2026-11-02 00:15:20'),('008_unites.sql','2026-11-02 00:15:20'),('009_restaurant.sql','2026-11-02 00:15:20'),('010_combos.sql','2026-11-02 00:15:20'),('011_combos_odoo.sql','2026-11-02 00:15:20'),('012_module_point_vente.sql','2026-11-02 00:15:20'),('013_depots.sql','2026-11-02 00:15:20'),('014_livraisons.sql','2026-11-02 00:15:20'),('015_moyen_livraison.sql','2026-11-02 00:15:20'),('016_genre_tiers.sql','2026-11-02 00:15:20'),('017_clients_en_compte.sql','2026-11-02 00:15:20'),('018_frais_livraison.sql','2026-11-02 00:15:20'),('019_depots_secondaires.sql','2026-11-02 00:15:20');
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `ModesPaiement` (

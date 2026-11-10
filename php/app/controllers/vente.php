@@ -305,11 +305,8 @@ function vente_annuler(): void
              WHERE Id IN (SELECT OperationCaisseId FROM PaiementsPos WHERE CommandePosId = ? AND OperationCaisseId IS NOT NULL)",
             [user()['nomComplet'] ?: user()['nom'], 'Vente annulée' . ($motif ? ' : ' . $motif : ''), $vente['Id']]
         );
-        foreach (vente_lignes((int) $vente['Id']) as $l) {
-            if ($l['ProduitId']) {
-                ligne_mouvement_stock($l, (float) $l['Quantite'], 'Annulation', $vente['Numero'], (int) $vente['Id'], $motif, depot_caisse((int) $vente['CaisseId']));
-            }
-        }
+        // Le stock revient dans les dépôts d'où il est sorti (principal ou secondaires).
+        remise_stock_annulation((int) $vente['Id'], (string) $vente['Numero'], $motif);
         db()->commit();
     } catch (Throwable $e) {
         db()->rollBack();

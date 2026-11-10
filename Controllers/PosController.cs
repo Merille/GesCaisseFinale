@@ -61,10 +61,12 @@ namespace EasytransitCaisse.Controllers
                 .Where(p => p.Actif && p.TenantId == tenant)
                 .OrderBy(p => p.Nom)
                 .ToListAsync();
-            // Stock affiché : celui du dépôt de la caisse.
-            var depotCaisse = await _context.DepotCaisseAsync(j.CaisseId);
+            // Stock affiché : celui des dépôts de la caisse (principal et secondaires).
+            var depotsCaisse = await _context.DepotsCaisseAsync(j.CaisseId);
             var stocksDepot = await _context.StocksDepots.AsNoTracking()
-                .Where(s => s.DepotId == depotCaisse).ToDictionaryAsync(s => s.ProduitId, s => s.Quantite);
+                .Where(s => depotsCaisse.Contains(s.DepotId))
+                .GroupBy(s => s.ProduitId).Select(g => new { g.Key, Q = g.Sum(s => s.Quantite) })
+                .ToDictionaryAsync(x => x.Key, x => x.Q);
             // Variantes : seulement celles dont le modèle est actif.
             var modelesActifs = catalogue.Where(p => p.EstModele).Select(p => p.Id).ToHashSet();
             var combos = await Combos.SocieteAsync(_context, tenant);
@@ -392,14 +394,14 @@ namespace EasytransitCaisse.Controllers
                         ? comp.Select(c => (c.ProduitId, Qte: x.Ligne.Quantite * c.Qte))
                         : new[] { (x.Produit.Id, Qte: x.Ligne.Quantite) })
                     .GroupBy(x => x.Item1);
-                // Stock du dépôt de la caisse.
-                var depotVente = await _context.DepotCaisseAsync(j.CaisseId);
+                // Stock des dépôts de la caisse (principal et secondaires).
+                var depotsVente = await _context.DepotsCaisseAsync(j.CaisseId);
                 foreach (var g in besoins)
                 {
                     var stock = await _context.Produits
                         .FromSqlInterpolated($"SELECT * FROM Produits WITH (UPDLOCK, ROWLOCK) WHERE Id = {g.Key}")
                         .AsNoTracking().Select(p => new { p.Nom, p.SuiviStock }).FirstAsync();
-                    var dispo = await _context.StockDepotAsync(g.Key, depotVente);
+                    var dispo = await _context.StockCaisseAsync(g.Key, depotsVente);
                     if (stock.SuiviStock && dispo < g.Sum(x => x.Qte) - 0.001m)
                         return Erreur(409, $"Stock insuffisant pour « {stock.Nom} » : {dispo:0.##} disponible(s).");
                 }
@@ -483,9 +485,9 @@ namespace EasytransitCaisse.Controllers
             }
             _context.CommandesPos.Add(commande);
             await _context.SaveChangesAsync();
+            var depotsSortie = await _context.DepotsCaisseAsync(j.CaisseId);
             foreach (var (produit, ligne) in lignes)
-                await _context.MouvementLigneAsync(produit.Id, ligne.Composants, -ligne.Quantite, "Vente", numero, commande.Id, utilisateurId,
-                    depotId: await _context.DepotCaisseAsync(j.CaisseId));
+                await _context.LigneSortieStockAsync(produit.Id, ligne.Composants, ligne.Quantite, numero, commande.Id, utilisateurId, depotsSortie);
 
             var aRendre = rendu;
             foreach (var (mode, montantRecu) in paiements)

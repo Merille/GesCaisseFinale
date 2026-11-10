@@ -90,5 +90,19 @@ namespace EasytransitCaisse.Data
             foreach (var c in liste)
                 await context.MouvementAsync(c.ProduitId, quantite * c.Qte, type, reference, commandeId, utilisateurId, commentaire, depotId);
         }
+
+        // Sortie de stock d'une ligne vendue, répartie entre les dépôts de la caisse : le produit, ou les composants d'un combo.
+        public static async Task LigneSortieStockAsync(this AppDbContext context, int produitId, string? composants, decimal quantite,
+            string? reference, int? commandeId, int? utilisateurId, List<int> depots)
+        {
+            var liste = Lire(composants);
+            if (!liste.Any())
+            {
+                await context.SortieStockCaisseAsync(produitId, quantite, "Vente", reference, commandeId, utilisateurId, depots);
+                return;
+            }
+            foreach (var c in liste)
+                await context.SortieStockCaisseAsync(c.ProduitId, quantite * c.Qte, "Vente", reference, commandeId, utilisateurId, depots);
+        }
     }
 }

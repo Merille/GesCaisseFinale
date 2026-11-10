@@ -26,3 +26,25 @@
         });
     });
 })();
+
+// Fiche caisse : le dépôt choisi comme principal ne peut pas être aussi un dépôt secondaire.
+(function () {
+    function majSecondaires(form) {
+        const liste = form && form.querySelector('.depots-secondaires');
+        const principal = form && form.querySelector('[name="DepotId"]');
+        if (!liste || !principal) return;
+        liste.querySelectorAll('[data-depot]').forEach(function (ligne) {
+            const estPrincipal = ligne.dataset.depot === String(principal.value);
+            ligne.querySelectorAll('input').forEach(function (c) { c.disabled = estPrincipal; });
+            if (estPrincipal) ligne.querySelector('[type="checkbox"]').checked = false;
+            ligne.classList.toggle('text-muted', estPrincipal);
+        });
+    }
+    document.querySelectorAll('.depots-secondaires').forEach(function (l) { majSecondaires(l.closest('form')); });
+    document.addEventListener('change', function (e) {
+        if (e.target.name === 'DepotId') majSecondaires(e.target.closest('form'));
+    });
+    document.addEventListener('show.bs.modal', function (e) {
+        e.target.querySelectorAll('.depots-secondaires').forEach(function (l) { majSecondaires(l.closest('form')); });
+    });
+})();

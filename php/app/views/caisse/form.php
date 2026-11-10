@@ -53,14 +53,36 @@ require __DIR__ . '/../partials/form_debut.php';
                     <div class="form-text">Restaurant / Bar : plan de salle, commandes sur les tables, bons cuisine / bar. Laverie : vente au comptoir de prestations.</div>
                 </div>
                 <div class="col-md-8">
-                    <label class="form-label" for="DepotId<?= $sfxPv ?>">Dépôt de stock</label>
+                    <label class="form-label" for="DepotId<?= $sfxPv ?>">Dépôt principal</label>
                     <select class="form-select" id="DepotId<?= $sfxPv ?>" name="DepotId">
                         <?php $depotChoisi = (int) ($caisse['DepotId'] ?? 0); ?>
                         <?php foreach ($depots ?? [] as $d): ?>
                             <option value="<?= (int) $d['Id'] ?>" <?= ($depotChoisi ? $depotChoisi === (int) $d['Id'] : $d['ParDefaut']) ? 'selected' : '' ?>><?= h($d['Code'] . ' · ' . $d['Nom']) ?></option>
                         <?php endforeach; ?>
                     </select>
-                    <div class="form-text">Les ventes et les retours de la caisse sortent du stock de ce dépôt (et y reviennent).</div>
+                    <div class="form-text">Dépôt principal : les ventes en sortent d'abord et les retours y reviennent.</div>
+                </div>
+                <div class="col-12">
+                    <input type="hidden" name="SecondairesSaisis" value="1">
+                    <?php $secondaires = $caisse['Secondaires'] ?? []; ?>
+                    <label class="form-label mb-1">Dépôts secondaires (complément)</label>
+                    <div class="border rounded px-2 py-1 depots-secondaires" data-sfx="<?= $sfxPv ?>">
+                        <?php if (count($depots ?? []) < 2): ?>
+                            <div class="small text-muted py-1">Créez d'autres dépôts (Paramètres › Dépôts) pour compléter le stock de cette caisse.</div>
+                        <?php endif; ?>
+                        <?php foreach ($depots ?? [] as $i => $d): $id = (int) $d['Id']; $coche = isset($secondaires[$id]); ?>
+                            <div class="d-flex align-items-center gap-2 py-1" data-depot="<?= $id ?>">
+                                <div class="form-check mb-0 flex-grow-1">
+                                    <input class="form-check-input" type="checkbox" name="Secondaires[]" value="<?= $id ?>" id="Secondaire<?= $sfxPv . $id ?>" <?= $coche ? 'checked' : '' ?>>
+                                    <label class="form-check-label" for="Secondaire<?= $sfxPv . $id ?>"><?= h($d['Code'] . ' · ' . $d['Nom']) ?></label>
+                                </div>
+                                <label class="small text-muted mb-0" for="Ordre<?= $sfxPv . $id ?>">Ordre</label>
+                                <input type="number" class="form-control form-control-sm" style="width:4.5rem;" min="1" max="99" name="Ordre[<?= $id ?>]" id="Ordre<?= $sfxPv . $id ?>" value="<?= $coche ? $secondaires[$id] : $i + 1 ?>">
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                    <div class="form-text">Quand le stock du dépôt principal ne suffit pas, la vente complète dans ces dépôts, dans l'ordre indiqué.
+                        Le stock affiché à la caisse est le total du principal et des secondaires.</div>
                 </div>
                 <div class="col-12 d-flex align-items-center">
                     <div class="form-check">

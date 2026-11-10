@@ -366,6 +366,17 @@ CREATE TABLE [LignesFactures] (
 GO
 
 
+CREATE TABLE [CaissesDepots] (
+    [CaisseId] int NOT NULL,
+    [DepotId] int NOT NULL,
+    [Ordre] int NOT NULL DEFAULT 1,
+    CONSTRAINT [PK_CaissesDepots] PRIMARY KEY ([CaisseId], [DepotId]),
+    CONSTRAINT [FK_CaissesDepots_Caisses_CaisseId] FOREIGN KEY ([CaisseId]) REFERENCES [Caisses] ([ID]) ON DELETE CASCADE,
+    CONSTRAINT [FK_CaissesDepots_Depots_DepotId] FOREIGN KEY ([DepotId]) REFERENCES [Depots] ([Id]) ON DELETE CASCADE
+);
+GO
+
+
 CREATE TABLE [JourneesCaisses] (
     [Id] int NOT NULL IDENTITY,
     [TenantId] int NOT NULL,
@@ -649,6 +660,10 @@ CREATE INDEX [IX_Caisses_DepotId] ON [Caisses] ([DepotId]);
 GO
 
 
+CREATE INDEX [IX_CaissesDepots_DepotId] ON [CaissesDepots] ([DepotId]);
+GO
+
+
 CREATE INDEX [IX_ComboChoix_ComboId] ON [ComboChoix] ([ComboId]);
 GO
 
@@ -862,7 +877,8 @@ INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion]) VALUES
     (N'20261107104741_MoyenLivraisonLivreurs', N'10.0.9'),
     (N'20261109162748_GenreTiers', N'10.0.9'),
     (N'20261109215135_ClientsEnCompte', N'10.0.9'),
-    (N'20261109225752_FraisLivraison', N'10.0.9');
+    (N'20261109225752_FraisLivraison', N'10.0.9'),
+    (N'20261110133047_DepotsSecondaires', N'10.0.9');
 GO
 
 -- =====================================================================
@@ -870,6 +886,7 @@ GO
 -- =====================================================================
 ALTER TABLE [BonsPreparation] NOCHECK CONSTRAINT ALL;
 ALTER TABLE [Caisses] NOCHECK CONSTRAINT ALL;
+ALTER TABLE [CaissesDepots] NOCHECK CONSTRAINT ALL;
 ALTER TABLE [Categories] NOCHECK CONSTRAINT ALL;
 ALTER TABLE [Clients] NOCHECK CONSTRAINT ALL;
 ALTER TABLE [ComboChoix] NOCHECK CONSTRAINT ALL;
@@ -2975,6 +2992,7 @@ GO
 
 ALTER TABLE [BonsPreparation] WITH CHECK CHECK CONSTRAINT ALL;
 ALTER TABLE [Caisses] WITH CHECK CHECK CONSTRAINT ALL;
+ALTER TABLE [CaissesDepots] WITH CHECK CHECK CONSTRAINT ALL;
 ALTER TABLE [Categories] WITH CHECK CHECK CONSTRAINT ALL;
 ALTER TABLE [Clients] WITH CHECK CHECK CONSTRAINT ALL;
 ALTER TABLE [ComboChoix] WITH CHECK CHECK CONSTRAINT ALL;

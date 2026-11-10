@@ -43,6 +43,32 @@ function caisse_depot_saisi(): ?int
     return $id && qv('SELECT Id FROM Depots WHERE Id = ? AND Actif = 1 AND ' . tf(), [$id]) ? $id : null;
 }
 
+/** Dépôts secondaires de la caisse : [DepotId => Ordre]. */
+function caisse_secondaires(int $caisseId): array
+{
+    return array_map('intval', array_column(q('SELECT DepotId, Ordre FROM CaissesDepots WHERE CaisseId = ? ORDER BY Ordre, DepotId', [$caisseId]), 'Ordre', 'DepotId'));
+}
+
+/**
+ * Enregistre les dépôts secondaires cochés sur la fiche (dépôts actifs de la société, autres que le
+ * principal), avec leur ordre d'utilisation. Sans effet si la fiche ne les proposait pas.
+ */
+function caisse_secondaires_enregistrer(int $caisseId, int $principal): void
+{
+    if (!post('SecondairesSaisis')) {
+        return;
+    }
+    $ordres = (array) post('Ordre', []);
+    $actifs = array_map('intval', array_column(caisse_depots(), 'Id'));
+    run('DELETE FROM CaissesDepots WHERE CaisseId = ?', [$caisseId]);
+    foreach (array_unique(array_map('intval', (array) post('Secondaires', []))) as $id) {
+        if ($id !== $principal && in_array($id, $actifs, true)) {
+            $ordre = max(1, min(99, (int) ($ordres[$id] ?? 1) ?: 1));
+            run('INSERT INTO CaissesDepots (CaisseId, DepotId, Ordre) VALUES (?, ?, ?)', [$caisseId, $id, $ordre]);
+        }
+    }
+}
+
 function caisse_index(): void
 {
     $caisses = q(
@@ -50,7 +76,11 @@ function caisse_index(): void
          FROM Caisses c LEFT JOIN Utilisateurs u ON u.Id = c.CashierDefault
          WHERE ' . tf('c') . ' ORDER BY c.ChkCode'
     );
-    render('caisse/index', ['caisses' => $caisses, 'utilisateurs' => caisse_utilisateurs(), 'depots' => caisse_depots()]);
+    $secondaires = [];
+    foreach (q('SELECT cd.CaisseId, cd.DepotId, cd.Ordre FROM CaissesDepots cd JOIN Caisses c ON c.ID = cd.CaisseId WHERE ' . tf('c') . ' ORDER BY cd.Ordre, cd.DepotId') as $r) {
+        $secondaires[(int) $r['CaisseId']][(int) $r['DepotId']] = (int) $r['Ordre'];
+    }
+    render('caisse/index', ['caisses' => $caisses, 'utilisateurs' => caisse_utilisateurs(), 'depots' => caisse_depots(), 'secondaires' => $secondaires]);
 }
 
 function caisse_valeurs(): array
@@ -72,10 +102,12 @@ function caisse_create(): void
     if (is_post()) {
         [$code, $desc, $st, $caissier, $compte, $type, $bons, $depot] = caisse_valeurs();
         $tenant = tenant_insert();
-        run(
+        $depot ??= depot_par_defaut($tenant);
+        $id = run(
             'INSERT INTO Caisses (ChkCode, ChkDescription, StCode, CashierDefault, CompteComptable, TypePointVente, ImprimerBons, DepotId, TenantId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            [$code, $desc, $st, $caissier, $compte, $type, $bons, $depot ?? depot_par_defaut($tenant), $tenant]
+            [$code, $desc, $st, $caissier, $compte, $type, $bons, $depot, $tenant]
         );
+        caisse_secondaires_enregistrer((int) $id, (int) $depot);
         flash('success', 'Caisse créée.');
         redirect('caisse/index');
     }
@@ -87,13 +119,16 @@ function caisse_edit(): void
     $caisse = caisse_charger((int) get('id'));
     if (is_post()) {
         [$code, $desc, $st, $caissier, $compte, $type, $bons, $depot] = caisse_valeurs();
+        $depot ??= $caisse['DepotId'] ?? depot_par_defaut((int) $caisse['TenantId']);
         run(
             'UPDATE Caisses SET ChkCode = ?, ChkDescription = ?, StCode = ?, CashierDefault = ?, CompteComptable = ?, TypePointVente = ?, ImprimerBons = ?, DepotId = ? WHERE ID = ?',
-            [$code, $desc, $st, $caissier, $compte, $type, $bons, $depot ?? $caisse['DepotId'] ?? depot_par_defaut((int) $caisse['TenantId']), $caisse['ID']]
+            [$code, $desc, $st, $caissier, $compte, $type, $bons, $depot, $caisse['ID']]
         );
+        caisse_secondaires_enregistrer((int) $caisse['ID'], (int) $depot);
         flash('success', 'Caisse modifiée.');
         redirect('caisse/index');
     }
+    $caisse['Secondaires'] = caisse_secondaires((int) $caisse['ID']);
     render('caisse/form', ['caisse' => $caisse, 'utilisateurs' => caisse_utilisateurs(), 'depots' => caisse_depots()]);
 }
 

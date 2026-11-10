@@ -3,7 +3,7 @@
     <h4 class="mb-0">Dépôts de stockage</h4>
     <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalDepot" data-id="" data-actif="1"><i class="fa fa-plus"></i> Nouveau dépôt</button>
 </div>
-<p class="small text-muted">Le stock de chaque produit est suivi par dépôt (magasin, entrepôt, réserve…). Chaque caisse vend depuis son dépôt ;
+<p class="small text-muted">Le stock de chaque produit est suivi par dépôt (magasin, entrepôt, réserve…). Chaque caisse vend depuis son dépôt principal, complété au besoin par ses dépôts secondaires ;
     les entrées, les inventaires et les transferts se font dans le dépôt choisi. Le dépôt par défaut reçoit le stock initial des nouveaux produits
     et sert aux caisses sans dépôt choisi.</p>
 <div class="card shadow-sm border-0">

@@ -168,6 +168,13 @@ namespace EasytransitCaisse.Data
             modelBuilder.Entity<StockDepot>()
                 .HasOne<Produit>().WithMany().HasForeignKey(s => s.ProduitId).OnDelete(DeleteBehavior.Cascade);
             modelBuilder.Entity<StockDepot>().HasIndex(s => s.ProduitId);
+            // Dépôts secondaires des caisses (complément de stock du dépôt principal).
+            modelBuilder.Entity<CaisseDepot>().ToTable("CaissesDepots");
+            modelBuilder.Entity<CaisseDepot>().Property(c => c.Ordre).HasDefaultValue(1);
+            modelBuilder.Entity<CaisseDepot>()
+                .HasOne<Caisse>().WithMany().HasForeignKey(c => c.CaisseId).OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<CaisseDepot>()
+                .HasOne<Depot>().WithMany().HasForeignKey(c => c.DepotId).OnDelete(DeleteBehavior.Cascade);
             modelBuilder.Entity<MouvementStock>()
                 .HasOne(m => m.Depot).WithMany().HasForeignKey(m => m.DepotId).OnDelete(DeleteBehavior.Restrict);
             modelBuilder.Entity<Caisse>()
@@ -366,6 +373,7 @@ namespace EasytransitCaisse.Data
         public DbSet<MouvementStock> MouvementsStock { get; set; }
         public DbSet<Depot> Depots { get; set; }
         public DbSet<StockDepot> StocksDepots { get; set; }
+        public DbSet<CaisseDepot> CaissesDepots { get; set; }
         public DbSet<Livreur> Livreurs { get; set; }
         public DbSet<CommandeAttente> CommandesAttente { get; set; }
 
