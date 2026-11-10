@@ -421,6 +421,17 @@ function pos_vendre(): void
                 [$tenant, $commandeId, $pm['mode']['Id'], (string) $pm['mode']['Libelle'], $pm['recu'], $net, $operation]
             );
         }
+        // Vente directe d'une caisse restaurant / bar : à l'encaissement, les articles partent en
+        // préparation (un bon par poste, comme pour une table).
+        $bons = [];
+        if (!$ouverte && in_array($journee['TypePointVente'], RESTAURANT_TYPES, true)) {
+            $contenu = ['lignes' => array_map(fn($l, $i) => [
+                'uid' => (string) $i, 'produitId' => (int) $l['produit']['Id'], 'nom' => $l['produit']['Nom'], 'qte' => $l['qte'], 'envoye' => 0,
+                'note' => $l['note'], 'composants' => $l['composants'] ?: [],
+            ], $lignes, array_keys($lignes))];
+            $bons = restaurant_envoyer(['TenantId' => $tenant, 'CaisseId' => $journee['CaisseId'], 'JourneeCaisseId' => $journee['Id'], 'Id' => null, 'Couverts' => null],
+                $contenu, [], 'Vente directe · ticket ' . $rang, pos_serveur());
+        }
         db()->commit();
     } catch (Throwable $e) {
         db()->rollBack();
@@ -428,7 +439,7 @@ function pos_vendre(): void
         pos_json(['erreur' => "La vente n'a pas pu être enregistrée. Réessayez."], 500);
     }
 
-    pos_json(['id' => $commandeId, 'numero' => $numero, 'rendu' => $rendu,
+    pos_json(['id' => $commandeId, 'numero' => $numero, 'rendu' => $rendu, 'bons' => $bons,
               'commande' => !empty($commandeRestante) ? restaurant_commande_json(q1('SELECT * FROM CommandesOuvertes WHERE Id = ?', [$commandeRestante])) : null]);
 }
 

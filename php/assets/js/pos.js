@@ -787,6 +787,9 @@
         const client = clients.get(t.clientId);
         if (client) client.du += pay.lignes.filter(r => modes.get(r.modeId)?.compte).reduce((s, r) => s + r.montant, 0);
         fin = { id: reponse.id, numero: reponse.numero, rendu: e.rendu, direct: !cmd, resteTable: null };
+        // Vente directe en restaurant / bar : les articles sont partis en préparation (bons créés par le serveur).
+        const bonsDirects = !cmd && R ? (reponse.bons || []) : [];
+        if (bonsDirects.length && R.imprimerBons) imprimerDans(R.urlBons + bonsDirects.join(','));
         if (cmd) {
             // Addition partagée : le reste des articles demeure sur la table.
             if (reponse.commande) fin.resteTable = { id: cmd.tableId, nom: cmd.table };
@@ -801,6 +804,7 @@
         pay = null;
         vue = 'fin';
         afficher();
+        if (bonsDirects.length) message(bonsDirects.length > 1 ? 'Commande envoyée en cuisine et au bar.' : 'Commande envoyée en préparation.');
         rafraichirAttentes();
     }
 

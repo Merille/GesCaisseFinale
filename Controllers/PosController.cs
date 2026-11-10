@@ -523,10 +523,29 @@ namespace EasytransitCaisse.Controllers
                     MontantRecu = montantRecu, Montant = net, OperationCaisseId = operation?.Id
                 });
             }
+            // Vente directe d'une caisse restaurant / bar : à l'encaissement, les articles partent en
+            // préparation (un bon par poste, comme pour une table).
+            var bons = new List<BonPreparation>();
+            if (v.CommandeOuverte == null && j.Caisse != null && j.Caisse.EstRestaurant)
+            {
+                var contenu = new Restaurant.Contenu
+                {
+                    Lignes = lignes.Select((x, i) => new Restaurant.Ligne
+                    {
+                        Uid = i.ToString(), ProduitId = x.Produit.Id, Nom = x.Produit.Nom, Qte = x.Ligne.Quantite,
+                        Note = x.Ligne.Note, Composants = Combos.Lire(x.Ligne.Composants)
+                    }).ToList()
+                };
+                bons = await Restaurant.EnvoyerAsync(_context, new CommandeOuverte { TenantId = tenant, CaisseId = j.CaisseId, JourneeCaisseId = j.Id },
+                    contenu, new Restaurant.Contenu(), $"Vente directe · ticket {rang}", Serveur);
+                foreach (var b in bons)
+                    b.Couverts = null;
+            }
             await _context.SaveChangesAsync();
             await transaction.CommitAsync();
 
-            return Json(new { id = commande.Id, numero, rendu, commande = restante == null ? null : Restaurant.CommandeJson(restante) });
+            return Json(new { id = commande.Id, numero, rendu, bons = bons.Select(b => b.Id),
+                commande = restante == null ? null : Restaurant.CommandeJson(restante) });
         }
 
         // Ticket de caisse 80 mm d'une vente (impression ou réimpression).

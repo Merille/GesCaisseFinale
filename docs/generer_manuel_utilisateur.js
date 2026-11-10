@@ -98,7 +98,7 @@ const fiche = [
         ['Application', 'GesCaisse — gestion de caisse et point de vente (POS)'],
         ['Éditeur', 'M-ITECH AFRICA'],
         ['Public', 'Administrateurs, caissiers, vendeurs et serveurs des sociétés clientes'],
-        ['Version du document', '1.9'],
+        ['Version du document', '2.0'],
         ['Date', 'Novembre 2026']
     ], [3000, 6638])
 ];
@@ -486,7 +486,7 @@ const contenu = [
         ['Pastille rouge', 'Des articles restent à envoyer en préparation']
     ], [2400, 7238]),
     espace(),
-    p('Le bouton **Vente directe** permet de vendre au comptoir sans table.'),
+    p('Le bouton **Vente directe** permet de vendre au comptoir sans table. À l’encaissement, ses articles partent en préparation comme ceux d’une table (voir 10.5).'),
     h2('10.3 Prendre une commande'),
     ...etapes([
         'Touchez une table libre et choisissez le **nombre de couverts**.',
@@ -504,6 +504,7 @@ const contenu = [
     h2('10.5 Envoyer en cuisine et au bar'),
     p('Touchez **Envoyer** : un bon de préparation est créé pour chaque poste (cuisine, bar) avec les nouveaux articles seulement, leurs notes, la table et le nombre de couverts. Un article retiré après l’envoi part comme une ligne « ANNULÉ ». Selon le réglage de la caisse, le bon est imprimé automatiquement.'),
     astuce('Avant l’encaissement, les articles qui n’ont pas encore été envoyés le sont automatiquement.'),
+    p('**Vente directe** : il n’y a pas de bouton Envoyer ; les articles partent en préparation dès l’encaissement, un bon par poste, intitulé « Vente directe · ticket N » (N = numéro de la vente dans la journée, les 4 derniers chiffres du ticket). Le bon est imprimé si la caisse imprime les bons, et s’affiche sur l’écran cuisine / bar. Les articles dont la catégorie a le poste **Aucun** ne font pas de bon.'),
     h2('10.6 Addition, partage, transfert et pourboire'),
     pt('Addition', 'imprime une note provisoire ; la table passe en « addition demandée ».'),
     pt('Partager', 'choisissez les articles payés maintenant ; le reste demeure sur la table.'),

@@ -63,7 +63,7 @@ const fiche = [
         ['Projet', 'GesCaisse — gestion de caisse et point de vente (POS)'],
         ['Éditeur', 'M-ITECH AFRICA'],
         ['Versions', 'ASP.NET Core (.NET 10) / SQL Server — PHP 8 / MySQL'],
-        ['Version du document', '2.0'],
+        ['Version du document', '2.1'],
         ['Date', 'Novembre 2026'],
         ['Statut', 'Document de référence (fonctionnalités réalisées)']
     ], [3000, 6638])
@@ -249,7 +249,7 @@ const contenu = [
     puce('Ouverture d\'une table avec le nombre de couverts (modifiable ensuite).'),
     puce('Notes par article (« sans oignon », « bien cuit »), imprimées sur le bon.'),
     puce('Protection contre les modifications simultanées : version de la commande contrôlée, rechargement si un autre appareil l\'a modifiée.'),
-    puce('Vente directe au comptoir (sans table) toujours possible.'),
+    puce('Vente directe au comptoir (sans table) toujours possible ; à l\'encaissement, ses articles partent en préparation (un bon par poste, intitulé « Vente directe · ticket N », imprimé selon l\'option de la caisse et affiché sur l\'écran cuisine / bar).'),
     h2('5.3 Cuisine et bar'),
     puce('Bouton « Envoyer » : bon de préparation des nouveaux articles seulement, un bon par poste (cuisine, bar) selon la catégorie.'),
     puce('Article retiré après l\'envoi : ligne « ANNULÉ » envoyée au poste.'),
