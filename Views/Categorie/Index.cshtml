@@ -2,6 +2,8 @@
 @{
     ViewData["Title"] = "Catégories";
     var nbProduits = (Dictionary<int, int>)ViewBag.NbProduits;
+    // Poste de préparation : seulement si la société a une caisse Restaurant ou Bar.
+    var restaurant = (bool)ViewBag.Restaurant;
 }
 
 
@@ -24,7 +26,10 @@
             <thead class="table-dark">
                 <tr>
                     <th>Catégorie</th>
-                    <th class="text-center">Préparation</th>
+                    @if (restaurant)
+                    {
+                        <th class="text-center">Préparation</th>
+                    }
                     <th class="text-center">Ordre</th>
                     <th class="text-center">Produits</th>
                     <th class="text-center">Actions</th>
@@ -33,13 +38,16 @@
             <tbody>
                 @if (!Model.Any())
                 {
-                    <tr><td colspan="5" class="text-center text-muted py-4">Aucune catégorie. Créez-en une pour regrouper les produits sur l'écran de vente.</td></tr>
+                    <tr><td colspan="@(restaurant ? 5 : 4)" class="text-center text-muted py-4">Aucune catégorie. Créez-en une pour regrouper les produits sur l'écran de vente.</td></tr>
                 }
                 @foreach (var c in Model)
                 {
                     <tr>
                         <td><span class="pastille-categorie" style="background: @c.Couleur"></span> <span class="fw-semibold">@c.Nom</span></td>
-                        <td class="text-center"><partial name="_BadgePreparation" model="c.Preparation" /></td>
+                        @if (restaurant)
+                        {
+                            <td class="text-center"><partial name="_BadgePreparation" model="c.Preparation" /></td>
+                        }
                         <td class="text-center">@c.Ordre</td>
                         <td class="text-center"><a href="/Produit/Index?categorie=@c.Id">@(nbProduits.TryGetValue(c.Id, out var n) ? n : 0)</a></td>
                         <td class="text-center">
@@ -114,7 +122,7 @@
                         <label class="form-label" for="categorieOrdre">Ordre d'affichage</label>
                         <input type="number" id="categorieOrdre" name="Ordre" class="form-control" value="0" />
                     </div>
-                    <div class="col-12">
+                    <div class="col-12@(restaurant ? "" : " d-none")">
                         <label class="form-label" for="categoriePreparation">Préparation (restaurant / bar)</label>
                         <select id="categoriePreparation" name="Preparation" class="form-select">
                             <option value="Cuisine">Cuisine : bon envoyé en cuisine</option>

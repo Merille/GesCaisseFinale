@@ -12,13 +12,13 @@
 <div class="card shadow-sm border-0" data-vue-de="categories" data-vue="liste">
     <div class="card-body">
         <table class="table table-hover align-middle mb-0">
-            <thead class="table-dark"><tr><th>Catégorie</th><th class="text-center">Préparation</th><th class="text-center">Ordre</th><th class="text-center">Produits</th><th class="text-center">Actions</th></tr></thead>
+            <thead class="table-dark"><tr><th>Catégorie</th><?php if ($restaurant): ?><th class="text-center">Préparation</th><?php endif; ?><th class="text-center">Ordre</th><th class="text-center">Produits</th><th class="text-center">Actions</th></tr></thead>
             <tbody>
-            <?php if (!$categories): ?><tr><td colspan="5" class="text-center text-muted py-4">Aucune catégorie. Créez-en une pour regrouper les produits sur l'écran de vente.</td></tr><?php endif; ?>
+            <?php if (!$categories): ?><tr><td colspan="<?= $restaurant ? 5 : 4 ?>" class="text-center text-muted py-4">Aucune catégorie. Créez-en une pour regrouper les produits sur l'écran de vente.</td></tr><?php endif; ?>
             <?php foreach ($categories as $c): ?>
                 <tr>
                     <td><span class="pastille-categorie" style="background: <?= h($c['Couleur']) ?>"></span> <span class="fw-semibold"><?= h($c['Nom']) ?></span></td>
-                    <td class="text-center"><?= categorie_badge_preparation($c['Preparation'] ?? 'Cuisine') ?></td>
+                    <?php if ($restaurant): ?><td class="text-center"><?= categorie_badge_preparation($c['Preparation'] ?? 'Cuisine') ?></td><?php endif; ?>
                     <td class="text-center"><?= (int) $c['Ordre'] ?></td>
                     <td class="text-center"><a href="<?= h(url('produit/index', ['categorie' => $c['Id']])) ?>"><?= (int) $c['NbProduits'] ?></a></td>
                     <td class="text-center table-actions">
@@ -80,7 +80,8 @@
                 <div class="row g-3">
                     <div class="col-6"><label class="form-label" for="categorieCouleur">Couleur des tuiles</label><input type="color" id="categorieCouleur" name="Couleur" class="form-control form-control-color w-100" value="#195d84"></div>
                     <div class="col-6"><label class="form-label" for="categorieOrdre">Ordre d'affichage</label><input type="number" id="categorieOrdre" name="Ordre" class="form-control" value="0"></div>
-                    <div class="col-12"><label class="form-label" for="categoriePreparation">Préparation (restaurant / bar)</label>
+                    <?php // Poste de préparation : seulement si la société a une caisse Restaurant ou Bar (valeur conservée sinon). ?>
+                    <div class="col-12<?= $restaurant ? '' : ' d-none' ?>"><label class="form-label" for="categoriePreparation">Préparation (restaurant / bar)</label>
                         <select id="categoriePreparation" name="Preparation" class="form-select">
                             <option value="Cuisine">Cuisine : bon envoyé en cuisine</option>
                             <option value="Bar">Bar : bon envoyé au bar</option>

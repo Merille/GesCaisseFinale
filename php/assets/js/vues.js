@@ -27,7 +27,8 @@
     });
 })();
 
-// Fiche caisse : le dépôt de la caisse (principal) ne peut pas être aussi un dépôt secondaire.
+// Fiche caisse : le dépôt de la caisse (principal) ne peut pas être aussi un dépôt secondaire ;
+// les options restaurant ne s'affichent que pour une caisse Restaurant ou Bar.
 (function () {
     function majSecondaires(form) {
         const liste = form && form.querySelector('.depots-secondaires');
@@ -42,11 +43,22 @@
             ligne.classList.toggle('text-muted', estPrincipal);
         });
     }
+    // Options propres au restaurant (bons de préparation) : visibles seulement pour un type Restaurant ou Bar.
+    function majType(form) {
+        const type = form && form.querySelector('[name="TypePointVente"]');
+        if (!type || type.type === 'hidden') return;
+        form.querySelectorAll('.caisse-restaurant').forEach(function (b) {
+            b.classList.toggle('d-none', type.value !== 'Restaurant' && type.value !== 'Bar');
+        });
+    }
     document.querySelectorAll('.depots-secondaires').forEach(function (l) { majSecondaires(l.closest('form')); });
+    document.querySelectorAll('.caisse-restaurant').forEach(function (b) { majType(b.closest('form')); });
     document.addEventListener('change', function (e) {
         if (e.target.name === 'DepotId') majSecondaires(e.target.closest('form'));
+        if (e.target.name === 'TypePointVente') majType(e.target.closest('form'));
     });
     document.addEventListener('show.bs.modal', function (e) {
         e.target.querySelectorAll('.depots-secondaires').forEach(function (l) { majSecondaires(l.closest('form')); });
+        e.target.querySelectorAll('.caisse-restaurant').forEach(function (b) { majType(b.closest('form')); });
     });
 })();

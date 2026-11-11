@@ -63,7 +63,7 @@ const fiche = [
         ['Projet', 'GesCaisse — gestion de caisse et point de vente (POS)'],
         ['Éditeur', 'M-ITECH AFRICA'],
         ['Versions', 'ASP.NET Core (.NET 10) / SQL Server — PHP 8 / MySQL'],
-        ['Version du document', '2.1'],
+        ['Version du document', '2.2'],
         ['Date', 'Novembre 2026'],
         ['Statut', 'Document de référence (fonctionnalités réalisées)']
     ], [3000, 6638])
@@ -156,7 +156,7 @@ const contenu = [
     h2('3.2 Caisses'),
     puce('Création, modification, suppression (refusée si la caisse a des journées), impression de la liste.'),
     puce('Informations : code, description, caissier par défaut, compte comptable (contrepartie Sage).'),
-    puce('Type de point de vente : Vente en détail, Restaurant, Bar ou Laverie ; option d\'impression des bons de préparation. Une laverie vend au comptoir comme la vente en détail (prestations sans suivi de stock et produits en stock) ; seuls le titre de l\'écran de vente et l\'icône du type changent.'),
+    puce('Type de point de vente : Vente en détail, Restaurant, Bar ou Laverie ; option d\'impression des bons de préparation (proposée seulement pour une caisse Restaurant ou Bar). Une laverie vend au comptoir comme la vente en détail (prestations sans suivi de stock et produits en stock) ; seuls le titre de l\'écran de vente et l\'icône du type changent.'),
     puce('Dépôt de la caisse (principal) : dépôt d\'où sortent d\'abord les ventes de la caisse et où reviennent ses retours. Facultatif : sans dépôt choisi, la caisse utilise le dépôt par défaut de la société (et suit tout changement de dépôt par défaut). La liste des caisses affiche les dépôts de chaque caisse.'),
     puce('Dépôts secondaires : autres dépôts actifs, avec un ordre d\'utilisation, où la caisse complète une vente quand le stock du principal ne suffit pas (un mouvement de stock par dépôt utilisé ; le manque éventuel, si la vente sans stock est autorisée, sort du principal). Un même dépôt peut être secondaire de plusieurs caisses. Le stock affiché et contrôlé à la caisse est le total du principal et des secondaires ; une vente annulée remet chaque quantité dans son dépôt d\'origine.'),
     h2('3.3 Journées de caisse'),
@@ -213,7 +213,7 @@ const contenu = [
     puce('Retour partiel ou total : remboursement au prix réellement payé, remise en stock. Pour un client en compte, remboursement possible « par compte » : montant crédité sur le compte (solde dû diminué), sans décaissement.'),
     puce("Annulation d'une vente de la journée en cours : encaissements rejetés, stock rétabli."),
     h2('4.4 Catalogue'),
-    pt('Catégories', 'nom, couleur des tuiles, ordre d\'affichage, poste de préparation (Cuisine, Bar, Aucun) ; affichage en liste ou en cartes.'),
+    pt('Catégories', 'nom, couleur des tuiles, ordre d\'affichage, poste de préparation (Cuisine, Bar, Aucun ; affiché seulement si la société a une caisse Restaurant ou Bar, comme le menu Écran cuisine / bar) ; affichage en liste ou en cartes.'),
     pt('Produits', 'code, nom, catégorie, code-barres, prix de vente TTC, coût d\'achat (calcul de la marge), unité de vente, image, taxes multiples, suivi de stock, seuil d\'alerte, actif ; affichage en liste ou en cartes ; import et export Excel.'),
     pt('Variantes', 'attributs combinés (ex. Taille : S, M, L × Couleur) ; une variante par combinaison avec son code, son code-barres, son prix et son stock ; le modèle transmet nom, catégorie, taxes, unité et coût.'),
     pt('Combos', 'un produit combo (ex. « Menu midi ») se compose de combos réutilisables (ex. « Plats », « Boissons ») ; voir 4.5.'),

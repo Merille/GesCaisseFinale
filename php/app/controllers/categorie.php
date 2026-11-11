@@ -10,7 +10,7 @@ function categorie_index(): void
         'SELECT c.*, (SELECT COUNT(*) FROM Produits p WHERE p.CategorieId = c.Id) AS NbProduits
          FROM Categories c WHERE ' . tf('c') . ' ORDER BY c.Ordre, c.Nom'
     );
-    render('categorie/index', ['categories' => $categories]);
+    render('categorie/index', ['categories' => $categories, 'restaurant' => restaurant_actif()]);
 }
 
 /** Badge du poste de préparation (liste des catégories). */

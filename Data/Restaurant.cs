@@ -42,6 +42,11 @@ namespace EasytransitCaisse.Data
             public decimal Valeur { get; set; }
         }
 
+        // La société (toutes en mode « toutes les sociétés », par les filtres de société) a-t-elle une caisse
+        // Restaurant ou Bar ? Sinon, les éléments propres au restaurant sont masqués. Comme restaurant_actif() en PHP.
+        public static bool Actif(AppDbContext context)
+            => context.Caisses.Any(c => c.TypePointVente == "Restaurant" || c.TypePointVente == "Bar");
+
         public static Contenu Lire(string? json)
         {
             try { return JsonSerializer.Deserialize<Contenu>(json ?? "", Json) ?? new Contenu(); }

@@ -98,7 +98,7 @@ const fiche = [
         ['Application', 'GesCaisse — gestion de caisse et point de vente (POS)'],
         ['Éditeur', 'M-ITECH AFRICA'],
         ['Public', 'Administrateurs, caissiers, vendeurs et serveurs des sociétés clientes'],
-        ['Version du document', '2.0'],
+        ['Version du document', '2.1'],
         ['Date', 'Novembre 2026']
     ], [3000, 6638])
 ];
@@ -205,7 +205,7 @@ const contenu = [
     pt('Caissier par défaut', 'utilisateur habituellement affecté à la caisse.'),
     pt('Compte comptable', 'compte de trésorerie utilisé comme contrepartie dans l’export Sage (ex. 571100).'),
     pt('Type de point de vente', '**Vente en détail** (comptoir classique), **Restaurant** ou **Bar** (plan de salle et commandes par table, voir chapitre 10), ou **Laverie** (vente au comptoir de prestations de lavage et de pressing, voir 6.10).'),
-    pt('Imprimer les bons de préparation', 'pour un restaurant ou un bar : impression automatique des bons envoyés en cuisine.'),
+    pt('Imprimer les bons de préparation', 'impression automatique des bons envoyés en cuisine et au bar. Cette case n’apparaît que pour une caisse **Restaurant** ou **Bar**.'),
     pt('Dépôt de la caisse', 'dépôt principal de la caisse : ses ventes en sortent d’abord et ses retours y reviennent (voir 8 et 12.7). Si vous laissez « **Dépôt par défaut de la société** », la caisse utilise le dépôt par défaut choisi dans Paramètres › Dépôts, et le suit s’il change.'),
     pt('Dépôts secondaires', 'cochez les autres dépôts où la caisse peut compléter une vente quand le stock du dépôt principal ne suffit pas, et indiquez leur **ordre** d’utilisation (1 d’abord, puis 2…). Un même dépôt peut servir de complément à plusieurs caisses. Le dépôt de la caisse ne peut pas être coché comme secondaire.'),
     ...figure('10b_caisse_depots', 'Dépôt principal et dépôts secondaires d’une caisse'),
@@ -532,7 +532,7 @@ const contenu = [
     h1('11. Catalogue : catégories, produits et combos'),
     p('Menu **Configuration** (administrateurs).'),
     h2('11.1 Catégories'),
-    p('Les catégories regroupent les produits sur l’écran de vente. Pour chacune : nom, **couleur** des tuiles, **ordre** d’affichage et **poste de préparation** (Cuisine, Bar ou Aucun). Le bouton d’affichage permet de passer de la liste aux cartes.'),
+    p('Les catégories regroupent les produits sur l’écran de vente. Pour chacune : nom, **couleur** des tuiles, **ordre** d’affichage et **poste de préparation** (Cuisine, Bar ou Aucun). Le poste de préparation n’apparaît que si la société a au moins une caisse Restaurant ou Bar ; sinon il est masqué (et conservé). Il en va de même pour le menu **Écran cuisine / bar**. Le bouton d’affichage permet de passer de la liste aux cartes.'),
     ...figure('50_categories', 'Catégories de produits'),
     h2('11.2 Produits'),
     p('La liste des produits se filtre par nom, code, code-barres ou catégorie ; elle s’affiche en liste ou en cartes et indique les produits sous le seuil d’alerte.'),

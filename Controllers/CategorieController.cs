@@ -23,6 +23,7 @@ namespace EasytransitCaisse.Controllers
         public IActionResult Index()
         {
             var categories = _context.Categories.OrderBy(c => c.Ordre).ThenBy(c => c.Nom).ToList();
+            ViewBag.Restaurant = Restaurant.Actif(_context);
             ViewBag.NbProduits = _context.Produits
                 .Where(p => p.CategorieId != null)
                 .GroupBy(p => p.CategorieId!.Value)

@@ -85,7 +85,7 @@ require __DIR__ . '/../partials/form_debut.php';
                     <div class="form-text">Quand le stock du dépôt principal ne suffit pas, la vente complète dans ces dépôts, dans l'ordre indiqué.
                         Le stock affiché à la caisse est le total du principal et des secondaires.</div>
                 </div>
-                <div class="col-12 d-flex align-items-center">
+                <div class="col-12 d-flex align-items-center caisse-restaurant<?= in_array($caisse['TypePointVente'] ?? 'Boutique', ['Restaurant', 'Bar'], true) ? '' : ' d-none' ?>">
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" value="1" id="ImprimerBons<?= $sfxPv ?>" name="ImprimerBons" <?= ($caisse['ImprimerBons'] ?? 1) ? 'checked' : '' ?>>
                         <label class="form-check-label" for="ImprimerBons<?= $sfxPv ?>">Imprimer un bon de préparation à chaque envoi en cuisine / au bar

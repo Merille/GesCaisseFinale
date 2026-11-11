@@ -213,7 +213,7 @@
                     <i class="fas fa-receipt"></i>
                     <span class="sb-label">Ventes</span>
                 </a>
-                @if (DbContext.Caisses.Any(c => c.TypePointVente == "Restaurant" || c.TypePointVente == "Bar"))
+                @if (EasytransitCaisse.Data.Restaurant.Actif(DbContext))
                 {
                     <a class="sb-link @(controller == "Cuisine" ? "active" : "")" href="/Cuisine/Index" title="Écran cuisine / bar">
                         <i class="fas fa-fire-burner"></i>

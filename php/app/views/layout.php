@@ -108,7 +108,7 @@ $badge = $nbJourneesOuvertes > 0
             <div class="sb-section-title">Point de vente</div>
             <?= $lien('pos/index', 'pos', 'fa-store', 'Vendre') ?>
             <?= $lien('vente/index', 'vente', 'fa-receipt', 'Ventes') ?>
-            <?php if (qv("SELECT COUNT(*) FROM Caisses WHERE TypePointVente IN ('Restaurant', 'Bar') AND " . tf())): ?>
+            <?php if (restaurant_actif()): ?>
                 <?= $lien('cuisine/index', 'cuisine', 'fa-fire-burner', 'Écran cuisine / bar') ?>
             <?php endif; ?>
             <?php if (is_admin()): ?>

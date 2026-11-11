@@ -812,6 +812,16 @@ function mouvement_stock(int $produitId, float $quantite, string $type, ?string 
 
 require_once __DIR__ . '/combo.php';
 
+/**
+ * La société (toutes en mode « toutes les sociétés ») a-t-elle une caisse Restaurant ou Bar ? Sinon,
+ * les éléments propres au restaurant (écran cuisine / bar, poste de préparation…) sont masqués.
+ */
+function restaurant_actif(): bool
+{
+    static $actif = null;
+    return $actif ??= (bool) qv("SELECT COUNT(*) FROM Caisses WHERE TypePointVente IN ('Restaurant', 'Bar') AND " . tf());
+}
+
 /** Option de la société : vente autorisée quand le stock est épuisé ? */
 function vente_sans_stock(int $tenant): bool
 {
