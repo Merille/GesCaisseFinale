@@ -18,6 +18,7 @@ SET NOCOUNT ON;
 SET XACT_ABORT ON;
 DECLARE @t INT, @admin INT, @caissier INT, @dep INT, @tva INT, @c INT;
 DECLARE @caisse INT, @code NVARCHAR(50), @motif INT, @motifRegl INT, @ventes INT, @j INT, @cmd INT, @l INT, @op INT, @esp INT, @mm INT, @cb INT, @cpt INT;
+DECLARE @depots INT, @num INT, @jd INT, @motifAcompte INT;
 BEGIN TRANSACTION;
 
 -- Société (code LAVERIE)
@@ -591,6 +592,31 @@ INSERT INTO PaiementsPos (TenantId, CommandePosId, ModePaiementId, Libelle, Mont
     SELECT @t, @cmd, Id, Libelle, 7500, 7500, NULL FROM ModesPaiement WHERE Id = @cpt;
 INSERT INTO OperationsCaisses (TenantId, JourneeCaisseId, DateOperation, TypeOperation, Montant, Libelle, ClientId, MotifId, ModePaiementId, UtilisateurId, EstJustifie, StatutValidation, Valideur, ReglementCompte)
     SELECT @t, @j, DATEADD(MINUTE, 1100, CAST(DATEADD(DAY, -1, CAST(GETDATE() AS date)) AS datetime2)), 'Encaissement', 10000, N'Règlement compte client LAVC002 — Nadia Ondo', (SELECT MIN(Id) FROM Clients WHERE TenantId = @t AND CodeClient = 'LAVC002'), @motifRegl, @mm, @caissier, 1, N'Validé', N'Caissière de la laverie', 1;
+END
+
+-- Dépôts de linge payés au retrait (une seule fois : ignorés s'ils existent déjà)
+SET @depots = (SELECT COUNT(*) FROM DepotsLinge WHERE TenantId = @t AND CleClient LIKE 'demo-lav-%');
+SET @num = (SELECT COALESCE(MAX(Numero), 0) FROM DepotsLinge WHERE TenantId = @t);
+INSERT INTO Motifs (LibelleMotif, TypeModif, TenantId) SELECT 'Acompte laverie', 'Client', @t WHERE NOT EXISTS (SELECT 1 FROM Motifs WHERE TenantId = @t AND LibelleMotif = 'Acompte laverie');
+SET @motifAcompte = (SELECT MIN(ID) FROM Motifs WHERE TenantId = @t AND LibelleMotif = 'Acompte laverie');
+IF @depots = 0
+BEGIN
+SET @jd = (SELECT MIN(Id) FROM JourneesCaisses WHERE TenantId = @t AND CaisseId = @caisse AND NumeroJournee = @code + '-' + FORMAT(DATEADD(DAY, -3, GETDATE()), 'yyyyMMdd') + '-DEMO');
+INSERT INTO DepotsLinge (TenantId, CaisseId, JourneeCaisseId, Numero, CleClient, DateDepot, DateRetraitPrevue, NomClient, TelephoneClient, ClientId, UtilisateurId,
+    Contenu, Total, NbArticles, Acompte, AcompteModePaiementId, AcompteOperationId, Statut, DatePret)
+    SELECT @t, @caisse, @jd, @num + 1, 'demo-lav-depot-1', DATEADD(MINUTE, 600, CAST(DATEADD(DAY, -3, CAST(GETDATE() AS date)) AS datetime2)), CAST(DATEADD(DAY, -1, GETDATE()) AS date), N'Jeanne Moussavou', '077 45 12 30', NULL, @caissier, N'{"lignes":[' + '{"uid":"demo-lav-d1-1","produitId":' + CAST((SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'LAV01') AS nvarchar(20)) + N',"nom":"Chemise (lavage + repassage)","qte":4,"prix":1000,"remise":0,"tva":18,"unite":"Pièce","note":"","envoye":0,"composants":[]}' + ',{"uid":"demo-lav-d1-2","produitId":' + CAST((SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'LAV02') AS nvarchar(20)) + N',"nom":"Pantalon (lavage + repassage)","qte":2,"prix":1200,"remise":0,"tva":18,"unite":"Pièce","note":"Pli marqué","envoye":0,"composants":[]}' + '],"clientId":null,"remise":null}', 6400, 6, 0, NULL, NULL, N'Prêt', DATEADD(MINUTE, 900, CAST(DATEADD(DAY, -2, CAST(GETDATE() AS date)) AS datetime2));
+SET @jd = (SELECT MIN(Id) FROM JourneesCaisses WHERE TenantId = @t AND CaisseId = @caisse AND NumeroJournee = @code + '-' + FORMAT(DATEADD(DAY, -1, GETDATE()), 'yyyyMMdd') + '-DEMO');
+INSERT INTO OperationsCaisses (TenantId, JourneeCaisseId, DateOperation, TypeOperation, Montant, Libelle, ClientId, MotifId, ModePaiementId, UtilisateurId, EstJustifie, StatutValidation, Valideur)
+    SELECT @t, @jd, DATEADD(MINUTE, 700, CAST(DATEADD(DAY, -1, CAST(GETDATE() AS date)) AS datetime2)), 'Encaissement', 2000, N'Acompte dépôt de linge n° ' + CAST(@num + 2 AS nvarchar(20)) + N' (Hervé Nzé)', NULL, @motifAcompte, @esp, @caissier, 1, N'Validé', 'Point de vente';
+SET @op = SCOPE_IDENTITY();
+UPDATE JourneesCaisses SET SoldeFinal = SoldeFinal + 2000 WHERE Id = @jd;
+INSERT INTO DepotsLinge (TenantId, CaisseId, JourneeCaisseId, Numero, CleClient, DateDepot, DateRetraitPrevue, NomClient, TelephoneClient, ClientId, UtilisateurId,
+    Contenu, Total, NbArticles, Acompte, AcompteModePaiementId, AcompteOperationId, Statut, DatePret)
+    SELECT @t, @caisse, @jd, @num + 2, 'demo-lav-depot-2', DATEADD(MINUTE, 700, CAST(DATEADD(DAY, -1, CAST(GETDATE() AS date)) AS datetime2)), CAST(DATEADD(DAY, 1, GETDATE()) AS date), N'Hervé Nzé', '066 20 30 40', NULL, @caissier, N'{"lignes":[' + '{"uid":"demo-lav-d2-1","produitId":' + CAST((SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'PRE01') AS nvarchar(20)) + N',"nom":"Costume 2 pièces (nettoyage à sec)","qte":1,"prix":4000,"remise":0,"tva":18,"unite":"Pièce","note":"Tache au revers","envoye":0,"composants":[]}' + ',{"uid":"demo-lav-d2-2","produitId":' + CAST((SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'LAV01') AS nvarchar(20)) + N',"nom":"Chemise (lavage + repassage)","qte":2,"prix":1000,"remise":0,"tva":18,"unite":"Pièce","note":"","envoye":0,"composants":[]}' + '],"clientId":null,"remise":null}', 6000, 3, 2000, @esp, @op, N'En cours', NULL;
+SET @jd = (SELECT MIN(Id) FROM JourneesCaisses WHERE TenantId = @t AND CaisseId = @caisse AND NumeroJournee = @code + '-' + FORMAT(DATEADD(DAY, -1, GETDATE()), 'yyyyMMdd') + '-DEMO');
+INSERT INTO DepotsLinge (TenantId, CaisseId, JourneeCaisseId, Numero, CleClient, DateDepot, DateRetraitPrevue, NomClient, TelephoneClient, ClientId, UtilisateurId,
+    Contenu, Total, NbArticles, Acompte, AcompteModePaiementId, AcompteOperationId, Statut, DatePret)
+    SELECT @t, @caisse, @jd, @num + 3, 'demo-lav-depot-3', DATEADD(MINUTE, 960, CAST(DATEADD(DAY, -1, CAST(GETDATE() AS date)) AS datetime2)), CAST(DATEADD(DAY, 2, GETDATE()) AS date), N'Clarisse Obiang', '074 88 77 66', NULL, @caissier, N'{"lignes":[' + '{"uid":"demo-lav-d3-1","produitId":' + CAST((SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'KIL01') AS nvarchar(20)) + N',"nom":"Linge au kilo : lavage + séchage","qte":4.5,"prix":1000,"remise":0,"tva":18,"unite":"Kg","note":"","envoye":0,"composants":[]}' + ',{"uid":"demo-lav-d3-2","produitId":' + CAST((SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'LAV04') AS nvarchar(20)) + N',"nom":"Tenue traditionnelle / boubou","qte":1,"prix":2000,"remise":0,"tva":18,"unite":"Pièce","note":"Couleurs vives : à part","envoye":0,"composants":[]}' + '],"clientId":null,"remise":null}', 6500, 5.5, 0, NULL, NULL, N'En cours', NULL;
 END
 
 COMMIT TRANSACTION;

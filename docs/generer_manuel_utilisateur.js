@@ -98,7 +98,7 @@ const fiche = [
         ['Application', 'GesCaisse — gestion de caisse et point de vente (POS)'],
         ['Éditeur', 'M-ITECH AFRICA'],
         ['Public', 'Administrateurs, caissiers, vendeurs et serveurs des sociétés clientes'],
-        ['Version du document', '2.2'],
+        ['Version du document', '2.3'],
         ['Date', 'Novembre 2026']
     ], [3000, 6638])
 ];
@@ -395,6 +395,37 @@ const contenu = [
     p('Pour le lavage au kilo, choisissez l’unité **Kg** sur le produit ; à la caisse, touchez la tuile puis tapez le poids sur le pavé en mode **Qté** (par exemple 2,5).'),
     ...figure('20b_pos_laverie', 'Écran de vente d’une laverie'),
     astuce('Associez le ticket au client (**Choisir un client**) : ses tickets et ses règlements apparaissent dans le rapport des tiers et son relevé (5.3).'),
+    h2('6.11 Dépôt de linge payé au retrait'),
+    p('En laverie, le client dépose son linge et le paie quand il vient le chercher, souvent deux ou trois jours plus tard. Le **dépôt de linge** enregistre la commande sans l’encaisser : il ne bloque pas la clôture de la journée et se retrouve depuis n’importe quel poste, les jours suivants.'),
+    h3('Enregistrer le dépôt'),
+    ...etapes([
+        'Ajoutez les articles au ticket comme pour une vente (chemises, pressing, kilos…).',
+        'Touchez **Dépôt de linge** (le bouton n’apparaît que sur une caisse de type Laverie).',
+        'Saisissez le **nom** et le **téléphone** du client (repris de sa fiche si vous l’avez choisi), la date de **retrait prévue** (dans deux jours par défaut) et, si le client verse une avance, l’**acompte** et son mode de paiement.',
+        'Touchez **Enregistrer le dépôt** : le dépôt reçoit un numéro et le ticket quitte l’écran.'
+    ]),
+    ...figure('20c_laverie_depot', 'Dépôt de linge : client, retrait prévu et acompte'),
+    p('Le **ticket de dépôt** s’imprime en deux exemplaires : l’exemplaire client, marqué **NON PAYÉ**, avec les articles, le total, l’acompte et le reste à payer ; la **souche** à joindre au linge, avec le numéro, le nom et le téléphone du client.'),
+    ...figure('20f_ticket_depot', 'Ticket de dépôt : exemplaire client et souche'),
+    p('L’acompte est encaissé tout de suite dans la journée de caisse (motif « Acompte laverie »). Sans acompte, rien n’est encaissé au dépôt.'),
+    h3('Suivre les dépôts'),
+    p('Le bouton **Dépôts**, en haut de l’écran de vente, indique le nombre de dépôts à retirer et le nombre de dépôts prêts. Il ouvre la liste, partagée entre les postes et les journées :'),
+    pt('Rechercher', 'par numéro de dépôt, nom ou téléphone du client.'),
+    pt('À retirer / Retirés · annulés', 'les dépôts en cours et prêts, ou ceux retirés ou annulés depuis 30 jours.'),
+    pt('Prêt', 'le linge est lavé : prévenez le client. **Remettre en cours** annule ce statut.'),
+    pt('Retrait prévu', 'affiché en rouge « en retard » quand la date est passée.'),
+    pt('Imprimante', 'réimprime le ticket de dépôt (client et souche).'),
+    pt('Annuler', 'administrateurs et utilisateurs autorisés à valider : le dépôt est annulé et l’acompte éventuel remboursé par un décaissement dans la journée du poste.'),
+    ...figure('20d_laverie_depots', 'Liste des dépôts de linge'),
+    h3('Remettre le linge et encaisser'),
+    ...etapes([
+        'Ouvrez **Dépôts**, retrouvez le dépôt (numéro de la souche, nom ou téléphone) et touchez **Encaisser**.',
+        'Le dépôt revient en ticket et l’écran de paiement s’ouvre : l’acompte déjà versé est déduit du total à payer.',
+        'Encaissez le reste comme une vente (espèces, Mobile Money…), puis remettez le linge : le dépôt passe à **Retiré** et le ticket de caisse est imprimé.'
+    ]),
+    ...figure('20e_laverie_retrait', 'Retrait : acompte déduit du total'),
+    astuce('La vente compte le jour du retrait ; l’acompte, lui, figure dans la journée du dépôt. Sur le ticket de caisse, l’acompte apparaît parmi les règlements (« Acompte (dépôt n° …) »).'),
+    attention('Une vente issue d’un dépôt avec acompte ne peut pas être annulée : faites un retour (7.3). Sans acompte, l’annulation remet le dépôt dans la liste des dépôts à retirer.'),
 
     // 7 ------------------------------------------------------------------
     h1('7. Ventes, retours et annulations'),

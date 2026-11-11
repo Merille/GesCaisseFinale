@@ -97,6 +97,35 @@ CREATE TABLE [Depots] (
 GO
 
 
+CREATE TABLE [DepotsLinge] (
+    [Id] int NOT NULL IDENTITY,
+    [TenantId] int NOT NULL,
+    [CaisseId] int NOT NULL,
+    [JourneeCaisseId] int NOT NULL,
+    [Numero] int NOT NULL,
+    [CleClient] nvarchar(64) NULL,
+    [DateDepot] datetime2 NOT NULL,
+    [DateRetraitPrevue] date NULL,
+    [NomClient] nvarchar(100) NOT NULL,
+    [TelephoneClient] nvarchar(30) NULL,
+    [ClientId] int NULL,
+    [UtilisateurId] int NULL,
+    [Contenu] nvarchar(max) NOT NULL,
+    [Total] decimal(18,2) NOT NULL DEFAULT 0.0,
+    [NbArticles] decimal(18,2) NOT NULL DEFAULT 0.0,
+    [Acompte] decimal(18,2) NOT NULL DEFAULT 0.0,
+    [AcompteModePaiementId] int NULL,
+    [AcompteOperationId] int NULL,
+    [Statut] nvarchar(20) NOT NULL DEFAULT N'En cours',
+    [DatePret] datetime2 NULL,
+    [DateRetrait] datetime2 NULL,
+    [DateAnnulation] datetime2 NULL,
+    [CommandePosId] int NULL,
+    CONSTRAINT [PK_DepotsLinge] PRIMARY KEY ([Id])
+);
+GO
+
+
 CREATE TABLE [Livreurs] (
     [Id] int NOT NULL IDENTITY,
     [TenantId] int NOT NULL,
@@ -720,6 +749,14 @@ CREATE UNIQUE INDEX [IX_Depots_TenantId_Code] ON [Depots] ([TenantId], [Code]);
 GO
 
 
+CREATE UNIQUE INDEX [IX_DepotsLinge_TenantId_Numero] ON [DepotsLinge] ([TenantId], [Numero]);
+GO
+
+
+CREATE INDEX [IX_DepotsLinge_TenantId_Statut] ON [DepotsLinge] ([TenantId], [Statut]);
+GO
+
+
 CREATE INDEX [IX_Factures_ClientId] ON [Factures] ([ClientId]);
 GO
 
@@ -878,7 +915,8 @@ INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion]) VALUES
     (N'20261109162748_GenreTiers', N'10.0.9'),
     (N'20261109215135_ClientsEnCompte', N'10.0.9'),
     (N'20261109225752_FraisLivraison', N'10.0.9'),
-    (N'20261110133047_DepotsSecondaires', N'10.0.9');
+    (N'20261110133047_DepotsSecondaires', N'10.0.9'),
+    (N'20261111184559_DepotsLinge', N'10.0.9');
 GO
 
 -- =====================================================================
@@ -896,6 +934,7 @@ ALTER TABLE [CommandesOuvertes] NOCHECK CONSTRAINT ALL;
 ALTER TABLE [CommandesPos] NOCHECK CONSTRAINT ALL;
 ALTER TABLE [ComptagesCloture] NOCHECK CONSTRAINT ALL;
 ALTER TABLE [Depots] NOCHECK CONSTRAINT ALL;
+ALTER TABLE [DepotsLinge] NOCHECK CONSTRAINT ALL;
 ALTER TABLE [Factures] NOCHECK CONSTRAINT ALL;
 ALTER TABLE [JourneesCaisses] NOCHECK CONSTRAINT ALL;
 ALTER TABLE [LignesBonPreparation] NOCHECK CONSTRAINT ALL;
@@ -3002,6 +3041,7 @@ ALTER TABLE [CommandesOuvertes] WITH CHECK CHECK CONSTRAINT ALL;
 ALTER TABLE [CommandesPos] WITH CHECK CHECK CONSTRAINT ALL;
 ALTER TABLE [ComptagesCloture] WITH CHECK CHECK CONSTRAINT ALL;
 ALTER TABLE [Depots] WITH CHECK CHECK CONSTRAINT ALL;
+ALTER TABLE [DepotsLinge] WITH CHECK CHECK CONSTRAINT ALL;
 ALTER TABLE [Factures] WITH CHECK CHECK CONSTRAINT ALL;
 ALTER TABLE [JourneesCaisses] WITH CHECK CHECK CONSTRAINT ALL;
 ALTER TABLE [LignesBonPreparation] WITH CHECK CHECK CONSTRAINT ALL;

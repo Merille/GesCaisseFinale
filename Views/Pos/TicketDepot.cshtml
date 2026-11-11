@@ -1,0 +1,106 @@
+@model EasytransitCaisse.Models.DepotLinge
+@using System.Globalization
+@{
+    // Ticket de dépôt de linge 80 mm « NON PAYÉ » : exemplaire client, puis souche à joindre au linge
+    // (une page chacun). Ouvre la fenêtre d'impression.
+    Layout = null;
+    string Fcfa(decimal n) => n.ToString("N0", CultureInfo.GetCultureInfo("fr-FR"));
+    string Qte(decimal n) => n == Math.Round(n) ? n.ToString("0", CultureInfo.InvariantCulture) : n.ToString("0.##", CultureInfo.GetCultureInfo("fr-FR"));
+    var contenu = (EasytransitCaisse.Data.Restaurant.Contenu)ViewBag.Contenu;
+    var brut = EasytransitCaisse.Data.Restaurant.Total(new EasytransitCaisse.Data.Restaurant.Contenu { Lignes = contenu.Lignes });
+    var reste = Model.Statut == "Retiré" ? 0 : Math.Max(0, Model.Total - Model.Acompte);
+    var mode = (string?)ViewBag.ModeAcompte;
+    var etat = Model.Statut == "Annulé" ? "ANNULÉ" : Model.Statut == "Retiré" ? "RETIRÉ" : "NON PAYÉ";
+}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8" />
+    <title>Dépôt n° @Model.Numero</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="~/css/ticket.css" asp-append-version="true" />
+</head>
+<body>
+    <div class="ticket saut">
+        @if (ViewBag.Logo != null)
+        {
+            <div class="c"><img src="@ViewBag.Logo" alt="" class="logo" /></div>
+        }
+        <div class="c b grand">@ViewBag.Societe</div>
+        @foreach (var ligne in (List<string>)ViewBag.Coordonnees)
+        {
+            <div class="c petit">@ligne</div>
+        }
+        <hr />
+        <div class="c b tres-grand">DÉPÔT N° @Model.Numero</div>
+        <div class="non-paye">@etat</div>
+        <div class="c petit">Exemplaire client</div>
+        <div>Déposé le : @Model.DateDepot.ToString("dd/MM/yyyy HH:mm")</div>
+        @if (Model.DateRetraitPrevue.HasValue)
+        {
+            <div class="b">Retrait   : à partir du @Model.DateRetraitPrevue.Value.ToString("dd/MM/yyyy")</div>
+        }
+        <div>Client    : @Model.NomClient</div>
+        <div>Téléphone : @Model.TelephoneClient</div>
+        <div>Reçu par  : @ViewBag.Utilisateur</div>
+        <hr />
+        @foreach (var l in contenu.Lignes)
+        {
+            <div class="b">@l.Nom</div>
+            @foreach (var comp in l.Composants)
+            {
+                <div class="ind petit">· @Qte(comp.Qte) x @comp.Nom</div>
+            }
+            @if (!string.IsNullOrEmpty(l.Note))
+            {
+                <div class="ind petit note">@l.Note</div>
+            }
+            <div class="r ind">
+                <span>@Qte(l.Qte) x @Fcfa(l.Prix)@(l.Remise > 0 ? " -" + Qte(l.Remise) + "%" : "")</span>
+                <span>@Fcfa(Math.Round(l.Qte * l.Prix * (1 - l.Remise / 100), MidpointRounding.AwayFromZero))</span>
+            </div>
+        }
+        <hr />
+        @if (brut != Model.Total)
+        {
+            <div class="r"><span>Sous-total</span><span>@Fcfa(brut)</span></div>
+            <div class="r"><span>Remise globale</span><span>-@Fcfa(brut - Model.Total)</span></div>
+        }
+        <div class="r b grand"><span>TOTAL TTC</span><span>@Fcfa(Model.Total) FCFA</span></div>
+        @if (Model.Acompte > 0)
+        {
+            <div class="r"><span>Acompte versé@(mode != null ? " (" + mode + ")" : "")</span><span>-@Fcfa(Model.Acompte)</span></div>
+        }
+        <div class="r b grand"><span>RESTE À PAYER</span><span>@Fcfa(reste) FCFA</span></div>
+        <hr />
+        <div class="c">Présentez ce ticket pour retirer votre linge.<br />Le paiement se fait au retrait.</div>
+    </div>
+    <div class="ticket">
+        <div class="c b grand">@ViewBag.Societe</div>
+        <div class="c petit">Souche à joindre au linge</div>
+        <hr />
+        <div class="c b tres-grand">DÉPÔT N° @Model.Numero</div>
+        <div class="c b grand">@Model.NomClient</div>
+        <div class="c b">@Model.TelephoneClient</div>
+        <hr />
+        <div>Déposé le : @Model.DateDepot.ToString("dd/MM/yyyy HH:mm")</div>
+        @if (Model.DateRetraitPrevue.HasValue)
+        {
+            <div class="b">Retrait   : @Model.DateRetraitPrevue.Value.ToString("dd/MM/yyyy")</div>
+        }
+        <hr />
+        @foreach (var l in contenu.Lignes)
+        {
+            <div class="r"><span>@l.Nom</span><span>x @Qte(l.Qte)</span></div>
+            @if (!string.IsNullOrEmpty(l.Note))
+            {
+                <div class="ind petit note">@l.Note</div>
+            }
+        }
+        <hr />
+        <div class="r b"><span>Articles</span><span>@Qte(Model.NbArticles)</span></div>
+        <div class="r b"><span>@(reste > 0 ? "Reste à payer" : "Payé")</span><span>@(reste > 0 ? Fcfa(reste) + " FCFA" : "")</span></div>
+    </div>
+    <script>window.addEventListener('load', function () { window.print(); });</script>
+</body>
+</html>

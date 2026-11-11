@@ -7,6 +7,8 @@
 // Restaurant / bar (D.restaurant) : l'écran s'ouvre sur le plan de salle ; la commande de
 // chaque table est gardée sur le serveur (partagée entre serveurs et appareils), envoyée en
 // cuisine / au bar par bons de préparation, puis encaissée (en une fois ou partagée).
+// Laverie (D.laverie) : dépôt de linge payé au retrait (ticket « NON PAYÉ », acompte facultatif),
+// liste des dépôts (en cours, prêts, retirés) et encaissement au retrait, acompte déduit.
 (function () {
     'use strict';
 
@@ -48,6 +50,10 @@
     let cmd = null;          // { id, version, tableId, table, couverts, addition, lignes, clientId, remise, choisie, retire }
     const sync = { minuterie: null, enCours: false, encore: false };
     if (R) vue = 'plan';
+
+    // Laverie : dépôts de linge (liste partagée entre les postes et les journées).
+    const L = D.laverie || null;
+    let depots = [];
 
     function charger() {
         try {
@@ -682,7 +688,10 @@
     function etatPaiement() {
         const ttc = totaux({ lignes: lignesAPayer(), remise: pay.partage ? null : ticket().remise }).ttc;
         const frais = pay.partage ? 0 : fraisLivraison(ticket());
-        const total = ttc + (pay.pourboire || 0) + frais;
+        // Retrait d'un dépôt de linge : l'acompte versé au dépôt est déduit.
+        const acompte = acompteDepot(ticket());
+        const avant = ttc + (pay.pourboire || 0) + frais;
+        const total = Math.max(0, avant - acompte);
         let recu = 0, especes = 0;
         pay.lignes.forEach(r => {
             recu += r.montant;
@@ -690,9 +699,9 @@
         });
         const rendu = Math.max(0, recu - total);
         return {
-            ttc: ttc, total: total, frais: frais, recu: recu, especes: especes, rendu: rendu,
+            ttc: ttc, total: total, frais: frais, recu: recu, especes: especes, rendu: rendu, acompte: acompte, acompteTrop: acompte > avant,
             reste: Math.max(0, total - recu),
-            ok: pay.lignes.length > 0 && recu >= total && rendu <= especes && !pay.lignes.some(r => r.montant <= 0)
+            ok: (pay.lignes.length > 0 || total === 0) && acompte <= avant && recu >= total && rendu <= especes && !pay.lignes.some(r => r.montant <= 0)
         };
     }
 
@@ -773,7 +782,8 @@
         const e = etatPaiement();
         if (pay.envoi) return;
         if (!e.ok) {
-            message(e.recu < e.total ? 'Il reste ' + fcfa(e.reste) + ' FCFA à payer.'
+            message(e.acompteTrop ? 'L\'acompte versé (' + fcfa(e.acompte) + ' FCFA) dépasse le total : remettez les articles du dépôt sur le ticket.'
+                : e.recu < e.total ? 'Il reste ' + fcfa(e.reste) + ' FCFA à payer.'
                 : e.rendu > e.especes ? 'Seule la monnaie sur les espèces peut être rendue.'
                 : 'Ajoutez un règlement.', true);
             return;
@@ -789,6 +799,7 @@
             pourboire: pay.pourboire || 0,
             commandeOuverte: cmd ? { id: cmd.id, version: cmd.version, reste: resteApresPaiement() } : null,
             livraison: cmd ? null : (t.livraison || null),
+            depotId: !cmd && t.depot ? t.depot.id : null,
             paiements: pay.lignes.map(r => ({ modeId: r.modeId, montant: r.montant }))
         };
         const corps = new FormData();
@@ -827,9 +838,11 @@
             etat.actif = Math.min(etat.actif, etat.tickets.length - 1);
             enregistrer();
         }
+        const depotRetire = !cmd && t.depot;
         pay = null;
         vue = 'fin';
         afficher();
+        if (depotRetire) { message('Dépôt n° ' + t.depot.numero + ' retiré et encaissé.'); rafraichirDepots(); }
         if (bonsDirects.length) message(bonsDirects.length > 1 ? 'Commande envoyée en cuisine et au bar.' : 'Commande envoyée en préparation.');
         rafraichirAttentes();
     }
@@ -880,6 +893,7 @@
             + '<div class="pos-blocs">'
             + '<div class="pos-bloc"><small>Total à payer</small><div class="v">' + fcfa(e.total) + '</div>'
             + (pay.pourboire ? '<small>dont pourboire ' + fcfa(pay.pourboire) + '</small>' : '')
+            + (e.acompte ? '<small>acompte déjà versé ' + fcfa(e.acompte) + ' déduit</small>' : '')
             + (e.frais ? '<small>dont frais de livraison ' + fcfa(e.frais) + '</small>' : '') + '</div>'
             + '<div class="pos-bloc' + (e.reste > 0 ? ' reste' : '') + '"><small>Reste à payer</small><div class="v">' + fcfa(e.reste) + '</div></div>'
             + '<div class="pos-bloc rendre"><small>Monnaie à rendre</small><div class="v">' + fcfa(e.rendu) + '</div></div>'
@@ -1020,6 +1034,7 @@
             + '</div>'
             + '<div class="pos-droite">'
             + '<span class="pos-user"><span class="pos-avatar">' + echap(initiales(D.utilisateur.nom || '?')) + '</span><span>' + echap(D.utilisateur.nom) + ' · ' + echap(D.utilisateur.profil) + '</span></span>'
+            + boutonDepots()
             + boutonAttentes()
             + (D.urlVentes ? '<a class="pos-btn-top" href="' + echap(D.urlVentes) + '"><i class="fas fa-receipt"></i> Ventes</a>' : '')
             + '<a class="pos-btn-top rouge" href="' + echap(D.urlFermer) + '"><i class="fas fa-power-off"></i> Fermer</a>'
@@ -1032,11 +1047,14 @@
                 + (t.remise.type === 'pct' ? ' ' + qte(t.remise.valeur) + ' %' : '') + ' −' + fcfa(tot.remise) + '</span></div>' : '')
             + '<div class="pos-grand">' + fcfa(tot.ttc + fraisLivraison(t)) + ' FCFA</div>'
             + (fraisLivraison(t) ? '<div class="pos-tva">dont frais de livraison : ' + fcfa(fraisLivraison(t)) + ' (hors taxes)</div>' : '')
-            + '<div class="pos-tva">dont taxes : ' + fcfa(tot.tva) + ' · ' + t.lignes.length + ' article(s), ' + qte(tot.unites) + ' unité(s)</div></div>'
-            + '<div class="pos-actions' + (cmd ? '' : ' cinq') + '">'
+            + '<div class="pos-tva">dont taxes : ' + fcfa(tot.tva) + ' · ' + t.lignes.length + ' article(s), ' + qte(tot.unites) + ' unité(s)</div>'
+            + (!cmd && t.depot ? '<div class="pos-depot-info"><i class="fas fa-shirt"></i> Retrait du dépôt n° <b>' + t.depot.numero + '</b> · ' + echap(t.depot.nom)
+                + (t.depot.acompte ? ' · acompte versé ' + fcfa(t.depot.acompte) + ' · reste à payer <b>' + fcfa(Math.max(0, tot.ttc + fraisLivraison(t) - t.depot.acompte)) + '</b>' : '') + '</div>' : '')
+            + '</div>'
+            + '<div class="pos-actions' + (cmd ? '' : L ? ' six' : ' cinq') + '">'
             + '<button type="button" class="pos-act" data-action="client"><i class="fas fa-user"></i> ' + (client ? 'Client : <b>' + echap(client.nom) + '</b>' : 'Choisir un client') + '</button>'
             + (cmd ? '<button type="button" class="pos-act" data-action="note"><i class="fas fa-comment-dots"></i> Note</button>'
-                : '<button type="button" class="pos-act" data-action="attente"><i class="fas fa-pause"></i> Mettre en attente</button>')
+                : '<button type="button" class="pos-act" data-action="attente"' + (t.depot ? ' disabled title="Retrait d\'un dépôt : encaissez-le"' : '') + '><i class="fas fa-pause"></i> Mettre en attente</button>')
             + '<button type="button" class="pos-act" data-action="remise"' + (D.peutRemiseGlobale ? '' : ' disabled title="Réservée aux administrateurs"') + '>'
             + '<i class="fas fa-percent"></i> ' + (t.remise ? 'Remise : <b>' + (t.remise.type === 'pct' ? qte(t.remise.valeur) + ' %' : fcfa(t.remise.valeur)) + '</b>' : 'Remise globale') + '</button>'
             + (cmd ? '' : '<button type="button" class="pos-act' + (t.livraison ? ' livraison' : '') + '" data-action="livraison"><i class="fas '
@@ -1044,6 +1062,9 @@
                 + (t.livraison ? 'Livraison : <b>' + echap(nomLivreur(t.livraison.livreurId)) + '</b>' + (fraisLivraison(t) ? ' + ' + fcfa(fraisLivraison(t)) : '') + (t.livraison.paiement === 'livraison' ? ' (à encaisser)' : '')
                     : 'Livraison') + '</button>')
             + (cmd ? '' : '<button type="button" class="pos-act" data-action="additionticket" title="Imprimer l\'addition (NON PAYÉ)"><i class="fas fa-file-invoice-dollar"></i> Addition</button>')
+            + (L && !cmd ? (t.depot
+                ? '<button type="button" class="pos-act depot" disabled><i class="fas fa-shirt"></i> Dépôt n° <b>' + t.depot.numero + '</b></button>'
+                : '<button type="button" class="pos-act depot" data-action="deposer" title="Enregistrer le dépôt du linge, payé au retrait"><i class="fas fa-shirt"></i> Dépôt de linge</button>') : '')
             + '</div>'
             + (cmd ? '<div class="pos-actions resto">'
                 + '<button type="button" class="pos-act envoyer' + (aEnvoyer() ? ' actif' : '') + '" data-action="envoyer"><i class="fas fa-fire-burner"></i> Envoyer'
@@ -1485,6 +1506,199 @@
     }
 
     // ------------------------------------------------------------------
+    // Laverie : dépôts de linge payés au retrait
+    // ------------------------------------------------------------------
+    // Acompte déjà versé du dépôt repris sur le ticket (retrait).
+    function acompteDepot(t) {
+        return !cmd && t && t.depot ? Math.max(0, Math.round(t.depot.acompte || 0)) : 0;
+    }
+
+    function boutonDepots() {
+        if (!L) return '';
+        const n = depots.filter(d => d.statut === 'En cours' || d.statut === 'Prêt').length;
+        const prets = depots.filter(d => d.statut === 'Prêt').length;
+        return '<button type="button" class="pos-btn-top" data-action="depots" title="Dépôts de linge : en cours, prêts, retirés">'
+            + '<i class="fas fa-shirt"></i> Dépôts' + (n ? ' <b class="pos-compte">' + n + '</b>' : '') + (prets ? ' <small>(' + prets + ' prêt' + (prets > 1 ? 's' : '') + ')</small>' : '') + '</button>';
+    }
+
+    async function rafraichirDepots() {
+        if (!L) return;
+        try {
+            const res = await fetch(L.urlDepots, { credentials: 'same-origin' });
+            const r = await res.json();
+            if (!res.ok || !r || r.erreur) return;
+            depots = r.depots || [];
+            const liste = document.querySelector('.pos-modal-depots');
+            if (liste) remplirDepots(liste);
+            racine.querySelectorAll('[data-action="depots"]').forEach(b => { b.outerHTML = boutonDepots(); });
+        } catch (err) { /* hors ligne : la liste sera actualisée plus tard */ }
+    }
+
+    function dateDans(jours) {
+        const d = new Date();
+        d.setDate(d.getDate() + jours);
+        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+
+    // Fenêtre : dépôt du linge (client, téléphone, retrait prévu, acompte facultatif).
+    function deposer() {
+        const t = ticket();
+        if (!t.lignes.length) { message('Le ticket est vide.'); return; }
+        if (t.lignes.some(l => l.qte <= 0)) { message('Une ligne a une quantité nulle : corrigez-la ou supprimez-la.', true); return; }
+        if (t.livraison) { message('Retirez la livraison du ticket avant d\'enregistrer le dépôt.', true); return; }
+        const total = totaux(t).ttc;
+        const client = clients.get(t.clientId) || {};
+        const modesAcompte = (D.modes || []).filter(m => !m.compte);
+        const especes = modesAcompte.find(m => m.especes) || modesAcompte[0];
+        const fond = document.createElement('div');
+        fond.className = 'pos-modal-fond';
+        fond.innerHTML = '<div class="pos-modal pos-modal-depot" role="dialog" aria-modal="true" aria-label="Dépôt de linge">'
+            + '<div class="pos-modal-tete">Dépôt de linge · ' + fcfa(total) + ' FCFA<button type="button" data-close aria-label="Fermer">×</button></div>'
+            + '<div class="pos-form">'
+            + '<div class="pos-form-2"><label>Nom du client<input name="nom" maxlength="100" value="' + echap(client.nom || '') + '"></label>'
+            + '<label>Téléphone<input name="telephone" maxlength="30" inputmode="tel" value="' + echap(client.telephone || '') + '"></label></div>'
+            + '<label>Retrait prévu le<input name="retrait" type="date" min="' + dateDans(0) + '" value="' + dateDans(2) + '"></label>'
+            + '<div class="pos-form-2"><label>Acompte versé maintenant (FCFA, facultatif)<input name="acompte" inputmode="numeric" maxlength="9" value="0"></label>'
+            + '<label>Mode de paiement de l\'acompte<select name="modeId">' + modesAcompte.map(m => '<option value="' + m.id + '"' + (m === especes ? ' selected' : '') + '>' + echap(m.libelle) + '</option>').join('') + '</select></label></div>'
+            + '<div class="pos-form-aide">Le linge est payé au retrait : un ticket « NON PAYÉ » est imprimé en deux exemplaires (client et souche à joindre au linge). '
+            + 'L\'acompte éventuel est encaissé dans la journée de caisse ; il sera déduit au retrait.</div>'
+            + '<div class="pos-remise-boutons"><button type="button" class="pos-big" data-valider><i class="fas fa-shirt"></i> Enregistrer le dépôt</button></div>'
+            + '</div></div>';
+        document.body.appendChild(fond);
+        const champ = n => fond.querySelector('[name="' + n + '"]');
+        const fermer = () => fond.remove();
+        const valider = async b => {
+            const nom = champ('nom').value.trim(), telephone = champ('telephone').value.trim();
+            if (!nom) { message('Indiquez le nom du client.', true); champ('nom').focus(); return; }
+            if (!telephone) { message('Indiquez le téléphone du client.', true); champ('telephone').focus(); return; }
+            const acompte = Math.max(0, parseInt(String(champ('acompte').value).replace(/[^0-9]/g, '') || '0', 10));
+            if (acompte > total) { message('L\'acompte dépasse le total du dépôt (' + fcfa(total) + ' FCFA).', true); champ('acompte').focus(); return; }
+            if (!t.cleDepot) { t.cleDepot = identifiant(); enregistrer(); }   // même clé si l'envoi est refait
+            b.disabled = true;
+            const res = await appel(L.urlDeposer, 'commande', {
+                cle: t.cleDepot, journeeId: D.journee.id, clientId: t.clientId, remise: t.remise || null,
+                nom: nom, telephone: telephone, retrait: champ('retrait').value || null,
+                acompte: acompte, modeId: acompte > 0 ? Number(champ('modeId').value) : null,
+                lignes: t.lignes.map(l => ({ uid: l.uid, produitId: l.produitId, nom: l.nom, qte: l.qte, prix: l.prix, remise: l.remise || 0, note: l.note || '', composants: l.composants || [] }))
+            });
+            if (!res.ok) { b.disabled = false; message(res.r && res.r.erreur ? res.r.erreur : 'Connexion impossible : le dépôt n\'est pas enregistré. Réessayez.', true); return; }
+            fermer();
+            imprimerDans(L.urlTicket + res.r.id);
+            etat.tickets.splice(etat.actif, 1);
+            if (!etat.tickets.length) { etat.compteur += 1; etat.tickets.push(nouveauTicket(etat.compteur)); }
+            etat.actif = Math.min(etat.actif, etat.tickets.length - 1);
+            mode = 'qte';
+            saisie = null;
+            enregistrer();
+            afficher();
+            message('Dépôt n° ' + res.r.numero + ' enregistré' + (acompte ? ' (acompte ' + fcfa(acompte) + ' FCFA encaissé)' : '') + ' : ticket imprimé.');
+            rafraichirDepots();
+        };
+        fond.addEventListener('click', e => {
+            if (e.target === fond || e.target.closest('[data-close]')) { fermer(); return; }
+            const b = e.target.closest('[data-valider]');
+            if (b && !b.disabled) valider(b);
+        });
+        fond.addEventListener('keydown', e => { if (e.key === 'Escape') fermer(); });
+        champ(client.nom ? 'telephone' : 'nom').focus();
+    }
+
+    let filtreDepots = 'actifs', rechercheDepots = '';
+    function remplirDepots(fond) {
+        const q = rechercheDepots.trim().toLowerCase();
+        const liste = depots.filter(d => (filtreDepots === 'actifs') === (d.statut === 'En cours' || d.statut === 'Prêt'))
+            .filter(d => !q || String(d.numero) === q.replace(/^n°\s*/, '') || (d.nom || '').toLowerCase().includes(q) || (d.telephone || '').replace(/\s/g, '').includes(q.replace(/\s/g, '')));
+        fond.querySelectorAll('[data-filtre]').forEach(b => b.classList.toggle('on', b.dataset.filtre === filtreDepots));
+        const badge = d => d.statut === 'Prêt' ? '<span class="pos-att-badge paye">Prêt</span>'
+            : d.statut === 'En cours' ? '<span class="pos-att-badge">En cours</span>'
+            : d.statut === 'Retiré' ? '<span class="pos-att-badge paye">Retiré le ' + echap(d.retire || '') + '</span>'
+            : '<span class="pos-att-badge annule">Annulé</span>';
+        fond.querySelector('.pos-att-corps').innerHTML = liste.length ? liste.map(d => '<div class="pos-att">'
+            + '<div class="pos-att-info"><b>N° ' + d.numero + '</b> · ' + echap(d.nom) + (d.telephone ? ' · ' + echap(d.telephone) : '') + badge(d)
+            + '<div class="pos-att-livraison">Déposé le ' + echap(d.depose) + ' · ' + qte(d.articles) + ' article(s)'
+            + (d.retrait ? ' · retrait prévu le <span class="' + (d.enRetard ? 'pos-retard' : '') + '">' + echap(d.retrait) + (d.enRetard ? ' (en retard)' : '') + '</span>' : '')
+            + (d.acompte ? ' · acompte ' + fcfa(d.acompte) : '') + '</div></div>'
+            + '<div class="pos-att-total">' + fcfa(d.statut === 'Retiré' || d.statut === 'Annulé' ? d.total : d.reste) + ' FCFA'
+            + (d.statut === 'En cours' || d.statut === 'Prêt' ? '<small>reste à payer</small>' : '') + '</div>'
+            + '<div class="pos-att-btns">'
+            + (d.statut === 'En cours' || d.statut === 'Prêt'
+                ? '<button type="button" class="pos-sec vert" data-encaisser="' + d.id + '"><i class="fas fa-cash-register"></i> Encaisser</button>'
+                  + '<button type="button" class="pos-sec" data-pret="' + d.id + '">' + (d.statut === 'Prêt' ? 'Remettre en cours' : '<i class="fas fa-check"></i> Prêt') + '</button>'
+                : '')
+            + '<button type="button" class="pos-sec" data-reimprimer="' + d.id + '" title="Réimprimer le ticket de dépôt" aria-label="Réimprimer le ticket du dépôt n° ' + d.numero + '"><i class="fas fa-print"></i></button>'
+            + (d.venteId ? '<a class="pos-sec" href="' + echap(D.urlTicket + d.venteId) + '" target="_blank" rel="noopener" title="Ticket de caisse"><i class="fas fa-receipt"></i></a>' : '')
+            + ((d.statut === 'En cours' || d.statut === 'Prêt') && L.peutAnnuler
+                ? '<button type="button" class="pos-sec rouge" data-annuler="' + d.id + '" aria-label="Annuler le dépôt n° ' + d.numero + '"><i class="fas fa-ban"></i></button>' : '')
+            + '</div></div>').join('')
+            : '<div class="pos-att-vide">' + (q ? 'Aucun dépôt ne correspond à « ' + echap(rechercheDepots) + ' ».' : filtreDepots === 'actifs' ? 'Aucun dépôt en cours.' : 'Aucun dépôt retiré ou annulé depuis 30 jours.') + '</div>';
+    }
+
+    function listeDepots() {
+        const fond = document.createElement('div');
+        fond.className = 'pos-modal-fond attentes';
+        fond.innerHTML = '<div class="pos-modal pos-modal-attentes pos-modal-depots" role="dialog" aria-modal="true" aria-label="Dépôts de linge">'
+            + '<div class="pos-modal-tete">Dépôts de linge<button type="button" data-close aria-label="Fermer">×</button></div>'
+            + '<div class="pos-depots-outils"><input type="search" class="pos-depots-recherche" placeholder="N° de dépôt, nom ou téléphone" aria-label="Rechercher un dépôt" value="' + echap(rechercheDepots) + '">'
+            + '<div class="pos-remise-types"><button type="button" data-filtre="actifs">À retirer</button><button type="button" data-filtre="termines">Retirés / annulés</button></div></div>'
+            + '<div class="pos-att-corps"></div></div>';
+        document.body.appendChild(fond);
+        remplirDepots(fond);
+        rafraichirDepots();
+        const fermer = () => { fond.remove(); afficher(); };
+        const depot = id => depots.find(d => d.id === Number(id));
+        fond.querySelector('.pos-depots-recherche').addEventListener('input', e => { rechercheDepots = e.target.value; remplirDepots(fond); });
+        fond.addEventListener('click', async e => {
+            if (e.target === fond || e.target.closest('[data-close]')) { fermer(); return; }
+            const b = e.target.closest('button');
+            if (!b || b.disabled) return;
+            if (b.dataset.filtre) { filtreDepots = b.dataset.filtre; remplirDepots(fond); }
+            else if (b.dataset.reimprimer) imprimerDans(L.urlTicket + b.dataset.reimprimer);
+            else if (b.dataset.pret) {
+                b.disabled = true;
+                const res = await appel(L.urlPret, 'commande', { id: Number(b.dataset.pret) });
+                if (!res.ok) message(res.r && res.r.erreur ? res.r.erreur : 'Connexion impossible. Réessayez.', true);
+                else message(res.r.statut === 'Prêt' ? 'Linge prêt : prévenez le client.' : 'Dépôt remis « En cours ».');
+                rafraichirDepots();
+            } else if (b.dataset.annuler) {
+                const d = depot(b.dataset.annuler);
+                if (!d || !confirm('Annuler le dépôt n° ' + d.numero + ' (' + d.nom + ') ?' + (d.acompte ? '\nL\'acompte de ' + fcfa(d.acompte) + ' FCFA sera remboursé (décaissement dans la journée).' : ''))) return;
+                b.disabled = true;
+                const res = await appel(L.urlAnnuler, 'commande', { id: d.id, journeeId: D.journee.id });
+                if (!res.ok) message(res.r && res.r.erreur ? res.r.erreur : 'Connexion impossible. Réessayez.', true);
+                else message('Dépôt n° ' + d.numero + ' annulé' + (res.r.rembourse ? ' : acompte de ' + fcfa(res.r.rembourse) + ' FCFA remboursé.' : '.'));
+                rafraichirDepots();
+            } else if (b.dataset.encaisser) {
+                const d = depot(b.dataset.encaisser);
+                if (d) { fond.remove(); encaisserDepot(d); }
+            }
+        });
+        fond.addEventListener('keydown', e => { if (e.key === 'Escape') fermer(); });
+        fond.querySelector('.pos-depots-recherche').focus();
+    }
+
+    // Retrait : le dépôt devient un ticket de ce poste, encaissé comme une vente (acompte déduit).
+    function encaisserDepot(d) {
+        const deja = etat.tickets.findIndex(x => x.depot && x.depot.id === d.id);
+        if (deja < 0) {
+            const c = d.contenu || {};
+            const lignes = (c.lignes || []).filter(l => produits.has(l.produitId))
+                .map(l => Object.assign({ remise: 0, note: '', envoye: 0 }, l, { uid: l.uid || identifiant(), envoye: 0 }));
+            etat.compteur += 1;
+            etat.tickets.push({ numero: etat.compteur, lignes: lignes, clientId: c.clientId || null, remise: c.remise || null, choisie: -1,
+                depot: { id: d.id, numero: d.numero, nom: d.nom, acompte: d.acompte } });
+            if (lignes.length < (c.lignes || []).length) message('Dépôt n° ' + d.numero + ' : un article retiré du catalogue a été ignoré.', true);
+        }
+        etat.actif = deja < 0 ? etat.tickets.length - 1 : deja;
+        cmd = null;
+        vue = 'vente';
+        mode = 'qte';
+        saisie = null;
+        enregistrer();
+        afficher();
+        payer();
+    }
+
+    // ------------------------------------------------------------------
     // Messages
     // ------------------------------------------------------------------
     let minuterie = null;
@@ -1539,6 +1753,8 @@
         else if (d.action === 'attentes') listeAttentes();
         else if (d.action === 'livraison') livraison();
         else if (d.action === 'additionticket') additionTicket();
+        else if (d.action === 'deposer') deposer();
+        else if (d.action === 'depots') listeDepots();
         else if (d.action === 'client') choisirClient();
         else if (d.action === 'remise') remiseGlobale();
         else if (d.action === 'payer') payer();
@@ -1614,7 +1830,9 @@
     if (R) setInterval(() => { if (vue === 'plan' && !document.querySelector('.pos-modal-fond')) rafraichirPlan(); }, 8000);
     // Commandes en attente actualisées régulièrement (mises en attente ou reprises sur d'autres postes).
     setInterval(rafraichirAttentes, 15000);
+    if (L) setInterval(rafraichirDepots, 30000);
 
     afficher();
     rafraichirAttentes();
+    rafraichirDepots();
 })();

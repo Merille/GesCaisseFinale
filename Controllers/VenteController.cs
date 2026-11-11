@@ -301,6 +301,17 @@ namespace EasytransitCaisse.Controllers
             if (vente.JourneeCaisse?.Statut != "Ouverte")
                 return VersDetails(id, "La journée de cette vente est clôturée : faites plutôt un retour.");
 
+            // Retrait d'un dépôt de linge : avec un acompte (encaissé un autre jour), on fait un retour ;
+            // sans acompte, le dépôt redevient à retirer.
+            var depot = await _context.DepotsLinge.FirstOrDefaultAsync(d => d.CommandePosId == vente.Id);
+            if (depot != null && depot.Acompte > 0)
+                return VersDetails(id, "Cette vente est le retrait d'un dépôt de linge avec acompte : faites plutôt un retour.");
+            if (depot != null)
+            {
+                depot.Statut = depot.DatePret.HasValue ? DepotLinge.Pret : DepotLinge.EnCours;
+                depot.DateRetrait = null;
+                depot.CommandePosId = null;
+            }
             motif = string.IsNullOrWhiteSpace(motif) ? null : motif.Trim();
             vente.Statut = "Annulée";
             vente.Motif = motif;

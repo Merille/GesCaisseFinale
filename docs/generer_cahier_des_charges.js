@@ -63,7 +63,7 @@ const fiche = [
         ['Projet', 'GesCaisse — gestion de caisse et point de vente (POS)'],
         ['Éditeur', 'M-ITECH AFRICA'],
         ['Versions', 'ASP.NET Core (.NET 10) / SQL Server — PHP 8 / MySQL'],
-        ['Version du document', '2.3'],
+        ['Version du document', '2.4'],
         ['Date', 'Novembre 2026'],
         ['Statut', 'Document de référence (fonctionnalités réalisées)']
     ], [3000, 6638])
@@ -233,6 +233,12 @@ const contenu = [
     puce('Transfert entre deux dépôts : sortie du dépôt de départ et entrée dans le dépôt d\'arrivée, refusé au-delà du stock du dépôt de départ ; le stock total ne change pas.'),
     puce('Inventaire d\'un dépôt : saisie du stock compté, écarts calculés sur le stock du dépôt, pagination et recherche sans perte de saisie.'),
     puce('Alertes : produits au niveau ou sous le seuil d\'alerte (stock total).'),
+    h3('Laverie : dépôts de linge payés au retrait'),
+    puce('Caisse de type Laverie : bouton « Dépôt de linge » sur le ticket. Saisie du nom et du téléphone du client (obligatoires), de la date de retrait prévue (aujourd\'hui ou plus tard, deux jours par défaut) et d\'un acompte facultatif (≤ total, mode de paiement hors compte client).'),
+    puce('Le dépôt reçoit un numéro par société ; ses lignes et son total sont repris du catalogue par le serveur (prix saisi et remise globale seulement pour les utilisateurs autorisés). L\'acompte est encaissé dans la journée du dépôt (motif « Acompte laverie ») ; sans acompte, rien n\'est encaissé. Un nouvel envoi après une coupure ne crée pas de doublon.'),
+    puce('Ticket de dépôt 80 mm en deux exemplaires : client (« NON PAYÉ », articles, total, acompte, reste à payer) et souche à joindre au linge (numéro, client, téléphone, articles).'),
+    puce('Liste des dépôts partagée entre postes et journées (les dépôts ne bloquent pas la clôture) : recherche par numéro, nom ou téléphone ; à retirer (En cours, Prêt) ou retirés / annulés depuis 30 jours ; retard signalé ; statut Prêt ; réimpression ; annulation (administrateurs et utilisateurs autorisés à valider) avec remboursement de l\'acompte par un décaissement dans la journée du poste.'),
+    puce('Retrait : le dépôt revient en ticket et s\'encaisse comme une vente dans la journée du jour, acompte déduit du total (règlement « Acompte (dépôt n° …) » rattaché à l\'encaissement d\'origine) ; le dépôt passe à Retiré. Un dépôt ne peut être retiré qu\'une fois. Vente issue d\'un dépôt avec acompte : annulation refusée (retour) ; sans acompte, l\'annulation remet le dépôt à retirer.'),
     h2('4.7 Rapports de ventes'),
     puce('Chiffre d\'affaires, nombre de tickets, panier moyen, taxes, ventes par mode de paiement, par catégorie, par vendeur.'),
     puce('Classement des produits les plus vendus ; aperçu imprimable (PDF) et export Excel.'),
@@ -339,6 +345,7 @@ const contenu = [
         ['Combos', 'Combos, ComboChoix, ProduitCombos'],
         ['Ventes', 'CommandesPos (dont frais de livraison), LignesCommandePos, LignesCommandePosTaxes, PaiementsPos, CommandesAttente, Livreurs'],
         ['Stock', 'Depots, StocksDepots, CaissesDepots (dépôts secondaires des caisses), MouvementsStock'],
+        ['Laverie', 'DepotsLinge (dépôts de linge : client, retrait prévu, acompte, statut, vente du retrait)'],
         ['Restaurant', 'Salles, TablesRestaurant, CommandesOuvertes, BonsPreparation, LignesBonPreparation']
     ], [2400, 7238]),
 
@@ -346,7 +353,7 @@ const contenu = [
     h1('10. Déploiement, livrables et maintenance'),
     h2('10.1 Livrables'),
     puce('Code source des deux versions (dépôt Git), scripts de base de données et migrations.'),
-    puce('Scripts de démonstration (catalogue, ventes, mouvements de stock) — à ne pas déployer en production. Le script demo_laverie crée une seconde société « Laverie Éclat Blanc » : caisse LAV1 de type Laverie, 6 catégories, 24 articles illustrés (prestations et produits en stock), 4 tiers et 20 ventes à ces tiers sur 5 journées clôturées ; il est intégré à la base de démonstration complète.'),
+    puce('Scripts de démonstration (catalogue, ventes, mouvements de stock) — à ne pas déployer en production. Le script demo_laverie crée une seconde société « Laverie Éclat Blanc » : caisse LAV1 de type Laverie, 6 catégories, 24 articles illustrés (prestations et produits en stock), 4 tiers, 20 ventes à ces tiers sur 5 journées clôturées et 3 dépôts de linge (un prêt et en retard, deux en cours dont un avec acompte ; ajoutés une seule fois, aussi en relançant le script sur une base existante) ; il est intégré à la base de démonstration complète.'),
     puce('Bases de démonstration complètes, prêtes à importer dans une base vide, avec les mêmes données dans les deux versions : gescaisse_demo_complet_mysql.sql (PHP / MySQL) et gescaisse_demo_complet_sqlserver.sql (.NET / SQL Server, généré par Scripts/generer_demo_complet_sqlserver.py).'),
     puce('Le présent cahier des charges.'),
     h2('10.2 Procédure de mise à jour (version PHP sur Hostinger)'),

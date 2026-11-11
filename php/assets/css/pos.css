@@ -265,6 +265,17 @@ body.pos-body { margin: 0; background: var(--pos-bg); color: #1d2a35; font-famil
 /* Ticket hors table : 5 actions sur 2 lignes (le client sur deux colonnes). */
 .pos-actions.cinq { display: grid; grid-template-columns: repeat(3, 1fr); }
 .pos-actions.cinq [data-action="client"] { grid-column: span 2; }
+/* Laverie : 6 actions sur 2 lignes, dont le dépôt de linge payé au retrait. */
+.pos-actions.six { display: grid; grid-template-columns: repeat(3, 1fr); }
+.pos-act.depot { background: #e6f0f7; border-color: var(--pos-brand); color: var(--pos-brand); font-weight: 600; }
+.pos-act.depot:disabled { opacity: 1; }
+.pos-depot-info { margin-top: 6px; padding: 6px 10px; border-radius: 8px; background: #e6f0f7; color: #1d3c52; font-size: 13px; text-align: left; }
+.pos-depots-outils { display: flex; gap: 10px; align-items: center; padding: 12px 18px 0; }
+.pos-depots-outils .pos-remise-types { margin: 0; flex: 0 0 auto; }
+.pos-depots-recherche { flex: 1; min-width: 0; padding: 10px 12px; border-radius: 8px; border: 1px solid #cfd8df; font-size: 15px; }
+.pos-att-badge.annule { background: #f3e3e5; color: #8b2a33; }
+.pos-retard { color: #b8323a; font-weight: 600; }
+.pos-att-total small { display: block; font-size: 11px; font-weight: 400; color: #6c7a86; }
 .pos-act.livraison { background: #e8f4ec; border-color: var(--pos-ok); color: #1f6b3a; }
 .pos-modal-attentes { width: 820px; }
 .pos-att-corps { overflow-y: auto; padding: 6px 18px 16px; }

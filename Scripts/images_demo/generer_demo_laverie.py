@@ -80,6 +80,13 @@ VENTES = [  # jour (J-n), minute de la journée, tiers, mode de paiement (CPT : 
 ]
 # Règlements des clients en compte : jour (J-n), minute, tiers, mode, montant.
 REGLEMENTS = [(2, 1000, 'LAVC001', 'ESP', 100000), (1, 1100, 'LAVC002', 'MM', 10000)]
+# Dépôts de linge payés au retrait : jour du dépôt (J-n), minute, client, téléphone, statut,
+# retrait prévu (jours depuis aujourd'hui), acompte (espèces), lignes (code, quantité, note).
+DEPOTS = [
+    (3, 600, 'Jeanne Moussavou', '077 45 12 30', 'Prêt', -1, 0, [('LAV01', 4, ''), ('LAV02', 2, 'Pli marqué')]),
+    (1, 700, 'Hervé Nzé', '066 20 30 40', 'En cours', 1, 2000, [('PRE01', 1, 'Tache au revers'), ('LAV01', 2, '')]),
+    (1, 960, 'Clarisse Obiang', '074 88 77 66', 'En cours', 2, 0, [('KIL01', 4.5, ''), ('LAV04', 1, 'Couleurs vives : à part')]),
+]
 SOLDE_INITIAL = 20000
 
 
@@ -181,6 +188,54 @@ def ventes(a, s, sqlserver):
                  {'ESP': '@esp', 'MM': '@mm', 'CB': '@cb'}[mode], N + "'Validé'", N + "'Caissière de la laverie'", dual, w))
     if sqlserver:
         a('END')
+    depots(a, sqlserver, jour, concat, dstr, dual, last)
+
+
+def depots(a, sqlserver, jour, concat, dstr, dual, last):
+    """Dépôts de linge de démonstration (une seule fois) ; l'acompte est encaissé dans la journée du dépôt."""
+    articles = {art[0]: art for _, _, arts in CATEGORIES for art in arts}
+    N = 'N' if sqlserver else ''
+    g = '' if sqlserver else ' AND @depots = 0'
+    w = '' if sqlserver else ' WHERE @depots = 0'
+    a('')
+    a('-- Dépôts de linge payés au retrait (une seule fois : ignorés s\'ils existent déjà)')
+    a("SET @depots = (SELECT COUNT(*) FROM DepotsLinge WHERE TenantId = @t AND CleClient LIKE 'demo-lav-%');")
+    a('SET @num = (SELECT COALESCE(MAX(Numero), 0) FROM DepotsLinge WHERE TenantId = @t);')
+    a("INSERT INTO Motifs (LibelleMotif, TypeModif, TenantId) SELECT 'Acompte laverie', 'Client', @t%s WHERE NOT EXISTS (SELECT 1 FROM Motifs WHERE TenantId = @t AND LibelleMotif = 'Acompte laverie');" % dual)
+    a("SET @motifAcompte = (SELECT MIN(ID) FROM Motifs WHERE TenantId = @t AND LibelleMotif = 'Acompte laverie');")
+    if sqlserver:
+        a('IF @depots = 0')
+        a('BEGIN')
+    for k, (n, minute, nom, tel, statut, retrait, acompte, lignes) in enumerate(DEPOTS, 1):
+        a("SET @jd = (SELECT MIN(Id) FROM JourneesCaisses WHERE TenantId = @t AND CaisseId = @caisse AND NumeroJournee = %s);" % concat('@code', "'-'", dstr(n), "'-DEMO'"))
+        total = sum(round(articles[c][2] * q) for c, q, _ in lignes)
+        def entier(sql_id):
+            return ('CAST(%s AS nvarchar(20))' % sql_id) if sqlserver else sql_id
+        parties = []
+        for i, (c, q, note) in enumerate(lignes, 1):
+            code, nomart, prix, unite, _ = articles[c]
+            parties.append("'%s{\"uid\":\"demo-lav-d%d-%d\",\"produitId\":'" % (',' if i > 1 else '', k, i))
+            parties.append(entier("(SELECT Id FROM Produits WHERE TenantId = @t AND Code = '%s')" % c))
+            parties.append(N + "',\"nom\":\"%s\",\"qte\":%s,\"prix\":%d,\"remise\":0,\"tva\":18,\"unite\":\"%s\",\"note\":\"%s\",\"envoye\":0,\"composants\":[]}'"
+                           % (nomart.replace("'", "''"), ('%g' % q), prix, unite, note.replace("'", "''")))
+        contenu = concat(N + "'{\"lignes\":['", *parties, "']" + ',\"clientId\":null,\"remise\":null}' + "'")
+        date = jour(n, minute)
+        retrait_sql = ('CAST(DATEADD(DAY, %d, GETDATE()) AS date)' % retrait) if sqlserver else ('DATE_ADD(CURDATE(), INTERVAL %d DAY)' % retrait)
+        op = 'NULL'
+        if acompte:
+            a('INSERT INTO OperationsCaisses (TenantId, JourneeCaisseId, DateOperation, TypeOperation, Montant, Libelle, ClientId, MotifId, ModePaiementId, UtilisateurId, EstJustifie, StatutValidation, Valideur)')
+            a("    SELECT @t, @jd, %s, 'Encaissement', %d, %s, NULL, @motifAcompte, @esp, @caissier, 1, %s, 'Point de vente'%s%s;"
+              % (date, acompte, concat(N + "'Acompte dépôt de linge n° '", entier('@num + %d' % k), N + "' (%s)'" % nom), N + "'Validé'", dual, w))
+            a('SET @op = %s;' % last)
+            a('UPDATE JourneesCaisses SET SoldeFinal = SoldeFinal + %d WHERE Id = @jd%s;' % (acompte, g))
+            op = '@op'
+        a('INSERT INTO DepotsLinge (TenantId, CaisseId, JourneeCaisseId, Numero, CleClient, DateDepot, DateRetraitPrevue, NomClient, TelephoneClient, ClientId, UtilisateurId,')
+        a('    Contenu, Total, NbArticles, Acompte, AcompteModePaiementId, AcompteOperationId, Statut, DatePret)')
+        a("    SELECT @t, @caisse, @jd, @num + %d, 'demo-lav-depot-%d', %s, %s, %s, '%s', NULL, @caissier, %s, %d, %s, %d, %s, %s, %s, %s%s%s;"
+          % (k, k, date, retrait_sql, N + "'%s'" % nom.replace("'", "''"), tel, contenu, total, '%g' % sum(q for _, q, _ in lignes), acompte,
+             '@esp' if acompte else 'NULL', op, N + "'%s'" % statut, jour(max(n - 1, 0), 900) if statut == 'Prêt' else 'NULL', dual, w))
+    if sqlserver:
+        a('END')
 
 
 def ecrire(sqlserver):
@@ -212,6 +267,7 @@ def ecrire(sqlserver):
         a('SET XACT_ABORT ON;')
         a('DECLARE @t INT, @admin INT, @caissier INT, @dep INT, @tva INT, @c INT;')
         a('DECLARE @caisse INT, @code NVARCHAR(50), @motif INT, @motifRegl INT, @ventes INT, @j INT, @cmd INT, @l INT, @op INT, @esp INT, @mm INT, @cb INT, @cpt INT;')
+        a('DECLARE @depots INT, @num INT, @jd INT, @motifAcompte INT;')
         a('BEGIN TRANSACTION;')
     else:
         a('SET NAMES utf8mb4;')

@@ -167,6 +167,16 @@ namespace EasytransitCaisse.Controllers
                 urlLivree = "/Pos/Livree",
                 venteSansStock = (await _context.Tenants.AsNoTracking().FirstOrDefaultAsync(t => t.Id == tenant))?.PosVenteSansStock ?? true,
                 jeton = new { nom = jetons.FormFieldName, valeur = jetons.RequestToken },
+                // Laverie : dépôts de linge payés au retrait.
+                laverie = j.Caisse?.TypePointVente == "Laverie" ? new
+                {
+                    urlDeposer = "/Pos/Deposer",
+                    urlDepots = $"/Pos/Depots?journee={j.Id}",
+                    urlPret = "/Pos/DepotPret",
+                    urlAnnuler = "/Pos/DepotAnnuler",
+                    urlTicket = "/Pos/TicketDepot/",
+                    peutAnnuler = PeutRemiseGlobale
+                } : null,
                 restaurant = j.Caisse != null && j.Caisse.EstRestaurant ? new
                 {
                     type = j.Caisse.TypePointVente,
@@ -201,6 +211,8 @@ namespace EasytransitCaisse.Controllers
             public OuverteSaisie? CommandeOuverte { get; set; }
             // Commande à livrer : livreur, destinataire, payée maintenant ou à la livraison.
             public LivraisonSaisie? Livraison { get; set; }
+            // Laverie : retrait d'un dépôt de linge (acompte déduit).
+            public int? DepotId { get; set; }
         }
 
         private sealed class OuverteSaisie
@@ -249,7 +261,8 @@ namespace EasytransitCaisse.Controllers
             {
                 v = null;
             }
-            if (v == null || string.IsNullOrWhiteSpace(v.Cle) || !v.Lignes.Any() || !v.Paiements.Any())
+            // Sans règlement : seulement pour un dépôt de linge entièrement payé par son acompte.
+            if (v == null || string.IsNullOrWhiteSpace(v.Cle) || !v.Lignes.Any() || (!v.Paiements.Any() && v.DepotId == null))
                 return Erreur(400, "Vente incomplète.");
             var cle = new string(v.Cle.Where(c => char.IsAsciiLetterOrDigit(c) || c == '-').Take(64).ToArray());
 
@@ -361,9 +374,22 @@ namespace EasytransitCaisse.Controllers
             }
             // Frais de livraison (commande à livrer) : en plus du total, hors taxes, comme le pourboire.
             var fraisLivraison = v.Livraison != null ? Math.Max(0, Math.Round(v.Livraison.Frais, 0, MidpointRounding.AwayFromZero)) : 0;
-            if (recu < ttc + pourboire + fraisLivraison)
+            // Laverie : retrait d'un dépôt de linge, l'acompte versé au dépôt est déduit.
+            DepotLinge? depot = null;
+            decimal acompte = 0;
+            if (v.DepotId.HasValue)
+            {
+                depot = await _context.DepotsLinge.IgnoreQueryFilters()
+                    .FirstOrDefaultAsync(d => d.Id == v.DepotId && d.TenantId == tenant && DepotLinge.Actifs.Contains(d.Statut));
+                if (depot == null)
+                    return Erreur(409, "Ce dépôt de linge a déjà été retiré ou annulé.");
+                acompte = depot.Acompte;
+                if (acompte > ttc + pourboire + fraisLivraison)
+                    return Erreur(400, $"L'acompte versé ({Fcfa(acompte)} FCFA) dépasse le total : remettez les articles du dépôt sur le ticket.");
+            }
+            if (recu + acompte < ttc + pourboire + fraisLivraison)
                 return Erreur(400, "Le montant payé est inférieur au total.");
-            var rendu = recu - ttc - pourboire - fraisLivraison;
+            var rendu = recu + acompte - ttc - pourboire - fraisLivraison;
             if (rendu > especes)
                 return Erreur(400, "Seule la monnaie sur les espèces peut être rendue : le montant payé par les autres modes dépasse le total.");
 
@@ -420,6 +446,14 @@ namespace EasytransitCaisse.Controllers
                         + $"{fiche.PlafondCredit.Value.ToString("N0", fr)} FCFA (encore {Math.Max(0, fiche.PlafondCredit.Value - du).ToString("N0", fr)} FCFA possibles).");
                 }
             }
+            // Dépôt de linge : verrouillé, il ne peut être retiré qu'une fois.
+            if (depot != null)
+            {
+                await _context.Database.ExecuteSqlInterpolatedAsync($"SELECT Id FROM DepotsLinge WITH (UPDLOCK, ROWLOCK) WHERE Id = {depot.Id}");
+                await _context.Entry(depot).ReloadAsync();
+                if (!DepotLinge.Actifs.Contains(depot.Statut))
+                    return Erreur(409, "Ce dépôt de linge a déjà été retiré ou annulé.");
+            }
             // Commande de table : payée en entier (table libérée) ou en partie (addition partagée : le
             // reste des articles demeure sur la table).
             string? tableNom = null;
@@ -461,7 +495,7 @@ namespace EasytransitCaisse.Controllers
             {
                 TenantId = tenant, Numero = numero, CleClient = cle, JourneeCaisseId = j.Id, ClientId = clientId,
                 UtilisateurId = utilisateurId, DateCommande = DateTime.Now, TotalHT = ttc - tva, TotalTVA = tva,
-                TotalTTC = ttc, MontantRecu = recu, MonnaieRendue = rendu, Statut = "Payée",
+                TotalTTC = ttc, MontantRecu = recu + acompte, MonnaieRendue = rendu, Statut = "Payée",
                 RemiseGlobale = remiseGlobale, RemiseGlobaleTaux = tauxRemise,
                 TableNom = tableNom, Couverts = couverts, Pourboire = pourboire,
                 Lignes = lignes.Select(x => x.Ligne).ToList()
@@ -523,6 +557,20 @@ namespace EasytransitCaisse.Controllers
                     TenantId = tenant, CommandePosId = commande.Id, ModePaiementId = mode.Id, Libelle = mode.Libelle ?? "",
                     MontantRecu = montantRecu, Montant = net, OperationCaisseId = operation?.Id
                 });
+            }
+            // Dépôt de linge retiré : l'acompte (encaissé dans la journée du dépôt) figure parmi les
+            // règlements de la vente, rattaché à son encaissement d'origine.
+            if (depot != null)
+            {
+                if (acompte > 0)
+                    _context.PaiementsPos.Add(new PaiementPos
+                    {
+                        TenantId = tenant, CommandePosId = commande.Id, ModePaiementId = depot.AcompteModePaiementId,
+                        Libelle = $"Acompte (dépôt n° {depot.Numero})", MontantRecu = acompte, Montant = acompte, OperationCaisseId = depot.AcompteOperationId
+                    });
+                depot.Statut = DepotLinge.Retire;
+                depot.DateRetrait = DateTime.Now;
+                depot.CommandePosId = commande.Id;
             }
             // Vente directe d'une caisse restaurant / bar : à l'encaissement, les articles partent en
             // préparation (un bon par poste, comme pour une table).
@@ -836,29 +884,8 @@ namespace EasytransitCaisse.Controllers
             var j = t == null ? null : await _context.JourneesCaisses.Include(x => x.Caisse).FirstOrDefaultAsync(x => x.Id == t.JourneeId);
             if (t == null || j == null)
                 return NotFound();
-            var lignes = new List<Restaurant.Ligne>();
-            foreach (var l in Restaurant.Nettoyer(new Restaurant.Contenu { Lignes = t.Lignes }, new Restaurant.Contenu()).Lignes)
-            {
-                var p = await _context.Produits.FirstOrDefaultAsync(x => x.Id == l.ProduitId && x.TenantId == j.TenantId);
-                if (p == null || l.Qte <= 0)
-                    continue;
-                var prix = p.PrixVente;
-                if (p.EstCombo)
-                {
-                    var (liste, supplements, erreur) = await Combos.ControlerAsync(_context, p, l.Composants);
-                    if (erreur == null && liste != null)
-                    {
-                        l.Composants = liste;
-                        prix += supplements;
-                    }
-                }
-                l.Nom = p.Nom;
-                if (!EstAdmin)
-                    l.Prix = prix;
-                lignes.Add(l);
-            }
-            var remise = t.Remise is { Valeur: > 0 } r && PeutRemiseGlobale
-                ? new Restaurant.RemiseTicket { Type = r.Type == "pct" ? "pct" : "montant", Valeur = r.Valeur } : null;
+            var lignes = await LignesCatalogueAsync(t.Lignes, j.TenantId);
+            var remise = RemiseAutorisee(t.Remise);
             var societe = await _context.Tenants.FirstOrDefaultAsync(x => x.Id == j.TenantId);
             ViewBag.Societe = societe?.Nom ?? "GesCaisse";
             ViewBag.Logo = Images.UrlLogo(societe);

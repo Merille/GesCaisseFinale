@@ -149,6 +149,17 @@ namespace EasytransitCaisse.Data
             modelBuilder.Entity<CommandeAttente>()
                 .HasOne<Livreur>().WithMany().HasForeignKey(c => c.LivreurId).OnDelete(DeleteBehavior.Restrict);
             modelBuilder.Entity<CommandeAttente>().HasIndex(c => new { c.JourneeCaisseId, c.Numero });
+
+            // Laverie : dépôts de linge payés au retrait (numéro unique par société).
+            modelBuilder.Entity<DepotLinge>().ToTable("DepotsLinge")
+                .HasQueryFilter(e => _currentTenantId == 0 || e.TenantId == _currentTenantId);
+            modelBuilder.Entity<DepotLinge>().HasIndex(d => new { d.TenantId, d.Numero }).IsUnique();
+            modelBuilder.Entity<DepotLinge>().HasIndex(d => new { d.TenantId, d.Statut });
+            modelBuilder.Entity<DepotLinge>().Property(d => d.Statut).HasDefaultValue(DepotLinge.EnCours);
+            modelBuilder.Entity<DepotLinge>().Property(d => d.Acompte).HasDefaultValue(0m);
+            modelBuilder.Entity<DepotLinge>().Property(d => d.Total).HasDefaultValue(0m);
+            modelBuilder.Entity<DepotLinge>().Property(d => d.NbArticles).HasDefaultValue(0m);
+            modelBuilder.Entity<DepotLinge>().Property(d => d.DateRetraitPrevue).HasColumnType("date");
             modelBuilder.Entity<CommandePos>()
                 .HasOne<Livreur>().WithMany().HasForeignKey(c => c.LivreurId).OnDelete(DeleteBehavior.Restrict);
             modelBuilder.Entity<CommandePos>().Property(c => c.NomLivraison).HasMaxLength(100);
@@ -376,6 +387,7 @@ namespace EasytransitCaisse.Data
         public DbSet<CaisseDepot> CaissesDepots { get; set; }
         public DbSet<Livreur> Livreurs { get; set; }
         public DbSet<CommandeAttente> CommandesAttente { get; set; }
+        public DbSet<DepotLinge> DepotsLinge { get; set; }
 
         public DbSet<Taxe> Taxes { get; set; }
 

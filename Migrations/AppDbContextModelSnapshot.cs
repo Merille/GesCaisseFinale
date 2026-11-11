@@ -634,6 +634,108 @@ namespace EasytransitCaisse.Migrations
                     b.ToTable("Depots");
                 });
 
+            modelBuilder.Entity("EasytransitCaisse.Models.DepotLinge", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Acompte")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<int?>("AcompteModePaiementId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("AcompteOperationId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("CaisseId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CleClient")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<int?>("ClientId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("CommandePosId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Contenu")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("DateAnnulation")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("DateDepot")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DatePret")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DateRetrait")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DateRetraitPrevue")
+                        .HasColumnType("date");
+
+                    b.Property<int>("JourneeCaisseId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("NbArticles")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<string>("NomClient")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("Numero")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Statut")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasDefaultValue("En cours");
+
+                    b.Property<string>("TelephoneClient")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Total")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<int?>("UtilisateurId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "Numero")
+                        .IsUnique();
+
+                    b.HasIndex("TenantId", "Statut");
+
+                    b.ToTable("DepotsLinge", (string)null);
+                });
+
             modelBuilder.Entity("EasytransitCaisse.Models.Facture", b =>
                 {
                     b.Property<int>("Id")

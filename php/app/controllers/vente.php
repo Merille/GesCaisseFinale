@@ -296,10 +296,19 @@ function vente_annuler(): void
     if ($vente['StatutJournee'] !== 'Ouverte') {
         $echec('La journée de cette vente est clôturée : faites plutôt un retour.');
     }
+    // Retrait d'un dépôt de linge : avec un acompte (encaissé un autre jour), on fait un retour ;
+    // sans acompte, le dépôt redevient à retirer.
+    $depot = q1('SELECT Id, Acompte, DatePret FROM DepotsLinge WHERE CommandePosId = ?', [$vente['Id']]);
+    if ($depot && (float) $depot['Acompte'] > 0) {
+        $echec("Cette vente est le retrait d'un dépôt de linge avec acompte : faites plutôt un retour.");
+    }
     $motif = trim((string) post('motif', '')) ?: null;
     db()->beginTransaction();
     try {
         run("UPDATE CommandesPos SET Statut = 'Annulée', Motif = ? WHERE Id = ?", [$motif, $vente['Id']]);
+        if ($depot) {
+            run('UPDATE DepotsLinge SET Statut = ?, DateRetrait = NULL, CommandePosId = NULL WHERE Id = ?', [$depot['DatePret'] ? 'Prêt' : 'En cours', $depot['Id']]);
+        }
         run(
             "UPDATE OperationsCaisses SET StatutValidation = 'Rejeté', Valideur = ?, Observation = ?
              WHERE Id IN (SELECT OperationCaisseId FROM PaiementsPos WHERE CommandePosId = ? AND OperationCaisseId IS NOT NULL)",

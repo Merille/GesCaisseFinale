@@ -5,6 +5,7 @@
 // (partagée entre serveurs et appareils) jusqu'au paiement.
 
 require_once __DIR__ . '/../restaurant.php';
+require_once __DIR__ . '/../laverie.php';
 
 function pos_index(): void
 {
@@ -109,6 +110,15 @@ function pos_index(): void
         'urlLivree' => url('pos/livree'),
         'venteSansStock' => vente_sans_stock($tenant),
         'jeton' => ['nom' => '_csrf', 'valeur' => csrf_token()],
+        // Laverie : dépôts de linge payés au retrait.
+        'laverie' => ($journee['TypePointVente'] ?? '') === 'Laverie' ? [
+            'urlDeposer' => url('pos/deposer'),
+            'urlDepots' => url('pos/depots', ['journee' => $journee['Id']]),
+            'urlPret' => url('pos/depotpret'),
+            'urlAnnuler' => url('pos/depotannuler'),
+            'urlTicket' => url('pos/ticketdepot') . '&id=',
+            'peutAnnuler' => pos_peut_remise_globale(),
+        ] : null,
         'restaurant' => caisse_est_restaurant($journee) ? [
             'type' => $journee['TypePointVente'],
             'imprimerBons' => (bool) $journee['ImprimerBons'],
@@ -157,7 +167,8 @@ function pos_vendre(): void
         pos_json(['erreur' => 'Requête invalide.'], 405);
     }
     $v = json_decode((string) ($_POST['vente'] ?? ''), true);
-    if (!is_array($v) || empty($v['lignes']) || empty($v['paiements']) || empty($v['cle'])) {
+    // Sans règlement : seulement pour un dépôt de linge entièrement payé par son acompte.
+    if (!is_array($v) || empty($v['lignes']) || (empty($v['paiements']) && empty($v['depotId'])) || empty($v['cle'])) {
         pos_json(['erreur' => 'Vente incomplète.'], 400);
     }
     $cle = substr(preg_replace('/[^A-Za-z0-9-]/', '', (string) $v['cle']), 0, 64);
@@ -260,7 +271,7 @@ function pos_vendre(): void
     }
     $paiements = [];
     $recu = $especes = $parCompte = 0.0;
-    foreach ($v['paiements'] as $pm) {
+    foreach ((array) ($v['paiements'] ?? []) as $pm) {
         $mode = $modes[(int) ($pm['modeId'] ?? 0)] ?? null;
         $montant = round((float) ($pm['montant'] ?? 0));
         if (!$mode || $montant <= 0) {
@@ -277,10 +288,23 @@ function pos_vendre(): void
     }
     // Frais de livraison (commande à livrer) : en plus du total, hors taxes, comme le pourboire.
     $fraisLivraison = is_array($v['livraison'] ?? null) ? max(0, round((float) ($v['livraison']['frais'] ?? 0))) : 0.0;
-    if ($recu < $ttc + $pourboire + $fraisLivraison) {
+    // Laverie : retrait d'un dépôt de linge, l'acompte versé au dépôt est déduit.
+    $depot = null;
+    $acompte = 0.0;
+    if (!empty($v['depotId'])) {
+        $depot = q1("SELECT * FROM DepotsLinge WHERE Id = ? AND TenantId = ? AND Statut IN ('En cours', 'Prêt')", [(int) $v['depotId'], $tenant]);
+        if (!$depot) {
+            pos_json(['erreur' => 'Ce dépôt de linge a déjà été retiré ou annulé.'], 409);
+        }
+        $acompte = (float) $depot['Acompte'];
+        if ($acompte > $ttc + $pourboire + $fraisLivraison) {
+            pos_json(['erreur' => "L'acompte versé (" . fcfa($acompte) . ' FCFA) dépasse le total : remettez les articles du dépôt sur le ticket.'], 400);
+        }
+    }
+    if ($recu + $acompte < $ttc + $pourboire + $fraisLivraison) {
         pos_json(['erreur' => 'Le montant payé est inférieur au total.'], 400);
     }
-    $rendu = $recu - $ttc - $pourboire - $fraisLivraison;
+    $rendu = $recu + $acompte - $ttc - $pourboire - $fraisLivraison;
     if ($rendu > $especes) {
         pos_json(['erreur' => 'Seule la monnaie sur les espèces peut être rendue : le montant payé par les autres modes dépasse le total.'], 400);
     }
@@ -341,6 +365,11 @@ function pos_vendre(): void
                     . fcfa($fiche['PlafondCredit']) . ' FCFA (encore ' . fcfa(max(0, (float) $fiche['PlafondCredit'] - $du)) . ' FCFA possibles).'], 409);
             }
         }
+        // Dépôt de linge : verrouillé, il ne peut être retiré qu'une fois.
+        if ($depot && !q1("SELECT Id FROM DepotsLinge WHERE Id = ? AND Statut IN ('En cours', 'Prêt') FOR UPDATE", [$depot['Id']])) {
+            db()->rollBack();
+            pos_json(['erreur' => 'Ce dépôt de linge a déjà été retiré ou annulé.'], 409);
+        }
         // Commande de table : payée en entier (table libérée) ou en partie (addition partagée : le
         // reste des articles demeure sur la table).
         $commandeRestante = null;
@@ -378,7 +407,7 @@ function pos_vendre(): void
                 TotalHT, TotalTVA, TotalTTC, MontantRecu, MonnaieRendue, Statut, RemiseGlobale, RemiseGlobaleTaux, TableNom, Couverts, Pourboire,
                 LivreurId, NomLivraison, TelephoneLivraison, AdresseLivraison, StatutLivraison, DateLivraison, FraisLivraison)
              VALUES (?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?, ?, 'Payée', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, " . ($livree ? 'NOW()' : 'NULL') . ", ?)",
-            [$tenant, $numero, $cle, $journee['Id'], $client, user()['id'], $ttc - $tva, $tva, $ttc, $recu, $rendu, $remiseGlobale, $tauxRemise, $tableNom, $couverts, $pourboire,
+            [$tenant, $numero, $cle, $journee['Id'], $client, user()['id'], $ttc - $tva, $tva, $ttc, $recu + $acompte, $rendu, $remiseGlobale, $tauxRemise, $tableNom, $couverts, $pourboire,
              $livraison['livreurId'] ?? null, $livraison['nom'] ?? null, $livraison['telephone'] ?? null, $livraison['adresse'] ?? null,
              $livraison ? ($livree ? 'Livrée' : 'À livrer') : null, $livraison ? $fraisLivraison : 0]
         );
@@ -422,6 +451,18 @@ function pos_vendre(): void
                 [$tenant, $commandeId, $pm['mode']['Id'], (string) $pm['mode']['Libelle'], $pm['recu'], $net, $operation]
             );
         }
+        // Dépôt de linge retiré : l'acompte (encaissé dans la journée du dépôt) figure parmi les
+        // règlements de la vente, rattaché à son encaissement d'origine.
+        if ($depot) {
+            if ($acompte > 0) {
+                run(
+                    'INSERT INTO PaiementsPos (TenantId, CommandePosId, ModePaiementId, Libelle, MontantRecu, Montant, OperationCaisseId)
+                     VALUES (?, ?, ?, ?, ?, ?, ?)',
+                    [$tenant, $commandeId, $depot['AcompteModePaiementId'], 'Acompte (dépôt n° ' . $depot['Numero'] . ')', $acompte, $acompte, $depot['AcompteOperationId']]
+                );
+            }
+            run("UPDATE DepotsLinge SET Statut = 'Retiré', DateRetrait = NOW(), CommandePosId = ? WHERE Id = ?", [$commandeId, $depot['Id']]);
+        }
         // Vente directe d'une caisse restaurant / bar : à l'encaissement, les articles partent en
         // préparation (un bon par poste, comme pour une table).
         $bons = [];
@@ -460,25 +501,8 @@ function pos_additionticket(): void
         not_found('Journée introuvable.');
     }
     $tenant = (int) $journee['TenantId'];
-    $lignes = [];
-    foreach (restaurant_lignes_saisies((array) ($t['lignes'] ?? []), []) as $l) {
-        $p = q1('SELECT * FROM Produits WHERE Id = ? AND TenantId = ?', [$l['produitId'], $tenant]);
-        if (!$p || $l['qte'] <= 0) {
-            continue;
-        }
-        $prix = (float) $p['PrixVente'];
-        if ($p['EstCombo']) {
-            $r = combo_composants($p, $l['composants']);
-            if (is_array($r)) {
-                [$l['composants'], $supplements] = $r;
-                $prix += $supplements;
-            }
-        }
-        $l['nom'] = $p['Nom'];
-        $l['prix'] = is_admin() ? $l['prix'] : $prix;
-        $lignes[] = $l;
-    }
-    $remise = is_array($t['remise'] ?? null) && pos_peut_remise_globale() ? $t['remise'] : null;
+    $lignes = pos_lignes_catalogue((array) ($t['lignes'] ?? []), $tenant);
+    $remise = pos_remise_saisie($t['remise'] ?? null);
     $societe = q1('SELECT * FROM Tenants WHERE Id = ?', [$tenant]);
     $client = (int) ($t['clientId'] ?? 0) ? qv('SELECT NomSociete FROM Clients WHERE Id = ? AND TenantId = ?', [(int) $t['clientId'], $tenant]) : null;
     $numero = (int) ($t['numero'] ?? 0);

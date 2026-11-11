@@ -2,7 +2,7 @@
 -- Les noms de tables et de colonnes reprennent ceux de la version .NET
 -- (SQL Server) pour faciliter une éventuelle reprise des données.
 --
--- Base à jour : intègre toutes les migrations de sql/migrations (001 à 019),
+-- Base à jour : intègre toutes les migrations de sql/migrations (001 à 020),
 -- notées comme appliquées dans MigrationsAppliquees.
 --
 -- Utilisation (NOUVELLE installation uniquement) : créer une base VIDE (ex. gescaisse),
@@ -265,6 +265,37 @@ CREATE TABLE `Depots` (
 INSERT INTO `Depots` (`Id`, `TenantId`, `Code`, `Nom`, `Adresse`, `Responsable`, `Actif`, `ParDefaut`) VALUES (1,1,'DEP01','Dépôt principal',NULL,NULL,1,1);
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `DepotsLinge` (
+  `Id` int NOT NULL AUTO_INCREMENT,
+  `TenantId` int NOT NULL,
+  `CaisseId` int NOT NULL,
+  `JourneeCaisseId` int NOT NULL,
+  `Numero` int NOT NULL,
+  `CleClient` varchar(64) DEFAULT NULL,
+  `DateDepot` datetime NOT NULL,
+  `DateRetraitPrevue` date DEFAULT NULL,
+  `NomClient` varchar(100) NOT NULL,
+  `TelephoneClient` varchar(30) DEFAULT NULL,
+  `ClientId` int DEFAULT NULL,
+  `UtilisateurId` int DEFAULT NULL,
+  `Contenu` longtext NOT NULL,
+  `Total` decimal(18,2) NOT NULL DEFAULT '0.00',
+  `NbArticles` decimal(18,2) NOT NULL DEFAULT '0.00',
+  `Acompte` decimal(18,2) NOT NULL DEFAULT '0.00',
+  `AcompteModePaiementId` int DEFAULT NULL,
+  `AcompteOperationId` int DEFAULT NULL,
+  `Statut` varchar(20) NOT NULL DEFAULT 'En cours',
+  `DatePret` datetime DEFAULT NULL,
+  `DateRetrait` datetime DEFAULT NULL,
+  `DateAnnulation` datetime DEFAULT NULL,
+  `CommandePosId` int DEFAULT NULL,
+  PRIMARY KEY (`Id`),
+  UNIQUE KEY `IX_DepotsLinge_TenantId_Numero` (`TenantId`,`Numero`),
+  KEY `IX_DepotsLinge_TenantId_Statut` (`TenantId`,`Statut`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `Factures` (
   `Id` int NOT NULL AUTO_INCREMENT,
   `TenantId` int NOT NULL DEFAULT '0',
@@ -417,6 +448,7 @@ INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('016_genre
 INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('017_clients_en_compte.sql','2026-11-02 00:15:20');
 INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('018_frais_livraison.sql','2026-11-02 00:15:20');
 INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('019_depots_secondaires.sql','2026-11-02 00:15:20');
+INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('020_depots_linge.sql','2026-11-02 00:15:20');
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `ModesPaiement` (
