@@ -28,6 +28,7 @@ $routes = [
     'stock'       => ['index', 'depots', 'entree', 'transfert', 'inventaire', 'option'],
     'posrapport'  => ['index', 'preview', 'excel'],
     'rapportlivraison' => ['index', 'imprimer', 'excel'],
+    'rapportlinge'     => ['index', 'imprimer', 'excel'],
     'image'       => ['produit', 'societe'],
     'produit'     => ['index', 'create', 'edit', 'delete', 'export', 'import', 'genvariantes', 'majvariantes', 'combo'],
     'categorie'   => ['index', 'save', 'delete'],
@@ -52,7 +53,7 @@ if ($module !== 'auth') {
 csrf_check();
 
 // Modules d'administration (et catalogue du point de vente) réservés aux profils Admin et SuperAdmin.
-if (in_array($module, ['utilisateur', 'motif', 'modepaiement', 'taxe', 'unite', 'depot', 'livreur', 'produit', 'categorie', 'stock', 'posrapport', 'rapportlivraison', 'salle', 'combo', 'societe'], true)) {
+if (in_array($module, ['utilisateur', 'motif', 'modepaiement', 'taxe', 'unite', 'depot', 'livreur', 'produit', 'categorie', 'stock', 'posrapport', 'rapportlivraison', 'rapportlinge', 'salle', 'combo', 'societe'], true)) {
     require_admin();
 }
 

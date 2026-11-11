@@ -149,7 +149,7 @@ function tenant_id(): int
 
 // Modules du point de vente (vente, catalogue, stock, restaurant, taxes, unités) : accessibles
 // seulement si la société a le module Point de vente.
-const MODULES_POINT_VENTE = ['pos', 'vente', 'stock', 'posrapport', 'rapportlivraison', 'produit', 'categorie', 'combo', 'salle', 'cuisine', 'taxe', 'unite', 'depot', 'livreur'];
+const MODULES_POINT_VENTE = ['pos', 'vente', 'stock', 'posrapport', 'rapportlivraison', 'rapportlinge', 'produit', 'categorie', 'combo', 'salle', 'cuisine', 'taxe', 'unite', 'depot', 'livreur'];
 
 /** La société courante a-t-elle le module Point de vente ? (toujours oui pour « toutes les sociétés »). */
 function module_pos_actif(): bool
@@ -820,6 +820,13 @@ function restaurant_actif(): bool
 {
     static $actif = null;
     return $actif ??= (bool) qv("SELECT COUNT(*) FROM Caisses WHERE TypePointVente IN ('Restaurant', 'Bar') AND " . tf());
+}
+
+/** La société (toutes en mode « toutes les sociétés ») a-t-elle une caisse Laverie ? (rapport des dépôts de linge) */
+function laverie_actif(): bool
+{
+    static $actif = null;
+    return $actif ??= (bool) qv("SELECT COUNT(*) FROM Caisses WHERE TypePointVente = 'Laverie' AND " . tf());
 }
 
 /** Option de la société : vente autorisée quand le stock est épuisé ? */

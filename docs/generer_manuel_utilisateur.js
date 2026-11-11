@@ -98,7 +98,7 @@ const fiche = [
         ['Application', 'GesCaisse — gestion de caisse et point de vente (POS)'],
         ['Éditeur', 'M-ITECH AFRICA'],
         ['Public', 'Administrateurs, caissiers, vendeurs et serveurs des sociétés clientes'],
-        ['Version du document', '2.3'],
+        ['Version du document', '2.4'],
         ['Date', 'Novembre 2026']
     ], [3000, 6638])
 ];
@@ -417,6 +417,7 @@ const contenu = [
     pt('Imprimante', 'réimprime le ticket de dépôt (client et souche).'),
     pt('Annuler', 'administrateurs et utilisateurs autorisés à valider : le dépôt est annulé et l’acompte éventuel remboursé par un décaissement dans la journée du poste.'),
     ...figure('20d_laverie_depots', 'Liste des dépôts de linge'),
+    astuce('Pour faire le point sur le linge en attente, les acomptes et le reste à encaisser, utilisez le **Rapport des dépôts de linge** (9.2).'),
     h3('Remettre le linge et encaisser'),
     ...etapes([
         'Ouvrez **Dépôts**, retrouvez le dépôt (numéro de la souche, nom ou téléphone) et touchez **Encaisser**.',
@@ -498,6 +499,15 @@ const contenu = [
     pt('Détail des livraisons', 'date, numéro du ticket (lien vers la vente), livreur, destinataire et téléphone, adresse, montant des articles, frais, statut et date de livraison.'),
     p('Statuts : **Livrée** (livraison effectuée), **À livrer** (vente payée, livreur pas encore revenu), **À encaisser** (commande confiée au livreur, à encaisser à son retour depuis **Commandes en attente**). Les ventes annulées ne sont pas comptées.'),
     pt('Imprimer / PDF et Exporter Excel', 'reprennent la synthèse par livreur et le détail (deux feuilles dans le fichier Excel).'),
+    h2('9.2 Rapport des dépôts de linge'),
+    p('Menu **Rapport des dépôts de linge** (administrateurs, rubrique Point de vente ; il n’apparaît que si la société a une caisse de type Laverie). Choisissez la période de dépôt et, au besoin, un **statut**, puis **Filtrer**.'),
+    pt('À retirer / En retard', 'ces deux filtres prennent tous les dépôts non retirés, quelle que soit leur date de dépôt (la période est alors grisée) : pratique pour faire le point sur le linge en attente et relancer les clients en retard.'),
+    pt('En cours, Prêt, Retiré, Annulé', 'les dépôts de la période ayant ce statut.'),
+    ...figure('28c_rapport_linge', 'Rapport des dépôts de linge'),
+    p('Les cartes donnent le nombre de dépôts, ceux à retirer, ceux en retard, le montant des dépôts, les acomptes versés et le **reste à encaisser** (montant moins acompte des dépôts en cours ou prêts). Le rapport présente ensuite :'),
+    pt('Par statut', 'pour chaque statut : nombre de dépôts, articles, montant, acomptes, reste à encaisser et retards, avec le total hors dépôts annulés.'),
+    pt('Détail des dépôts', 'numéro, date et caisse du dépôt, client et téléphone, articles, montant, acompte, reste, retrait prévu (en rouge s’il est passé), statut et sa date, avec un lien vers la vente du retrait.'),
+    pt('Imprimer / PDF et Excel', 'comme les autres rapports ; le fichier Excel a deux feuilles, Synthèse et Dépôts.'),
 
     // 10 -----------------------------------------------------------------
     h1('10. Restaurant et bar'),

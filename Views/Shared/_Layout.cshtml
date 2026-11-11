@@ -36,7 +36,7 @@
     {
         "Dashboard" or "Caisse" or "JourneeCaisse" or "Client" => "Activité",
         "Rapport" or "RapportTiers" => "Analyse",
-        "Pos" or "Vente" or "Stock" or "PosRapport" or "RapportLivraison" or "Cuisine" => "Point de vente",
+        "Pos" or "Vente" or "Stock" or "PosRapport" or "RapportLivraison" or "RapportLinge" or "Cuisine" => "Point de vente",
         "Salle" => "Activité",
         "Produit" or "Categorie" or "Combo" => "Configuration",
         "Utilisateur" or "Motif" or "ModePaiement" or "Taxe" or "Unite" or "Depot" or "Livreur" or "Societe" => "Paramètres",
@@ -72,6 +72,7 @@
             "Stock" => "Stock",
             "PosRapport" => "Rapports ventes",
             "RapportLivraison" => "Rapport des livraisons",
+            "RapportLinge" => "Rapport des dépôts de linge",
             _ => "GesCaisse"
         };
     }
@@ -230,6 +231,13 @@
                         <i class="fas fa-truck-fast"></i>
                         <span class="sb-label">Rapport des livraisons</span>
                     </a>
+                    @if (DbContext.Caisses.Any(c => c.TypePointVente == "Laverie"))
+                    {
+                        <a class="sb-link @(controller == "RapportLinge" ? "active" : "")" href="/RapportLinge/Index" title="Rapport des dépôts de linge">
+                            <i class="fas fa-shirt"></i>
+                            <span class="sb-label">Rapport des dépôts de linge</span>
+                        </a>
+                    }
                     <a class="sb-link @(controller == "Stock" ? "active" : "")" href="/Stock/Index" title="Stock">
                         <i class="fas fa-warehouse"></i>
                         <span class="sb-label">Stock</span>

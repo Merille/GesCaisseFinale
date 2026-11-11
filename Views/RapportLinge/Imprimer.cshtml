@@ -1,0 +1,39 @@
+@model EasytransitCaisse.Models.ViewModels.RapportLingeVM
+@using EasytransitCaisse.Models.ViewModels
+@{
+    Layout = "_ImpressionLayout";
+    ViewData["Pdf"] = false;
+    ViewData["TitreImpression"] = "Rapport des dépôts de linge";
+    var t = Model.Total;
+}
+<h1>Rapport des dépôts de linge</h1>
+<p class="muted">@Model.Filtres.Periode</p>
+<h2>Par statut</h2>
+<table>
+    <tr><th>Statut</th><th class="r">Dépôts</th><th class="r">Articles</th><th class="r">Montant</th><th class="r">Acomptes</th><th class="r">Reste à encaisser</th><th class="r">En retard</th></tr>
+    @foreach (var (statut, s) in Model.ParStatut)
+    {
+        <tr><td>@statut</td><td class="r">@s.Nombre</td><td class="r">@RapportLingeVM.Qte(s.Articles)</td><td class="r">@RapportLingeVM.Fcfa(s.Montant)</td>
+            <td class="r">@RapportLingeVM.Fcfa(s.Acomptes)</td><td class="r">@RapportLingeVM.Fcfa(s.Reste)</td><td class="r">@s.EnRetard</td></tr>
+    }
+    <tr class="total"><td>Total (hors annulés)</td><td class="r">@t.Nombre</td><td class="r">@RapportLingeVM.Qte(t.Articles)</td><td class="r">@RapportLingeVM.Fcfa(t.Montant)</td>
+        <td class="r">@RapportLingeVM.Fcfa(t.Acomptes)</td><td class="r">@RapportLingeVM.Fcfa(t.Reste)</td><td class="r">@t.EnRetard</td></tr>
+</table>
+<h2>Détail des dépôts</h2>
+<table>
+    <tr><th class="r">N°</th><th>Déposé le</th><th>Client</th><th class="r">Articles</th><th class="r">Montant</th><th class="r">Acompte</th><th class="r">Reste</th><th>Retrait prévu</th><th>Statut</th></tr>
+    @if (!Model.Lignes.Any())
+    {
+        <tr><td colspan="9" class="muted">Aucun dépôt.</td></tr>
+    }
+    @foreach (var l in Model.Lignes)
+    {
+        var d = l.Depot;
+        <tr><td class="r">@d.Numero</td><td>@d.DateDepot.ToString("dd/MM/yyyy HH:mm")</td>
+            <td>@d.NomClient@(string.IsNullOrEmpty(d.TelephoneClient) ? "" : " · " + d.TelephoneClient)</td><td class="r">@RapportLingeVM.Qte(d.NbArticles)</td>
+            <td class="r">@RapportLingeVM.Fcfa(d.Total)</td><td class="r">@(d.Acompte > 0 ? RapportLingeVM.Fcfa(d.Acompte) : "")</td><td class="r">@(l.Reste > 0 ? RapportLingeVM.Fcfa(l.Reste) : "")</td>
+            <td>@(d.DateRetraitPrevue.HasValue ? d.DateRetraitPrevue.Value.ToString("dd/MM/yyyy") + (l.EnRetard ? " (en retard)" : "") : "")</td>
+            <td>@d.Statut@(l.Fin.HasValue ? " le " + l.Fin.Value.ToString("dd/MM/yyyy HH:mm") : "")</td></tr>
+    }
+</table>
+<p class="muted">Montant : articles du dépôt (TTC). Acompte : versé au dépôt, encaissé dans la journée du dépôt (remboursé si le dépôt est annulé). Reste à encaisser : montant moins acompte, pour les dépôts en cours ou prêts. Les totaux ne comptent pas les dépôts annulés.</p>

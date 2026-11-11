@@ -21,7 +21,7 @@ $nbJourneesOuvertes = (int) qv("SELECT COUNT(*) FROM JourneesCaisses WHERE Statu
 $rubrique = match ($module) {
     'dashboard', 'caisse', 'journee', 'client', 'facture' => 'Activité',
     'rapport', 'rapporttiers' => 'Analyse',
-    'pos', 'vente', 'stock', 'posrapport', 'rapportlivraison', 'cuisine' => 'Point de vente',
+    'pos', 'vente', 'stock', 'posrapport', 'rapportlivraison', 'rapportlinge', 'cuisine' => 'Point de vente',
     'salle' => 'Activité',
     'produit', 'categorie', 'combo' => 'Configuration',
     'utilisateur', 'motif', 'modepaiement', 'taxe', 'unite', 'depot', 'livreur', 'societe' => 'Paramètres',
@@ -114,6 +114,9 @@ $badge = $nbJourneesOuvertes > 0
             <?php if (is_admin()): ?>
                 <?= $lien('posrapport/index', 'posrapport', 'fa-chart-pie', 'Rapports ventes') ?>
                 <?= $lien('rapportlivraison/index', 'rapportlivraison', 'fa-truck-fast', 'Rapport des livraisons') ?>
+                <?php if (laverie_actif()): ?>
+                    <?= $lien('rapportlinge/index', 'rapportlinge', 'fa-shirt', 'Rapport des dépôts de linge') ?>
+                <?php endif; ?>
                 <?= $lien('stock/index', 'stock', 'fa-warehouse', 'Stock') ?>
                 <?php $configurationActif = in_array($module, ['categorie', 'produit', 'combo'], true); ?>
                 <button type="button" class="sb-link sb-parent <?= $configurationActif ? 'parent-actif' : '' ?>" title="Configuration"

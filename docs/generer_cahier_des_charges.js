@@ -63,7 +63,7 @@ const fiche = [
         ['Projet', 'GesCaisse — gestion de caisse et point de vente (POS)'],
         ['Éditeur', 'M-ITECH AFRICA'],
         ['Versions', 'ASP.NET Core (.NET 10) / SQL Server — PHP 8 / MySQL'],
-        ['Version du document', '2.4'],
+        ['Version du document', '2.5'],
         ['Date', 'Novembre 2026'],
         ['Statut', 'Document de référence (fonctionnalités réalisées)']
     ], [3000, 6638])
@@ -242,6 +242,7 @@ const contenu = [
     h2('4.7 Rapports de ventes'),
     puce('Chiffre d\'affaires, nombre de tickets, panier moyen, taxes, ventes par mode de paiement, par catégorie, par vendeur.'),
     puce('Classement des produits les plus vendus ; aperçu imprimable (PDF) et export Excel.'),
+    puce('Rapport des dépôts de linge (administrateurs, module Point de vente, société ayant une caisse Laverie) : filtres période de dépôt (par défaut du 1er du mois à aujourd\'hui) et statut (En cours, Prêt, Retiré, Annulé, ou « À retirer » / « En retard » : tous les dépôts non retirés, sans période) ; cartes (dépôts, à retirer, en retard, montant, acomptes, reste à encaisser), synthèse par statut (total hors annulés) et détail (numéro, dates, client, téléphone, articles, montant, acompte, reste, retrait prévu, statut, lien vers la vente du retrait) ; impression / PDF et export Excel (feuilles Synthèse et Dépôts).'),
     puce('Rapport des livraisons (administrateurs, module Point de vente) : filtres période (par défaut du 1er du mois à aujourd\'hui), livreur et statut (Livrée, À livrer, À encaisser) ; cartes (livraisons, livrées, en cours, montant des ventes, frais de livraison), synthèse par livreur et détail des livraisons — ventes avec livreur (hors annulées et retours) et commandes en attente confiées à un livreur (frais lus dans leur contenu) ; impression / PDF et export Excel (feuilles Livreurs et Livraisons).'),
 
     // 5
