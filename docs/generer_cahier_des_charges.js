@@ -63,7 +63,7 @@ const fiche = [
         ['Projet', 'GesCaisse — gestion de caisse et point de vente (POS)'],
         ['Éditeur', 'M-ITECH AFRICA'],
         ['Versions', 'ASP.NET Core (.NET 10) / SQL Server — PHP 8 / MySQL'],
-        ['Version du document', '2.2'],
+        ['Version du document', '2.3'],
         ['Date', 'Novembre 2026'],
         ['Statut', 'Document de référence (fonctionnalités réalisées)']
     ], [3000, 6638])
@@ -195,6 +195,7 @@ const contenu = [
     puce('Choix de la journée de caisse ouverte, puis écran plein écran adapté au tactile.'),
     puce('Grille de produits par catégorie (couleurs), recherche par nom, code ou code-barres, lecture par douchette.'),
     puce('Plusieurs tickets en parallèle sur un poste (onglets), gardés dans le navigateur jusqu\'au paiement.'),
+    puce('« Addition » : note provisoire du ticket marquée « NON PAYÉ » (en tête et en pied), avec articles, client, vendeur et total à payer (frais de livraison compris) ; prix repris du catalogue par le serveur (prix saisi et remise globale seulement pour les utilisateurs autorisés). Rien n\'est encaissé, le ticket reste à l\'écran.'),
     puce('« Mettre en attente » : le ticket est enregistré sur le serveur et quitte l\'écran ; la liste « Commandes en attente » (journée de caisse) est partagée entre les postes, avec reprise (un seul poste à la fois) et suppression.'),
     puce('Commande à livrer : livreur (Paramètres › Livreurs : nom, téléphone, moyen de livraison Moto, Voiture, Vélo ou Autre), destinataire, téléphone, adresse ; payée maintenant (vente encaissée, statut « À livrer » puis « Livrée » au retour du livreur) ou à encaisser à la livraison (commande en attente reprise au retour du livreur, vente enregistrée « Livrée »). Livreur, destinataire et statut figurent sur le ticket et le détail de la vente.'),
     puce('Frais de livraison en option : montant par défaut de la société (Paramètres › Livreurs, 0 = sans frais), proposé dans la fenêtre Livraison et modifiable à chaque vente ; ajoutés au total à payer hors taxes (comme le pourboire), encaissés avec la vente (libellé « dont frais de livraison »), conservés sur une commande en attente, enregistrés sur la vente (CommandesPos.FraisLivraison) et détaillés sur le ticket et le détail de la vente ; non compris dans le TTC des articles ni remboursés par un retour.'),
@@ -256,7 +257,7 @@ const contenu = [
     puce('Impression automatique du bon (option de la caisse) et affichage sur l\'écran cuisine / bar.'),
     puce('Écran cuisine / bar : actualisation toutes les 5 secondes, signal sonore, filtre par poste, couleur selon l\'attente (10 et 20 minutes), bouton « Prêt », rappel des bons prêts.'),
     h2('5.4 Addition et encaissement'),
-    puce('Addition (note provisoire) imprimée ; la table passe en « addition demandée ».'),
+    puce('Addition (note provisoire) imprimée avec la mention « NON PAYÉ » en tête et en pied ; la table passe en « addition demandée ».'),
     puce('Partage de l\'addition : choix des articles payés maintenant, le reste demeure sur la table.'),
     puce('Transfert vers une table libre, ou regroupement avec la commande d\'une table occupée.'),
     puce('Pourboire (5, 10, 15 % ou montant libre) ajouté au paiement et indiqué sur le ticket.'),
@@ -367,7 +368,7 @@ const contenu = [
         ['Combo', 'Groupe de produits proposés au choix (ex. « Plats ») ; un produit combo (menu) en réunit plusieurs.'],
         ['Couverts', 'Nombre de personnes servies à une table.'],
         ['Bon de préparation', 'Liste des articles à préparer envoyée en cuisine ou au bar.'],
-        ['Addition', 'Note provisoire remise au client avant le paiement.'],
+        ['Addition', 'Note provisoire marquée « NON PAYÉ », remise au client avant le paiement.'],
         ['Société consultée', 'Société dont le super-administrateur affiche les données.'],
         ['NIF', "Numéro d'identification fiscale de la société."]
     ], [2600, 7038])

@@ -339,16 +339,42 @@
     const nbAEnvoyer = () => cmd ? cmd.lignes.reduce((n, l) => n + Math.max(0, l.qte - (l.envoye || 0)), 0) : 0;
 
     // Iframe cachée : bons de préparation et addition s'impriment sans quitter l'écran.
-    function imprimerDans(url) {
+    function cadreImpression() {
         let f = document.getElementById('posImpression');
         if (!f) {
             f = document.createElement('iframe');
             f.id = 'posImpression';
+            f.name = 'posImpression';
             f.title = 'Impression';
             f.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0';
             document.body.appendChild(f);
         }
-        f.src = url;
+        return f;
+    }
+    function imprimerDans(url) { cadreImpression().src = url; }
+
+    // Addition (note provisoire « NON PAYÉ ») d'un ticket hors table : le ticket est envoyé au serveur,
+    // qui reprend les prix du catalogue et imprime l'addition dans le cadre caché.
+    function additionTicket() {
+        const t = ticket();
+        if (!t.lignes.length) { message('Le ticket est vide.'); return; }
+        cadreImpression();
+        const form = document.createElement('form');
+        form.method = 'post';
+        form.action = D.urlAdditionTicket;
+        form.target = 'posImpression';
+        form.style.display = 'none';
+        const champ = (nom, valeur) => { const i = document.createElement('input'); i.type = 'hidden'; i.name = nom; i.value = valeur; form.appendChild(i); };
+        champ(D.jeton.nom, D.jeton.valeur);
+        champ('ticket', JSON.stringify({
+            journeeId: D.journee.id, numero: t.numero, clientId: t.clientId, remise: t.remise || null,
+            livraison: t.livraison ? { frais: fraisLivraison(t) } : null,
+            lignes: t.lignes.map(l => ({ uid: l.uid, produitId: l.produitId, nom: l.nom, qte: l.qte, prix: l.prix, remise: l.remise || 0, composants: l.composants || [] }))
+        }));
+        document.body.appendChild(form);
+        form.submit();
+        form.remove();
+        message('Addition imprimée (NON PAYÉ).');
     }
 
     // Envoie en cuisine / au bar les articles pas encore envoyés (et les annulations).
@@ -1007,7 +1033,7 @@
             + '<div class="pos-grand">' + fcfa(tot.ttc + fraisLivraison(t)) + ' FCFA</div>'
             + (fraisLivraison(t) ? '<div class="pos-tva">dont frais de livraison : ' + fcfa(fraisLivraison(t)) + ' (hors taxes)</div>' : '')
             + '<div class="pos-tva">dont taxes : ' + fcfa(tot.tva) + ' · ' + t.lignes.length + ' article(s), ' + qte(tot.unites) + ' unité(s)</div></div>'
-            + '<div class="pos-actions' + (cmd ? '' : ' quatre') + '">'
+            + '<div class="pos-actions' + (cmd ? '' : ' cinq') + '">'
             + '<button type="button" class="pos-act" data-action="client"><i class="fas fa-user"></i> ' + (client ? 'Client : <b>' + echap(client.nom) + '</b>' : 'Choisir un client') + '</button>'
             + (cmd ? '<button type="button" class="pos-act" data-action="note"><i class="fas fa-comment-dots"></i> Note</button>'
                 : '<button type="button" class="pos-act" data-action="attente"><i class="fas fa-pause"></i> Mettre en attente</button>')
@@ -1017,6 +1043,7 @@
                 + iconeMoyen(t.livraison ? (livreurs.get(t.livraison.livreurId) || {}).moyen : null) + '"></i> '
                 + (t.livraison ? 'Livraison : <b>' + echap(nomLivreur(t.livraison.livreurId)) + '</b>' + (fraisLivraison(t) ? ' + ' + fcfa(fraisLivraison(t)) : '') + (t.livraison.paiement === 'livraison' ? ' (à encaisser)' : '')
                     : 'Livraison') + '</button>')
+            + (cmd ? '' : '<button type="button" class="pos-act" data-action="additionticket" title="Imprimer l\'addition (NON PAYÉ)"><i class="fas fa-file-invoice-dollar"></i> Addition</button>')
             + '</div>'
             + (cmd ? '<div class="pos-actions resto">'
                 + '<button type="button" class="pos-act envoyer' + (aEnvoyer() ? ' actif' : '') + '" data-action="envoyer"><i class="fas fa-fire-burner"></i> Envoyer'
@@ -1511,6 +1538,7 @@
         else if (d.action === 'attente') mettreEnAttente();
         else if (d.action === 'attentes') listeAttentes();
         else if (d.action === 'livraison') livraison();
+        else if (d.action === 'additionticket') additionTicket();
         else if (d.action === 'client') choisirClient();
         else if (d.action === 'remise') remiseGlobale();
         else if (d.action === 'payer') payer();

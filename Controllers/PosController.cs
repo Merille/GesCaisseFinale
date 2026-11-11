@@ -156,6 +156,7 @@ namespace EasytransitCaisse.Controllers
                 urlFermer = $"/JourneeCaisse/Details/{j.Id}",
                 modes,
                 urlVendre = "/Pos/Vendre",
+                urlAdditionTicket = "/Pos/AdditionTicket",
                 urlTicket = "/Pos/Ticket/",
                 urlVentes = $"/Vente/Index?journee={j.Id}",
                 // Commandes en attente (partagées entre postes) et livraisons.
@@ -798,8 +799,77 @@ namespace EasytransitCaisse.Controllers
             ViewBag.Coordonnees = Images.Coordonnees(societe);
             ViewBag.Table = co.TableId.HasValue ? (await _context.TablesRestaurant.FirstOrDefaultAsync(t => t.Id == co.TableId))?.Nom : null;
             ViewBag.Serveur = (await Restaurant.NomsAsync(_context, new[] { co.UtilisateurId })).Values.FirstOrDefault() ?? "";
-            ViewBag.Contenu = Restaurant.Lire(co.Contenu);
+            var contenu = Restaurant.Lire(co.Contenu);
+            ViewBag.Contenu = contenu;
+            ViewBag.Titre = $"{ViewBag.Table} · {co.Couverts} couvert(s)";
+            ViewBag.Client = contenu.ClientId.HasValue
+                ? await _context.Clients.Where(c => c.Id == contenu.ClientId).Select(c => c.NomSociete).FirstOrDefaultAsync() : null;
+            ViewBag.Frais = 0m;
             return View(co);
+        }
+
+        private sealed class TicketAddition
+        {
+            public int JourneeId { get; set; }
+            public int Numero { get; set; }
+            public int? ClientId { get; set; }
+            public Restaurant.RemiseTicket? Remise { get; set; }
+            public LivraisonAddition? Livraison { get; set; }
+            public List<Restaurant.Ligne> Lignes { get; set; } = new();
+        }
+
+        private sealed class LivraisonAddition
+        {
+            public decimal Frais { get; set; }
+        }
+
+        // Addition (note provisoire, NON PAYÉE) d'un ticket hors table : vente au comptoir, vente directe,
+        // laverie… Reçoit le ticket en JSON (champ « ticket ») ; les prix sont repris du catalogue (prix
+        // saisi accepté pour un administrateur seulement, comme à l'encaissement).
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AdditionTicket(string? ticket)
+        {
+            TicketAddition? t;
+            try { t = JsonSerializer.Deserialize<TicketAddition>(ticket ?? "", new JsonSerializerOptions { PropertyNameCaseInsensitive = true }); }
+            catch (JsonException) { t = null; }
+            var j = t == null ? null : await _context.JourneesCaisses.Include(x => x.Caisse).FirstOrDefaultAsync(x => x.Id == t.JourneeId);
+            if (t == null || j == null)
+                return NotFound();
+            var lignes = new List<Restaurant.Ligne>();
+            foreach (var l in Restaurant.Nettoyer(new Restaurant.Contenu { Lignes = t.Lignes }, new Restaurant.Contenu()).Lignes)
+            {
+                var p = await _context.Produits.FirstOrDefaultAsync(x => x.Id == l.ProduitId && x.TenantId == j.TenantId);
+                if (p == null || l.Qte <= 0)
+                    continue;
+                var prix = p.PrixVente;
+                if (p.EstCombo)
+                {
+                    var (liste, supplements, erreur) = await Combos.ControlerAsync(_context, p, l.Composants);
+                    if (erreur == null && liste != null)
+                    {
+                        l.Composants = liste;
+                        prix += supplements;
+                    }
+                }
+                l.Nom = p.Nom;
+                if (!EstAdmin)
+                    l.Prix = prix;
+                lignes.Add(l);
+            }
+            var remise = t.Remise is { Valeur: > 0 } r && PeutRemiseGlobale
+                ? new Restaurant.RemiseTicket { Type = r.Type == "pct" ? "pct" : "montant", Valeur = r.Valeur } : null;
+            var societe = await _context.Tenants.FirstOrDefaultAsync(x => x.Id == j.TenantId);
+            ViewBag.Societe = societe?.Nom ?? "GesCaisse";
+            ViewBag.Logo = Images.UrlLogo(societe);
+            ViewBag.Coordonnees = Images.Coordonnees(societe);
+            ViewBag.Titre = (j.Caisse != null && j.Caisse.EstRestaurant ? "Vente directe" : "Ticket") + (t.Numero > 0 ? $" n° {t.Numero}" : "");
+            ViewBag.Serveur = Serveur;
+            ViewBag.Client = t.ClientId.HasValue
+                ? await _context.Clients.Where(c => c.Id == t.ClientId && c.TenantId == j.TenantId).Select(c => c.NomSociete).FirstOrDefaultAsync() : null;
+            ViewBag.Frais = t.Livraison == null ? 0m : Math.Max(0, Math.Round(t.Livraison.Frais, MidpointRounding.AwayFromZero));
+            ViewBag.Contenu = new Restaurant.Contenu { Lignes = lignes, Remise = remise };
+            return View("Addition", new CommandeOuverte { Couverts = 0 });
         }
 
         // Bons de préparation 80 mm (un par page), imprimés à l'envoi.

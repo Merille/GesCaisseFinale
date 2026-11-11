@@ -98,7 +98,7 @@ const fiche = [
         ['Application', 'GesCaisse — gestion de caisse et point de vente (POS)'],
         ['Éditeur', 'M-ITECH AFRICA'],
         ['Public', 'Administrateurs, caissiers, vendeurs et serveurs des sociétés clientes'],
-        ['Version du document', '2.1'],
+        ['Version du document', '2.2'],
         ['Date', 'Novembre 2026']
     ], [3000, 6638])
 ];
@@ -335,9 +335,10 @@ const contenu = [
     pt('Remise %', 'tapez le pourcentage de remise de la ligne.'),
     pt('Prix', 'tapez un nouveau prix unitaire (réservé aux administrateurs).'),
     pt('Corbeille', 'supprime la ligne ; la touche d’effacement corrige la saisie en cours.'),
-    h2('6.4 Client, remise globale et mise en attente'),
+    h2('6.4 Client, remise globale, addition et mise en attente'),
     pt('Choisir un client', 'associe la vente à un tiers (il apparaît sur le ticket et dans les rapports).'),
     pt('Remise globale', 'remise en % ou en montant sur tout le ticket (administrateurs et utilisateurs habilités). Elle est répartie sur les lignes.'),
+    pt('Addition', 'imprime une note provisoire du ticket, avec la mention **NON PAYÉ** en tête et en pied : articles, total à payer (frais de livraison compris), client et vendeur. Le ticket reste à l’écran, rien n’est encaissé ; le vrai ticket de caisse est imprimé au paiement.'),
     pt('Mettre en attente', 'met le ticket de côté pour servir un autre client : il est enregistré et quitte l’écran. Il apparaît dans la liste **Commandes en attente**, visible depuis tous les postes de la journée (voir 6.5).'),
     pt('Plusieurs tickets', 'les tickets en cours sur ce poste apparaissent en onglets en haut de l’écran ; le bouton **+** en crée un nouveau.'),
     astuce('Les tickets en cours sont gardés dans le navigateur : une coupure de réseau ou un rechargement de la page ne les fait pas perdre.'),
@@ -506,7 +507,7 @@ const contenu = [
     astuce('Avant l’encaissement, les articles qui n’ont pas encore été envoyés le sont automatiquement.'),
     p('**Vente directe** : il n’y a pas de bouton Envoyer ; les articles partent en préparation dès l’encaissement, un bon par poste, intitulé « Vente directe · ticket N » (N = numéro de la vente dans la journée, les 4 derniers chiffres du ticket). Le bon est imprimé si la caisse imprime les bons, et s’affiche sur l’écran cuisine / bar. Les articles dont la catégorie a le poste **Aucun** ne font pas de bon.'),
     h2('10.6 Addition, partage, transfert et pourboire'),
-    pt('Addition', 'imprime une note provisoire ; la table passe en « addition demandée ».'),
+    pt('Addition', 'imprime une note provisoire marquée **NON PAYÉ** (table, couverts, total et montant par couvert) ; la table passe en « addition demandée ». En vente directe, le bouton **Addition** du ticket fait de même (voir 6.4).'),
     pt('Partager', 'choisissez les articles payés maintenant ; le reste demeure sur la table.'),
     pt('Transférer', 'déplace la commande vers une table libre, ou la regroupe avec celle d’une table occupée.'),
     pt('Couverts', 'le nombre de couverts reste modifiable depuis l’en-tête de la commande.'),
@@ -626,7 +627,7 @@ const contenu = [
         ['Ticket', 'Vente encaissée au point de vente, et son justificatif imprimé.'],
         ['Couverts', 'Nombre de personnes servies à une table.'],
         ['Bon de préparation', 'Liste des articles à préparer, envoyée en cuisine ou au bar.'],
-        ['Addition', 'Note provisoire remise au client avant l’encaissement.'],
+        ['Addition', 'Note provisoire marquée « NON PAYÉ », remise au client avant l’encaissement.'],
         ['Combo', 'Liste de produits proposés au choix (ex. « Plat au choix ») ; un menu en réunit plusieurs.'],
         ['Variante', 'Déclinaison d’un produit (taille, couleur…) avec son propre code, prix et stock.'],
         ['Seuil d’alerte', 'Stock en dessous duquel le produit est signalé « stock bas ».'],

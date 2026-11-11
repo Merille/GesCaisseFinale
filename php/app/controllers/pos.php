@@ -98,6 +98,7 @@ function pos_index(): void
         'urlFermer' => url('journee/details', ['id' => $journee['Id']]),
         'modes' => $modes,
         'urlVendre' => url('pos/vendre'),
+        'urlAdditionTicket' => url('pos/additionticket'),
         'urlTicket' => url('pos/ticket') . '&id=',
         'urlVentes' => url('vente/index', ['journee' => $journee['Id']]),
         // Commandes en attente (partagées entre postes) et livraisons.
@@ -443,6 +444,59 @@ function pos_vendre(): void
               'commande' => !empty($commandeRestante) ? restaurant_commande_json(q1('SELECT * FROM CommandesOuvertes WHERE Id = ?', [$commandeRestante])) : null]);
 }
 
+/**
+ * Addition (note provisoire, NON PAYÉE) d'un ticket hors table : vente au comptoir, vente directe,
+ * laverie… Reçoit le ticket en JSON (champ « ticket ») ; les prix sont repris du catalogue (prix
+ * saisi accepté pour un administrateur seulement, comme à l'encaissement).
+ */
+function pos_additionticket(): void
+{
+    if (!is_post()) {
+        not_found('Requête invalide.');
+    }
+    $t = json_decode((string) ($_POST['ticket'] ?? ''), true);
+    $journee = is_array($t) ? q1('SELECT j.*, c.TypePointVente FROM JourneesCaisses j JOIN Caisses c ON c.ID = j.CaisseId WHERE j.Id = ? AND ' . tf('j'), [(int) ($t['journeeId'] ?? 0)]) : null;
+    if (!$journee) {
+        not_found('Journée introuvable.');
+    }
+    $tenant = (int) $journee['TenantId'];
+    $lignes = [];
+    foreach (restaurant_lignes_saisies((array) ($t['lignes'] ?? []), []) as $l) {
+        $p = q1('SELECT * FROM Produits WHERE Id = ? AND TenantId = ?', [$l['produitId'], $tenant]);
+        if (!$p || $l['qte'] <= 0) {
+            continue;
+        }
+        $prix = (float) $p['PrixVente'];
+        if ($p['EstCombo']) {
+            $r = combo_composants($p, $l['composants']);
+            if (is_array($r)) {
+                [$l['composants'], $supplements] = $r;
+                $prix += $supplements;
+            }
+        }
+        $l['nom'] = $p['Nom'];
+        $l['prix'] = is_admin() ? $l['prix'] : $prix;
+        $lignes[] = $l;
+    }
+    $remise = is_array($t['remise'] ?? null) && pos_peut_remise_globale() ? $t['remise'] : null;
+    $societe = q1('SELECT * FROM Tenants WHERE Id = ?', [$tenant]);
+    $client = (int) ($t['clientId'] ?? 0) ? qv('SELECT NomSociete FROM Clients WHERE Id = ? AND TenantId = ?', [(int) $t['clientId'], $tenant]) : null;
+    $numero = (int) ($t['numero'] ?? 0);
+    render('pos/addition', [
+        'titre' => (caisse_est_restaurant($journee) ? 'Vente directe' : 'Ticket') . ($numero > 0 ? ' n° ' . $numero : ''),
+        'couverts' => 0,
+        'serveur' => (string) (user()['nomComplet'] ?: user()['nom']),
+        'client' => $client ?: null,
+        'frais' => is_array($t['livraison'] ?? null) ? max(0, round((float) ($t['livraison']['frais'] ?? 0))) : 0.0,
+        'co' => ['Societe' => $societe['Nom'] ?? ''],
+        'lignes' => $lignes,
+        'total' => restaurant_total(['lignes' => $lignes, 'remise' => $remise]),
+        'brut' => restaurant_total(['lignes' => $lignes]),
+        'logo' => $societe ? url_logo($societe) : null,
+        'coordonnees' => $societe ? societe_coordonnees($societe) : [],
+    ], false);
+}
+
 /** Ticket de caisse 80 mm d'une vente (impression ou réimpression). */
 function pos_ticket(): void
 {
@@ -689,6 +743,11 @@ function pos_addition(): void
     $societe = ['Id' => $co['TenantId'], 'LogoMaj' => $co['LogoMaj'], 'Adresse' => $co['Adresse'], 'Ville' => $co['Ville'],
                 'Pays' => $co['Pays'], 'Email' => $co['EmailSociete'], 'Telephone' => $co['Telephone'], 'NIF' => $co['NIF']];
     render('pos/addition', [
+        'titre' => ($co['TableNom'] ?? '') . ' · ' . (int) $co['Couverts'] . ' couvert(s)',
+        'couverts' => (int) $co['Couverts'],
+        'serveur' => (string) ($co['Serveur'] ?? ''),
+        'client' => ($contenu['clientId'] ?? null) ? qv('SELECT NomSociete FROM Clients WHERE Id = ?', [(int) $contenu['clientId']]) : null,
+        'frais' => 0.0,
         'co' => $co,
         'lignes' => $contenu['lignes'],
         'total' => restaurant_total($contenu),

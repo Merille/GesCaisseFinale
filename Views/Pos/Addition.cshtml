@@ -1,19 +1,22 @@
 @model EasytransitCaisse.Models.CommandeOuverte
 @using System.Globalization
 @{
-    // Addition (note provisoire) d'une table, imprimée avant le paiement. Ouvre la fenêtre d'impression.
+    // Addition (note provisoire, NON PAYÉE) d'une table ou d'un ticket, imprimée avant le paiement.
+    // Ouvre la fenêtre d'impression. ViewBag.Titre : table et couverts, ou numéro du ticket.
     Layout = null;
     string Fcfa(decimal n) => n.ToString("N0", CultureInfo.GetCultureInfo("fr-FR"));
     string Qte(decimal n) => n == Math.Round(n) ? n.ToString("0", CultureInfo.InvariantCulture) : n.ToString("0.##", CultureInfo.GetCultureInfo("fr-FR"));
     var contenu = (EasytransitCaisse.Data.Restaurant.Contenu)ViewBag.Contenu;
     var total = EasytransitCaisse.Data.Restaurant.Total(contenu);
     var brut = EasytransitCaisse.Data.Restaurant.Total(new EasytransitCaisse.Data.Restaurant.Contenu { Lignes = contenu.Lignes });
+    var frais = (decimal)ViewBag.Frais;
+    var client = (string?)ViewBag.Client;
 }
 <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="utf-8" />
-    <title>Addition @ViewBag.Table</title>
+    <title>Addition @ViewBag.Titre</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="stylesheet" href="~/css/ticket.css" asp-append-version="true" />
 </head>
@@ -30,9 +33,14 @@
         }
         <hr />
         <div class="c b tres-grand">ADDITION</div>
-        <div class="c b grand">@ViewBag.Table · @Model.Couverts couvert(s)</div>
+        <div class="non-paye">NON PAYÉ</div>
+        <div class="c b grand">@ViewBag.Titre</div>
         <div>Date    : @DateTime.Now.ToString("dd/MM/yyyy HH:mm")</div>
-        <div>Serveur : @ViewBag.Serveur</div>
+        <div>@(Model.Couverts > 0 ? "Serveur" : "Vendeur") : @ViewBag.Serveur</div>
+        @if (!string.IsNullOrEmpty(client))
+        {
+            <div>Client  : @client</div>
+        }
         <hr />
         @foreach (var l in contenu.Lignes)
         {
@@ -52,13 +60,19 @@
             <div class="r"><span>Sous-total</span><span>@Fcfa(brut)</span></div>
             <div class="r"><span>Remise globale</span><span>-@Fcfa(brut - total)</span></div>
         }
-        <div class="r b grand"><span>TOTAL TTC</span><span>@Fcfa(total) FCFA</span></div>
+        @if (frais > 0)
+        {
+            <div class="r"><span>Total articles TTC</span><span>@Fcfa(total)</span></div>
+            <div class="r"><span>Frais de livraison</span><span>@Fcfa(frais)</span></div>
+        }
+        <div class="r b grand"><span>@(frais > 0 ? "TOTAL À PAYER" : "TOTAL TTC")</span><span>@Fcfa(total + frais) FCFA</span></div>
         @if (Model.Couverts > 1)
         {
-            <div class="r"><span>Soit par couvert</span><span>@Fcfa(Math.Round(total / Model.Couverts, MidpointRounding.AwayFromZero))</span></div>
+            <div class="r"><span>Soit par couvert</span><span>@Fcfa(Math.Round((total + frais) / Model.Couverts, MidpointRounding.AwayFromZero))</span></div>
         }
         <hr />
-        <div class="c">Note provisoire : le ticket de caisse est remis au paiement.</div>
+        <div class="non-paye">NON PAYÉ</div>
+        <div class="c">Note provisoire, non payée : elle ne vaut pas ticket de caisse. Le ticket est remis au paiement.</div>
     </div>
     <script>window.addEventListener('load', function () { window.print(); });</script>
 </body>
