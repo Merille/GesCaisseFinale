@@ -53,7 +53,7 @@ namespace EasytransitCaisse.Data
                     var qte = Math.Max(0, Math.Round(s.Qte, 2));
                     var choix = g.Choix.FirstOrDefault(c => c.ProduitId == s.ProduitId);
                     var p = qte > 0 && choix != null
-                        ? await context.Produits.IgnoreQueryFilters().FirstOrDefaultAsync(x => x.Id == s.ProduitId && x.TenantId == combo.TenantId && x.Actif)
+                        ? await context.Produits.IgnoreQueryFilters().FirstOrDefaultAsync(x => x.Id == s.ProduitId && x.TenantId == combo.TenantId && x.Actif && !x.Consommable)
                         : null;
                     if (p == null || choix == null)
                         return (null, 0, $"Un article choisi pour « {combo.Nom} › {g.Nom} » n'est pas proposé ou n'est plus actif.");

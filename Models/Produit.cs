@@ -66,6 +66,10 @@ namespace EasytransitCaisse.Models
         // ce sont les composants choisis qui sortent du stock.
         public bool EstCombo { get; set; }
 
+        // Consommable (lessive, javel…) : acheté et utilisé pour le service, jamais vendu en caisse ;
+        // son stock est suivi (achats, consommations).
+        public bool Consommable { get; set; }
+
         public bool EnAlerteStock => SuiviStock && SeuilAlerte.HasValue && StockActuel <= SeuilAlerte.Value;
     }
 }

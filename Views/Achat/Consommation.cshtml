@@ -1,0 +1,118 @@
+@model List<EasytransitCaisse.Models.MouvementStock>
+@using EasytransitCaisse.Models.ViewModels
+@{
+    ViewData["Title"] = "Consommations";
+    var fr = System.Globalization.CultureInfo.GetCultureInfo("fr-FR");
+    string Fcfa(decimal n) => n.ToString("N0", fr);
+    string Qte(decimal n) => n.ToString(n == Math.Round(n) ? "#,0" : "#,0.00", fr);
+    var f = (FiltresAchats)ViewBag.Filtres;
+    var synthese = (List<SyntheseConsommation>)ViewBag.Synthese;
+    var produits = (List<EasytransitCaisse.Models.Produit>)ViewBag.Produits;
+    var depots = (List<EasytransitCaisse.Models.Depot>)ViewBag.Depots;
+    var utilisateurs = (Dictionary<int, string>)ViewBag.Utilisateurs;
+    var valeur = synthese.Sum(s => s.Valeur);
+}
+<partial name="_Onglets" model="@("Consommation")" />
+@if (produits.Any())
+{
+    <form method="post" asp-action="Consommation" class="card border-0 shadow-sm mb-3">
+        <div class="card-header bg-brand text-white">Produits utilisés (sortie du stock)</div>
+        <div class="card-body">
+            <div class="row g-3 mb-3">
+                <div class="col-md-4"><label class="form-label" for="depot">Dépôt</label>
+                    <select class="form-select" id="depot" name="depot" required>
+                        @foreach (var d in depots)
+                        {
+                            <option value="@d.Id">@d.Code · @d.Nom</option>
+                        }
+                    </select></div>
+                <div class="col-md-8"><label class="form-label" for="commentaire">Commentaire</label><input class="form-control" id="commentaire" name="commentaire" maxlength="300" placeholder="Ex : lavages de la semaine"></div>
+            </div>
+            <table class="table align-middle" id="lignesConsommation">
+                <thead><tr><th>Produit</th><th style="width:160px">Quantité utilisée</th><th style="width:50px"></th></tr></thead>
+                <tbody>
+                    @for (var i = 0; i < 3; i++)
+                    {
+                        <tr>
+                            <td><select class="form-select" name="produit" aria-label="Produit">
+                                <option value="0">-- Produit --</option>
+                                @foreach (var p in produits)
+                                {
+                                    <option value="@p.Id">@p.Code · @p.Nom@(p.Consommable ? " (consommable)" : "") — stock @Qte(p.StockActuel) @p.Unite</option>
+                                }
+                            </select></td>
+                            <td><input class="form-control text-end" name="qte" inputmode="decimal" aria-label="Quantité utilisée"></td>
+                            <td><button type="button" class="btn btn-sm btn-outline-danger retirer" aria-label="Retirer la ligne"><i class="fa fa-xmark"></i></button></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="ajouterLigne"><i class="fa fa-plus"></i> Ajouter une ligne</button>
+        </div>
+        <div class="card-footer bg-white"><button class="btn btn-success"><i class="fa fa-check"></i> Enregistrer la consommation</button></div>
+    </form>
+}
+
+<form method="get" action="/Achat/Consommation" class="card shadow-sm border-0 mb-3">
+    <div class="card-body d-flex flex-wrap align-items-end gap-3">
+        <div><label class="form-label small fw-semibold text-muted mb-1" for="du">Consommations du</label><input type="date" class="form-control" id="du" name="du" value="@f.Du.ToString("yyyy-MM-dd")"></div>
+        <div><label class="form-label small fw-semibold text-muted mb-1" for="au">Au</label><input type="date" class="form-control" id="au" name="au" value="@f.Au.ToString("yyyy-MM-dd")"></div>
+        <button class="btn btn-primary"><i class="fa fa-search"></i> Filtrer</button>
+        <div class="ms-auto text-end"><div class="small text-muted">Valeur consommée (au coût)</div><div class="fs-5 fw-bold">@Fcfa(valeur) <small class="fs-6 fw-normal text-muted">FCFA</small></div></div>
+    </div>
+</form>
+
+<div class="row g-3">
+    <div class="col-lg-5">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-white fw-semibold">Par produit</div>
+            <div class="card-body table-responsive">
+                <table class="table align-middle mb-0 small">
+                    <thead class="table-dark"><tr><th>Produit</th><th class="text-end">Quantité</th><th class="text-end">Valeur</th></tr></thead>
+                    <tbody>
+                        @foreach (var s in synthese)
+                        {
+                            <tr><td>@s.Code · @s.Nom</td><td class="text-end text-nowrap">@Qte(s.Quantite) @s.Unite</td><td class="text-end text-nowrap">@Fcfa(s.Valeur)</td></tr>
+                        }
+                        @if (!synthese.Any())
+                        {
+                            <tr><td colspan="3" class="text-muted">Aucune consommation sur la période.</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-7">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-white fw-semibold">Détail</div>
+            <div class="card-body table-responsive">
+                <table id="consommationsTable" class="table align-middle mb-0 small">
+                    <thead class="table-dark"><tr><th>Date</th><th>Produit</th><th>Dépôt</th><th class="text-end">Quantité</th><th>Commentaire</th><th>Par</th></tr></thead>
+                    <tbody>
+                        @for (var i = 0; i < Model.Count; i++)
+                        {
+                            var m = Model[i];
+                            <tr><td class="text-nowrap" data-order="@((Model.Count - i).ToString("D6"))">@m.DateMouvement.ToString("dd/MM/yyyy HH:mm")</td><td>@m.Produit?.Nom</td><td>@m.Depot?.Nom</td>
+                                <td class="text-end text-nowrap">@Qte(-m.Quantite) @m.Produit?.Unite</td><td>@m.Commentaire</td><td>@(m.UtilisateurId is int u && utilisateurs.TryGetValue(u, out var n) ? n : "")</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+<p class="small text-muted mt-2">Valeur : quantité consommée × coût actuel du produit (coût moyen pondéré des achats).</p>
+
+@section Scripts {
+    <script src="~/js/achats.js" asp-append-version="true"></script>
+    <script>
+        $('#consommationsTable').DataTable({
+            language: { url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/fr-FR.json' },
+            pageLength: 20,
+            lengthMenu: [20, 50, 100],
+            order: [[0, 'desc']],
+            dom: '<"d-flex justify-content-between align-items-center mb-3"lf>rtip'
+        });
+    </script>
+}

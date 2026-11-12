@@ -78,7 +78,9 @@ function produit_valeurs(): array
         'PrixVente' => montant(post('PrixVente')),
         'Cout' => $cout === '' ? null : montant($cout),
         'Unite' => mb_substr(trim((string) post('Unite', '')), 0, 20) ?: 'Unité',
-        'SuiviStock' => post('SuiviStock') ? 1 : 0,
+        // Consommable (lessive, javel…) : utilisé pour le service, jamais vendu en caisse ; stock suivi.
+        'Consommable' => post('Consommable') ? 1 : 0,
+        'SuiviStock' => (post('SuiviStock') || post('Consommable')) ? 1 : 0,
         'StockActuel' => montant(post('StockActuel')),
         'SeuilAlerte' => $seuil === '' ? null : montant($seuil),
         'Actif' => post('Actif') ? 1 : 0,
@@ -108,7 +110,7 @@ function produit_erreur(array $v, int $idExclu = 0): ?string
 // Champs enregistrés tels quels. Le stock n'en fait pas partie : il ne change que par des
 // mouvements (stock initial à la création, entrées, inventaires, ventes, retours).
 // Le taux total (TauxTVA) suit les taxes du produit (produit_enregistrer_taxes).
-const PRODUIT_CHAMPS = ['Code', 'CodeBarres', 'Nom', 'CategorieId', 'PrixVente', 'Cout', 'Unite', 'SuiviStock', 'SeuilAlerte', 'Actif'];
+const PRODUIT_CHAMPS = ['Code', 'CodeBarres', 'Nom', 'CategorieId', 'PrixVente', 'Cout', 'Unite', 'SuiviStock', 'SeuilAlerte', 'Actif', 'Consommable'];
 
 /** Crée le produit, ses taxes, puis enregistre son stock initial comme premier mouvement. */
 function produit_inserer(array $v, int $tenant): int
@@ -341,12 +343,17 @@ function produit_import(): void
             'SuiviStock' => produit_booleen($col(6), 1), 'StockActuel' => montant($col(7)),
             'SeuilAlerte' => $col(8) === '' ? null : montant($col(8)), 'Actif' => produit_booleen($col(9), 1),
             'Unite' => mb_substr($col(10), 0, 20) ?: 'Unité', 'Cout' => $col(11) === '' ? null : montant($col(11)),
+            'Consommable' => 0,
         ];
         // Colonne Taxes vide : taxes par défaut pour un nouveau produit, inchangées pour un produit existant.
         if ($taxeIds !== null) {
             $v['TaxeIds'] = $taxeIds;
         }
-        $existant = $v['Code'] !== '' ? q1('SELECT Id, Unite, Cout FROM Produits WHERE Code = ? AND ' . tf(), [$v['Code']]) : null;
+        $existant = $v['Code'] !== '' ? q1('SELECT Id, Unite, Cout, Consommable FROM Produits WHERE Code = ? AND ' . tf(), [$v['Code']]) : null;
+        // Consommable : pas dans le fichier, valeur actuelle conservée.
+        if ($existant) {
+            $v['Consommable'] = (int) $existant['Consommable'];
+        }
         // Cellules Unité / Coût vides (ex. fichier d'une version précédente) : valeurs actuelles conservées.
         if ($existant && $col(10) === '') {
             $v['Unite'] = $existant['Unite'];
@@ -465,9 +472,9 @@ function produit_propager_variantes(int $modeleId): void
         return;
     }
     run("UPDATE Produits SET Nom = LEFT(TRIM(CONCAT(?, ' ', COALESCE(LibelleVariante, ''))), 200), CategorieId = ?, PrixVente = ? + Supplement,
-            Cout = ?, Unite = ?, SuiviStock = ?, SeuilAlerte = ?, TauxTVA = ?
+            Cout = ?, Unite = ?, SuiviStock = ?, SeuilAlerte = ?, TauxTVA = ?, Consommable = ?
          WHERE ParentId = ?",
-        [$m['Nom'], $m['CategorieId'], $m['PrixVente'], $m['Cout'], $m['Unite'], $m['SuiviStock'], $m['SeuilAlerte'], $m['TauxTVA'], $modeleId]);
+        [$m['Nom'], $m['CategorieId'], $m['PrixVente'], $m['Cout'], $m['Unite'], $m['SuiviStock'], $m['SeuilAlerte'], $m['TauxTVA'], $m['Consommable'], $modeleId]);
     run('DELETE pt FROM ProduitTaxes pt JOIN Produits v ON v.Id = pt.ProduitId WHERE v.ParentId = ?', [$modeleId]);
     run('INSERT INTO ProduitTaxes (ProduitId, TaxeId) SELECT v.Id, pt.TaxeId FROM Produits v JOIN ProduitTaxes pt ON pt.ProduitId = ? WHERE v.ParentId = ?',
         [$modeleId, $modeleId]);
@@ -592,10 +599,10 @@ function produit_genvariantes(): void
                 }
                 $vid = run(
                     'INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, SeuilAlerte, Actif,
-                        Cout, Unite, ParentId, Supplement, LibelleVariante)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, 1, ?, ?, ?, 0, ?)',
+                        Cout, Unite, ParentId, Supplement, LibelleVariante, Consommable)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, 1, ?, ?, ?, 0, ?, ?)',
                     [$m['TenantId'], produit_code_variante($m), mb_substr($m['Nom'] . ' ' . $libelle, 0, 200), $m['CategorieId'], $m['PrixVente'],
-                     $m['TauxTVA'], $m['SuiviStock'], $m['SeuilAlerte'], $m['Cout'], $m['Unite'], $m['Id'], $libelle]
+                     $m['TauxTVA'], $m['SuiviStock'], $m['SeuilAlerte'], $m['Cout'], $m['Unite'], $m['Id'], $libelle, $m['Consommable']]
                 );
                 foreach ($ids as $id) {
                     run('INSERT INTO VarianteValeurs (VarianteId, ValeurId) VALUES (?, ?)', [$vid, $id]);

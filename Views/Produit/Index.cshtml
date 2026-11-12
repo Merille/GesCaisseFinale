@@ -94,6 +94,10 @@
                                     {
                                         <span class="badge text-bg-warning"><i class="fas fa-utensils"></i> Combo</span>
                                     }
+                                    @if (p.Consommable)
+                                    {
+                                        <span class="badge text-bg-info"><i class="fas fa-bottle-droplet"></i> Consommable</span>
+                                    }
                                 </span>
                             </div>
                         </td>
@@ -169,6 +173,10 @@
                                         @if (p.EstCombo)
                                         {
                                             <span class="badge text-bg-warning"><i class="fas fa-utensils"></i> Combo</span>
+                                        }
+                                        @if (p.Consommable)
+                                        {
+                                            <span class="badge text-bg-info"><i class="fas fa-bottle-droplet"></i> Consommable</span>
                                         }
                                     </h3>
                                     <div class="small text-muted">@p.Code

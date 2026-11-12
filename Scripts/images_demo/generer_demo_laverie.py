@@ -80,6 +80,20 @@ VENTES = [  # jour (J-n), minute de la journée, tiers, mode de paiement (CPT : 
 ]
 # Règlements des clients en compte : jour (J-n), minute, tiers, mode, montant.
 REGLEMENTS = [(2, 1000, 'LAVC001', 'ESP', 100000), (1, 1100, 'LAVC002', 'MM', 10000)]
+# Produits d'entretien consommables (non vendus en caisse, sans catégorie) : code, nom, unité, prix d'achat.
+CONSOMMABLES = [
+    ('CON01', 'Lessive en poudre (sac 25 kg)', 'Sac', 18000),
+    ('CON02', 'Eau de Javel (bidon 5 L)', 'Bouteille', 3500),
+    ('CON03', 'Assouplissant professionnel (bidon 5 L)', 'Bouteille', 6000),
+    ('CON04', 'Cintres (lot de 50)', 'Paquet', 5000),
+    ('CON05', 'Housses plastique (rouleau de 100)', 'Unité', 7500)]
+# Achats au fournisseur LAVF001 : jour (J-n), référence, lignes (code, quantité), règlement (None = à crédit).
+ACHATS = [
+    (5, 'FAC-CP-0412', [('CON01', 4), ('CON02', 6), ('CON03', 4)], 'CB'),
+    (2, 'FAC-CP-0431', [('CON02', 2), ('CON04', 2), ('CON05', 3)], None)]
+# Consommation de la veille : code, quantité.
+CONSOMMATION = [('CON01', 1), ('CON02', 2)]
+
 # Dépôts de linge payés au retrait : jour du dépôt (J-n), minute, client, téléphone, statut,
 # retrait prévu (jours depuis aujourd'hui), acompte (espèces), lignes (code, quantité, note).
 DEPOTS = [
@@ -189,6 +203,7 @@ def ventes(a, s, sqlserver):
     if sqlserver:
         a('END')
     depots(a, sqlserver, jour, concat, dstr, dual, last)
+    achats(a, sqlserver, jour, dual, last)
 
 
 def depots(a, sqlserver, jour, concat, dstr, dual, last):
@@ -238,6 +253,51 @@ def depots(a, sqlserver, jour, concat, dstr, dual, last):
         a('END')
 
 
+def achats(a, sqlserver, jour, dual, last):
+    """Produits d'entretien : achats au fournisseur (entrée en stock, coût) et consommation (une seule fois)."""
+    prix = {c[0]: c[3] for c in CONSOMMABLES}
+    N = 'N' if sqlserver else ''
+    g = '' if sqlserver else ' AND @achats = 0'
+    w = '' if sqlserver else ' WHERE @achats = 0'
+    a('')
+    a("-- Achats de produits d'entretien et consommation (une seule fois : ignorés s'ils existent déjà)")
+    a("SET @achats = (SELECT COUNT(*) FROM Achats WHERE TenantId = @t AND Reference LIKE 'FAC-CP-%');")
+    a('SET @numA = (SELECT COALESCE(MAX(Numero), 0) FROM Achats WHERE TenantId = @t);')
+    a("SET @fourn = (SELECT MIN(Id) FROM Clients WHERE TenantId = @t AND CodeClient = 'LAVF001');")
+    if sqlserver:
+        a('IF @achats = 0')
+        a('BEGIN')
+    stock = {}
+    for k, (n, ref, lignes, mode) in enumerate(ACHATS, 1):
+        total = sum(prix[c] * q for c, q in lignes)
+        a('INSERT INTO Achats (TenantId, Numero, DateAchat, FournisseurId, DepotId, Reference, Commentaire, Total, Statut, UtilisateurId, DateCreation)')
+        a("    SELECT @t, @numA + %d, %s, @fourn, @dep, '%s', NULL, %d, %s, @admin, %s%s%s;"
+          % (k, ('CAST(%s AS date)' % jour(n, 600)) if sqlserver else ('DATE(%s)' % jour(n, 600)), ref, total, N + "'Validé'", jour(n, 600), dual, w))
+        a('SET @achat = %s;' % last)
+        for c, q in lignes:
+            stock[c] = stock.get(c, 0) + q
+            a('INSERT INTO LignesAchats (AchatId, ProduitId, Quantite, PrixUnitaire, Montant)')
+            a("    SELECT @achat, p.Id, %d, %d, %d FROM Produits p WHERE p.TenantId = @t AND p.Code = '%s'%s;" % (q, prix[c], q * prix[c], c, g))
+            a('INSERT INTO MouvementsStock (TenantId, ProduitId, DateMouvement, TypeMouvement, Quantite, StockApres, Reference, UtilisateurId, DepotId, Commentaire)')
+            a("    SELECT @t, p.Id, %s, 'Achat', %d, %d, %s, @admin, @dep, '%s' FROM Produits p WHERE p.TenantId = @t AND p.Code = '%s'%s;"
+              % (jour(n, 600), q, stock[c], (N + "'Achat n° '") + (' + CAST(@numA + %d AS nvarchar(10))' % k if sqlserver else '') if sqlserver else "CONCAT('Achat n° ', @numA + %d)" % k, ref, c, g))
+        if mode:
+            a('INSERT INTO ReglementsAchats (AchatId, DateReglement, Montant, ModePaiementId, OperationCaisseId, UtilisateurId)')
+            a("    SELECT @achat, %s, %d, @%s, NULL, @admin%s%s;" % (jour(n, 600), total, mode.lower(), dual, w))
+    for c, q in CONSOMMATION:
+        stock[c] -= q
+        a('INSERT INTO MouvementsStock (TenantId, ProduitId, DateMouvement, TypeMouvement, Quantite, StockApres, Reference, UtilisateurId, DepotId, Commentaire)')
+        a("    SELECT @t, p.Id, %s, 'Consommation', -%d, %d, 'CONSO-DEMO', @admin, @dep, %s FROM Produits p WHERE p.TenantId = @t AND p.Code = '%s'%s;"
+          % (jour(1, 1000), q, stock[c], N + "'Lavages de la semaine'", c, g))
+    for c, q in stock.items():
+        a("UPDATE Produits SET StockActuel = StockActuel + %d WHERE TenantId = @t AND Code = '%s'%s;" % (q, c, g))
+        a("INSERT INTO StocksDepots (DepotId, ProduitId, Quantite) SELECT @dep, p.Id, 0 FROM Produits p WHERE p.TenantId = @t AND p.Code = '%s'" % c)
+        a('    AND NOT EXISTS (SELECT 1 FROM StocksDepots s WHERE s.ProduitId = p.Id AND s.DepotId = @dep)%s;' % g)
+        a("UPDATE StocksDepots SET Quantite = Quantite + %d WHERE DepotId = @dep AND ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = '%s')%s;" % (q, c, g))
+    if sqlserver:
+        a('END')
+
+
 def ecrire(sqlserver):
     N = "N" if sqlserver else ""
     def s(v):
@@ -252,7 +312,9 @@ def ecrire(sqlserver):
     a('-- 6 catégories et 24 articles avec leur image (20 prestations sans suivi de stock et 4 produits')
     a('-- en stock), 4 tiers (entreprises et particuliers, dont 2 clients en compte) et 20 ventes à ces')
     a('-- tiers (5 chacun, dont 7 par compte, et 2 règlements) sur les 5 jours précédant l\'exécution,')
-    a('-- en journées clôturées. Mode « Compte client » créé. La société de démonstration existante')
+    a('-- en journées clôturées, 3 dépôts de linge, 5 produits d\'entretien consommables (non vendus en caisse),')
+    a('-- 2 achats au fournisseur (un réglé par carte, un à crédit) et une consommation.')
+    a('-- Mode « Compte client » créé. La société de démonstration existante')
     a('-- n\'est pas modifiée.')
     a('--')
     a('-- À exécuter sur la base LOCALE de test (jamais en production), après avoir lancé une fois l\'application.')
@@ -268,6 +330,7 @@ def ecrire(sqlserver):
         a('DECLARE @t INT, @admin INT, @caissier INT, @dep INT, @tva INT, @c INT;')
         a('DECLARE @caisse INT, @code NVARCHAR(50), @motif INT, @motifRegl INT, @ventes INT, @j INT, @cmd INT, @l INT, @op INT, @esp INT, @mm INT, @cb INT, @cpt INT;')
         a('DECLARE @depots INT, @num INT, @jd INT, @motifAcompte INT;')
+        a('DECLARE @achats INT, @numA INT, @fourn INT, @achat INT;')
         a('BEGIN TRANSACTION;')
     else:
         a('SET NAMES utf8mb4;')
@@ -326,6 +389,12 @@ def ecrire(sqlserver):
     liste = ', '.join("'%s'" % c for c in codes)
     a('INSERT INTO ProduitTaxes (ProduitId, TaxeId) SELECT p.Id, @tva FROM Produits p WHERE p.TenantId = @t AND p.Code IN (%s)' % liste)
     a('    AND NOT EXISTS (SELECT 1 FROM ProduitTaxes x WHERE x.ProduitId = p.Id);')
+    a('')
+    a("-- Produits d'entretien consommables : achetés et utilisés pour le service, jamais vendus en caisse")
+    for code, nom, unite, cout in CONSOMMABLES:
+        a('INSERT INTO Produits (TenantId, Code, CodeBarres, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, SeuilAlerte, Actif, Cout, Unite, EstModele, Supplement, EstCombo, Consommable)')
+        a('    SELECT @t, %s, NULL, %s, NULL, 0, 0, 1, 0, 1, 1, %d, %s, 0, 0, 0, 1%s WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = %s);'
+          % (s(code), s(nom), cout, s(unite), dual, s(code)))
     a('')
     a('-- Stock de départ des produits vendus (livraison du fournisseur dans le dépôt par défaut)')
     for _, _, arts in CATEGORIES:

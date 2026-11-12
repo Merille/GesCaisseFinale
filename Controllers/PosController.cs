@@ -58,7 +58,7 @@ namespace EasytransitCaisse.Controllers
             // Catalogue de la société de la journée (aussi pour le SuperAdmin en mode « toutes »).
             var tenant = j.TenantId;
             var catalogue = await _context.Produits
-                .Where(p => p.Actif && p.TenantId == tenant)
+                .Where(p => p.Actif && !p.Consommable && p.TenantId == tenant)
                 .OrderBy(p => p.Nom)
                 .ToListAsync();
             // Stock affiché : celui des dépôts de la caisse (principal et secondaires).
@@ -284,7 +284,7 @@ namespace EasytransitCaisse.Controllers
             decimal ttc = 0, tva = 0;
             foreach (var l in v.Lignes)
             {
-                var p = await _context.Produits.FirstOrDefaultAsync(x => x.Id == l.ProduitId && x.TenantId == tenant && x.Actif
+                var p = await _context.Produits.FirstOrDefaultAsync(x => x.Id == l.ProduitId && x.TenantId == tenant && x.Actif && !x.Consommable
                     && (x.ParentId == null || _context.Produits.Any(m => m.Id == x.ParentId && m.Actif)));
                 var qte = Math.Round(l.Qte, 2);
                 if (p == null || qte <= 0)

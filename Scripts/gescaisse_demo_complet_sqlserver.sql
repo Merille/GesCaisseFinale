@@ -9,7 +9,9 @@
 --   frais de livraison proposés par défaut : 1 000 FCFA.
 --   Seconde société « Laverie Éclat Blanc » (script demo_laverie_mysql.sql) : caisse LAV1 de type Laverie,
 --   6 catégories et 24 articles avec leur image (prestations et produits en stock), 4 tiers dont
---   2 clients en compte, et 20 ventes à ces tiers (dont 7 par compte, puis 2 règlements) sur 5 journées clôturées.
+--   2 clients en compte, et 20 ventes à ces tiers (dont 7 par compte, puis 2 règlements) sur 5 journées clôturées ;
+--   5 produits d'entretien consommables (non vendus en caisse), 2 achats au fournisseur Chimie Propre SARL
+--   (un réglé par carte, un à crédit) et une consommation.
 --   Chaque société a son mode de paiement « Compte client ».
 --
 -- Utilisation : créer une base VIDE (ex. GesCaisseDemo), puis exécuter ce script sur cette base
@@ -38,6 +40,25 @@ GO
 -- =====================================================================
 -- Structure
 -- =====================================================================
+CREATE TABLE [Achats] (
+    [Id] int NOT NULL IDENTITY,
+    [TenantId] int NOT NULL,
+    [Numero] int NOT NULL,
+    [DateAchat] date NOT NULL,
+    [FournisseurId] int NULL,
+    [DepotId] int NOT NULL,
+    [Reference] nvarchar(100) NULL,
+    [Commentaire] nvarchar(300) NULL,
+    [Total] decimal(18,2) NOT NULL DEFAULT 0.0,
+    [Statut] nvarchar(20) NOT NULL DEFAULT N'Validé',
+    [UtilisateurId] int NULL,
+    [DateCreation] datetime2 NOT NULL,
+    [DateAnnulation] datetime2 NULL,
+    CONSTRAINT [PK_Achats] PRIMARY KEY ([Id])
+);
+GO
+
+
 CREATE TABLE [Categories] (
     [Id] int NOT NULL IDENTITY,
     [TenantId] int NOT NULL,
@@ -207,6 +228,33 @@ CREATE TABLE [Unites] (
 GO
 
 
+CREATE TABLE [LignesAchats] (
+    [Id] int NOT NULL IDENTITY,
+    [AchatId] int NOT NULL,
+    [ProduitId] int NOT NULL,
+    [Quantite] decimal(18,2) NOT NULL,
+    [PrixUnitaire] decimal(18,2) NOT NULL,
+    [Montant] decimal(18,2) NOT NULL,
+    CONSTRAINT [PK_LignesAchats] PRIMARY KEY ([Id]),
+    CONSTRAINT [FK_LignesAchats_Achats_AchatId] FOREIGN KEY ([AchatId]) REFERENCES [Achats] ([Id]) ON DELETE CASCADE
+);
+GO
+
+
+CREATE TABLE [ReglementsAchats] (
+    [Id] int NOT NULL IDENTITY,
+    [AchatId] int NOT NULL,
+    [DateReglement] datetime2 NOT NULL,
+    [Montant] decimal(18,2) NOT NULL,
+    [ModePaiementId] int NULL,
+    [OperationCaisseId] int NULL,
+    [UtilisateurId] int NULL,
+    CONSTRAINT [PK_ReglementsAchats] PRIMARY KEY ([Id]),
+    CONSTRAINT [FK_ReglementsAchats_Achats_AchatId] FOREIGN KEY ([AchatId]) REFERENCES [Achats] ([Id]) ON DELETE CASCADE
+);
+GO
+
+
 CREATE TABLE [Produits] (
     [Id] int NOT NULL IDENTITY,
     [TenantId] int NOT NULL,
@@ -228,6 +276,7 @@ CREATE TABLE [Produits] (
     [Supplement] decimal(18,2) NOT NULL,
     [LibelleVariante] nvarchar(150) NULL,
     [EstCombo] bit NOT NULL,
+    [Consommable] bit NOT NULL DEFAULT CAST(0 AS bit),
     CONSTRAINT [PK_Produits] PRIMARY KEY ([Id]),
     CONSTRAINT [FK_Produits_Categories_CategorieId] FOREIGN KEY ([CategorieId]) REFERENCES [Categories] ([Id]) ON DELETE SET NULL
 );
@@ -677,6 +726,14 @@ CREATE TABLE [LignesCommandePosTaxes] (
 GO
 
 
+CREATE INDEX [IX_Achats_TenantId_DateAchat] ON [Achats] ([TenantId], [DateAchat]);
+GO
+
+
+CREATE UNIQUE INDEX [IX_Achats_TenantId_Numero] ON [Achats] ([TenantId], [Numero]);
+GO
+
+
 CREATE INDEX [IX_BonsPreparation_CaisseId_Statut] ON [BonsPreparation] ([CaisseId], [Statut]);
 GO
 
@@ -762,6 +819,10 @@ GO
 
 
 CREATE INDEX [IX_JourneesCaisses_CaisseId] ON [JourneesCaisses] ([CaisseId]);
+GO
+
+
+CREATE INDEX [IX_LignesAchats_AchatId] ON [LignesAchats] ([AchatId]);
 GO
 
 
@@ -853,6 +914,10 @@ CREATE INDEX [IX_ProduitTaxes_TaxeId] ON [ProduitTaxes] ([TaxeId]);
 GO
 
 
+CREATE INDEX [IX_ReglementsAchats_AchatId] ON [ReglementsAchats] ([AchatId]);
+GO
+
+
 CREATE INDEX [IX_Salles_CaisseId] ON [Salles] ([CaisseId]);
 GO
 
@@ -916,12 +981,14 @@ INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion]) VALUES
     (N'20261109215135_ClientsEnCompte', N'10.0.9'),
     (N'20261109225752_FraisLivraison', N'10.0.9'),
     (N'20261110133047_DepotsSecondaires', N'10.0.9'),
-    (N'20261111184559_DepotsLinge', N'10.0.9');
+    (N'20261111184559_DepotsLinge', N'10.0.9'),
+    (N'20261112063241_Achats', N'10.0.9');
 GO
 
 -- =====================================================================
 -- Données
 -- =====================================================================
+ALTER TABLE [Achats] NOCHECK CONSTRAINT ALL;
 ALTER TABLE [BonsPreparation] NOCHECK CONSTRAINT ALL;
 ALTER TABLE [Caisses] NOCHECK CONSTRAINT ALL;
 ALTER TABLE [CaissesDepots] NOCHECK CONSTRAINT ALL;
@@ -937,6 +1004,7 @@ ALTER TABLE [Depots] NOCHECK CONSTRAINT ALL;
 ALTER TABLE [DepotsLinge] NOCHECK CONSTRAINT ALL;
 ALTER TABLE [Factures] NOCHECK CONSTRAINT ALL;
 ALTER TABLE [JourneesCaisses] NOCHECK CONSTRAINT ALL;
+ALTER TABLE [LignesAchats] NOCHECK CONSTRAINT ALL;
 ALTER TABLE [LignesBonPreparation] NOCHECK CONSTRAINT ALL;
 ALTER TABLE [LignesCommandePos] NOCHECK CONSTRAINT ALL;
 ALTER TABLE [LignesCommandePosTaxes] NOCHECK CONSTRAINT ALL;
@@ -953,6 +1021,7 @@ ALTER TABLE [ProduitCombos] NOCHECK CONSTRAINT ALL;
 ALTER TABLE [ProduitImages] NOCHECK CONSTRAINT ALL;
 ALTER TABLE [ProduitTaxes] NOCHECK CONSTRAINT ALL;
 ALTER TABLE [Produits] NOCHECK CONSTRAINT ALL;
+ALTER TABLE [ReglementsAchats] NOCHECK CONSTRAINT ALL;
 ALTER TABLE [Salles] NOCHECK CONSTRAINT ALL;
 ALTER TABLE [StocksDepots] NOCHECK CONSTRAINT ALL;
 ALTER TABLE [TablesRestaurant] NOCHECK CONSTRAINT ALL;
@@ -962,6 +1031,14 @@ ALTER TABLE [Tenants] NOCHECK CONSTRAINT ALL;
 ALTER TABLE [Unites] NOCHECK CONSTRAINT ALL;
 ALTER TABLE [Utilisateurs] NOCHECK CONSTRAINT ALL;
 ALTER TABLE [VarianteValeurs] NOCHECK CONSTRAINT ALL;
+GO
+
+-- Achats (2)
+SET IDENTITY_INSERT [Achats] ON;
+INSERT INTO [Achats] ([Id], [TenantId], [Numero], [DateAchat], [FournisseurId], [DepotId], [Reference], [Commentaire], [Total], [Statut], [UtilisateurId], [DateCreation], [DateAnnulation]) VALUES
+(1, 2, 1, N'2026-11-07', 10, 2, N'FAC-CP-0412', NULL, 117000.00, N'Validé', 5, N'2026-11-07 10:00:00', NULL),
+(2, 2, 2, N'2026-11-10', 10, 2, N'FAC-CP-0431', NULL, 39500.00, N'Validé', 5, N'2026-11-10 10:00:00', NULL);
+SET IDENTITY_INSERT [Achats] OFF;
 GO
 
 -- Caisses (3)
@@ -1246,6 +1323,18 @@ INSERT INTO [JourneesCaisses] ([Id], [TenantId], [CaisseId], [NumeroJournee], [D
 (18, 2, 3, N'LAV1-20261107-DEMO', N'2026-11-07', N'2026-11-07 08:00:00', N'2026-11-07 19:30:00', 20000.00, 152000.00, 0.00, N'Journée de démonstration', N'Cloturee'),
 (19, 2, 3, N'LAV1-20261108-DEMO', N'2026-11-08', N'2026-11-08 08:00:00', N'2026-11-08 19:30:00', 20000.00, 43050.00, 0.00, N'Journée de démonstration', N'Cloturee');
 SET IDENTITY_INSERT [JourneesCaisses] OFF;
+GO
+
+-- LignesAchats (6)
+SET IDENTITY_INSERT [LignesAchats] ON;
+INSERT INTO [LignesAchats] ([Id], [AchatId], [ProduitId], [Quantite], [PrixUnitaire], [Montant]) VALUES
+(1, 1, 69, 4.00, 18000.00, 72000.00),
+(2, 1, 70, 6.00, 3500.00, 21000.00),
+(3, 1, 71, 4.00, 6000.00, 24000.00),
+(4, 2, 70, 2.00, 3500.00, 7000.00),
+(5, 2, 72, 2.00, 5000.00, 10000.00),
+(6, 2, 73, 3.00, 7500.00, 22500.00);
+SET IDENTITY_INSERT [LignesAchats] OFF;
 GO
 
 -- LignesCommandePos (346)
@@ -1988,7 +2077,7 @@ INSERT INTO [Motifs] ([ID], [LibelleMotif], [TypeModif], [CG_Num], [TenantId]) V
 SET IDENTITY_INSERT [Motifs] OFF;
 GO
 
--- MouvementsStock (331)
+-- MouvementsStock (339)
 SET IDENTITY_INSERT [MouvementsStock] ON;
 INSERT INTO [MouvementsStock] ([Id], [TenantId], [ProduitId], [DateMouvement], [TypeMouvement], [Quantite], [StockApres], [Reference], [CommandePosId], [UtilisateurId], [Commentaire], [DepotId]) VALUES
 (1, 1, 1, N'2026-10-18 16:00:00', N'Entrée', 48.00, 48.00, N'BL-DEMO-001', NULL, 2, N'Livraison fournisseur (démo)', 1),
@@ -2322,7 +2411,15 @@ INSERT INTO [MouvementsStock] ([Id], [TenantId], [ProduitId], [DateMouvement], [
 (328, 2, 63, N'2026-11-05 18:00:00', N'Vente', -5.00, 35.00, N'POS-LAV1-20261105-D004', 159, 6, NULL, 2),
 (329, 2, 61, N'2026-11-06 14:40:00', N'Vente', -1.00, 17.00, N'POS-LAV1-20261106-D003', 162, 6, NULL, 2),
 (330, 2, 62, N'2026-11-07 18:20:00', N'Vente', -1.00, 11.00, N'POS-LAV1-20261107-D004', 167, 6, NULL, 2),
-(331, 2, 63, N'2026-11-08 17:20:00', N'Vente', -2.00, 33.00, N'POS-LAV1-20261108-D004', 171, 6, NULL, 2);
+(331, 2, 63, N'2026-11-08 17:20:00', N'Vente', -2.00, 33.00, N'POS-LAV1-20261108-D004', 171, 6, NULL, 2),
+(332, 2, 69, N'2026-11-07 10:00:00', N'Achat', 4.00, 4.00, N'Achat n° 1', NULL, 5, N'FAC-CP-0412', 2),
+(333, 2, 70, N'2026-11-07 10:00:00', N'Achat', 6.00, 6.00, N'Achat n° 1', NULL, 5, N'FAC-CP-0412', 2),
+(334, 2, 71, N'2026-11-07 10:00:00', N'Achat', 4.00, 4.00, N'Achat n° 1', NULL, 5, N'FAC-CP-0412', 2),
+(335, 2, 70, N'2026-11-10 10:00:00', N'Achat', 2.00, 8.00, N'Achat n° 2', NULL, 5, N'FAC-CP-0431', 2),
+(336, 2, 72, N'2026-11-10 10:00:00', N'Achat', 2.00, 2.00, N'Achat n° 2', NULL, 5, N'FAC-CP-0431', 2),
+(337, 2, 73, N'2026-11-10 10:00:00', N'Achat', 3.00, 3.00, N'Achat n° 2', NULL, 5, N'FAC-CP-0431', 2),
+(338, 2, 69, N'2026-11-11 16:40:00', N'Consommation', -1.00, 3.00, N'CONSO-DEMO', NULL, 5, N'Lavages de la semaine', 2),
+(339, 2, 70, N'2026-11-11 16:40:00', N'Consommation', -2.00, 6.00, N'CONSO-DEMO', NULL, 5, N'Lavages de la semaine', 2);
 SET IDENTITY_INSERT [MouvementsStock] OFF;
 GO
 
@@ -2836,73 +2933,85 @@ INSERT INTO [ProduitTaxes] ([ProduitId], [TaxeId]) VALUES
 (63, 3);
 GO
 
--- Produits (63)
+-- Produits (68)
 SET IDENTITY_INSERT [Produits] ON;
-INSERT INTO [Produits] ([Id], [TenantId], [Code], [CodeBarres], [Nom], [CategorieId], [PrixVente], [TauxTVA], [SuiviStock], [StockActuel], [SeuilAlerte], [Actif], [Cout], [Unite], [ImageMaj], [ParentId], [EstModele], [Supplement], [LibelleVariante], [EstCombo]) VALUES
-(1, 1, N'BOI01', N'2000000000015', N'Coca-Cola 33 cl', 1, 600.00, 18.00, 1, 51.00, 24.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0),
-(2, 1, N'BOI02', N'2000000000022', N'Eau minérale 1,5 L', 1, 500.00, 18.00, 1, 50.00, 24.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0),
-(3, 1, N'BOI03', N'2000000000039', N'Jus d''orange 1 L', 1, 1500.00, 18.00, 1, 5.00, 10.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0),
-(4, 1, N'EPI01', N'2000000000046', N'Riz parfumé 5 kg', 2, 7500.00, 18.00, 1, 2.00, 5.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0),
-(5, 1, N'EPI02', N'2000000000053', N'Huile végétale 1 L', 2, 1800.00, 18.00, 1, 19.00, 8.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0),
-(6, 1, N'EPI03', N'2000000000060', N'Sucre en poudre 1 kg', 2, 1200.00, 18.00, 1, 21.00, 8.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0),
-(7, 1, N'BOU01', N'2000000000077', N'Pain baguette', 3, 250.00, 18.00, 1, 64.00, 30.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0),
-(8, 1, N'BOU02', N'2000000000084', N'Croissant', 3, 400.00, 18.00, 1, 30.00, 15.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0),
-(9, 1, N'BOU03', N'2000000000091', N'Pain de mie', 3, 1200.00, 18.00, 1, 15.00, 6.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0),
-(10, 1, N'LAI01', N'2000000000107', N'Lait concentré sucré 397 g', 4, 800.00, 18.00, 1, 24.00, 12.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0),
-(11, 1, N'LAI02', N'2000000000114', N'Yaourt nature', 4, 500.00, 18.00, 1, 24.00, 12.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0),
-(12, 1, N'LAI03', N'2000000000121', N'Fromage fondu 8 portions', 4, 1500.00, 18.00, 1, 16.00, 6.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0),
-(13, 1, N'HYG01', N'2000000000138', N'Savon de toilette', 5, 500.00, 18.00, 1, 29.00, 12.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0),
-(14, 1, N'HYG02', N'2000000000145', N'Dentifrice 75 ml', 5, 1200.00, 18.00, 1, 5.00, 6.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0),
-(15, 1, N'HYG03', N'2000000000152', N'Papier toilette x4', 5, 1500.00, 18.00, 1, 17.00, 6.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0),
-(16, 1, N'ENT01', N'2000000000169', N'Eau de javel 1 L', 6, 900.00, 18.00, 1, 14.00, 6.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0),
-(17, 1, N'ENT02', N'2000000000176', N'Lessive en poudre 1 kg', 6, 2000.00, 18.00, 1, 13.00, 6.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0),
-(18, 1, N'ENT03', N'2000000000183', N'Liquide vaisselle 750 ml', 6, 1300.00, 18.00, 1, 12.00, 6.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0),
-(19, 1, N'PAP01', N'2000000000190', N'Ramette papier A4', 7, 4500.00, 18.00, 1, 9.00, 4.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0),
-(20, 1, N'PAP02', N'2000000000206', N'Stylo bille bleu', 7, 200.00, 18.00, 1, 41.00, 20.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0),
-(21, 1, N'PAP03', N'2000000000213', N'Cahier 100 pages', 7, 600.00, 18.00, 1, 25.00, 10.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0),
-(22, 1, N'ELE01', N'2000000000220', N'Piles AA x4', 8, 1500.00, 18.00, 1, 16.00, 6.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0),
-(23, 1, N'ELE02', N'2000000000237', N'Chargeur USB', 8, 3500.00, 18.00, 1, 4.00, 3.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0),
-(24, 1, N'ELE03', N'2000000000244', N'Écouteurs filaires', 8, 2500.00, 18.00, 1, 6.00, 3.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0),
-(25, 1, N'SNA01', N'2000000000251', N'Biscuits secs', 9, 300.00, 18.00, 1, 43.00, 20.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0),
-(26, 1, N'SNA02', N'2000000000268', N'Chips 150 g', 9, 1000.00, 18.00, 1, 23.00, 10.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0),
-(27, 1, N'SNA03', N'2000000000275', N'Tablette de chocolat', 9, 1200.00, 18.00, 1, 17.00, 8.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0),
-(28, 1, N'SER01', NULL, N'Photocopie (la page)', 10, 100.00, 18.00, 0, 0.00, NULL, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0),
-(29, 1, N'SER02', NULL, N'Impression couleur (la page)', 10, 250.00, 18.00, 0, 0.00, NULL, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0),
-(30, 1, N'SER03', NULL, N'Saisie de document (la page)', 10, 1000.00, 18.00, 0, 0.00, NULL, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0),
-(31, 1, N'PLA01', NULL, N'Poulet braisé', 11, 3500.00, 18.00, 0, 0.00, 0.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0),
-(32, 1, N'PLA02', NULL, N'Poisson braisé', 11, 4000.00, 18.00, 0, 0.00, 0.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0),
-(33, 1, N'PLA03', NULL, N'Brochettes de bœuf', 11, 2500.00, 18.00, 0, 0.00, 0.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0),
-(34, 1, N'ACC01', NULL, N'Alloco', 12, 1000.00, 18.00, 0, 0.00, 0.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0),
-(35, 1, N'ACC02', NULL, N'Frites', 12, 1000.00, 18.00, 0, 0.00, 0.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0),
-(36, 1, N'ACC03', NULL, N'Riz blanc', 12, 800.00, 18.00, 0, 0.00, 0.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0),
-(37, 1, N'BIE01', NULL, N'Régab 66 cl', 13, 1000.00, 18.00, 1, 96.00, 24.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0),
-(38, 1, N'BIE02', NULL, N'Castel 65 cl', 13, 1000.00, 18.00, 1, 72.00, 24.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0),
-(39, 1, N'MEN01', NULL, N'Menu Jardin', 11, 4500.00, 18.00, 0, 0.00, 0.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 1),
-(40, 2, N'LAV01', NULL, N'Chemise (lavage + repassage)', 14, 1000.00, 18.00, 0, 0.00, NULL, 1, NULL, N'Pièce', N'2026-11-02 00:15:20', NULL, 0, 0.00, NULL, 0),
-(41, 2, N'LAV02', NULL, N'Pantalon (lavage + repassage)', 14, 1200.00, 18.00, 0, 0.00, NULL, 1, NULL, N'Pièce', N'2026-11-02 00:15:20', NULL, 0, 0.00, NULL, 0),
-(42, 2, N'LAV03', NULL, N'Robe simple (lavage + repassage)', 14, 1500.00, 18.00, 0, 0.00, NULL, 1, NULL, N'Pièce', N'2026-11-02 00:15:20', NULL, 0, 0.00, NULL, 0),
-(43, 2, N'LAV04', NULL, N'Tenue traditionnelle / boubou', 14, 2000.00, 18.00, 0, 0.00, NULL, 1, NULL, N'Pièce', N'2026-11-02 00:15:20', NULL, 0, 0.00, NULL, 0),
-(44, 2, N'PRE01', NULL, N'Costume 2 pièces (nettoyage à sec)', 15, 4000.00, 18.00, 0, 0.00, NULL, 1, NULL, N'Pièce', N'2026-11-02 00:15:20', NULL, 0, 0.00, NULL, 0),
-(45, 2, N'PRE02', NULL, N'Veste / blazer (nettoyage à sec)', 15, 2500.00, 18.00, 0, 0.00, NULL, 1, NULL, N'Pièce', N'2026-11-02 00:15:20', NULL, 0, 0.00, NULL, 0),
-(46, 2, N'PRE03', NULL, N'Robe de soirée (nettoyage à sec)', 15, 5000.00, 18.00, 0, 0.00, NULL, 1, NULL, N'Pièce', N'2026-11-02 00:15:20', NULL, 0, 0.00, NULL, 0),
-(47, 2, N'PRE04', NULL, N'Robe de mariée (nettoyage à sec)', 15, 15000.00, 18.00, 0, 0.00, NULL, 1, NULL, N'Pièce', N'2026-11-02 00:15:20', NULL, 0, 0.00, NULL, 0),
-(48, 2, N'LIN01', NULL, N'Drap (lavage + repassage)', 16, 1500.00, 18.00, 0, 0.00, NULL, 1, NULL, N'Pièce', N'2026-11-02 00:15:20', NULL, 0, 0.00, NULL, 0),
-(49, 2, N'LIN02', NULL, N'Couette / couverture', 16, 5000.00, 18.00, 0, 0.00, NULL, 1, NULL, N'Pièce', N'2026-11-02 00:15:20', NULL, 0, 0.00, NULL, 0),
-(50, 2, N'LIN03', NULL, N'Rideau (lavage + repassage)', 16, 2000.00, 18.00, 0, 0.00, NULL, 1, NULL, N'Pièce', N'2026-11-02 00:15:20', NULL, 0, 0.00, NULL, 0),
-(51, 2, N'LIN04', NULL, N'Tapis (nettoyage)', 16, 6000.00, 18.00, 0, 0.00, NULL, 1, NULL, N'Pièce', N'2026-11-02 00:15:20', NULL, 0, 0.00, NULL, 0),
-(52, 2, N'KIL01', NULL, N'Linge au kilo : lavage + séchage', 17, 1000.00, 18.00, 0, 0.00, NULL, 1, NULL, N'Kg', N'2026-11-02 00:15:20', NULL, 0, 0.00, NULL, 0),
-(53, 2, N'KIL02', NULL, N'Linge au kilo : lavage + séchage + pliage', 17, 1500.00, 18.00, 0, 0.00, NULL, 1, NULL, N'Kg', N'2026-11-02 00:15:20', NULL, 0, 0.00, NULL, 0),
-(54, 2, N'KIL03', NULL, N'Machine libre-service 8 kg', 17, 2500.00, 18.00, 0, 0.00, NULL, 1, NULL, N'Unité', N'2026-11-02 00:15:20', NULL, 0, 0.00, NULL, 0),
-(55, 2, N'KIL04', NULL, N'Séchoir libre-service (30 min)', 17, 1500.00, 18.00, 0, 0.00, NULL, 1, NULL, N'Unité', N'2026-11-02 00:15:20', NULL, 0, 0.00, NULL, 0),
-(56, 2, N'OPT01', NULL, N'Service express (24 h)', 18, 2000.00, 18.00, 0, 0.00, NULL, 1, NULL, N'Unité', N'2026-11-02 00:15:20', NULL, 0, 0.00, NULL, 0),
-(57, 2, N'OPT02', NULL, N'Détachage', 18, 1000.00, 18.00, 0, 0.00, NULL, 1, NULL, N'Pièce', N'2026-11-02 00:15:20', NULL, 0, 0.00, NULL, 0),
-(58, 2, N'OPT03', NULL, N'Repassage seul', 18, 500.00, 18.00, 0, 0.00, NULL, 1, NULL, N'Pièce', N'2026-11-02 00:15:20', NULL, 0, 0.00, NULL, 0),
-(59, 2, N'OPT04', NULL, N'Collecte et livraison à domicile', 18, 1500.00, 18.00, 0, 0.00, NULL, 1, NULL, N'Unité', N'2026-11-02 00:15:20', NULL, 0, 0.00, NULL, 0),
-(60, 2, N'PRO01', NULL, N'Lessive liquide 1 L', 19, 3000.00, 18.00, 1, 23.00, 5.00, 1, 1650.00, N'Bouteille', N'2026-11-02 00:15:20', NULL, 0, 0.00, NULL, 0),
-(61, 2, N'PRO02', NULL, N'Assouplissant 1 L', 19, 2500.00, 18.00, 1, 17.00, 5.00, 1, 1375.00, N'Bouteille', N'2026-11-02 00:15:20', NULL, 0, 0.00, NULL, 0),
-(62, 2, N'PRO03', NULL, N'Détachant 500 ml', 19, 2000.00, 18.00, 1, 11.00, 5.00, 1, 1100.00, N'Bouteille', N'2026-11-02 00:15:20', NULL, 0, 0.00, NULL, 0),
-(63, 2, N'PRO04', NULL, N'Housse de protection pour vêtement', 19, 1000.00, 18.00, 1, 33.00, 5.00, 1, 550.00, N'Unité', N'2026-11-02 00:15:20', NULL, 0, 0.00, NULL, 0);
+INSERT INTO [Produits] ([Id], [TenantId], [Code], [CodeBarres], [Nom], [CategorieId], [PrixVente], [TauxTVA], [SuiviStock], [StockActuel], [SeuilAlerte], [Actif], [Cout], [Unite], [ImageMaj], [ParentId], [EstModele], [Supplement], [LibelleVariante], [EstCombo], [Consommable]) VALUES
+(1, 1, N'BOI01', N'2000000000015', N'Coca-Cola 33 cl', 1, 600.00, 18.00, 1, 51.00, 24.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0, 0),
+(2, 1, N'BOI02', N'2000000000022', N'Eau minérale 1,5 L', 1, 500.00, 18.00, 1, 50.00, 24.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0, 0),
+(3, 1, N'BOI03', N'2000000000039', N'Jus d''orange 1 L', 1, 1500.00, 18.00, 1, 5.00, 10.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0, 0),
+(4, 1, N'EPI01', N'2000000000046', N'Riz parfumé 5 kg', 2, 7500.00, 18.00, 1, 2.00, 5.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0, 0),
+(5, 1, N'EPI02', N'2000000000053', N'Huile végétale 1 L', 2, 1800.00, 18.00, 1, 19.00, 8.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0, 0),
+(6, 1, N'EPI03', N'2000000000060', N'Sucre en poudre 1 kg', 2, 1200.00, 18.00, 1, 21.00, 8.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0, 0),
+(7, 1, N'BOU01', N'2000000000077', N'Pain baguette', 3, 250.00, 18.00, 1, 64.00, 30.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0, 0),
+(8, 1, N'BOU02', N'2000000000084', N'Croissant', 3, 400.00, 18.00, 1, 30.00, 15.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0, 0),
+(9, 1, N'BOU03', N'2000000000091', N'Pain de mie', 3, 1200.00, 18.00, 1, 15.00, 6.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0, 0),
+(10, 1, N'LAI01', N'2000000000107', N'Lait concentré sucré 397 g', 4, 800.00, 18.00, 1, 24.00, 12.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0, 0),
+(11, 1, N'LAI02', N'2000000000114', N'Yaourt nature', 4, 500.00, 18.00, 1, 24.00, 12.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0, 0),
+(12, 1, N'LAI03', N'2000000000121', N'Fromage fondu 8 portions', 4, 1500.00, 18.00, 1, 16.00, 6.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0, 0),
+(13, 1, N'HYG01', N'2000000000138', N'Savon de toilette', 5, 500.00, 18.00, 1, 29.00, 12.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0, 0),
+(14, 1, N'HYG02', N'2000000000145', N'Dentifrice 75 ml', 5, 1200.00, 18.00, 1, 5.00, 6.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0, 0),
+(15, 1, N'HYG03', N'2000000000152', N'Papier toilette x4', 5, 1500.00, 18.00, 1, 17.00, 6.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0, 0),
+(16, 1, N'ENT01', N'2000000000169', N'Eau de javel 1 L', 6, 900.00, 18.00, 1, 14.00, 6.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0, 0),
+(17, 1, N'ENT02', N'2000000000176', N'Lessive en poudre 1 kg', 6, 2000.00, 18.00, 1, 13.00, 6.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0, 0),
+(18, 1, N'ENT03', N'2000000000183', N'Liquide vaisselle 750 ml', 6, 1300.00, 18.00, 1, 12.00, 6.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0, 0),
+(19, 1, N'PAP01', N'2000000000190', N'Ramette papier A4', 7, 4500.00, 18.00, 1, 9.00, 4.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0, 0),
+(20, 1, N'PAP02', N'2000000000206', N'Stylo bille bleu', 7, 200.00, 18.00, 1, 41.00, 20.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0, 0),
+(21, 1, N'PAP03', N'2000000000213', N'Cahier 100 pages', 7, 600.00, 18.00, 1, 25.00, 10.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0, 0),
+(22, 1, N'ELE01', N'2000000000220', N'Piles AA x4', 8, 1500.00, 18.00, 1, 16.00, 6.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0, 0),
+(23, 1, N'ELE02', N'2000000000237', N'Chargeur USB', 8, 3500.00, 18.00, 1, 4.00, 3.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0, 0),
+(24, 1, N'ELE03', N'2000000000244', N'Écouteurs filaires', 8, 2500.00, 18.00, 1, 6.00, 3.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0, 0),
+(25, 1, N'SNA01', N'2000000000251', N'Biscuits secs', 9, 300.00, 18.00, 1, 43.00, 20.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0, 0),
+(26, 1, N'SNA02', N'2000000000268', N'Chips 150 g', 9, 1000.00, 18.00, 1, 23.00, 10.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0, 0),
+(27, 1, N'SNA03', N'2000000000275', N'Tablette de chocolat', 9, 1200.00, 18.00, 1, 17.00, 8.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0, 0),
+(28, 1, N'SER01', NULL, N'Photocopie (la page)', 10, 100.00, 18.00, 0, 0.00, NULL, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0, 0),
+(29, 1, N'SER02', NULL, N'Impression couleur (la page)', 10, 250.00, 18.00, 0, 0.00, NULL, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0, 0),
+(30, 1, N'SER03', NULL, N'Saisie de document (la page)', 10, 1000.00, 18.00, 0, 0.00, NULL, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0, 0),
+(31, 1, N'PLA01', NULL, N'Poulet braisé', 11, 3500.00, 18.00, 0, 0.00, 0.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0, 0),
+(32, 1, N'PLA02', NULL, N'Poisson braisé', 11, 4000.00, 18.00, 0, 0.00, 0.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0, 0),
+(33, 1, N'PLA03', NULL, N'Brochettes de bœuf', 11, 2500.00, 18.00, 0, 0.00, 0.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0, 0),
+(34, 1, N'ACC01', NULL, N'Alloco', 12, 1000.00, 18.00, 0, 0.00, 0.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0, 0),
+(35, 1, N'ACC02', NULL, N'Frites', 12, 1000.00, 18.00, 0, 0.00, 0.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0, 0),
+(36, 1, N'ACC03', NULL, N'Riz blanc', 12, 800.00, 18.00, 0, 0.00, 0.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0, 0),
+(37, 1, N'BIE01', NULL, N'Régab 66 cl', 13, 1000.00, 18.00, 1, 96.00, 24.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0, 0),
+(38, 1, N'BIE02', NULL, N'Castel 65 cl', 13, 1000.00, 18.00, 1, 72.00, 24.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 0, 0),
+(39, 1, N'MEN01', NULL, N'Menu Jardin', 11, 4500.00, 18.00, 0, 0.00, 0.00, 1, NULL, N'Unité', N'2026-11-07 10:07:31', NULL, 0, 0.00, NULL, 1, 0),
+(40, 2, N'LAV01', NULL, N'Chemise (lavage + repassage)', 14, 1000.00, 18.00, 0, 0.00, NULL, 1, NULL, N'Pièce', N'2026-11-02 00:15:20', NULL, 0, 0.00, NULL, 0, 0),
+(41, 2, N'LAV02', NULL, N'Pantalon (lavage + repassage)', 14, 1200.00, 18.00, 0, 0.00, NULL, 1, NULL, N'Pièce', N'2026-11-02 00:15:20', NULL, 0, 0.00, NULL, 0, 0),
+(42, 2, N'LAV03', NULL, N'Robe simple (lavage + repassage)', 14, 1500.00, 18.00, 0, 0.00, NULL, 1, NULL, N'Pièce', N'2026-11-02 00:15:20', NULL, 0, 0.00, NULL, 0, 0),
+(43, 2, N'LAV04', NULL, N'Tenue traditionnelle / boubou', 14, 2000.00, 18.00, 0, 0.00, NULL, 1, NULL, N'Pièce', N'2026-11-02 00:15:20', NULL, 0, 0.00, NULL, 0, 0),
+(44, 2, N'PRE01', NULL, N'Costume 2 pièces (nettoyage à sec)', 15, 4000.00, 18.00, 0, 0.00, NULL, 1, NULL, N'Pièce', N'2026-11-02 00:15:20', NULL, 0, 0.00, NULL, 0, 0),
+(45, 2, N'PRE02', NULL, N'Veste / blazer (nettoyage à sec)', 15, 2500.00, 18.00, 0, 0.00, NULL, 1, NULL, N'Pièce', N'2026-11-02 00:15:20', NULL, 0, 0.00, NULL, 0, 0),
+(46, 2, N'PRE03', NULL, N'Robe de soirée (nettoyage à sec)', 15, 5000.00, 18.00, 0, 0.00, NULL, 1, NULL, N'Pièce', N'2026-11-02 00:15:20', NULL, 0, 0.00, NULL, 0, 0),
+(47, 2, N'PRE04', NULL, N'Robe de mariée (nettoyage à sec)', 15, 15000.00, 18.00, 0, 0.00, NULL, 1, NULL, N'Pièce', N'2026-11-02 00:15:20', NULL, 0, 0.00, NULL, 0, 0),
+(48, 2, N'LIN01', NULL, N'Drap (lavage + repassage)', 16, 1500.00, 18.00, 0, 0.00, NULL, 1, NULL, N'Pièce', N'2026-11-02 00:15:20', NULL, 0, 0.00, NULL, 0, 0),
+(49, 2, N'LIN02', NULL, N'Couette / couverture', 16, 5000.00, 18.00, 0, 0.00, NULL, 1, NULL, N'Pièce', N'2026-11-02 00:15:20', NULL, 0, 0.00, NULL, 0, 0),
+(50, 2, N'LIN03', NULL, N'Rideau (lavage + repassage)', 16, 2000.00, 18.00, 0, 0.00, NULL, 1, NULL, N'Pièce', N'2026-11-02 00:15:20', NULL, 0, 0.00, NULL, 0, 0),
+(51, 2, N'LIN04', NULL, N'Tapis (nettoyage)', 16, 6000.00, 18.00, 0, 0.00, NULL, 1, NULL, N'Pièce', N'2026-11-02 00:15:20', NULL, 0, 0.00, NULL, 0, 0),
+(52, 2, N'KIL01', NULL, N'Linge au kilo : lavage + séchage', 17, 1000.00, 18.00, 0, 0.00, NULL, 1, NULL, N'Kg', N'2026-11-02 00:15:20', NULL, 0, 0.00, NULL, 0, 0),
+(53, 2, N'KIL02', NULL, N'Linge au kilo : lavage + séchage + pliage', 17, 1500.00, 18.00, 0, 0.00, NULL, 1, NULL, N'Kg', N'2026-11-02 00:15:20', NULL, 0, 0.00, NULL, 0, 0),
+(54, 2, N'KIL03', NULL, N'Machine libre-service 8 kg', 17, 2500.00, 18.00, 0, 0.00, NULL, 1, NULL, N'Unité', N'2026-11-02 00:15:20', NULL, 0, 0.00, NULL, 0, 0),
+(55, 2, N'KIL04', NULL, N'Séchoir libre-service (30 min)', 17, 1500.00, 18.00, 0, 0.00, NULL, 1, NULL, N'Unité', N'2026-11-02 00:15:20', NULL, 0, 0.00, NULL, 0, 0),
+(56, 2, N'OPT01', NULL, N'Service express (24 h)', 18, 2000.00, 18.00, 0, 0.00, NULL, 1, NULL, N'Unité', N'2026-11-02 00:15:20', NULL, 0, 0.00, NULL, 0, 0),
+(57, 2, N'OPT02', NULL, N'Détachage', 18, 1000.00, 18.00, 0, 0.00, NULL, 1, NULL, N'Pièce', N'2026-11-02 00:15:20', NULL, 0, 0.00, NULL, 0, 0),
+(58, 2, N'OPT03', NULL, N'Repassage seul', 18, 500.00, 18.00, 0, 0.00, NULL, 1, NULL, N'Pièce', N'2026-11-02 00:15:20', NULL, 0, 0.00, NULL, 0, 0),
+(59, 2, N'OPT04', NULL, N'Collecte et livraison à domicile', 18, 1500.00, 18.00, 0, 0.00, NULL, 1, NULL, N'Unité', N'2026-11-02 00:15:20', NULL, 0, 0.00, NULL, 0, 0),
+(60, 2, N'PRO01', NULL, N'Lessive liquide 1 L', 19, 3000.00, 18.00, 1, 23.00, 5.00, 1, 1650.00, N'Bouteille', N'2026-11-02 00:15:20', NULL, 0, 0.00, NULL, 0, 0),
+(61, 2, N'PRO02', NULL, N'Assouplissant 1 L', 19, 2500.00, 18.00, 1, 17.00, 5.00, 1, 1375.00, N'Bouteille', N'2026-11-02 00:15:20', NULL, 0, 0.00, NULL, 0, 0),
+(62, 2, N'PRO03', NULL, N'Détachant 500 ml', 19, 2000.00, 18.00, 1, 11.00, 5.00, 1, 1100.00, N'Bouteille', N'2026-11-02 00:15:20', NULL, 0, 0.00, NULL, 0, 0),
+(63, 2, N'PRO04', NULL, N'Housse de protection pour vêtement', 19, 1000.00, 18.00, 1, 33.00, 5.00, 1, 550.00, N'Unité', N'2026-11-02 00:15:20', NULL, 0, 0.00, NULL, 0, 0),
+(69, 2, N'CON01', NULL, N'Lessive en poudre (sac 25 kg)', NULL, 0.00, 0.00, 1, 3.00, 1.00, 1, 18000.00, N'Sac', NULL, NULL, 0, 0.00, NULL, 0, 1),
+(70, 2, N'CON02', NULL, N'Eau de Javel (bidon 5 L)', NULL, 0.00, 0.00, 1, 6.00, 1.00, 1, 3500.00, N'Bouteille', NULL, NULL, 0, 0.00, NULL, 0, 1),
+(71, 2, N'CON03', NULL, N'Assouplissant professionnel (bidon 5 L)', NULL, 0.00, 0.00, 1, 4.00, 1.00, 1, 6000.00, N'Bouteille', NULL, NULL, 0, 0.00, NULL, 0, 1),
+(72, 2, N'CON04', NULL, N'Cintres (lot de 50)', NULL, 0.00, 0.00, 1, 2.00, 1.00, 1, 5000.00, N'Paquet', NULL, NULL, 0, 0.00, NULL, 0, 1),
+(73, 2, N'CON05', NULL, N'Housses plastique (rouleau de 100)', NULL, 0.00, 0.00, 1, 3.00, 1.00, 1, 7500.00, N'Unité', NULL, NULL, 0, 0.00, NULL, 0, 1);
 SET IDENTITY_INSERT [Produits] OFF;
+GO
+
+-- ReglementsAchats (1)
+SET IDENTITY_INSERT [ReglementsAchats] ON;
+INSERT INTO [ReglementsAchats] ([Id], [AchatId], [DateReglement], [Montant], [ModePaiementId], [OperationCaisseId], [UtilisateurId]) VALUES
+(1, 1, N'2026-11-07 10:00:00', 117000.00, 7, NULL, 5);
+SET IDENTITY_INSERT [ReglementsAchats] OFF;
 GO
 
 -- Salles (2)
@@ -2913,7 +3022,7 @@ INSERT INTO [Salles] ([Id], [TenantId], [CaisseId], [Nom], [Ordre]) VALUES
 SET IDENTITY_INSERT [Salles] OFF;
 GO
 
--- StocksDepots (33)
+-- StocksDepots (38)
 INSERT INTO [StocksDepots] ([DepotId], [ProduitId], [Quantite]) VALUES
 (1, 1, 51.00),
 (1, 2, 50.00),
@@ -2947,7 +3056,12 @@ INSERT INTO [StocksDepots] ([DepotId], [ProduitId], [Quantite]) VALUES
 (2, 60, 23.00),
 (2, 61, 17.00),
 (2, 62, 11.00),
-(2, 63, 33.00);
+(2, 63, 33.00),
+(2, 69, 3.00),
+(2, 70, 6.00),
+(2, 71, 4.00),
+(2, 72, 2.00),
+(2, 73, 3.00);
 GO
 
 -- TablesRestaurant (9)
@@ -3029,6 +3143,7 @@ INSERT INTO [Utilisateurs] ([Id], [NomUtilisateur], [MotPasse], [NomComplet], [P
 SET IDENTITY_INSERT [Utilisateurs] OFF;
 GO
 
+ALTER TABLE [Achats] WITH CHECK CHECK CONSTRAINT ALL;
 ALTER TABLE [BonsPreparation] WITH CHECK CHECK CONSTRAINT ALL;
 ALTER TABLE [Caisses] WITH CHECK CHECK CONSTRAINT ALL;
 ALTER TABLE [CaissesDepots] WITH CHECK CHECK CONSTRAINT ALL;
@@ -3044,6 +3159,7 @@ ALTER TABLE [Depots] WITH CHECK CHECK CONSTRAINT ALL;
 ALTER TABLE [DepotsLinge] WITH CHECK CHECK CONSTRAINT ALL;
 ALTER TABLE [Factures] WITH CHECK CHECK CONSTRAINT ALL;
 ALTER TABLE [JourneesCaisses] WITH CHECK CHECK CONSTRAINT ALL;
+ALTER TABLE [LignesAchats] WITH CHECK CHECK CONSTRAINT ALL;
 ALTER TABLE [LignesBonPreparation] WITH CHECK CHECK CONSTRAINT ALL;
 ALTER TABLE [LignesCommandePos] WITH CHECK CHECK CONSTRAINT ALL;
 ALTER TABLE [LignesCommandePosTaxes] WITH CHECK CHECK CONSTRAINT ALL;
@@ -3060,6 +3176,7 @@ ALTER TABLE [ProduitCombos] WITH CHECK CHECK CONSTRAINT ALL;
 ALTER TABLE [ProduitImages] WITH CHECK CHECK CONSTRAINT ALL;
 ALTER TABLE [ProduitTaxes] WITH CHECK CHECK CONSTRAINT ALL;
 ALTER TABLE [Produits] WITH CHECK CHECK CONSTRAINT ALL;
+ALTER TABLE [ReglementsAchats] WITH CHECK CHECK CONSTRAINT ALL;
 ALTER TABLE [Salles] WITH CHECK CHECK CONSTRAINT ALL;
 ALTER TABLE [StocksDepots] WITH CHECK CHECK CONSTRAINT ALL;
 ALTER TABLE [TablesRestaurant] WITH CHECK CHECK CONSTRAINT ALL;

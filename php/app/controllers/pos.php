@@ -54,7 +54,7 @@ function pos_index(): void
         'variante' => $p['LibelleVariante'],
         'combo' => $p['EstCombo'] ? array_map(fn($g) => ['id' => $g['id'], 'nom' => $g['nom'], 'quantite' => $g['quantite'], 'choix' => $g['choix']], $combos[(int) $p['Id']] ?? []) : null,
     ], q('SELECT p.* FROM Produits p LEFT JOIN Produits m ON m.Id = p.ParentId
-          WHERE p.Actif = 1 AND p.TenantId = ? AND (p.ParentId IS NULL OR m.Actif = 1) ORDER BY p.Nom', [$tenant]));
+          WHERE p.Actif = 1 AND p.Consommable = 0 AND p.TenantId = ? AND (p.ParentId IS NULL OR m.Actif = 1) ORDER BY p.Nom', [$tenant]));
 
     $categories = array_map(fn($c) => [
         'id' => (int) $c['Id'], 'nom' => $c['Nom'], 'couleur' => $c['Couleur'],
@@ -196,7 +196,7 @@ function pos_vendre(): void
     $ttc = $tva = 0.0;
     foreach ($v['lignes'] as $l) {
         $p = q1('SELECT p.* FROM Produits p LEFT JOIN Produits m ON m.Id = p.ParentId
-                 WHERE p.Id = ? AND p.TenantId = ? AND p.Actif = 1 AND (p.ParentId IS NULL OR m.Actif = 1)', [(int) ($l['produitId'] ?? 0), $tenant]);
+                 WHERE p.Id = ? AND p.TenantId = ? AND p.Actif = 1 AND p.Consommable = 0 AND (p.ParentId IS NULL OR m.Actif = 1)', [(int) ($l['produitId'] ?? 0), $tenant]);
         $qte = round((float) ($l['qte'] ?? 0), 2);
         if (!$p || $qte <= 0) {
             pos_json(['erreur' => 'Un article du ticket est introuvable, inactif ou de quantité nulle.'], 400);
@@ -885,7 +885,7 @@ function pos_mettreenattente(): void
             continue;
         }
         $qte = round((float) ($l['qte'] ?? 0), 2);
-        $p = q1('SELECT Id, Nom, TauxTVA, Unite FROM Produits WHERE Id = ? AND TenantId = ? AND Actif = 1', [(int) ($l['produitId'] ?? 0), $tenant]);
+        $p = q1('SELECT Id, Nom, TauxTVA, Unite FROM Produits WHERE Id = ? AND TenantId = ? AND Actif = 1 AND Consommable = 0', [(int) ($l['produitId'] ?? 0), $tenant]);
         if (!$p || $qte <= 0) {
             continue;
         }

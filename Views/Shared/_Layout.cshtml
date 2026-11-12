@@ -36,7 +36,7 @@
     {
         "Dashboard" or "Caisse" or "JourneeCaisse" or "Client" => "Activité",
         "Rapport" or "RapportTiers" => "Analyse",
-        "Pos" or "Vente" or "Stock" or "PosRapport" or "RapportLivraison" or "RapportLinge" or "Cuisine" => "Point de vente",
+        "Pos" or "Vente" or "Stock" or "PosRapport" or "RapportLivraison" or "RapportLinge" or "Achat" or "Cuisine" => "Point de vente",
         "Salle" => "Activité",
         "Produit" or "Categorie" or "Combo" => "Configuration",
         "Utilisateur" or "Motif" or "ModePaiement" or "Taxe" or "Unite" or "Depot" or "Livreur" or "Societe" => "Paramètres",
@@ -73,6 +73,7 @@
             "PosRapport" => "Rapports ventes",
             "RapportLivraison" => "Rapport des livraisons",
             "RapportLinge" => "Rapport des dépôts de linge",
+            "Achat" => "Achats",
             _ => "GesCaisse"
         };
     }
@@ -236,6 +237,10 @@
                         <a class="sb-link @(controller == "RapportLinge" ? "active" : "")" href="/RapportLinge/Index" title="Rapport des dépôts de linge">
                             <i class="fas fa-shirt"></i>
                             <span class="sb-label">Rapport des dépôts de linge</span>
+                        </a>
+                        <a class="sb-link @(controller == "Achat" ? "active" : "")" href="/Achat/Index" title="Achats">
+                            <i class="fas fa-cart-flatbed"></i>
+                            <span class="sb-label">Achats</span>
                         </a>
                     }
                     <a class="sb-link @(controller == "Stock" ? "active" : "")" href="/Stock/Index" title="Stock">

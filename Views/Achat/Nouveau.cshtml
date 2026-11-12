@@ -1,0 +1,110 @@
+@model List<EasytransitCaisse.Models.Produit>
+@using EasytransitCaisse.Controllers
+@{
+    ViewData["Title"] = "Nouvel achat";
+    var fr = System.Globalization.CultureInfo.GetCultureInfo("fr-FR");
+    string Qte(decimal n) => n.ToString(n == Math.Round(n) ? "#,0" : "#,0.00", fr);
+    string QteBrute(decimal n) => n.ToString(n == Math.Round(n) ? "0" : "0.00", fr);
+    var fournisseurs = (List<EasytransitCaisse.Models.Client>)ViewBag.Fournisseurs;
+    var depots = (List<EasytransitCaisse.Models.Depot>)ViewBag.Depots;
+    var journees = (List<EasytransitCaisse.Models.JourneeCaisse>)ViewBag.Journees;
+    var modes = (List<EasytransitCaisse.Models.ModePaiement>)ViewBag.Modes;
+}
+<partial name="_Onglets" model="@("Nouveau")" />
+@if (!Model.Any())
+{
+    <div class="alert alert-info">Aucun produit avec suivi de stock. Créez vos produits (lessive, javel…) dans Configuration › Produits,
+        en cochant « Suivre le stock » et, pour un produit utilisé sans être vendu, « Consommable ».</div>
+}
+else
+{
+    <form method="post" asp-action="Nouveau" class="card border-0 shadow-sm" id="formAchat">
+        <div class="card-header bg-brand text-white">Achat chez un fournisseur</div>
+        <div class="card-body">
+            <div class="row g-3 mb-3">
+                <div class="col-md-3"><label class="form-label" for="fournisseur">Fournisseur</label>
+                    <select class="form-select" id="fournisseur" name="fournisseur">
+                        <option value="0">-- Sans fournisseur --</option>
+                        @foreach (var fo in fournisseurs)
+                        {
+                            <option value="@fo.Id">@fo.NomSociete</option>
+                        }
+                    </select>
+                    <div class="form-text"><a href="/Client/Create">Nouveau tiers</a> de type « Fournisseur ».</div></div>
+                <div class="col-md-2"><label class="form-label" for="date">Date d'achat</label><input type="date" class="form-control" id="date" name="date" value="@DateTime.Today.ToString("yyyy-MM-dd")" max="@DateTime.Today.ToString("yyyy-MM-dd")" required></div>
+                <div class="col-md-3"><label class="form-label" for="depot">Dépôt qui reçoit</label>
+                    <select class="form-select" id="depot" name="depot" required>
+                        @foreach (var d in depots)
+                        {
+                            <option value="@d.Id">@d.Code · @d.Nom</option>
+                        }
+                    </select></div>
+                <div class="col-md-4"><label class="form-label" for="reference">Référence (facture, bon de livraison)</label><input class="form-control" id="reference" name="reference" maxlength="100" placeholder="Ex : FAC-2026-0412"></div>
+            </div>
+            <table class="table align-middle" id="lignesAchat">
+                <thead><tr><th>Produit</th><th style="width:140px">Quantité</th><th style="width:170px">Prix d'achat unitaire</th><th style="width:150px" class="text-end">Montant</th><th style="width:50px"></th></tr></thead>
+                <tbody>
+                    @for (var i = 0; i < 4; i++)
+                    {
+                        <tr>
+                            <td><select class="form-select" name="produit" aria-label="Produit">
+                                <option value="0">-- Produit --</option>
+                                @foreach (var p in Model)
+                                {
+                                    <option value="@p.Id" data-cout="@(p.Cout.HasValue ? QteBrute(p.Cout.Value) : "")">@p.Code · @p.Nom@(p.Consommable ? " (consommable)" : "") — stock @Qte(p.StockActuel) @p.Unite</option>
+                                }
+                            </select></td>
+                            <td><input class="form-control text-end" name="qte" inputmode="decimal" aria-label="Quantité"></td>
+                            <td><input class="form-control text-end" name="prix" inputmode="decimal" aria-label="Prix d'achat unitaire"></td>
+                            <td class="text-end text-nowrap montant">—</td>
+                            <td><button type="button" class="btn btn-sm btn-outline-danger retirer" aria-label="Retirer la ligne"><i class="fa fa-xmark"></i></button></td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot><tr class="fw-bold"><td colspan="3" class="text-end">Total de l'achat</td><td class="text-end text-nowrap" id="totalAchat">0 FCFA</td><td></td></tr></tfoot>
+            </table>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="ajouterLigne"><i class="fa fa-plus"></i> Ajouter une ligne</button>
+
+            <hr>
+            <div class="row g-3">
+                <div class="col-md-4"><label class="form-label" for="paiement">Règlement</label>
+                    <select class="form-select" id="paiement" name="paiement">
+                        @foreach (var (code, lib) in AchatController.Paiements)
+                        {
+                            <option value="@code">@lib</option>
+                        }
+                    </select></div>
+                <div class="col-md-2 regle"><label class="form-label" for="montantRegle">Montant réglé</label><input class="form-control text-end" id="montantRegle" name="montantRegle" inputmode="decimal"></div>
+                <div class="col-md-3 regle"><label class="form-label" for="mode">Mode de paiement</label>
+                    <select class="form-select" id="mode" name="mode">
+                        @foreach (var m in modes)
+                        {
+                            <option value="@m.Id">@m.Libelle</option>
+                        }
+                    </select></div>
+                <div class="col-md-3 regle-caisse"><label class="form-label" for="journee">Journée de caisse</label>
+                    <select class="form-select" id="journee" name="journee">
+                        @if (!journees.Any())
+                        {
+                            <option value="0">Aucune journée ouverte</option>
+                        }
+                        @foreach (var j in journees)
+                        {
+                            <option value="@j.Id">@j.Caisse.ChkCode · @j.NumeroJournee</option>
+                        }
+                    </select></div>
+                <div class="col-12"><label class="form-label" for="commentaire">Commentaire</label><input class="form-control" id="commentaire" name="commentaire" maxlength="300"></div>
+            </div>
+            <p class="small text-muted mt-2 mb-0">Les quantités entrent en stock dans le dépôt choisi et le coût des produits est recalculé (coût moyen pondéré).
+                Payé par la caisse : un décaissement est enregistré dans la journée ouverte choisie. À crédit : réglez plus tard depuis le détail de l'achat.</p>
+        </div>
+        <div class="card-footer bg-white d-flex gap-2">
+            <button class="btn btn-success"><i class="fa fa-check"></i> Enregistrer l'achat</button>
+            <a href="/Achat/Index" class="btn btn-outline-secondary">Annuler</a>
+        </div>
+    </form>
+}
+
+@section Scripts {
+    <script src="~/js/achats.js" asp-append-version="true"></script>
+}

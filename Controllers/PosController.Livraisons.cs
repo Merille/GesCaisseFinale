@@ -148,7 +148,7 @@ namespace EasytransitCaisse.Controllers
             // Lignes : produits actifs de la société ; nom, taux et unité repris du catalogue.
             var ids = s.Lignes.Select(l => l.ProduitId).Distinct().ToList();
             var catalogue = await _context.Produits.IgnoreQueryFilters()
-                .Where(p => ids.Contains(p.Id) && p.TenantId == tenant && p.Actif).ToDictionaryAsync(p => p.Id);
+                .Where(p => ids.Contains(p.Id) && p.TenantId == tenant && p.Actif && !p.Consommable).ToDictionaryAsync(p => p.Id);
             var lignes = new List<AttenteLigne>();
             foreach (var l in s.Lignes)
             {

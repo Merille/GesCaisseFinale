@@ -17,7 +17,7 @@ function pos_lignes_catalogue(array $saisies, int $tenant): array
 {
     $lignes = [];
     foreach (restaurant_lignes_saisies($saisies, []) as $l) {
-        $p = q1('SELECT * FROM Produits WHERE Id = ? AND TenantId = ? AND Actif = 1', [$l['produitId'], $tenant]);
+        $p = q1('SELECT * FROM Produits WHERE Id = ? AND TenantId = ? AND Actif = 1 AND Consommable = 0', [$l['produitId'], $tenant]);
         if (!$p || $l['qte'] <= 0 || $p['EstModele']) {
             continue;
         }

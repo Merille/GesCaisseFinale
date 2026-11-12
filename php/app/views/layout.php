@@ -21,7 +21,7 @@ $nbJourneesOuvertes = (int) qv("SELECT COUNT(*) FROM JourneesCaisses WHERE Statu
 $rubrique = match ($module) {
     'dashboard', 'caisse', 'journee', 'client', 'facture' => 'Activité',
     'rapport', 'rapporttiers' => 'Analyse',
-    'pos', 'vente', 'stock', 'posrapport', 'rapportlivraison', 'rapportlinge', 'cuisine' => 'Point de vente',
+    'pos', 'vente', 'stock', 'posrapport', 'rapportlivraison', 'rapportlinge', 'achat', 'cuisine' => 'Point de vente',
     'salle' => 'Activité',
     'produit', 'categorie', 'combo' => 'Configuration',
     'utilisateur', 'motif', 'modepaiement', 'taxe', 'unite', 'depot', 'livreur', 'societe' => 'Paramètres',
@@ -116,6 +116,7 @@ $badge = $nbJourneesOuvertes > 0
                 <?= $lien('rapportlivraison/index', 'rapportlivraison', 'fa-truck-fast', 'Rapport des livraisons') ?>
                 <?php if (laverie_actif()): ?>
                     <?= $lien('rapportlinge/index', 'rapportlinge', 'fa-shirt', 'Rapport des dépôts de linge') ?>
+                    <?= $lien('achat/index', 'achat', 'fa-cart-flatbed', 'Achats') ?>
                 <?php endif; ?>
                 <?= $lien('stock/index', 'stock', 'fa-warehouse', 'Stock') ?>
                 <?php $configurationActif = in_array($module, ['categorie', 'produit', 'combo'], true); ?>

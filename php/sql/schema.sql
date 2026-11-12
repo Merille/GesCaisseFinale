@@ -2,7 +2,7 @@
 -- Les noms de tables et de colonnes reprennent ceux de la version .NET
 -- (SQL Server) pour faciliter une éventuelle reprise des données.
 --
--- Base à jour : intègre toutes les migrations de sql/migrations (001 à 020),
+-- Base à jour : intègre toutes les migrations de sql/migrations (001 à 021),
 -- notées comme appliquées dans MigrationsAppliquees.
 --
 -- Utilisation (NOUVELLE installation uniquement) : créer une base VIDE (ex. gescaisse),
@@ -18,6 +18,27 @@ SET NAMES utf8mb4;
 /*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
 /*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `Achats` (
+  `Id` int NOT NULL AUTO_INCREMENT,
+  `TenantId` int NOT NULL,
+  `Numero` int NOT NULL,
+  `DateAchat` date NOT NULL,
+  `FournisseurId` int DEFAULT NULL,
+  `DepotId` int NOT NULL,
+  `Reference` varchar(100) DEFAULT NULL,
+  `Commentaire` varchar(300) DEFAULT NULL,
+  `Total` decimal(18,2) NOT NULL DEFAULT '0.00',
+  `Statut` varchar(20) NOT NULL DEFAULT 'Validé',
+  `UtilisateurId` int DEFAULT NULL,
+  `DateCreation` datetime NOT NULL,
+  `DateAnnulation` datetime DEFAULT NULL,
+  PRIMARY KEY (`Id`),
+  UNIQUE KEY `IX_Achats_TenantId_Numero` (`TenantId`,`Numero`),
+  KEY `IX_Achats_TenantId_DateAchat` (`TenantId`,`DateAchat`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `BonsPreparation` (
@@ -337,6 +358,20 @@ CREATE TABLE `JourneesCaisses` (
 
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `LignesAchats` (
+  `Id` int NOT NULL AUTO_INCREMENT,
+  `AchatId` int NOT NULL,
+  `ProduitId` int NOT NULL,
+  `Quantite` decimal(18,2) NOT NULL DEFAULT '0.00',
+  `PrixUnitaire` decimal(18,2) NOT NULL DEFAULT '0.00',
+  `Montant` decimal(18,2) NOT NULL DEFAULT '0.00',
+  PRIMARY KEY (`Id`),
+  KEY `IX_LignesAchats_AchatId` (`AchatId`),
+  CONSTRAINT `FK_LignesAchats_Achats_AchatId` FOREIGN KEY (`AchatId`) REFERENCES `Achats` (`Id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `LignesBonPreparation` (
   `Id` int NOT NULL AUTO_INCREMENT,
   `BonPreparationId` int NOT NULL,
@@ -449,6 +484,7 @@ INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('017_clien
 INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('018_frais_livraison.sql','2026-11-02 00:15:20');
 INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('019_depots_secondaires.sql','2026-11-02 00:15:20');
 INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('020_depots_linge.sql','2026-11-02 00:15:20');
+INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('021_achats.sql','2026-11-12 00:00:00');
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `ModesPaiement` (
@@ -629,6 +665,7 @@ CREATE TABLE `Produits` (
   `Supplement` decimal(18,2) NOT NULL DEFAULT '0.00',
   `LibelleVariante` varchar(150) DEFAULT NULL,
   `EstCombo` tinyint(1) NOT NULL DEFAULT '0',
+  `Consommable` tinyint(1) NOT NULL DEFAULT '0',
   PRIMARY KEY (`Id`),
   UNIQUE KEY `UX_Produits_Code` (`TenantId`,`Code`),
   KEY `IX_Produits_CodeBarres` (`CodeBarres`),
@@ -638,6 +675,21 @@ CREATE TABLE `Produits` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ReglementsAchats` (
+  `Id` int NOT NULL AUTO_INCREMENT,
+  `AchatId` int NOT NULL,
+  `DateReglement` datetime NOT NULL,
+  `Montant` decimal(18,2) NOT NULL DEFAULT '0.00',
+  `ModePaiementId` int DEFAULT NULL,
+  `OperationCaisseId` int DEFAULT NULL,
+  `UtilisateurId` int DEFAULT NULL,
+  PRIMARY KEY (`Id`),
+  KEY `IX_ReglementsAchats_AchatId` (`AchatId`),
+  CONSTRAINT `FK_ReglementsAchats_Achats_AchatId` FOREIGN KEY (`AchatId`) REFERENCES `Achats` (`Id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `Salles` (

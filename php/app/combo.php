@@ -54,7 +54,7 @@ function combo_composants(array $combo, array $saisis): array|string
             $pid = (int) ($s['produitId'] ?? 0);
             $qte = max(0, round((float) ($s['qte'] ?? 1), 2));
             $p = $qte > 0 && array_key_exists($pid, $permis)
-                ? q1('SELECT Id, Nom FROM Produits WHERE Id = ? AND TenantId = ? AND Actif = 1', [$pid, $combo['TenantId']]) : null;
+                ? q1('SELECT Id, Nom FROM Produits WHERE Id = ? AND TenantId = ? AND Actif = 1 AND Consommable = 0', [$pid, $combo['TenantId']]) : null;
             if (!$p) {
                 return 'Un article choisi pour « ' . $combo['Nom'] . ' › ' . $g['nom'] . " » n'est pas proposé ou n'est plus actif.";
             }

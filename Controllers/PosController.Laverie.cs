@@ -39,7 +39,7 @@ namespace EasytransitCaisse.Controllers
             var lignes = new List<Restaurant.Ligne>();
             foreach (var l in Restaurant.Nettoyer(new Restaurant.Contenu { Lignes = saisies }, new Restaurant.Contenu()).Lignes)
             {
-                var p = await _context.Produits.IgnoreQueryFilters().FirstOrDefaultAsync(x => x.Id == l.ProduitId && x.TenantId == tenant && x.Actif);
+                var p = await _context.Produits.IgnoreQueryFilters().FirstOrDefaultAsync(x => x.Id == l.ProduitId && x.TenantId == tenant && x.Actif && !x.Consommable);
                 if (p == null || l.Qte <= 0 || p.EstModele)
                     continue;
                 var prix = p.PrixVente;

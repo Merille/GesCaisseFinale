@@ -146,6 +146,7 @@ namespace EasytransitCaisse.Data
                         PrixVente = modele.PrixVente,
                         TauxTVA = modele.TauxTVA,
                         SuiviStock = modele.SuiviStock,
+                        Consommable = modele.Consommable,
                         SeuilAlerte = modele.SeuilAlerte,
                         Actif = true,
                         Cout = modele.Cout,
@@ -191,6 +192,7 @@ namespace EasytransitCaisse.Data
                 v.Cout = modele.Cout;
                 v.Unite = modele.Unite;
                 v.SuiviStock = modele.SuiviStock;
+                v.Consommable = modele.Consommable;
                 v.SeuilAlerte = modele.SeuilAlerte;
                 v.TauxTVA = modele.TauxTVA;
                 foreach (var t in taxes)

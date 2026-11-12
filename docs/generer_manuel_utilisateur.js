@@ -98,7 +98,7 @@ const fiche = [
         ['Application', 'GesCaisse — gestion de caisse et point de vente (POS)'],
         ['Éditeur', 'M-ITECH AFRICA'],
         ['Public', 'Administrateurs, caissiers, vendeurs et serveurs des sociétés clientes'],
-        ['Version du document', '2.4'],
+        ['Version du document', '2.5'],
         ['Date', 'Novembre 2026']
     ], [3000, 6638])
 ];
@@ -483,6 +483,31 @@ const contenu = [
     ...figure('27_inventaire', 'Inventaire'),
     h2('8.6 Vente sans stock'),
     p('L’option de la page Stock détermine ce qui se passe quand un article est épuisé dans le dépôt de la caisse : vente **autorisée, avec un avertissement**, ou **interdite** (le point de vente refuse l’article).'),
+    h2('8.7 Achats de produits et consommations (laverie)'),
+    p('Une laverie achète des produits qu’elle ne vend pas : lessive, eau de Javel, assouplissant, détachant, cintres, housses… Le menu **Achats** (administrateurs, rubrique Point de vente ; il n’apparaît que si la société a une caisse de type Laverie) enregistre ces achats chez les fournisseurs, leur règlement et l’utilisation des produits.'),
+    h3('Préparer les produits et les fournisseurs'),
+    pt('Produits', 'créez chaque produit dans **Configuration** › **Produits** (11.2) et cochez **Consommable (non vendu en caisse)** : son stock est suivi et il n’apparaît jamais sur l’écran de vente. Un produit vendu (lessive en bouteille, par exemple) peut aussi être acheté ici : laissez-le simplement non consommable.'),
+    pt('Fournisseurs', 'ce sont les tiers de type **Fournisseur** (4).'),
+    h3('Enregistrer un achat'),
+    ...etapes([
+        'Cliquez sur **Nouvel achat**.',
+        'Choisissez le **fournisseur**, la **date d’achat**, le **dépôt qui reçoit** et la référence de sa facture ou de son bon de livraison.',
+        'Ajoutez une ligne par produit avec la **quantité** et le **prix d’achat unitaire** (proposé au coût actuel du produit) : le montant de chaque ligne et le total se calculent.',
+        'Choisissez le **règlement** : **à crédit** (à régler plus tard), **payé par la caisse** (montant, mode de paiement et journée de caisse ouverte qui paie) ou **payé hors caisse** (virement, chèque…). Le montant réglé peut être partiel.',
+        'Cliquez sur **Enregistrer l’achat** : les quantités entrent dans le stock du dépôt (mouvement « Achat ») et le détail de l’achat s’affiche.'
+    ]),
+    ...figure('26c_nouvel_achat', 'Nouvel achat chez un fournisseur'),
+    p('Le **coût** de chaque produit est recalculé en coût moyen pondéré : par exemple, 10 bidons en stock à 2 500 FCFA et 10 bidons achetés à 3 000 FCFA donnent un coût de 2 750 FCFA. Un paiement par la caisse est un **décaissement** de la journée choisie (motif « Achat fournisseur ») : il compte dans la clôture comme toute sortie d’argent.'),
+    h3('Suivre les achats et payer les fournisseurs'),
+    p('L’onglet **Achats** liste les achats de la période (filtres fournisseur et statut **Validé**, **Non soldé** ou **Annulé**) avec le montant, le réglé et le reste à payer. Les cartes donnent le total de la période et le montant **dû aux fournisseurs**, tous achats confondus.'),
+    ...figure('26b_achats', 'Liste des achats'),
+    p('Le détail d’un achat présente ses produits, ses règlements et, tant qu’il reste un montant dû, le formulaire **Régler** : montant, mode de paiement, par la caisse (journée ouverte) ou hors caisse.'),
+    ...figure('26d_achat_details', 'Détail d’un achat à crédit et règlement'),
+    pt('Annuler l’achat', 'les quantités ressortent du stock et les paiements faits par une caisse sont remboursés par un encaissement dans la même journée. L’annulation est refusée si cette journée est clôturée, ou si les produits ont déjà été utilisés ou vendus : corrigez alors le stock par un inventaire (8.5).'),
+    h3('Enregistrer les consommations'),
+    p('L’onglet **Consommations** sort du stock les produits utilisés pour le service (par exemple chaque soir ou chaque semaine) : choisissez le dépôt, ajoutez une ligne par produit avec la **quantité utilisée** et un commentaire, puis **Enregistrer la consommation** (mouvement « Consommation »). Une quantité supérieure au stock du dépôt est refusée.'),
+    p('Sous le formulaire, la période choisie présente les consommations **par produit**, avec leur valeur au coût, et leur détail. Comparez cette valeur au chiffre d’affaires de la laverie pour suivre le coût des produits par lavage.'),
+    ...figure('26e_consommations', 'Consommations de produits d’entretien'),
 
     // 9 ------------------------------------------------------------------
     h1('9. Rapports de ventes'),
@@ -582,7 +607,7 @@ const contenu = [
     p('Cliquez sur **Nouveau produit** ou **Modifier** et renseignez :'),
     pt('Identification', 'code, nom, catégorie, code-barres, image.'),
     pt('Prix', 'prix de vente TTC, coût d’achat (la marge est calculée), taxes applicables (TVA, CSS…), unité de vente (pièce, kg, litre…).'),
-    pt('Stock', 'suivi du stock oui ou non, stock initial, seuil d’alerte.'),
+    pt('Stock', 'suivi du stock oui ou non, stock initial, seuil d’alerte. **Consommable** : produit acheté et utilisé pour le service (lessive, javel…), jamais vendu en caisse (voir 8.7).'),
     pt('Actif', 'un produit inactif n’apparaît plus à la caisse.'),
     ...figure('52_fiche_produit', 'Fiche d’un produit'),
     h3('Variantes'),

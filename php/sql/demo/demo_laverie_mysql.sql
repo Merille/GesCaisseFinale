@@ -4,7 +4,9 @@
 -- 6 catégories et 24 articles avec leur image (20 prestations sans suivi de stock et 4 produits
 -- en stock), 4 tiers (entreprises et particuliers, dont 2 clients en compte) et 20 ventes à ces
 -- tiers (5 chacun, dont 7 par compte, et 2 règlements) sur les 5 jours précédant l'exécution,
--- en journées clôturées. Mode « Compte client » créé. La société de démonstration existante
+-- en journées clôturées, 3 dépôts de linge, 5 produits d'entretien consommables (non vendus en caisse),
+-- 2 achats au fournisseur (un réglé par carte, un à crédit) et une consommation.
+-- Mode « Compte client » créé. La société de démonstration existante
 -- n'est pas modifiée.
 --
 -- À exécuter sur la base LOCALE de test (jamais en production), après avoir lancé une fois l'application.
@@ -124,6 +126,18 @@ INSERT INTO Produits (TenantId, Code, CodeBarres, Nom, CategorieId, PrixVente, T
     SELECT @t, 'PRO04', NULL, 'Housse de protection pour vêtement', @c, 1000, 18, 1, 0, 5, 1, 550, 'Unité', 0, 0, 0 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'PRO04');
 INSERT INTO ProduitTaxes (ProduitId, TaxeId) SELECT p.Id, @tva FROM Produits p WHERE p.TenantId = @t AND p.Code IN ('LAV01', 'LAV02', 'LAV03', 'LAV04', 'PRE01', 'PRE02', 'PRE03', 'PRE04', 'LIN01', 'LIN02', 'LIN03', 'LIN04', 'KIL01', 'KIL02', 'KIL03', 'KIL04', 'OPT01', 'OPT02', 'OPT03', 'OPT04', 'PRO01', 'PRO02', 'PRO03', 'PRO04')
     AND NOT EXISTS (SELECT 1 FROM ProduitTaxes x WHERE x.ProduitId = p.Id);
+
+-- Produits d'entretien consommables : achetés et utilisés pour le service, jamais vendus en caisse
+INSERT INTO Produits (TenantId, Code, CodeBarres, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, SeuilAlerte, Actif, Cout, Unite, EstModele, Supplement, EstCombo, Consommable)
+    SELECT @t, 'CON01', NULL, 'Lessive en poudre (sac 25 kg)', NULL, 0, 0, 1, 0, 1, 1, 18000, 'Sac', 0, 0, 0, 1 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'CON01');
+INSERT INTO Produits (TenantId, Code, CodeBarres, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, SeuilAlerte, Actif, Cout, Unite, EstModele, Supplement, EstCombo, Consommable)
+    SELECT @t, 'CON02', NULL, 'Eau de Javel (bidon 5 L)', NULL, 0, 0, 1, 0, 1, 1, 3500, 'Bouteille', 0, 0, 0, 1 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'CON02');
+INSERT INTO Produits (TenantId, Code, CodeBarres, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, SeuilAlerte, Actif, Cout, Unite, EstModele, Supplement, EstCombo, Consommable)
+    SELECT @t, 'CON03', NULL, 'Assouplissant professionnel (bidon 5 L)', NULL, 0, 0, 1, 0, 1, 1, 6000, 'Bouteille', 0, 0, 0, 1 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'CON03');
+INSERT INTO Produits (TenantId, Code, CodeBarres, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, SeuilAlerte, Actif, Cout, Unite, EstModele, Supplement, EstCombo, Consommable)
+    SELECT @t, 'CON04', NULL, 'Cintres (lot de 50)', NULL, 0, 0, 1, 0, 1, 1, 5000, 'Paquet', 0, 0, 0, 1 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'CON04');
+INSERT INTO Produits (TenantId, Code, CodeBarres, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, SeuilAlerte, Actif, Cout, Unite, EstModele, Supplement, EstCombo, Consommable)
+    SELECT @t, 'CON05', NULL, 'Housses plastique (rouleau de 100)', NULL, 0, 0, 1, 0, 1, 1, 7500, 'Unité', 0, 0, 0, 1 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'CON05');
 
 -- Stock de départ des produits vendus (livraison du fournisseur dans le dépôt par défaut)
 UPDATE Produits SET StockActuel = 24 WHERE TenantId = @t AND Code = 'PRO01' AND NOT EXISTS (SELECT 1 FROM StocksDepots s WHERE s.ProduitId = Produits.Id);
@@ -608,6 +622,67 @@ SET @jd = (SELECT MIN(Id) FROM JourneesCaisses WHERE TenantId = @t AND CaisseId 
 INSERT INTO DepotsLinge (TenantId, CaisseId, JourneeCaisseId, Numero, CleClient, DateDepot, DateRetraitPrevue, NomClient, TelephoneClient, ClientId, UtilisateurId,
     Contenu, Total, NbArticles, Acompte, AcompteModePaiementId, AcompteOperationId, Statut, DatePret)
     SELECT @t, @caisse, @jd, @num + 3, 'demo-lav-depot-3', (DATE_SUB(CURDATE(), INTERVAL 1 DAY) + INTERVAL 960 MINUTE), DATE_ADD(CURDATE(), INTERVAL 2 DAY), 'Clarisse Obiang', '074 88 77 66', NULL, @caissier, CONCAT('{"lignes":[', '{"uid":"demo-lav-d3-1","produitId":', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'KIL01'), ',"nom":"Linge au kilo : lavage + séchage","qte":4.5,"prix":1000,"remise":0,"tva":18,"unite":"Kg","note":"","envoye":0,"composants":[]}', ',{"uid":"demo-lav-d3-2","produitId":', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'LAV04'), ',"nom":"Tenue traditionnelle / boubou","qte":1,"prix":2000,"remise":0,"tva":18,"unite":"Pièce","note":"Couleurs vives : à part","envoye":0,"composants":[]}', '],"clientId":null,"remise":null}'), 6500, 5.5, 0, NULL, NULL, 'En cours', NULL FROM DUAL WHERE @depots = 0;
+
+-- Achats de produits d'entretien et consommation (une seule fois : ignorés s'ils existent déjà)
+SET @achats = (SELECT COUNT(*) FROM Achats WHERE TenantId = @t AND Reference LIKE 'FAC-CP-%');
+SET @numA = (SELECT COALESCE(MAX(Numero), 0) FROM Achats WHERE TenantId = @t);
+SET @fourn = (SELECT MIN(Id) FROM Clients WHERE TenantId = @t AND CodeClient = 'LAVF001');
+INSERT INTO Achats (TenantId, Numero, DateAchat, FournisseurId, DepotId, Reference, Commentaire, Total, Statut, UtilisateurId, DateCreation)
+    SELECT @t, @numA + 1, DATE((DATE_SUB(CURDATE(), INTERVAL 5 DAY) + INTERVAL 600 MINUTE)), @fourn, @dep, 'FAC-CP-0412', NULL, 117000, 'Validé', @admin, (DATE_SUB(CURDATE(), INTERVAL 5 DAY) + INTERVAL 600 MINUTE) FROM DUAL WHERE @achats = 0;
+SET @achat = LAST_INSERT_ID();
+INSERT INTO LignesAchats (AchatId, ProduitId, Quantite, PrixUnitaire, Montant)
+    SELECT @achat, p.Id, 4, 18000, 72000 FROM Produits p WHERE p.TenantId = @t AND p.Code = 'CON01' AND @achats = 0;
+INSERT INTO MouvementsStock (TenantId, ProduitId, DateMouvement, TypeMouvement, Quantite, StockApres, Reference, UtilisateurId, DepotId, Commentaire)
+    SELECT @t, p.Id, (DATE_SUB(CURDATE(), INTERVAL 5 DAY) + INTERVAL 600 MINUTE), 'Achat', 4, 4, CONCAT('Achat n° ', @numA + 1), @admin, @dep, 'FAC-CP-0412' FROM Produits p WHERE p.TenantId = @t AND p.Code = 'CON01' AND @achats = 0;
+INSERT INTO LignesAchats (AchatId, ProduitId, Quantite, PrixUnitaire, Montant)
+    SELECT @achat, p.Id, 6, 3500, 21000 FROM Produits p WHERE p.TenantId = @t AND p.Code = 'CON02' AND @achats = 0;
+INSERT INTO MouvementsStock (TenantId, ProduitId, DateMouvement, TypeMouvement, Quantite, StockApres, Reference, UtilisateurId, DepotId, Commentaire)
+    SELECT @t, p.Id, (DATE_SUB(CURDATE(), INTERVAL 5 DAY) + INTERVAL 600 MINUTE), 'Achat', 6, 6, CONCAT('Achat n° ', @numA + 1), @admin, @dep, 'FAC-CP-0412' FROM Produits p WHERE p.TenantId = @t AND p.Code = 'CON02' AND @achats = 0;
+INSERT INTO LignesAchats (AchatId, ProduitId, Quantite, PrixUnitaire, Montant)
+    SELECT @achat, p.Id, 4, 6000, 24000 FROM Produits p WHERE p.TenantId = @t AND p.Code = 'CON03' AND @achats = 0;
+INSERT INTO MouvementsStock (TenantId, ProduitId, DateMouvement, TypeMouvement, Quantite, StockApres, Reference, UtilisateurId, DepotId, Commentaire)
+    SELECT @t, p.Id, (DATE_SUB(CURDATE(), INTERVAL 5 DAY) + INTERVAL 600 MINUTE), 'Achat', 4, 4, CONCAT('Achat n° ', @numA + 1), @admin, @dep, 'FAC-CP-0412' FROM Produits p WHERE p.TenantId = @t AND p.Code = 'CON03' AND @achats = 0;
+INSERT INTO ReglementsAchats (AchatId, DateReglement, Montant, ModePaiementId, OperationCaisseId, UtilisateurId)
+    SELECT @achat, (DATE_SUB(CURDATE(), INTERVAL 5 DAY) + INTERVAL 600 MINUTE), 117000, @cb, NULL, @admin FROM DUAL WHERE @achats = 0;
+INSERT INTO Achats (TenantId, Numero, DateAchat, FournisseurId, DepotId, Reference, Commentaire, Total, Statut, UtilisateurId, DateCreation)
+    SELECT @t, @numA + 2, DATE((DATE_SUB(CURDATE(), INTERVAL 2 DAY) + INTERVAL 600 MINUTE)), @fourn, @dep, 'FAC-CP-0431', NULL, 39500, 'Validé', @admin, (DATE_SUB(CURDATE(), INTERVAL 2 DAY) + INTERVAL 600 MINUTE) FROM DUAL WHERE @achats = 0;
+SET @achat = LAST_INSERT_ID();
+INSERT INTO LignesAchats (AchatId, ProduitId, Quantite, PrixUnitaire, Montant)
+    SELECT @achat, p.Id, 2, 3500, 7000 FROM Produits p WHERE p.TenantId = @t AND p.Code = 'CON02' AND @achats = 0;
+INSERT INTO MouvementsStock (TenantId, ProduitId, DateMouvement, TypeMouvement, Quantite, StockApres, Reference, UtilisateurId, DepotId, Commentaire)
+    SELECT @t, p.Id, (DATE_SUB(CURDATE(), INTERVAL 2 DAY) + INTERVAL 600 MINUTE), 'Achat', 2, 8, CONCAT('Achat n° ', @numA + 2), @admin, @dep, 'FAC-CP-0431' FROM Produits p WHERE p.TenantId = @t AND p.Code = 'CON02' AND @achats = 0;
+INSERT INTO LignesAchats (AchatId, ProduitId, Quantite, PrixUnitaire, Montant)
+    SELECT @achat, p.Id, 2, 5000, 10000 FROM Produits p WHERE p.TenantId = @t AND p.Code = 'CON04' AND @achats = 0;
+INSERT INTO MouvementsStock (TenantId, ProduitId, DateMouvement, TypeMouvement, Quantite, StockApres, Reference, UtilisateurId, DepotId, Commentaire)
+    SELECT @t, p.Id, (DATE_SUB(CURDATE(), INTERVAL 2 DAY) + INTERVAL 600 MINUTE), 'Achat', 2, 2, CONCAT('Achat n° ', @numA + 2), @admin, @dep, 'FAC-CP-0431' FROM Produits p WHERE p.TenantId = @t AND p.Code = 'CON04' AND @achats = 0;
+INSERT INTO LignesAchats (AchatId, ProduitId, Quantite, PrixUnitaire, Montant)
+    SELECT @achat, p.Id, 3, 7500, 22500 FROM Produits p WHERE p.TenantId = @t AND p.Code = 'CON05' AND @achats = 0;
+INSERT INTO MouvementsStock (TenantId, ProduitId, DateMouvement, TypeMouvement, Quantite, StockApres, Reference, UtilisateurId, DepotId, Commentaire)
+    SELECT @t, p.Id, (DATE_SUB(CURDATE(), INTERVAL 2 DAY) + INTERVAL 600 MINUTE), 'Achat', 3, 3, CONCAT('Achat n° ', @numA + 2), @admin, @dep, 'FAC-CP-0431' FROM Produits p WHERE p.TenantId = @t AND p.Code = 'CON05' AND @achats = 0;
+INSERT INTO MouvementsStock (TenantId, ProduitId, DateMouvement, TypeMouvement, Quantite, StockApres, Reference, UtilisateurId, DepotId, Commentaire)
+    SELECT @t, p.Id, (DATE_SUB(CURDATE(), INTERVAL 1 DAY) + INTERVAL 1000 MINUTE), 'Consommation', -1, 3, 'CONSO-DEMO', @admin, @dep, 'Lavages de la semaine' FROM Produits p WHERE p.TenantId = @t AND p.Code = 'CON01' AND @achats = 0;
+INSERT INTO MouvementsStock (TenantId, ProduitId, DateMouvement, TypeMouvement, Quantite, StockApres, Reference, UtilisateurId, DepotId, Commentaire)
+    SELECT @t, p.Id, (DATE_SUB(CURDATE(), INTERVAL 1 DAY) + INTERVAL 1000 MINUTE), 'Consommation', -2, 6, 'CONSO-DEMO', @admin, @dep, 'Lavages de la semaine' FROM Produits p WHERE p.TenantId = @t AND p.Code = 'CON02' AND @achats = 0;
+UPDATE Produits SET StockActuel = StockActuel + 3 WHERE TenantId = @t AND Code = 'CON01' AND @achats = 0;
+INSERT INTO StocksDepots (DepotId, ProduitId, Quantite) SELECT @dep, p.Id, 0 FROM Produits p WHERE p.TenantId = @t AND p.Code = 'CON01'
+    AND NOT EXISTS (SELECT 1 FROM StocksDepots s WHERE s.ProduitId = p.Id AND s.DepotId = @dep) AND @achats = 0;
+UPDATE StocksDepots SET Quantite = Quantite + 3 WHERE DepotId = @dep AND ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'CON01') AND @achats = 0;
+UPDATE Produits SET StockActuel = StockActuel + 6 WHERE TenantId = @t AND Code = 'CON02' AND @achats = 0;
+INSERT INTO StocksDepots (DepotId, ProduitId, Quantite) SELECT @dep, p.Id, 0 FROM Produits p WHERE p.TenantId = @t AND p.Code = 'CON02'
+    AND NOT EXISTS (SELECT 1 FROM StocksDepots s WHERE s.ProduitId = p.Id AND s.DepotId = @dep) AND @achats = 0;
+UPDATE StocksDepots SET Quantite = Quantite + 6 WHERE DepotId = @dep AND ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'CON02') AND @achats = 0;
+UPDATE Produits SET StockActuel = StockActuel + 4 WHERE TenantId = @t AND Code = 'CON03' AND @achats = 0;
+INSERT INTO StocksDepots (DepotId, ProduitId, Quantite) SELECT @dep, p.Id, 0 FROM Produits p WHERE p.TenantId = @t AND p.Code = 'CON03'
+    AND NOT EXISTS (SELECT 1 FROM StocksDepots s WHERE s.ProduitId = p.Id AND s.DepotId = @dep) AND @achats = 0;
+UPDATE StocksDepots SET Quantite = Quantite + 4 WHERE DepotId = @dep AND ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'CON03') AND @achats = 0;
+UPDATE Produits SET StockActuel = StockActuel + 2 WHERE TenantId = @t AND Code = 'CON04' AND @achats = 0;
+INSERT INTO StocksDepots (DepotId, ProduitId, Quantite) SELECT @dep, p.Id, 0 FROM Produits p WHERE p.TenantId = @t AND p.Code = 'CON04'
+    AND NOT EXISTS (SELECT 1 FROM StocksDepots s WHERE s.ProduitId = p.Id AND s.DepotId = @dep) AND @achats = 0;
+UPDATE StocksDepots SET Quantite = Quantite + 2 WHERE DepotId = @dep AND ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'CON04') AND @achats = 0;
+UPDATE Produits SET StockActuel = StockActuel + 3 WHERE TenantId = @t AND Code = 'CON05' AND @achats = 0;
+INSERT INTO StocksDepots (DepotId, ProduitId, Quantite) SELECT @dep, p.Id, 0 FROM Produits p WHERE p.TenantId = @t AND p.Code = 'CON05'
+    AND NOT EXISTS (SELECT 1 FROM StocksDepots s WHERE s.ProduitId = p.Id AND s.DepotId = @dep) AND @achats = 0;
+UPDATE StocksDepots SET Quantite = Quantite + 3 WHERE DepotId = @dep AND ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'CON05') AND @achats = 0;
 
 COMMIT;
 SELECT 'Société de démonstration « Laverie » prête : connectez-vous avec le compte laverie (mot de passe 123).' AS Resultat;

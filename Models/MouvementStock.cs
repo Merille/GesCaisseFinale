@@ -39,6 +39,6 @@ namespace EasytransitCaisse.Models
 
         public string? Commentaire { get; set; }
 
-        public static readonly string[] Types = { "Stock initial", "Entrée", "Inventaire", "Vente", "Retour", "Annulation", "Transfert" };
+        public static readonly string[] Types = { "Stock initial", "Entrée", "Achat", "Consommation", "Inventaire", "Vente", "Retour", "Annulation", "Transfert" };
     }
 }

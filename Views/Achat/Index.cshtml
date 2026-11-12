@@ -1,0 +1,97 @@
+@model EasytransitCaisse.Models.ViewModels.AchatsVM
+@using EasytransitCaisse.Models
+@{
+    ViewData["Title"] = "Achats";
+    var f = Model.Filtres;
+    var fr = System.Globalization.CultureInfo.GetCultureInfo("fr-FR");
+    var inv = System.Globalization.CultureInfo.InvariantCulture;
+    string Fcfa(decimal n) => n.ToString("N0", fr);
+    var cartes = new (string Libelle, decimal Valeur, string Icone, bool Montant, string Classe)[]
+    {
+        ("Achats", Model.Nombre, "fa-cart-flatbed", false, ""), ("Montant des achats", Model.Montant, "fa-coins", true, ""),
+        ("Réglé", Model.Regle, "fa-hand-holding-dollar", true, ""), ("Reste à payer (période)", Model.Reste, "fa-hourglass-half", true, ""),
+        ("Dû aux fournisseurs (total)", Model.Dette, "fa-file-invoice-dollar", true, Model.Dette > 0 ? " text-danger" : "")
+    };
+}
+<partial name="_Onglets" model="@("Index")" />
+<form method="get" action="/Achat/Index" class="card shadow-sm border-0 mb-3">
+    <div class="card-body d-flex flex-wrap align-items-end gap-3">
+        <div><label class="form-label small fw-semibold text-muted mb-1" for="du">Achats du</label><input type="date" class="form-control" id="du" name="du" value="@f.Du.ToString("yyyy-MM-dd")"></div>
+        <div><label class="form-label small fw-semibold text-muted mb-1" for="au">Au</label><input type="date" class="form-control" id="au" name="au" value="@f.Au.ToString("yyyy-MM-dd")"></div>
+        <div>
+            <label class="form-label small fw-semibold text-muted mb-1" for="fournisseur">Fournisseur</label>
+            <select class="form-select" id="fournisseur" name="fournisseur">
+                <option value="">Tous</option>
+                @foreach (var fo in Model.Fournisseurs)
+                {
+                    <option value="@fo.Id" selected="@(f.Fournisseur == fo.Id)">@fo.NomSociete</option>
+                }
+            </select>
+        </div>
+        <div>
+            <label class="form-label small fw-semibold text-muted mb-1" for="statut">Statut</label>
+            <select class="form-select" id="statut" name="statut">
+                <option value="">Tous</option>
+                @foreach (var s in EasytransitCaisse.Models.ViewModels.FiltresAchats.Choix)
+                {
+                    <option selected="@(f.Statut == s)">@s</option>
+                }
+            </select>
+        </div>
+        <button class="btn btn-primary"><i class="fa fa-search"></i> Filtrer</button>
+        <a class="btn btn-success ms-auto" href="/Achat/Nouveau"><i class="fa fa-cart-plus"></i> Nouvel achat</a>
+    </div>
+</form>
+
+<div class="row g-3 mb-3">
+    @foreach (var c in cartes)
+    {
+        <div class="col-6 col-lg"><div class="card border-0 shadow-sm h-100"><div class="card-body">
+            <div class="small text-muted"><i class="fa @c.Icone"></i> @c.Libelle</div>
+            <div class="fs-5 fw-bold@(c.Classe)">@if (c.Montant) {<text>@Fcfa(c.Valeur) <small class="fs-6 fw-normal text-muted">FCFA</small></text>} else {@((int)c.Valeur)}</div>
+        </div></div></div>
+    }
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-body table-responsive">
+        <table id="achatsTable" class="table table-hover align-middle mb-0">
+            <thead class="table-dark"><tr><th>N°</th><th>Date</th><th>Fournisseur</th><th>Référence</th><th>Dépôt</th><th class="text-end">Montant</th>
+                <th class="text-end">Réglé</th><th class="text-end">Reste</th><th>Statut</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var l in Model.Achats)
+                {
+                    var a = l.Achat;
+                    var annule = a.Statut == Achat.Annule;
+                    <tr class="@(annule ? "text-muted" : "")">
+                        <td class="fw-semibold" data-order="@a.Numero">@a.Numero</td>
+                        <td class="text-nowrap" data-order="@(a.DateAchat.ToString("yyyy-MM-dd") + a.Numero.ToString("D8"))">@a.DateAchat.ToString("dd/MM/yyyy")</td>
+                        <td>@if (l.Fournisseur != null) {@l.Fournisseur} else {<span class="text-muted">—</span>}</td>
+                        <td>@a.Reference</td>
+                        <td>@l.Depot</td>
+                        <td class="text-end text-nowrap" data-order="@a.Total.ToString(inv)">@Fcfa(a.Total)</td>
+                        <td class="text-end text-nowrap" data-order="@l.Regle.ToString(inv)">@Fcfa(l.Regle)</td>
+                        <td class="text-end text-nowrap fw-semibold@(l.Reste > 0 ? " text-danger" : "")" data-order="@l.Reste.ToString(inv)">@if (l.Reste > 0) {@Fcfa(l.Reste)} else {<span class="text-muted">—</span>}</td>
+                        <td><span class="badge @(annule ? "bg-secondary" : l.Reste > 0 ? "bg-warning text-dark" : "bg-success")">@(annule ? "Annulé" : l.Reste > 0 ? "Non soldé" : "Soldé")</span></td>
+                        <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="/Achat/Details/@a.Id" title="Détail de l'achat"><i class="fa fa-eye"></i></a></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        <p class="small text-muted mt-2 mb-0">Les totaux ne comptent pas les achats annulés. « Dû aux fournisseurs » : reste à payer de tous les achats validés, quelle que soit leur date.
+            Les fournisseurs sont les tiers de type « Fournisseur ».</p>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $('#achatsTable').DataTable({
+            language: { url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/fr-FR.json' },
+            pageLength: 20,
+            lengthMenu: [20, 50, 100],
+            order: [[1, 'desc']],
+            columnDefs: [{ orderable: false, targets: -1 }],
+            dom: '<"d-flex justify-content-between align-items-center mb-3"lf>rtip'
+        });
+    </script>
+}

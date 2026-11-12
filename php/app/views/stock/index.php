@@ -2,7 +2,7 @@
 $titre = 'Stock';
 $onglet = 'index';
 require __DIR__ . '/_onglets.php';
-$badge = ['Entrée' => 'bg-success', 'Retour' => 'bg-info text-dark', 'Annulation' => 'bg-info text-dark', 'Vente' => 'bg-primary',
+$badge = ['Entrée' => 'bg-success', 'Achat' => 'bg-success', 'Consommation' => 'bg-danger', 'Retour' => 'bg-info text-dark', 'Annulation' => 'bg-info text-dark', 'Vente' => 'bg-primary',
           'Inventaire' => 'bg-warning text-dark', 'Stock initial' => 'bg-secondary', 'Transfert' => 'bg-dark'];
 ?>
 <div class="row g-3 mb-3">

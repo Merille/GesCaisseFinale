@@ -109,6 +109,9 @@ namespace EasytransitCaisse.Controllers
             p.Unite = string.IsNullOrWhiteSpace(p.Unite) ? "Unité" : p.Unite.Trim()[..Math.Min(20, p.Unite.Trim().Length)];
             if (p.CategorieId != null && !_context.Categories.Any(c => c.Id == p.CategorieId))
                 p.CategorieId = null;
+            // Un consommable a toujours un stock suivi (achats, consommations).
+            if (p.Consommable)
+                p.SuiviStock = true;
         }
 
         public IActionResult Create()
@@ -255,7 +258,9 @@ namespace EasytransitCaisse.Controllers
             produit.CategorieId = saisi.CategorieId;
             produit.PrixVente = saisi.PrixVente;
             // Un combo n'a pas de stock propre (ce sont ses composants qui sortent du stock).
-            produit.SuiviStock = !produit.EstCombo && saisi.SuiviStock;
+            // Consommable (lessive, javel…) : utilisé pour le service, jamais vendu en caisse ; stock suivi.
+            produit.Consommable = saisi.Consommable;
+            produit.SuiviStock = !produit.EstCombo && (saisi.SuiviStock || saisi.Consommable);
             produit.SeuilAlerte = saisi.SeuilAlerte;
             produit.Actif = saisi.Actif;
             produit.Cout = saisi.Cout;

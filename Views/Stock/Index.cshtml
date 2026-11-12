@@ -12,7 +12,7 @@
     string Qte(decimal n) => n.ToString("#,0.##", fr);
     string Badge(string t) => t switch
     {
-        "Entrée" => "bg-success", "Retour" or "Annulation" => "bg-info text-dark", "Vente" => "bg-primary",
+        "Entrée" or "Achat" => "bg-success", "Consommation" => "bg-danger", "Retour" or "Annulation" => "bg-info text-dark", "Vente" => "bg-primary",
         "Inventaire" => "bg-warning text-dark", "Transfert" => "bg-dark", _ => "bg-secondary"
     };
 }

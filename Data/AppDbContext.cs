@@ -160,6 +160,19 @@ namespace EasytransitCaisse.Data
             modelBuilder.Entity<DepotLinge>().Property(d => d.Total).HasDefaultValue(0m);
             modelBuilder.Entity<DepotLinge>().Property(d => d.NbArticles).HasDefaultValue(0m);
             modelBuilder.Entity<DepotLinge>().Property(d => d.DateRetraitPrevue).HasColumnType("date");
+            // Achats (laverie : lessive, javel…) : lignes et règlements supprimés avec l'achat.
+            modelBuilder.Entity<Achat>().ToTable("Achats")
+                .HasQueryFilter(e => _currentTenantId == 0 || e.TenantId == _currentTenantId);
+            modelBuilder.Entity<Achat>().HasIndex(a => new { a.TenantId, a.Numero }).IsUnique();
+            modelBuilder.Entity<Achat>().HasIndex(a => new { a.TenantId, a.DateAchat });
+            modelBuilder.Entity<Achat>().Property(a => a.DateAchat).HasColumnType("date");
+            modelBuilder.Entity<Achat>().Property(a => a.Statut).HasDefaultValue(Achat.Valide);
+            modelBuilder.Entity<Achat>().Property(a => a.Total).HasDefaultValue(0m);
+            modelBuilder.Entity<LigneAchat>().ToTable("LignesAchats")
+                .HasOne<Achat>().WithMany(a => a.Lignes).HasForeignKey(l => l.AchatId).OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<ReglementAchat>().ToTable("ReglementsAchats")
+                .HasOne<Achat>().WithMany(a => a.Reglements).HasForeignKey(r => r.AchatId).OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<Produit>().Property(p => p.Consommable).HasDefaultValue(false);
             modelBuilder.Entity<CommandePos>()
                 .HasOne<Livreur>().WithMany().HasForeignKey(c => c.LivreurId).OnDelete(DeleteBehavior.Restrict);
             modelBuilder.Entity<CommandePos>().Property(c => c.NomLivraison).HasMaxLength(100);
@@ -388,6 +401,9 @@ namespace EasytransitCaisse.Data
         public DbSet<Livreur> Livreurs { get; set; }
         public DbSet<CommandeAttente> CommandesAttente { get; set; }
         public DbSet<DepotLinge> DepotsLinge { get; set; }
+        public DbSet<Achat> Achats { get; set; }
+        public DbSet<LigneAchat> LignesAchats { get; set; }
+        public DbSet<ReglementAchat> ReglementsAchats { get; set; }
 
         public DbSet<Taxe> Taxes { get; set; }
 

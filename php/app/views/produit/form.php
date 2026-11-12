@@ -95,6 +95,11 @@ require __DIR__ . '/../partials/form_debut.php';
                         <label class="form-check-label" for="SuiviStock">Suivre le stock de ce produit</label>
                     </div>
                     <div class="form-text mt-0">Décochez pour un service (photocopie, recharge…).</div>
+                    <div class="form-check mt-2 mb-0">
+                        <input class="form-check-input" type="checkbox" value="1" id="Consommable" name="Consommable" <?= !empty($produit['Consommable']) ? 'checked' : '' ?>>
+                        <label class="form-check-label" for="Consommable">Consommable (non vendu en caisse)</label>
+                    </div>
+                    <div class="form-text mt-0">Produit acheté et utilisé pour le service (lessive, javel…) : absent de l'écran de vente.</div>
                 </div>
                 <?php if ($edition && !empty($produit['EstModele'])): ?>
                     <div class="col-md-4">

@@ -3,7 +3,7 @@
 // de marchandises, transferts entre dépôts, inventaire et option « vente sans stock ».
 // Réservé aux profils Admin et SuperAdmin.
 
-const STOCK_TYPES = ['Stock initial', 'Entrée', 'Inventaire', 'Vente', 'Retour', 'Annulation', 'Transfert'];
+const STOCK_TYPES = ['Stock initial', 'Entrée', 'Achat', 'Consommation', 'Inventaire', 'Vente', 'Retour', 'Annulation', 'Transfert'];
 
 /** Produits suivis ; StockDepot = quantité dans le dépôt donné (0 = pas de dépôt). */
 function stock_produits_suivis(int $categorie = 0, int $depot = 0): array
