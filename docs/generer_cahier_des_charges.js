@@ -63,7 +63,7 @@ const fiche = [
         ['Projet', 'GesCaisse — gestion de caisse et point de vente (POS)'],
         ['Éditeur', 'M-ITECH AFRICA'],
         ['Versions', 'ASP.NET Core (.NET 10) / SQL Server — PHP 8 / MySQL'],
-        ['Version du document', '3.3'],
+        ['Version du document', '3.4'],
         ['Date', 'Novembre 2026'],
         ['Statut', 'Document de référence (fonctionnalités réalisées)']
     ], [3000, 6638])
@@ -155,6 +155,11 @@ const contenu = [
     puce('Graphique des flux des 7 derniers jours et état de chaque caisse (ouverte, clôturée, solde).'),
     h3('Notifications (cloche)'),
     puce('Cloche de la barre du haut, sur toutes les pages : pastille rouge avec le nombre total d\'éléments à traiter et menu déroulant (une ligne par type, avec son nombre et un lien direct), ou « Rien à traiter pour le moment ». Pour tous les utilisateurs, toutes caisses confondues : opérations en attente de validation, décaissements sans justificatif (hors rejetés) et journées ouvertes depuis plus de 24 h (lien vers la plus ancienne journée concernée) ; module Point de vente : livraisons à livrer (ventes payées confiées à un livreur, pas encore marquées Livrée, hors annulées ; montant frais compris ; lien vers l\'écran de vente de la journée de la plus ancienne, ou la vente si sa journée est clôturée, ou pour un administrateur vers le rapport des livraisons filtré « À livrer ») et livraisons à encaisser (commandes en attente confiées à un livreur, avec le montant attendu frais compris ; lien vers l\'écran de vente de la journée de la plus ancienne, ou pour un administrateur vers le rapport des livraisons filtré « À encaisser » depuis sa date). Pour les administrateurs, module Point de vente : produits au niveau ou sous leur seuil d\'alerte (hors produits d\'entretien, lien vers la page Stock) ; en laverie, produits d\'entretien à racheter (dépôt des achats) et dépôts de linge en retard (rapport filtré « En retard »).'),
+    h3('Application installable et mode hors ligne (étape 1)'),
+    puce('Application web installable (manifeste, icônes, fenêtre autonome) sur ordinateur, tablette et téléphone ; bouton « Installer l\'application » dans la barre du haut quand le navigateur le propose.'),
+    puce('Service worker commun aux deux versions : écran de vente servi « réseau d\'abord » (5 s au plus) puis depuis la dernière copie du poste ; ressources (CSS, JS, polices, bibliothèques des CDN) et images produits en cache, rafraîchies en arrière-plan, anciennes versions remplacées ; autre page hors ligne : page de secours listant les écrans de vente enregistrés ; pages enregistrées effacées à la déconnexion (et à l\'expiration de session). Envois (POST) jamais servis par le cache.'),
+    puce('Indicateur « En ligne / Hors ligne » sur toutes les pages et sur l\'écran de vente, vérifié par un appel au serveur toutes les 30 s et aux changements de réseau.'),
+    puce('Étapes suivantes : file d\'attente locale des ventes et des dépôts de linge, envoi automatique au retour de la connexion sans doublon (clé unique par vente), numéros provisoires par poste, clôture bloquée tant qu\'un poste a des ventes non envoyées.'),
     h2('3.2 Caisses'),
     puce('Création, modification, suppression (refusée si la caisse a des journées), impression de la liste.'),
     puce('Informations : code, description, caissier par défaut, compte comptable (contrepartie Sage).'),

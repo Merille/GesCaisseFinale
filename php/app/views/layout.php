@@ -52,6 +52,9 @@ $badge = $nbJourneesOuvertes > 0
     <link rel="stylesheet" href="<?= asset('assets/css/dataTables.bootstrap5.min.css') ?>">
     <link rel="stylesheet" href="<?= asset('assets/css/theme.css') ?>">
     <link rel="stylesheet" href="<?= asset('assets/css/layout.css') ?>">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1b5e84">
+    <link rel="apple-touch-icon" href="assets/icones/icone-192.png">
     <link rel="stylesheet" href="<?= asset('assets/css/print.css') ?>">
     <link rel="stylesheet" href="<?= asset('assets/css/app.css') ?>">
     <script>
@@ -194,6 +197,8 @@ $badge = $nbJourneesOuvertes > 0
             <div class="topbar-societe">Consultation : <strong><?= h($societeConsultee) ?></strong></div>
         <?php endif; ?>
         <?php $notifications = notifications(); $nbNotifications = array_sum(array_column($notifications, 'n')); ?>
+        <span class="gc-connexion"></span>
+        <button type="button" class="topbar-icone d-none" id="gcInstaller" title="Installer l'application sur ce poste" aria-label="Installer l'application"><i class="fas fa-download"></i></button>
         <div class="dropdown">
             <button type="button" class="topbar-icone<?= $nbNotifications ? ' topbar-alerte' : '' ?>" data-bs-toggle="dropdown" aria-expanded="false" id="cloche"
                     title="<?= $nbNotifications ? $nbNotifications . ' notification' . ($nbNotifications > 1 ? 's' : '') : 'Aucune notification' ?>" aria-label="Notifications">
@@ -272,6 +277,7 @@ $badge = $nbJourneesOuvertes > 0
 </script>
 <script src="<?= asset('assets/js/vues.js') ?>"></script>
 <script src="<?= asset('assets/js/listes.js') ?>"></script>
+<script src="<?= asset('assets/js/hors-ligne.js') ?>" data-sw="sw.js"></script>
 <?= $scripts ?? '' ?>
 </body>
 </html>

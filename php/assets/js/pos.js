@@ -653,7 +653,7 @@
             + '<small>' + echap(D.journee.libelle) + '</small></div>'
             + '<div class="pos-tabs">' + salles.map((x, i) => '<button type="button" class="pos-tab' + (i === salleActive ? ' on' : '') + '" data-salle="' + i + '">'
                 + echap(x.nom) + '</button>').join('') + '</div>'
-            + '<div class="pos-droite">'
+            + '<div class="pos-droite">' + connexion()
             + '<button type="button" class="pos-btn-top" data-action="directe"><i class="fas fa-bag-shopping"></i> Vente directe</button>'
             + boutonAttentes()
             + '<a class="pos-btn-top" href="' + echap(R.urlCuisine) + '" target="_blank" rel="noopener"><i class="fas fa-fire-burner"></i> Écran cuisine</a>'
@@ -867,10 +867,15 @@
         return 'fa-wallet';
     }
 
+    // Indicateur de connexion (hors-ligne.js) : mis à jour par lui-même à chaque changement.
+    function connexion() {
+        return window.gcConnexion ? window.gcConnexion.html() : '';
+    }
+
     function enteteSimple(titre, sousTitre) {
         return '<div class="pos-top"><span class="pos-logo">GC</span>'
             + '<div class="pos-titre"><strong>' + echap(titre) + '</strong><small>' + echap(sousTitre) + '</small></div>'
-            + '<div class="pos-droite"><span class="pos-user"><span class="pos-avatar">' + echap(initiales(D.utilisateur.nom || '?')) + '</span><span>'
+            + '<div class="pos-droite">' + connexion() + '<span class="pos-user"><span class="pos-avatar">' + echap(initiales(D.utilisateur.nom || '?')) + '</span><span>'
             + echap(D.utilisateur.nom) + ' · ' + echap(D.utilisateur.profil) + '</span></span></div></div>';
     }
 
@@ -1032,7 +1037,7 @@
                     + (tk.lignes.length ? ' · ' + tk.lignes.length : '') + '<span class="x" data-fermer="' + i + '" title="Abandonner ce ticket">×</span></button>').join('')
                     + '<button type="button" class="pos-tab ajout" data-action="nouveau" title="Nouveau ticket"><i class="fas fa-plus"></i></button>')
             + '</div>'
-            + '<div class="pos-droite">'
+            + '<div class="pos-droite">' + connexion()
             + '<span class="pos-user"><span class="pos-avatar">' + echap(initiales(D.utilisateur.nom || '?')) + '</span><span>' + echap(D.utilisateur.nom) + ' · ' + echap(D.utilisateur.profil) + '</span></span>'
             + boutonDepots()
             + boutonAttentes()

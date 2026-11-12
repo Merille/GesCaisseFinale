@@ -98,7 +98,7 @@ const fiche = [
         ['Application', 'GesCaisse — gestion de caisse et point de vente (POS)'],
         ['Éditeur', 'M-ITECH AFRICA'],
         ['Public', 'Administrateurs, caissiers, vendeurs et serveurs des sociétés clientes'],
-        ['Version du document', '3.2'],
+        ['Version du document', '3.3'],
         ['Date', 'Novembre 2026']
     ], [3000, 6638])
 ];
@@ -199,7 +199,14 @@ const contenu = [
     pt('Livraisons à encaisser', 'commandes confiées à un livreur et pas encore encaissées (6.6), avec le montant attendu, frais de livraison compris. La ligne ouvre l’écran de vente de la journée de la plus ancienne commande, où vous l’encaissez au retour du livreur depuis **Commandes en attente** ; pour un administrateur, elle ouvre le rapport des livraisons filtré « À encaisser » (9.1).'),
     pt('Pour les administrateurs', 'produits en vente au niveau ou sous leur seuil d’alerte (page Stock) et, en laverie, produits d’entretien à racheter (dépôt des achats, 8.7) et dépôts de linge en retard (rapport des dépôts filtré « En retard », 9.2).'),
     p('Quand tout est traité, la cloche s’éteint et indique « Rien à traiter pour le moment ».'),
-    h2('2.5 Se déconnecter'),
+    h2('2.5 Installer l’application et travailler sans connexion'),
+    p('GesCaisse peut s’installer comme une application sur le poste de caisse, la tablette ou le téléphone : cliquez sur l’icône **Installer l’application** (flèche vers le bas) dans la barre du haut quand elle apparaît, ou utilisez le menu du navigateur (« Installer GesCaisse » / « Ajouter à l’écran d’accueil »). L’application s’ouvre alors dans sa propre fenêtre, avec son icône.'),
+    pt('Indicateur de connexion', 'en haut de chaque page et de l’écran de vente : **En ligne** (point vert) ou **Hors ligne** (badge orange). La connexion au serveur est vérifiée toutes les 30 secondes : un wifi branché mais sans internet est détecté.'),
+    pt('Écran de vente sans connexion', 'chaque écran de vente ouvert avec la connexion est enregistré sur le poste, avec ses articles, ses images et ses icônes. Si la connexion tombe, l’écran reste utilisable et se rouvre même après un rechargement : le ticket en cours est conservé.'),
+    pt('Autres pages', 'hors connexion, elles affichent une page « Pas de connexion au serveur » qui propose de revenir aux écrans de vente enregistrés sur le poste, et un bouton **Réessayer**.'),
+    pt('Confidentialité', 'les écrans de vente enregistrés sont effacés du poste à la déconnexion.'),
+    attention('Ouvrez la journée et l’écran de vente au moins une fois avec la connexion avant une coupure. Dans cette version, la validation d’une vente demande encore la connexion : l’enregistrement des ventes hors ligne et leur envoi automatique au retour de la connexion arrivent dans la prochaine mise à jour.'),
+    h2('2.6 Se déconnecter'),
     p('Cliquez sur l’icône de sortie, à droite de votre nom dans la barre du haut. Pensez à vous déconnecter sur un poste partagé.'),
 
     // 3 ------------------------------------------------------------------

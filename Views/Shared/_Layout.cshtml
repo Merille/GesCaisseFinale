@@ -95,6 +95,9 @@
     <link rel="stylesheet" href="~/css/theme.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/print.css" />
     <link rel="stylesheet" href="~/css/layout.css" asp-append-version="true" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#1b5e84" />
+    <link rel="apple-touch-icon" href="/icones/icone-192.png" />
     <link rel="stylesheet" href="~/css/app.css" asp-append-version="true" />
     <script>
         // Applique l'état replié du menu avant l'affichage (pas de saut visuel).
@@ -383,6 +386,8 @@
                 var notifications = EasytransitCaisse.Data.Notifications.Lister(DbContext, isAdmin, modulePointVente);
                 var nbNotifications = notifications.Sum(n => n.N);
             }
+            <span class="gc-connexion"></span>
+            <button type="button" class="topbar-icone d-none" id="gcInstaller" title="Installer l'application sur ce poste" aria-label="Installer l'application"><i class="fas fa-download"></i></button>
             <div class="dropdown">
                 <button type="button" class="topbar-icone@(nbNotifications > 0 ? " topbar-alerte" : "")" data-bs-toggle="dropdown" aria-expanded="false" id="cloche"
                         title="@(nbNotifications > 0 ? nbNotifications + " notification" + (nbNotifications > 1 ? "s" : "") : "Aucune notification")" aria-label="Notifications">
@@ -456,6 +461,7 @@
 
     <script src="~/js/modale-creation.js" asp-append-version="true"></script>
     <script src="~/js/vues.js" asp-append-version="true"></script>
+    <script src="~/js/hors-ligne.js" asp-append-version="true" data-sw="/sw.js"></script>
 
     @await RenderSectionAsync("Scripts", required: false)
 
