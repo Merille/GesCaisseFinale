@@ -298,6 +298,15 @@
     box-shadow: 0 0 0 2px #1b5e84;
 }
 
+/* Cloche : menu des notifications (ce qui attend une action). */
+button.topbar-icone { cursor: pointer; padding: 0; }
+button.topbar-icone:hover { background: rgba(255, 255, 255, .12); }
+.cloche-menu { width: 340px; max-width: calc(100vw - 24px); padding: 6px 0; border: 0; border-radius: 12px; }
+.cloche-titre { padding: 8px 16px 6px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: #64748b; }
+.cloche-item { display: flex; align-items: center; gap: 12px; padding: 9px 16px; font-size: 14px; white-space: normal; }
+.cloche-icone { flex: 0 0 30px; width: 30px; height: 30px; border-radius: 8px; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 13px; }
+.cloche-vide { padding: 12px 16px 10px; font-size: 14px; color: #475569; }
+
 /* Utilisateur connecté (initiales, nom, profil, déconnexion) dans la barre du haut. */
 .topbar-user {
     display: flex;

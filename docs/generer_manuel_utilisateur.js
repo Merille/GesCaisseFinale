@@ -98,7 +98,7 @@ const fiche = [
         ['Application', 'GesCaisse — gestion de caisse et point de vente (POS)'],
         ['Éditeur', 'M-ITECH AFRICA'],
         ['Public', 'Administrateurs, caissiers, vendeurs et serveurs des sociétés clientes'],
-        ['Version du document', '2.8'],
+        ['Version du document', '2.9'],
         ['Date', 'Novembre 2026']
     ], [3000, 6638])
 ];
@@ -191,7 +191,13 @@ const contenu = [
     pt('À traiter', 'opérations en attente de validation, décaissements sans justificatif, journées ouvertes depuis plus de 24 heures. Cliquez sur une alerte pour ouvrir la liste correspondante.'),
     pt('Flux des 7 derniers jours et État des caisses', 'graphique des entrées et sorties, et situation de chaque caisse (ouverte ou clôturée, solde).'),
     p('Le bouton **Nouvelle opération** permet de saisir directement un encaissement ou un décaissement dans une journée ouverte.'),
-    h2('2.4 Se déconnecter'),
+    h2('2.4 Les notifications (cloche)'),
+    p('La **cloche**, en haut à droite de chaque page, rassemble ce qui attend une action. Quand il y a quelque chose à traiter, elle s’allume et une pastille rouge indique le nombre total d’éléments ; cliquez dessus pour ouvrir la liste, puis sur une ligne pour aller directement à la bonne page.'),
+    ...figure('02b_cloche', 'Notifications de la cloche'),
+    pt('Pour tous les utilisateurs', 'opérations en attente de validation, décaissements sans justificatif et journées ouvertes depuis plus de 24 h, toutes caisses confondues (la ligne ouvre la plus ancienne journée concernée).'),
+    pt('Pour les administrateurs', 'produits en vente au niveau ou sous leur seuil d’alerte (page Stock) et, en laverie, produits d’entretien à racheter (dépôt des achats, 8.7) et dépôts de linge en retard (rapport des dépôts filtré « En retard », 9.2).'),
+    p('Quand tout est traité, la cloche s’éteint et indique « Rien à traiter pour le moment ».'),
+    h2('2.5 Se déconnecter'),
     p('Cliquez sur l’icône de sortie, à droite de votre nom dans la barre du haut. Pensez à vous déconnecter sur un poste partagé.'),
 
     // 3 ------------------------------------------------------------------
@@ -516,7 +522,7 @@ const contenu = [
     pt('Transfert', 'un produit acheté pour être revendu (lessive en bouteille, par exemple) se transfère vers le dépôt d’une caisse avec le bouton **Transfert** (8.4).'),
     h3('Alerte de stock bas'),
     p('Renseignez le **seuil d’alerte** de chaque produit d’entretien dans sa fiche (11.2), par exemple 1 sac de lessive. Dès que son stock dans le dépôt des achats atteint ce seuil ou passe en dessous, GesCaisse prévient les administrateurs :'),
-    pt('Cloche', 'en haut de chaque page, la cloche s’allume et une pastille rouge indique le nombre de produits à racheter ; un clic ouvre le dépôt des achats.'),
+    pt('Cloche', 'en haut de chaque page, la cloche s’allume et sa liste indique le nombre de produits à racheter ; un clic sur la ligne ouvre le dépôt des achats (voir 2.4).'),
     pt('Tableau de bord', 'la ligne « produits d’entretien à racheter » apparaît dans **À traiter**.'),
     pt('Module Achats', 'un bandeau sur chaque onglet liste les produits concernés, le plus urgent en premier, avec leur stock et leur seuil.'),
     ...figure('26g_alerte_entretien', 'Alerte de stock bas des produits d’entretien'),

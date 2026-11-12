@@ -874,6 +874,49 @@ function entretien_en_alerte(): array
     return $alertes;
 }
 
+/**
+ * Notifications de la cloche (barre du haut) : ce qui attend une action, toutes caisses confondues.
+ * Pour tous : opérations en attente de validation, décaissements sans justificatif, journées ouvertes
+ * depuis plus de 24 h (lien vers la plus ancienne journée concernée). Administrateurs, module Point
+ * de vente : produits sous le seuil d'alerte (hors produits d'entretien), et en laverie, produits
+ * d'entretien à racheter et dépôts de linge en retard. Chaque entrée : n, texte, url, icone, couleur.
+ */
+function notifications(): array
+{
+    $s = fn(int $n, string $mot) => $n . ' ' . preg_replace('/(\w+)%s/u', $n > 1 ? '$1s' : '$1', $mot);
+    $liste = [];
+    $ajouter = function (int $n, string $texte, string $url, string $icone, string $couleur) use (&$liste, $s): void {
+        if ($n > 0) {
+            $liste[] = ['n' => $n, 'texte' => $s($n, $texte), 'url' => $url, 'icone' => $icone, 'couleur' => $couleur];
+        }
+    };
+    $base = 'FROM OperationsCaisses o JOIN JourneesCaisses j ON j.Id = o.JourneeCaisseId WHERE ' . tf('o');
+    foreach ([["o.StatutValidation = 'En attente'", 'opération%s en attente de validation', 'fa-hourglass-half', '#c2410c'],
+              ["o.TypeOperation = 'Décaissement' AND o.EstJustifie = 0 AND o.StatutValidation <> '" . STATUT_REJETE . "'", 'décaissement%s sans justificatif', 'fa-file-circle-exclamation', '#b45309']] as [$cond, $texte, $icone, $couleur]) {
+        $n = (int) qv("SELECT COUNT(*) $base AND $cond");
+        if ($n) {
+            $ajouter($n, $texte, url('journee/details', ['id' => qv("SELECT o.JourneeCaisseId $base AND $cond ORDER BY o.DateOperation LIMIT 1")]), $icone, $couleur);
+        }
+    }
+    $limite = date('Y-m-d H:i:s', time() - 86400);
+    $n = (int) qv("SELECT COUNT(*) FROM JourneesCaisses j WHERE " . tf('j') . " AND j.Statut = 'Ouverte' AND j.DateOuverture < ?", [$limite]);
+    if ($n) {
+        $id = qv("SELECT j.Id FROM JourneesCaisses j WHERE " . tf('j') . " AND j.Statut = 'Ouverte' AND j.DateOuverture < ? ORDER BY j.DateOuverture LIMIT 1", [$limite]);
+        $ajouter($n, 'journée%s ouverte%s depuis plus de 24 h', url('journee/details', ['id' => $id]), 'fa-clock', '#7c2d12');
+    }
+    if (is_admin() && module_pos_actif()) {
+        $ajouter((int) qv('SELECT COUNT(*) FROM Produits WHERE SuiviStock = 1 AND Actif = 1 AND EstModele = 0 AND Consommable = 0
+                           AND SeuilAlerte IS NOT NULL AND StockActuel <= SeuilAlerte AND ' . tf()),
+            'produit%s sous le seuil d\'alerte', url('stock/index'), 'fa-boxes-stacked', '#dc2626');
+        $ajouter(count(entretien_en_alerte()), 'produit%s d\'entretien à racheter', url('achat/stock'), 'fa-bottle-droplet', '#dc2626');
+        if (laverie_actif()) {
+            $ajouter((int) qv("SELECT COUNT(*) FROM DepotsLinge WHERE Statut IN ('En cours', 'Prêt') AND DateRetraitPrevue < CURDATE() AND " . tf()),
+                'dépôt%s de linge en retard', url('rapportlinge/index', ['statut' => 'En retard']), 'fa-shirt', '#7c3aed');
+        }
+    }
+    return $liste;
+}
+
 /** Option de la société : vente autorisée quand le stock est épuisé ? */
 function vente_sans_stock(int $tenant): bool
 {

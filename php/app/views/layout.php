@@ -181,15 +181,26 @@ $badge = $nbJourneesOuvertes > 0
         <?php if (is_super_admin() && $societeConsultee): ?>
             <div class="topbar-societe">Consultation : <strong><?= h($societeConsultee) ?></strong></div>
         <?php endif; ?>
-        <?php $alertesEntretien = is_admin() && module_pos_actif() ? count(entretien_en_alerte()) : 0; ?>
-        <?php if ($alertesEntretien): ?>
-            <a class="topbar-icone topbar-alerte" href="<?= h(url('achat/stock')) ?>"
-               title="<?= $alertesEntretien ?> produit<?= $alertesEntretien > 1 ? 's' : '' ?> d'entretien à racheter" aria-label="<?= $alertesEntretien ?> produit<?= $alertesEntretien > 1 ? 's' : '' ?> d'entretien à racheter">
-                <i class="fas fa-bell"></i><span class="topbar-pastille"><?= $alertesEntretien ?></span>
-            </a>
-        <?php else: ?>
-            <span class="topbar-icone" title="Notifications"><i class="fas fa-bell"></i></span>
-        <?php endif; ?>
+        <?php $notifications = notifications(); $nbNotifications = array_sum(array_column($notifications, 'n')); ?>
+        <div class="dropdown">
+            <button type="button" class="topbar-icone<?= $nbNotifications ? ' topbar-alerte' : '' ?>" data-bs-toggle="dropdown" aria-expanded="false" id="cloche"
+                    title="<?= $nbNotifications ? $nbNotifications . ' notification' . ($nbNotifications > 1 ? 's' : '') : 'Aucune notification' ?>" aria-label="Notifications">
+                <i class="fas fa-bell"></i><?php if ($nbNotifications): ?><span class="topbar-pastille"><?= $nbNotifications > 99 ? '99+' : $nbNotifications ?></span><?php endif; ?>
+            </button>
+            <div class="dropdown-menu dropdown-menu-end shadow cloche-menu" aria-labelledby="cloche">
+                <div class="cloche-titre">Notifications</div>
+                <?php foreach ($notifications as $no): ?>
+                    <a class="dropdown-item cloche-item" href="<?= h($no['url']) ?>">
+                        <span class="cloche-icone" style="background: <?= h($no['couleur']) ?>"><i class="fas <?= h($no['icone']) ?>"></i></span>
+                        <span class="flex-grow-1"><?= h($no['texte']) ?></span>
+                        <i class="fas fa-chevron-right text-muted small"></i>
+                    </a>
+                <?php endforeach; ?>
+                <?php if (!$notifications): ?>
+                    <div class="cloche-vide"><i class="fas fa-circle-check text-success"></i> Rien à traiter pour le moment.</div>
+                <?php endif; ?>
+            </div>
+        </div>
         <div class="topbar-user">
             <span class="topbar-avatar" title="<?= h($u['nom']) ?>"><?= h($initiales) ?></span>
             <div class="topbar-user-text">

@@ -366,18 +366,31 @@
             {
                 <div class="topbar-societe">Consultation : <strong>@societeConsultee</strong></div>
             }
-            @{ var alertesEntretien = isAdmin && modulePointVente ? DbContext.EntretienEnAlerte().Count : 0; }
-            @if (alertesEntretien > 0)
-            {
-                var libelleAlerte = $"{alertesEntretien} produit{(alertesEntretien > 1 ? "s" : "")} d'entretien à racheter";
-                <a class="topbar-icone topbar-alerte" href="/Achat/Stock" title="@libelleAlerte" aria-label="@libelleAlerte">
-                    <i class="fas fa-bell"></i><span class="topbar-pastille">@alertesEntretien</span>
-                </a>
+            @{
+                var notifications = EasytransitCaisse.Data.Notifications.Lister(DbContext, isAdmin, modulePointVente);
+                var nbNotifications = notifications.Sum(n => n.N);
             }
-            else
-            {
-                <span class="topbar-icone" title="Notifications"><i class="fas fa-bell"></i></span>
-            }
+            <div class="dropdown">
+                <button type="button" class="topbar-icone@(nbNotifications > 0 ? " topbar-alerte" : "")" data-bs-toggle="dropdown" aria-expanded="false" id="cloche"
+                        title="@(nbNotifications > 0 ? nbNotifications + " notification" + (nbNotifications > 1 ? "s" : "") : "Aucune notification")" aria-label="Notifications">
+                    <i class="fas fa-bell"></i>@if (nbNotifications > 0) {<span class="topbar-pastille">@(nbNotifications > 99 ? "99+" : nbNotifications.ToString())</span>}
+                </button>
+                <div class="dropdown-menu dropdown-menu-end shadow cloche-menu" aria-labelledby="cloche">
+                    <div class="cloche-titre">Notifications</div>
+                    @foreach (var no in notifications)
+                    {
+                        <a class="dropdown-item cloche-item" href="@no.Url">
+                            <span class="cloche-icone" style="background: @no.Couleur"><i class="fas @no.Icone"></i></span>
+                            <span class="flex-grow-1">@no.Texte</span>
+                            <i class="fas fa-chevron-right text-muted small"></i>
+                        </a>
+                    }
+                    @if (!notifications.Any())
+                    {
+                        <div class="cloche-vide"><i class="fas fa-circle-check text-success"></i> Rien à traiter pour le moment.</div>
+                    }
+                </div>
+            </div>
             <div class="topbar-user">
                 <span class="topbar-avatar" title="@nomUtilisateur">@initiales</span>
                 <div class="topbar-user-text">

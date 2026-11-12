@@ -63,7 +63,7 @@ const fiche = [
         ['Projet', 'GesCaisse — gestion de caisse et point de vente (POS)'],
         ['Éditeur', 'M-ITECH AFRICA'],
         ['Versions', 'ASP.NET Core (.NET 10) / SQL Server — PHP 8 / MySQL'],
-        ['Version du document', '2.9'],
+        ['Version du document', '3.0'],
         ['Date', 'Novembre 2026'],
         ['Statut', 'Document de référence (fonctionnalités réalisées)']
     ], [3000, 6638])
@@ -153,6 +153,8 @@ const contenu = [
     puce('Indicateurs : solde en caisse (fond initial, entrées, sorties), entrées, sorties, résultat net.'),
     puce('Bloc « À traiter » : opérations en attente de validation, décaissements sans justificatif, journées ouvertes depuis plus de 24 h.'),
     puce('Graphique des flux des 7 derniers jours et état de chaque caisse (ouverte, clôturée, solde).'),
+    h3('Notifications (cloche)'),
+    puce('Cloche de la barre du haut, sur toutes les pages : pastille rouge avec le nombre total d\'éléments à traiter et menu déroulant (une ligne par type, avec son nombre et un lien direct), ou « Rien à traiter pour le moment ». Pour tous les utilisateurs, toutes caisses confondues : opérations en attente de validation, décaissements sans justificatif (hors rejetés) et journées ouvertes depuis plus de 24 h (lien vers la plus ancienne journée concernée). Pour les administrateurs, module Point de vente : produits au niveau ou sous leur seuil d\'alerte (hors produits d\'entretien, lien vers la page Stock) ; en laverie, produits d\'entretien à racheter (dépôt des achats) et dépôts de linge en retard (rapport filtré « En retard »).'),
     h2('3.2 Caisses'),
     puce('Création, modification, suppression (refusée si la caisse a des journées), impression de la liste.'),
     puce('Informations : code, description, caissier par défaut, compte comptable (contrepartie Sage).'),
@@ -246,7 +248,7 @@ const contenu = [
     puce('Annulation d\'un achat : sortie des quantités du dépôt (refusée si elles ont déjà été consommées ou vendues) et remboursement des règlements par la caisse par un encaissement dans la même journée (refusée si elle est clôturée).'),
     puce('Consommation : sortie de stock des produits utilisés pour le service (mouvement « Consommation »), refusée au-delà du stock du dépôt ; suivi sur une période par produit (quantité et valeur au coût) et en détail.'),
     puce('Dépôt des achats (« Magasin des produits d\'entretien », ACH01, un par société, créé au besoin) : tous les achats y entrent et toutes les consommations en sortent ; il reçoit aussi le stock initial des nouveaux consommables. Il n\'est proposé à aucune caisse (principal ou secondaire) et ne peut être ni dépôt par défaut, ni désactivé, ni supprimé ; Paramètres › Dépôts permet d\'en choisir un autre (actif, hors dépôt par défaut, sans caisse). Onglet « Dépôt des achats » : par produit, entrées et sorties de la période, stock, seuil d\'alerte (ligne en rouge), coût et valeur ; détail des mouvements ; accès à l\'inventaire et au transfert du dépôt.'),
-    puce('Alerte de stock bas des produits d\'entretien (administrateurs) : consommables actifs dont le stock dans le dépôt des achats atteint le seuil d\'alerte ou passe en dessous (sans seuil : pas d\'alerte). Cloche de la barre du haut active avec le nombre de produits (lien vers le dépôt des achats), ligne « produits d\'entretien à racheter » dans « À traiter » du tableau de bord, bandeau sur les onglets du module Achats (produit, stock, seuil, le plus urgent en premier) avec un bouton « Racheter » qui ouvre un nouvel achat prérempli (une ligne par produit en alerte, prix d\'achat actuel).'),
+    puce('Alerte de stock bas des produits d\'entretien (administrateurs) : consommables actifs dont le stock dans le dépôt des achats atteint le seuil d\'alerte ou passe en dessous (sans seuil : pas d\'alerte). ligne dans la cloche de notifications (lien vers le dépôt des achats), ligne « produits d\'entretien à racheter » dans « À traiter » du tableau de bord, bandeau sur les onglets du module Achats (produit, stock, seuil, le plus urgent en premier) avec un bouton « Racheter » qui ouvre un nouvel achat prérempli (une ligne par produit en alerte, prix d\'achat actuel).'),
     h2('4.7 Rapports de ventes'),
     puce('Chiffre d\'affaires, nombre de tickets, panier moyen, taxes, ventes par mode de paiement, par catégorie, par vendeur.'),
     puce('Classement des produits les plus vendus ; aperçu imprimable (PDF) et export Excel.'),
