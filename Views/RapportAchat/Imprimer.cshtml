@@ -1,0 +1,51 @@
+@model EasytransitCaisse.Models.ViewModels.RapportAchatVM
+@using EasytransitCaisse.Models.ViewModels
+@{
+    Layout = "_ImpressionLayout";
+    ViewData["Pdf"] = false;
+    ViewData["TitreImpression"] = "Rapport des achats et consommations";
+    var t = Model.Total;
+    string Fcfa(decimal n) => RapportAchatVM.Fcfa(n);
+    string Qte(decimal n) => RapportAchatVM.Qte(n);
+}
+<h1>Rapport des achats et consommations</h1>
+<p class="muted">@Model.Filtres.Periode</p>
+<h2>Par fournisseur</h2>
+<table>
+    <tr><th>Fournisseur</th><th class="r">Achats</th><th class="r">Montant</th><th class="r">Réglé</th><th class="r">Reste à payer</th></tr>
+    @foreach (var (nom, s) in Model.ParFournisseur)
+    {
+        <tr><td>@nom</td><td class="r">@s.Nombre</td><td class="r">@Fcfa(s.Montant)</td><td class="r">@Fcfa(s.Regle)</td><td class="r">@Fcfa(s.Reste)</td></tr>
+    }
+    <tr class="total"><td>Total (hors annulés)</td><td class="r">@t.Nombre</td><td class="r">@Fcfa(t.Montant)</td><td class="r">@Fcfa(t.Regle)</td><td class="r">@Fcfa(t.Reste)</td></tr>
+</table>
+<h2>Par produit : achats et consommations</h2>
+<table>
+    <tr><th>Produit</th><th class="r">Qté achetée</th><th class="r">Montant acheté</th><th class="r">Prix moyen</th><th class="r">Qté consommée</th><th class="r">Valeur consommée</th><th class="r">Stock</th></tr>
+    @if (!Model.Produits.Any())
+    {
+        <tr><td colspan="7" class="muted">Aucun achat ni consommation.</td></tr>
+    }
+    @foreach (var p in Model.Produits)
+    {
+        <tr><td>@p.Code · @p.Nom</td><td class="r">@(p.QteAchetee != 0 ? Qte(p.QteAchetee) + " " + p.Unite : "")</td>
+            <td class="r">@(p.MontantAchete != 0 ? Fcfa(p.MontantAchete) : "")</td><td class="r">@(p.PrixMoyen.HasValue ? Qte(p.PrixMoyen.Value) : "")</td>
+            <td class="r">@(p.QteConsommee != 0 ? Qte(p.QteConsommee) + " " + p.Unite : "")</td><td class="r">@(p.ValeurConsommee != 0 ? Fcfa(p.ValeurConsommee) : "")</td>
+            <td class="r">@Qte(p.Stock) @p.Unite</td></tr>
+    }
+    <tr class="total"><td>Total</td><td></td><td class="r">@Fcfa(Model.MontantAchete)</td><td></td><td></td><td class="r">@Fcfa(Model.ValeurConsommee)</td><td></td></tr>
+</table>
+<h2>Détail des achats</h2>
+<table>
+    <tr><th class="r">N°</th><th>Date</th><th>Fournisseur</th><th>Référence</th><th class="r">Montant</th><th class="r">Réglé</th><th class="r">Reste</th><th>Statut</th></tr>
+    @if (!Model.Achats.Any())
+    {
+        <tr><td colspan="8" class="muted">Aucun achat.</td></tr>
+    }
+    @foreach (var l in Model.Achats)
+    {
+        <tr><td class="r">@l.Achat.Numero</td><td>@l.Achat.DateAchat.ToString("dd/MM/yyyy")</td><td>@l.Fournisseur</td><td>@l.Achat.Reference</td>
+            <td class="r">@Fcfa(l.Achat.Total)</td><td class="r">@Fcfa(l.Regle)</td><td class="r">@(l.Reste > 0 ? Fcfa(l.Reste) : "")</td><td>@l.Statut</td></tr>
+    }
+</table>
+<p class="muted">Les totaux ne comptent pas les achats annulés. Consommations : sorties de la période, valorisées au coût actuel du produit (coût moyen pondéré). Stock : quantité actuelle dans le dépôt des achats.</p>

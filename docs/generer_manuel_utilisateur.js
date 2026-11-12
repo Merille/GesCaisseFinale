@@ -98,7 +98,7 @@ const fiche = [
         ['Application', 'GesCaisse — gestion de caisse et point de vente (POS)'],
         ['Éditeur', 'M-ITECH AFRICA'],
         ['Public', 'Administrateurs, caissiers, vendeurs et serveurs des sociétés clientes'],
-        ['Version du document', '2.6'],
+        ['Version du document', '2.7'],
         ['Date', 'Novembre 2026']
     ], [3000, 6638])
 ];
@@ -539,6 +539,15 @@ const contenu = [
     pt('Par statut', 'pour chaque statut : nombre de dépôts, articles, montant, acomptes, reste à encaisser et retards, avec le total hors dépôts annulés.'),
     pt('Détail des dépôts', 'numéro, date et caisse du dépôt, client et téléphone, articles, montant, acompte, reste, retrait prévu (en rouge s’il est passé), statut et sa date, avec un lien vers la vente du retrait.'),
     pt('Imprimer / PDF et Excel', 'comme les autres rapports ; le fichier Excel a deux feuilles, Synthèse et Dépôts.'),
+    h2('9.3 Rapport des achats et consommations'),
+    p('Menu **Rapport des achats** (administrateurs, rubrique Point de vente ; il n’apparaît que si la société a une caisse de type Laverie). Choisissez la période (date d’achat, par défaut du 1er du mois à aujourd’hui) et, au besoin, un **fournisseur**, puis **Filtrer**.'),
+    ...figure('28d_rapport_achats', 'Rapport des achats et consommations'),
+    p('Les cartes donnent le nombre d’achats, leur montant, le montant réglé, le reste à payer aux fournisseurs et la valeur des produits consommés sur la période. Le rapport présente ensuite :'),
+    pt('Par fournisseur', 'nombre d’achats, montant, réglé et reste à payer de chaque fournisseur, avec le total.'),
+    pt('Par produit', 'quantité et montant achetés, prix d’achat moyen, quantité consommée et sa valeur au coût actuel, et stock restant dans le dépôt des achats. Comparez la valeur consommée au chiffre d’affaires de la laverie pour suivre le coût des produits.'),
+    pt('Détail des achats', 'numéro (lien vers l’achat), date, fournisseur, référence, montant, réglé, reste et statut (Soldé, Non soldé, Annulé).'),
+    p('Les achats annulés figurent dans le détail mais pas dans les totaux. Avec un fournisseur choisi, seuls ses achats et ses produits sont présentés.'),
+    pt('Imprimer / PDF et Exporter Excel', 'reprennent les trois tableaux (feuilles Fournisseurs, Produits et Achats dans le fichier Excel).'),
 
     // 10 -----------------------------------------------------------------
     h1('10. Restaurant et bar'),
