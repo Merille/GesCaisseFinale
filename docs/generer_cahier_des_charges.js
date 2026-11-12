@@ -63,7 +63,7 @@ const fiche = [
         ['Projet', 'GesCaisse — gestion de caisse et point de vente (POS)'],
         ['Éditeur', 'M-ITECH AFRICA'],
         ['Versions', 'ASP.NET Core (.NET 10) / SQL Server — PHP 8 / MySQL'],
-        ['Version du document', '3.0'],
+        ['Version du document', '3.1'],
         ['Date', 'Novembre 2026'],
         ['Statut', 'Document de référence (fonctionnalités réalisées)']
     ], [3000, 6638])
@@ -154,7 +154,7 @@ const contenu = [
     puce('Bloc « À traiter » : opérations en attente de validation, décaissements sans justificatif, journées ouvertes depuis plus de 24 h.'),
     puce('Graphique des flux des 7 derniers jours et état de chaque caisse (ouverte, clôturée, solde).'),
     h3('Notifications (cloche)'),
-    puce('Cloche de la barre du haut, sur toutes les pages : pastille rouge avec le nombre total d\'éléments à traiter et menu déroulant (une ligne par type, avec son nombre et un lien direct), ou « Rien à traiter pour le moment ». Pour tous les utilisateurs, toutes caisses confondues : opérations en attente de validation, décaissements sans justificatif (hors rejetés) et journées ouvertes depuis plus de 24 h (lien vers la plus ancienne journée concernée). Pour les administrateurs, module Point de vente : produits au niveau ou sous leur seuil d\'alerte (hors produits d\'entretien, lien vers la page Stock) ; en laverie, produits d\'entretien à racheter (dépôt des achats) et dépôts de linge en retard (rapport filtré « En retard »).'),
+    puce('Cloche de la barre du haut, sur toutes les pages : pastille rouge avec le nombre total d\'éléments à traiter et menu déroulant (une ligne par type, avec son nombre et un lien direct), ou « Rien à traiter pour le moment ». Pour tous les utilisateurs, toutes caisses confondues : opérations en attente de validation, décaissements sans justificatif (hors rejetés) et journées ouvertes depuis plus de 24 h (lien vers la plus ancienne journée concernée) ; module Point de vente : livraisons à encaisser (commandes en attente confiées à un livreur, avec le montant attendu frais compris ; lien vers l\'écran de vente de la journée de la plus ancienne, ou pour un administrateur vers le rapport des livraisons filtré « À encaisser » depuis sa date). Pour les administrateurs, module Point de vente : produits au niveau ou sous leur seuil d\'alerte (hors produits d\'entretien, lien vers la page Stock) ; en laverie, produits d\'entretien à racheter (dépôt des achats) et dépôts de linge en retard (rapport filtré « En retard »).'),
     h2('3.2 Caisses'),
     puce('Création, modification, suppression (refusée si la caisse a des journées), impression de la liste.'),
     puce('Informations : code, description, caissier par défaut, compte comptable (contrepartie Sage).'),

@@ -877,7 +877,8 @@ function entretien_en_alerte(): array
 /**
  * Notifications de la cloche (barre du haut) : ce qui attend une action, toutes caisses confondues.
  * Pour tous : opérations en attente de validation, décaissements sans justificatif, journées ouvertes
- * depuis plus de 24 h (lien vers la plus ancienne journée concernée). Administrateurs, module Point
+ * depuis plus de 24 h (lien vers la plus ancienne journée concernée) ; module Point de vente :
+ * livraisons à encaisser (commandes confiées à un livreur). Administrateurs, module Point
  * de vente : produits sous le seuil d'alerte (hors produits d'entretien), et en laverie, produits
  * d'entretien à racheter et dépôts de linge en retard. Chaque entrée : n, texte, url, icone, couleur.
  */
@@ -903,6 +904,19 @@ function notifications(): array
     if ($n) {
         $id = qv("SELECT j.Id FROM JourneesCaisses j WHERE " . tf('j') . " AND j.Statut = 'Ouverte' AND j.DateOuverture < ? ORDER BY j.DateOuverture LIMIT 1", [$limite]);
         $ajouter($n, 'journée%s ouverte%s depuis plus de 24 h', url('journee/details', ['id' => $id]), 'fa-clock', '#7c2d12');
+    }
+    // Livraisons à encaisser : commandes confiées à un livreur, encaissées à son retour (montant attendu,
+    // frais de livraison compris). Administrateur : rapport des livraisons filtré ; sinon écran de vente.
+    if (module_pos_actif()) {
+        $attentes = q('SELECT a.JourneeCaisseId, a.DateCreation, a.Total, a.Contenu, j.Statut FROM CommandesAttente a
+                       JOIN JourneesCaisses j ON j.Id = a.JourneeCaisseId WHERE a.LivreurId IS NOT NULL AND ' . tf('a') . ' ORDER BY a.DateCreation');
+        if ($attentes) {
+            $montant = array_sum(array_map(fn($a) => (float) $a['Total'] + (float) (json_decode((string) $a['Contenu'], true)['livraison']['frais'] ?? 0), $attentes));
+            $url = is_admin()
+                ? url('rapportlivraison/index', ['statut' => 'À encaisser', 'du' => substr($attentes[0]['DateCreation'], 0, 10), 'au' => date('Y-m-d')])
+                : url('pos/index', $attentes[0]['Statut'] === 'Ouverte' ? ['journee' => $attentes[0]['JourneeCaisseId']] : []);
+            $ajouter(count($attentes), 'livraison%s à encaisser (' . fcfa($montant) . ' FCFA)', $url, 'fa-truck-fast', '#0369a1');
+        }
     }
     if (is_admin() && module_pos_actif()) {
         $ajouter((int) qv('SELECT COUNT(*) FROM Produits WHERE SuiviStock = 1 AND Actif = 1 AND EstModele = 0 AND Consommable = 0
