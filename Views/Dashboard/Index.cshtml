@@ -238,6 +238,16 @@
                         </a>
                     </div>
                 }
+                @if (Model.ProduitsEntretienAlerte > 0)
+                {
+                    <div class="col-md-4">
+                        <a class="d-flex align-items-center gap-3 px-3 py-2 h-100" href="/Achat/Stock">
+                            <span class="db-count db-num">@Model.ProduitsEntretienAlerte</span>
+                            <span class="small flex-grow-1">produit@(Model.ProduitsEntretienAlerte > 1 ? "s" : "") d'entretien à racheter</span>
+                            <i class="fa fa-chevron-right" style="color:#c2410c;"></i>
+                        </a>
+                    </div>
+                }
             </div>
         </section>
     }

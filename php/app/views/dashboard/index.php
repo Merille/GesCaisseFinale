@@ -122,7 +122,7 @@ $rienATraiter = array_sum(array_column($aTraiter, 'n')) === 0;
             <div class="row g-2 flex-grow-1">
                 <?php foreach ($aTraiter as $t): if ($t['n'] === 0) continue; ?>
                     <div class="col-md-4">
-                        <a class="d-flex align-items-center gap-3 px-3 py-2 h-100" href="<?= h(url('journee/details', ['id' => $t['j']])) ?>">
+                        <a class="d-flex align-items-center gap-3 px-3 py-2 h-100" href="<?= h($t['url'] ?? url('journee/details', ['id' => $t['j']])) ?>">
                             <span class="db-count db-num"><?= $t['n'] ?></span>
                             <span class="small flex-grow-1"><?= h(str_replace('%s', $s($t['n']), $t['txt'])) ?></span>
                             <i class="fa fa-chevron-right" style="color:#c2410c;"></i>

@@ -181,7 +181,15 @@ $badge = $nbJourneesOuvertes > 0
         <?php if (is_super_admin() && $societeConsultee): ?>
             <div class="topbar-societe">Consultation : <strong><?= h($societeConsultee) ?></strong></div>
         <?php endif; ?>
-        <span class="topbar-icone" title="Notifications"><i class="fas fa-bell"></i></span>
+        <?php $alertesEntretien = is_admin() && module_pos_actif() ? count(entretien_en_alerte()) : 0; ?>
+        <?php if ($alertesEntretien): ?>
+            <a class="topbar-icone topbar-alerte" href="<?= h(url('achat/stock')) ?>"
+               title="<?= $alertesEntretien ?> produit<?= $alertesEntretien > 1 ? 's' : '' ?> d'entretien à racheter" aria-label="<?= $alertesEntretien ?> produit<?= $alertesEntretien > 1 ? 's' : '' ?> d'entretien à racheter">
+                <i class="fas fa-bell"></i><span class="topbar-pastille"><?= $alertesEntretien ?></span>
+            </a>
+        <?php else: ?>
+            <span class="topbar-icone" title="Notifications"><i class="fas fa-bell"></i></span>
+        <?php endif; ?>
         <div class="topbar-user">
             <span class="topbar-avatar" title="<?= h($u['nom']) ?>"><?= h($initiales) ?></span>
             <div class="topbar-user-text">

@@ -2,14 +2,18 @@
 $titre = 'Nouvel achat';
 $onglet = 'nouveau';
 require __DIR__ . '/_onglets.php';
-$options = function () use ($produits): string {
+$options = function (int $choisi = 0) use ($produits): string {
     $html = '<option value="">-- Produit --</option>';
     foreach ($produits as $p) {
-        $html .= '<option value="' . (int) $p['Id'] . '" data-cout="' . h($p['Cout'] === null ? '' : quantite_fr($p['Cout'], false)) . '">'
+        $html .= '<option value="' . (int) $p['Id'] . '"' . ($choisi === (int) $p['Id'] ? ' selected' : '') . ' data-cout="' . h($p['Cout'] === null ? '' : quantite_fr($p['Cout'], false)) . '">'
             . h($p['Code'] . ' · ' . $p['Nom'] . ($p['Consommable'] ? ' (consommable)' : '') . ' — en magasin ' . quantite_fr($p['StockDepot']) . ' ' . $p['Unite']) . '</option>';
     }
     return $html;
 };
+// « Racheter » : une ligne par produit d'entretien en alerte (prix proposé au coût), puis des lignes vides.
+$prerempli = get('racheter') ? array_column(entretien_en_alerte(), 'Id') : [];
+$couts = array_column($produits, 'Cout', 'Id');
+$lignes = array_merge(array_map('intval', $prerempli), array_fill(0, max(1, 4 - count($prerempli)), 0));
 ?>
 <?php if (!$produits): ?>
     <div class="alert alert-info">Aucun produit avec suivi de stock. Créez vos produits (lessive, javel…) dans Configuration › Produits,
@@ -35,15 +39,15 @@ $options = function () use ($produits): string {
         <table class="table align-middle" id="lignesAchat">
             <thead><tr><th>Produit</th><th style="width:140px">Quantité</th><th style="width:170px">Prix d'achat unitaire</th><th style="width:150px" class="text-end">Montant</th><th style="width:50px"></th></tr></thead>
             <tbody>
-            <?php for ($i = 0; $i < 4; $i++): ?>
+            <?php foreach ($lignes as $pid): ?>
                 <tr>
-                    <td><select class="form-select" name="produit[]" aria-label="Produit"><?= $options() ?></select></td>
+                    <td><select class="form-select" name="produit[]" aria-label="Produit"><?= $options($pid) ?></select></td>
                     <td><input class="form-control text-end" name="qte[]" inputmode="decimal" aria-label="Quantité"></td>
-                    <td><input class="form-control text-end" name="prix[]" inputmode="decimal" aria-label="Prix d'achat unitaire"></td>
+                    <td><input class="form-control text-end" name="prix[]" inputmode="decimal" aria-label="Prix d'achat unitaire" value="<?= $pid && ($couts[$pid] ?? null) !== null ? quantite_fr($couts[$pid], false) : '' ?>"></td>
                     <td class="text-end text-nowrap montant">—</td>
                     <td><button type="button" class="btn btn-sm btn-outline-danger retirer" aria-label="Retirer la ligne"><i class="fa fa-xmark"></i></button></td>
                 </tr>
-            <?php endfor; ?>
+            <?php endforeach; ?>
             </tbody>
             <tfoot><tr class="fw-bold"><td colspan="3" class="text-end">Total de l'achat</td><td class="text-end text-nowrap" id="totalAchat">0 FCFA</td><td></td></tr></tfoot>
         </table>

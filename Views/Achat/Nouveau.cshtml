@@ -1,4 +1,5 @@
 @model List<EasytransitCaisse.Models.Produit>
+@inject EasytransitCaisse.Data.AppDbContext DbContext
 @using EasytransitCaisse.Controllers
 @{
     ViewData["Title"] = "Nouvel achat";
@@ -10,6 +11,9 @@
     var stocksDepot = (Dictionary<int, decimal>)ViewBag.StocksDepot;
     var journees = (List<EasytransitCaisse.Models.JourneeCaisse>)ViewBag.Journees;
     var modes = (List<EasytransitCaisse.Models.ModePaiement>)ViewBag.Modes;
+    // « Racheter » : une ligne par produit d'entretien en alerte (prix proposé au coût), puis des lignes vides.
+    var prerempli = Context.Request.Query["racheter"] == "1" ? EasytransitCaisse.Data.Depots.EntretienEnAlerte(DbContext).Select(a => a.Id).ToList() : new List<int>();
+    var lignes = prerempli.Concat(Enumerable.Repeat(0, Math.Max(1, 4 - prerempli.Count))).ToList();
 }
 <partial name="_Onglets" model="@("Nouveau")" />
 @if (!Model.Any())
@@ -41,18 +45,19 @@ else
             <table class="table align-middle" id="lignesAchat">
                 <thead><tr><th>Produit</th><th style="width:140px">Quantité</th><th style="width:170px">Prix d'achat unitaire</th><th style="width:150px" class="text-end">Montant</th><th style="width:50px"></th></tr></thead>
                 <tbody>
-                    @for (var i = 0; i < 4; i++)
+                    @foreach (var choisi in lignes)
                     {
+                        var produitChoisi = Model.FirstOrDefault(p => p.Id == choisi);
                         <tr>
                             <td><select class="form-select" name="produit" aria-label="Produit">
                                 <option value="0">-- Produit --</option>
                                 @foreach (var p in Model)
                                 {
-                                    <option value="@p.Id" data-cout="@(p.Cout.HasValue ? QteBrute(p.Cout.Value) : "")">@p.Code · @p.Nom@(p.Consommable ? " (consommable)" : "") — en magasin @Qte(stocksDepot.GetValueOrDefault(p.Id)) @p.Unite</option>
+                                    <option value="@p.Id" selected="@(p.Id == choisi)" data-cout="@(p.Cout.HasValue ? QteBrute(p.Cout.Value) : "")">@p.Code · @p.Nom@(p.Consommable ? " (consommable)" : "") — en magasin @Qte(stocksDepot.GetValueOrDefault(p.Id)) @p.Unite</option>
                                 }
                             </select></td>
                             <td><input class="form-control text-end" name="qte" inputmode="decimal" aria-label="Quantité"></td>
-                            <td><input class="form-control text-end" name="prix" inputmode="decimal" aria-label="Prix d'achat unitaire"></td>
+                            <td><input class="form-control text-end" name="prix" inputmode="decimal" aria-label="Prix d'achat unitaire" value="@(produitChoisi?.Cout is decimal c ? QteBrute(c) : "")"></td>
                             <td class="text-end text-nowrap montant">—</td>
                             <td><button type="button" class="btn btn-sm btn-outline-danger retirer" aria-label="Retirer la ligne"><i class="fa fa-xmark"></i></button></td>
                         </tr>

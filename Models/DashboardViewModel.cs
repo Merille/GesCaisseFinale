@@ -63,8 +63,11 @@ namespace EasytransitCaisse.Models.ViewModels
 
         public int? JourneeOuverteAncienneId { get; set; }
 
+        // Laverie : produits d'entretien à racheter (stock du dépôt des achats sous le seuil d'alerte).
+        public int ProduitsEntretienAlerte { get; set; }
+
         public bool RienATraiter =>
-            OperationsEnAttente == 0 && DecaissementsNonJustifies == 0 && JourneesOuvertesAnciennes == 0;
+            OperationsEnAttente == 0 && DecaissementsNonJustifies == 0 && JourneesOuvertesAnciennes == 0 && ProduitsEntretienAlerte == 0;
 
         // Raccourci "Nouvelle opération" : la journée ouverte quand il n'y en a qu'une.
         public int? JourneeOuverteId { get; set; }

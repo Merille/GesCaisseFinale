@@ -213,6 +213,8 @@ function dashboard_index(): void
             ['n' => $enAttenteN, 'j' => $enAttenteJ, 'txt' => 'opération%s en attente de validation'],
             ['n' => $nonJustifN, 'j' => $nonJustifJ, 'txt' => 'décaissement%s sans justificatif'],
             ['n' => $anciennesN, 'j' => $anciennesJ, 'txt' => 'journée%s ouverte%s depuis plus de 24 h'],
+            // Laverie : produits d'entretien sous leur seuil d'alerte (administrateurs).
+            ['n' => is_admin() && module_pos_actif() ? count(entretien_en_alerte()) : 0, 'url' => url('achat/stock'), 'txt' => 'produit%s d\'entretien à racheter'],
         ],
         'titreFlux' => $titreFlux,
         'flux' => $flux,

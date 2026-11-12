@@ -853,6 +853,27 @@ function laverie_actif(): bool
     return $actif ??= (bool) qv("SELECT COUNT(*) FROM Caisses WHERE TypePointVente = 'Laverie' AND " . tf());
 }
 
+/**
+ * Produits d'entretien à racheter (laverie) : consommables actifs dont le stock dans le dépôt des
+ * achats est au niveau ou sous le seuil d'alerte. Vide si la société n'a pas de caisse Laverie ou
+ * pas encore de dépôt des achats. Calculé une fois par page.
+ */
+function entretien_en_alerte(): array
+{
+    static $alertes = null;
+    if ($alertes === null) {
+        $alertes = laverie_actif() ? q(
+            'SELECT p.Id, p.Code, p.Nom, p.Unite, p.SeuilAlerte, COALESCE(sd.Quantite, 0) AS Stock
+             FROM Produits p JOIN Depots d ON d.TenantId = p.TenantId AND d.DepotAchats = 1
+             LEFT JOIN StocksDepots sd ON sd.ProduitId = p.Id AND sd.DepotId = d.Id
+             WHERE p.Consommable = 1 AND p.Actif = 1 AND p.SuiviStock = 1 AND p.SeuilAlerte IS NOT NULL
+               AND COALESCE(sd.Quantite, 0) <= p.SeuilAlerte AND ' . tf('p') . '
+             ORDER BY COALESCE(sd.Quantite, 0) - p.SeuilAlerte, p.Nom'
+        ) : [];
+    }
+    return $alertes;
+}
+
 /** Option de la société : vente autorisée quand le stock est épuisé ? */
 function vente_sans_stock(int $tenant): bool
 {

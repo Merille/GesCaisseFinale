@@ -53,6 +53,22 @@ namespace EasytransitCaisse.Data
             return await context.Depots.IgnoreQueryFilters().AsNoTracking().FirstAsync(d => d.Id == ids.First());
         }
 
+        // Produits d'entretien à racheter (laverie) : consommables actifs dont le stock dans le dépôt des
+        // achats est au niveau ou sous le seuil d'alerte, le plus bas en premier. Vide si la société n'a pas
+        // de caisse Laverie ou pas encore de dépôt des achats. Comme entretien_en_alerte() en PHP.
+        public static List<AlerteEntretien> EntretienEnAlerte(this AppDbContext context)
+        {
+            if (!context.Caisses.Any(c => c.TypePointVente == "Laverie"))
+                return new();
+            return (from p in context.Produits
+                    join d in context.Depots on p.TenantId equals d.TenantId
+                    where d.DepotAchats && p.Consommable && p.Actif && p.SuiviStock && p.SeuilAlerte != null
+                    let stock = context.StocksDepots.Where(s => s.ProduitId == p.Id && s.DepotId == d.Id).Select(s => (decimal?)s.Quantite).FirstOrDefault() ?? 0
+                    where stock <= p.SeuilAlerte
+                    orderby stock - p.SeuilAlerte, p.Nom
+                    select new AlerteEntretien(p.Id, p.Code, p.Nom, p.Unite, p.SeuilAlerte!.Value, stock)).ToList();
+        }
+
         // Dépôt d'une caisse : celui choisi sur la caisse, sinon le dépôt par défaut de la société.
         public static async Task<int> DepotCaisseAsync(this AppDbContext context, int caisseId)
         {
@@ -135,4 +151,7 @@ namespace EasytransitCaisse.Data
                 .Select(s => (decimal?)s.Quantite).FirstOrDefaultAsync() ?? 0;
         }
     }
+
+    // Produit d'entretien à racheter : stock du dépôt des achats et seuil d'alerte.
+    public record AlerteEntretien(int Id, string Code, string Nom, string Unite, decimal SeuilAlerte, decimal Stock);
 }

@@ -366,7 +366,18 @@
             {
                 <div class="topbar-societe">Consultation : <strong>@societeConsultee</strong></div>
             }
-            <span class="topbar-icone" title="Notifications"><i class="fas fa-bell"></i></span>
+            @{ var alertesEntretien = isAdmin && modulePointVente ? DbContext.EntretienEnAlerte().Count : 0; }
+            @if (alertesEntretien > 0)
+            {
+                var libelleAlerte = $"{alertesEntretien} produit{(alertesEntretien > 1 ? "s" : "")} d'entretien à racheter";
+                <a class="topbar-icone topbar-alerte" href="/Achat/Stock" title="@libelleAlerte" aria-label="@libelleAlerte">
+                    <i class="fas fa-bell"></i><span class="topbar-pastille">@alertesEntretien</span>
+                </a>
+            }
+            else
+            {
+                <span class="topbar-icone" title="Notifications"><i class="fas fa-bell"></i></span>
+            }
             <div class="topbar-user">
                 <span class="topbar-avatar" title="@nomUtilisateur">@initiales</span>
                 <div class="topbar-user-text">

@@ -98,7 +98,7 @@ const fiche = [
         ['Application', 'GesCaisse — gestion de caisse et point de vente (POS)'],
         ['Éditeur', 'M-ITECH AFRICA'],
         ['Public', 'Administrateurs, caissiers, vendeurs et serveurs des sociétés clientes'],
-        ['Version du document', '2.7'],
+        ['Version du document', '2.8'],
         ['Date', 'Novembre 2026']
     ], [3000, 6638])
 ];
@@ -514,6 +514,13 @@ const contenu = [
     ...figure('26f_depot_achats', 'Dépôt des achats : entrées, sorties et stock'),
     pt('Inventaire', 'comptez régulièrement le magasin : le bouton **Inventaire** ouvre l’inventaire (8.5) sur le dépôt des achats.'),
     pt('Transfert', 'un produit acheté pour être revendu (lessive en bouteille, par exemple) se transfère vers le dépôt d’une caisse avec le bouton **Transfert** (8.4).'),
+    h3('Alerte de stock bas'),
+    p('Renseignez le **seuil d’alerte** de chaque produit d’entretien dans sa fiche (11.2), par exemple 1 sac de lessive. Dès que son stock dans le dépôt des achats atteint ce seuil ou passe en dessous, GesCaisse prévient les administrateurs :'),
+    pt('Cloche', 'en haut de chaque page, la cloche s’allume et une pastille rouge indique le nombre de produits à racheter ; un clic ouvre le dépôt des achats.'),
+    pt('Tableau de bord', 'la ligne « produits d’entretien à racheter » apparaît dans **À traiter**.'),
+    pt('Module Achats', 'un bandeau sur chaque onglet liste les produits concernés, le plus urgent en premier, avec leur stock et leur seuil.'),
+    ...figure('26g_alerte_entretien', 'Alerte de stock bas des produits d’entretien'),
+    p('Le bouton **Racheter** du bandeau ouvre un nouvel achat déjà rempli : une ligne par produit en alerte, au prix d’achat actuel. Il reste à choisir le fournisseur et à saisir les quantités. Un produit sans seuil d’alerte, ou inactif, ne déclenche jamais d’alerte.'),
 
     // 9 ------------------------------------------------------------------
     h1('9. Rapports de ventes'),

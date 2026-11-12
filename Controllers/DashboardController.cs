@@ -14,9 +14,12 @@ namespace EasytransitCaisse.Controllers
 
         private static readonly CultureInfo Fr = new CultureInfo("fr-FR");
 
-        public DashboardController(AppDbContext context)
+        private readonly EasytransitCaisse.Services.ITenantProvider _tenant;
+
+        public DashboardController(AppDbContext context, EasytransitCaisse.Services.ITenantProvider tenant)
         {
             _context = context;
+            _tenant = tenant;
         }
 
         public IActionResult Index(
@@ -292,6 +295,10 @@ namespace EasytransitCaisse.Controllers
                 .OrderBy(j => j.DateOuverture)
                 .Select(j => (int?)j.Id)
                 .FirstOrDefault();
+            // Laverie : produits d'entretien sous leur seuil d'alerte (administrateurs).
+            var estAdmin = User.HasClaim(EasytransitCaisse.Services.AppClaimTypes.Profil, "Admin") || User.HasClaim(EasytransitCaisse.Services.AppClaimTypes.Profil, "SuperAdmin");
+            model.ProduitsEntretienAlerte = estAdmin && EasytransitCaisse.Services.ModulePointVenteFilter.ActifAsync(_context, _tenant.TenantId).GetAwaiter().GetResult()
+                ? _context.EntretienEnAlerte().Count : 0;
 
             // ==========================
             // FLUX (graphique)

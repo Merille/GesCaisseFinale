@@ -1,7 +1,24 @@
 @model string
+@inject EasytransitCaisse.Data.AppDbContext DbContext
+@{
+    var alertes = EasytransitCaisse.Data.Depots.EntretienEnAlerte(DbContext);
+    string Qte(decimal n) => EasytransitCaisse.Models.ViewModels.RapportLingeVM.Qte(n);
+}
 <ul class="nav nav-tabs mb-3">
     <li class="nav-item"><a class="nav-link @(Model == "Index" ? "active" : "")" href="/Achat/Index"><i class="fas fa-list"></i> Achats</a></li>
     <li class="nav-item"><a class="nav-link @(Model == "Nouveau" ? "active" : "")" href="/Achat/Nouveau"><i class="fas fa-cart-plus"></i> Nouvel achat</a></li>
     <li class="nav-item"><a class="nav-link @(Model == "Consommation" ? "active" : "")" href="/Achat/Consommation"><i class="fas fa-bottle-droplet"></i> Consommations</a></li>
     <li class="nav-item"><a class="nav-link @(Model == "Stock" ? "active" : "")" href="/Achat/Stock"><i class="fas fa-warehouse"></i> Dépôt des achats</a></li>
 </ul>
+@if (alertes.Any())
+{
+    <div class="alert alert-warning d-flex flex-wrap align-items-center gap-2" id="alerteEntretien">
+        <i class="fa fa-triangle-exclamation"></i>
+        <strong>@alertes.Count produit@(alertes.Count > 1 ? "s" : "") d'entretien à racheter :</strong>
+        <span>@string.Join(" · ", alertes.Select(a => $"{a.Nom} ({Qte(a.Stock)} {a.Unite}, seuil {Qte(a.SeuilAlerte)})"))</span>
+        @if (!(Model == "Nouveau" && Context.Request.Query["racheter"] == "1"))
+        {
+            <a class="btn btn-sm btn-warning ms-auto" href="/Achat/Nouveau?racheter=1"><i class="fa fa-cart-plus"></i> Racheter</a>
+        }
+    </div>
+}

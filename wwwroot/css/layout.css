@@ -273,6 +273,31 @@
     justify-content: center;
 }
 
+/* Cloche active : alertes à traiter (laverie : produits d'entretien à racheter), avec leur nombre. */
+.topbar-alerte {
+    position: relative;
+    text-decoration: none;
+    border-color: #fbbf24;
+    color: #fde68a;
+}
+.topbar-alerte:hover { background: rgba(255, 255, 255, .12); color: #fff; }
+.topbar-pastille {
+    position: absolute;
+    top: -7px;
+    right: -7px;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 5px;
+    border-radius: 10px;
+    background: #dc2626;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 20px;
+    text-align: center;
+    box-shadow: 0 0 0 2px #1b5e84;
+}
+
 /* Utilisateur connecté (initiales, nom, profil, déconnexion) dans la barre du haut. */
 .topbar-user {
     display: flex;
