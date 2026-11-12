@@ -73,5 +73,10 @@ namespace EasytransitCaisse.Models
 
         [StringLength(200)]
         public string? AdresseLivraison { get; set; }
+
+        // Clé du poste : un envoi refait (coupure réseau, commande mise en attente hors ligne) ne crée
+        // pas une seconde commande.
+        [StringLength(64)]
+        public string? CleClient { get; set; }
     }
 }

@@ -329,3 +329,11 @@ body.pos-body { margin: 0; background: var(--pos-bg); color: #1d2a35; font-famil
 .gc-file-vide { padding: 16px 0; color: #64748b; }
 .gc-file-envoyer { margin: 12px 16px; padding: 10px; border: 0; border-radius: 10px; background: #1b5e84; color: #fff; font-weight: 600; cursor: pointer; }
 .gc-file-envoyer:disabled { opacity: .6; }
+.gc-connexion.gc-refus { background: #fecaca; color: #7f1d1d; }
+.gc-connexion.gc-refus .gc-point { background: #b91c1c; }
+.gc-file-retirer { margin-left: 6px; padding: 2px 8px; border: 1px solid #fca5a5; border-radius: 8px; background: #fff; color: #b91c1c; font-size: 12px; cursor: pointer; }
+.gc-file-journal { border-top: 1px solid #e2e8f0; padding: 4px 16px 10px; overflow: auto; max-height: 30vh; }
+.gc-file-sous-titre { padding: 8px 0 2px; font-weight: 700; color: #475569; font-size: 13px; }
+/* Message après l'envoi des opérations faites hors ligne (toutes les pages). */
+.gc-toast { position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%); z-index: 3100; max-width: min(560px, calc(100vw - 32px)); padding: 10px 16px; border-radius: 10px; background: #14532d; color: #fff; font-size: 14px; box-shadow: 0 6px 24px rgba(0, 0, 0, .25); }
+.gc-toast.erreur { background: #991b1b; }

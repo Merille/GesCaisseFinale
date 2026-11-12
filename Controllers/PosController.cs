@@ -175,7 +175,9 @@ namespace EasytransitCaisse.Controllers
                     societe = societeTicket?.Nom ?? "GesCaisse",
                     coordonnees = Images.Coordonnees(societeTicket),
                     description = j.Caisse?.ChkDescription ?? "",
-                    css = "/css/ticket.css?v=" + System.IO.File.GetLastWriteTimeUtc(Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "css", "ticket.css")).Ticks
+                    // Même adresse que les tickets du serveur (asp-append-version) : une seule copie gardée sur le poste.
+                    css = HttpContext.RequestServices.GetRequiredService<Microsoft.AspNetCore.Mvc.ViewFeatures.IFileVersionProvider>()
+                        .AddFileVersionToPath(Request.PathBase, "/css/ticket.css")
                 },
                 // Laverie : dépôts de linge payés au retrait.
                 laverie = j.Caisse?.TypePointVente == "Laverie" ? new
@@ -269,6 +271,8 @@ namespace EasytransitCaisse.Controllers
         {
             public int Id { get; set; }
             public int Version { get; set; }
+            // Hors ligne : nom de la table (contrôle et ticket si sa commande a changé sur le serveur).
+            public string? Table { get; set; }
             public List<Restaurant.Ligne> Reste { get; set; } = new();
         }
 
@@ -539,13 +543,27 @@ namespace EasytransitCaisse.Controllers
             string? tableNom = null;
             int? couverts = null;
             CommandeOuverte? restante = null;
+            CommandeOuverte? co = null;
             if (v.CommandeOuverte != null)
             {
-                var co = await _context.CommandesOuvertes
+                co = await _context.CommandesOuvertes
                     .FromSqlInterpolated($"SELECT * FROM CommandesOuvertes WITH (UPDLOCK, ROWLOCK) WHERE Id = {v.CommandeOuverte.Id}")
                     .FirstOrDefaultAsync();
-                if (co == null || co.JourneeCaisseId != j.Id || co.Version != v.CommandeOuverte.Version)
+                if ((co == null || co.JourneeCaisseId != j.Id || co.Version != v.CommandeOuverte.Version) && hl == null)
                     return Erreur(409, "La commande de la table a été modifiée sur un autre appareil : rechargez la table puis recommencez.");
+                // Table encaissée hors ligne, mais sa commande a changé (ou n'a pas pu être enregistrée) sur
+                // le serveur : la vente est gardée, la table n'est pas touchée, à vérifier.
+                if (co == null || co.JourneeCaisseId != j.Id || co.Version != v.CommandeOuverte.Version)
+                {
+                    var nomTable = Texte(v.CommandeOuverte.Table, 60)
+                        ?? (co?.TableId is int idTable ? (await _context.TablesRestaurant.FirstOrDefaultAsync(t => t.Id == idTable))?.Nom : null) ?? "table";
+                    alertes.Add($"commande de « {nomTable} » modifiée ou introuvable sur le serveur : table à vérifier");
+                    tableNom = nomTable;
+                    co = null;
+                }
+            }
+            if (v.CommandeOuverte != null && co != null)
+            {
                 tableNom = co.TableId.HasValue ? (await _context.TablesRestaurant.FirstOrDefaultAsync(t => t.Id == co.TableId))?.Nom : null;
                 couverts = co.Couverts;
                 var avant = Restaurant.Lire(co.Contenu);
@@ -762,6 +780,8 @@ namespace EasytransitCaisse.Controllers
             public List<Restaurant.Ligne> Lignes { get; set; } = new();
             public int? ClientId { get; set; }
             public Restaurant.RemiseTicket? Remise { get; set; }
+            // Commande prise hors ligne, envoyée au retour de la connexion.
+            public HorsLigneSaisie? HorsLigne { get; set; }
         }
 
         private static CommandeSaisie? LireSaisie(string? json)
@@ -818,7 +838,8 @@ namespace EasytransitCaisse.Controllers
                 return StatusCode(409, new { erreur = $"La commande de {table.Nom} n'existe plus (encaissée ou transférée sur un autre appareil).", commande = (object?)null });
 
             var avant = co == null ? new Restaurant.Contenu() : Restaurant.Lire(co.Contenu);
-            var contenu = Restaurant.Nettoyer(new Restaurant.Contenu { Lignes = c.Lignes, ClientId = c.ClientId, Remise = c.Remise }, avant);
+            // Commande prise hors ligne : les articles annoncés en cuisine depuis le poste sont « envoyés ».
+            var contenu = Restaurant.Nettoyer(new Restaurant.Contenu { Lignes = c.Lignes, ClientId = c.ClientId, Remise = c.Remise }, avant, c.HorsLigne != null);
             if (co == null && !contenu.Lignes.Any())
                 return Json(new { commande = (object?)null, bons = Array.Empty<int>() });
             if (co == null)

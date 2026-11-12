@@ -389,6 +389,10 @@ namespace EasytransitCaisse.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<string>("CleClient")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
                     b.Property<int?>("ClientId")
                         .HasColumnType("int");
 

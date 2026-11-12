@@ -59,6 +59,32 @@
     // avec un numéro provisoire (H-poste-n°) ; le ticket provisoire est imprimé depuis le poste.
     const F = window.gcFile || null;
     const horsLigne = () => !!F && !!window.gcConnexion && !window.gcConnexion.enLigne;
+    // Restaurant / bar hors ligne : plan de salle gardé sur le poste (avec le détail des commandes), et
+    // commandes de table prises hors ligne (file du poste, une par table) affichées par-dessus.
+    const CLE_PLAN = 'gc-plan:' + D.cle;
+    const dateServeur = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0')
+        + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0') + ':' + String(d.getSeconds()).padStart(2, '0');
+    // (Commande d'une table encaissée hors ligne : elle reste dans la file avant sa vente, mais la table est libre.)
+    const tablesHorsLigne = () => F ? F.elements().filter(x => x.type === 'table' && x.donnees.journeeId === D.journee.id && !x.payee) : [];
+    function resumeLocal(d, avant) {
+        const lignes = d.lignes || [];
+        if (!lignes.length) return null;
+        return {
+            id: d.id, version: d.version, couverts: d.couverts, total: totaux({ lignes: lignes, remise: d.remise }).ttc, articles: lignes.length,
+            addition: !!(avant && avant.addition), aEnvoyer: lignes.some(l => Math.abs(l.qte - (l.envoye || 0)) >= 0.01),
+            serveur: (avant && avant.serveur) || D.utilisateur.nom, depuis: (avant && avant.depuis) || dateServeur(new Date()),
+            lignes: lignes, clientId: d.clientId || null, remise: d.remise || null, horsLigne: true
+        };
+    }
+    function superposer() {
+        if (!R) return;
+        tablesHorsLigne().forEach(x => { const t = tableDe(x.donnees.tableId); if (t) t.commande = resumeLocal(x.donnees, t.commande); });
+    }
+    function garderPlan() {
+        if (!R) return;
+        try { localStorage.setItem(CLE_PLAN, JSON.stringify({ quand: Date.now(), salles: salles })); } catch (err) { /* stockage plein */ }
+    }
+
     // Feuille de style du ticket gardée par le service worker, pour imprimer sans connexion.
     if (D.ticket && D.ticket.css && navigator.onLine) fetch(D.ticket.css, { credentials: 'same-origin' }).catch(() => {});
 
@@ -240,12 +266,11 @@
     // partage : { uid: quantité payée maintenant } pour une addition partagée (restaurant).
     async function payer(partage) {
         if (!ticket().lignes.length) { message('Le ticket est vide.'); return; }
-        if (cmd && horsLigne()) { message('Hors ligne : les commandes de table s\'encaissent avec la connexion. Les ventes directes restent possibles.', true); return; }
         if (ticket().lignes.some(l => l.qte <= 0)) { message('Une ligne a une quantité nulle : corrigez-la ou supprimez-la.', true); return; }
         if (cmd) {
             // Articles pas encore envoyés : envoyés en préparation avant l'encaissement.
             if (aEnvoyer() && !(await envoyer(true))) return;
-            if (!(await vider()) || !cmd || !cmd.id) { message('La commande de la table n\'est pas enregistrée : vérifiez la connexion.', true); return; }
+            if (!(await vider()) || !cmd || (!cmd.id && !cmd.cleFile)) { message('La commande de la table n\'est pas enregistrée : vérifiez la connexion.', true); return; }
         }
         pay = { lignes: [], choisie: -1, saisie: null, envoi: false, pourboire: 0, partage: partage || null };
         vue = 'paiement';
@@ -273,9 +298,40 @@
     function donneesCommande() {
         return {
             journeeId: D.journee.id, tableId: cmd.tableId, id: cmd.id, version: cmd.version, couverts: cmd.couverts,
-            lignes: cmd.lignes.map(l => ({ uid: l.uid, produitId: l.produitId, nom: l.nom, qte: l.qte, prix: l.prix, remise: l.remise || 0, tva: l.tva, unite: l.unite, note: l.note || '', composants: l.composants || [] })),
+            lignes: cmd.lignes.map(l => ({ uid: l.uid, produitId: l.produitId, nom: l.nom, qte: l.qte, prix: l.prix, remise: l.remise || 0, tva: l.tva, unite: l.unite, note: l.note || '', composants: l.composants || [], envoye: l.envoye || 0 })),
             clientId: cmd.clientId, remise: cmd.remise || null
         };
+    }
+
+    // Commande de table sans connexion : gardée dans la file du poste (un élément par table, remplacé à
+    // chaque modification), envoyée au retour de la connexion ; le plan de salle du poste est mis à jour.
+    function garderTable() {
+        if (!cmd || !F) return false;
+        if (!cmd.cleFile) {
+            const deja = tablesHorsLigne().find(x => x.donnees.tableId === cmd.tableId);
+            cmd.cleFile = deja ? deja.cle : 'table:' + D.journee.id + ':' + cmd.tableId + ':' + Date.now().toString(36);
+        }
+        const existant = F.trouver(cmd.cleFile);
+        const d = donneesCommande();
+        const t = tableDe(cmd.tableId);
+        if (!d.lignes.length && !d.id) {
+            // Commande vidée qui n'a jamais été envoyée : rien à envoyer.
+            if (existant) F.retirer(existant.numero);
+            cmd.cleFile = null;
+            if (t) t.commande = null;
+            garderPlan();
+            return true;
+        }
+        const numero = existant ? existant.numero : F.numeroProvisoire();
+        d.horsLigne = { date: new Date().toISOString(), numero: numero, vendeur: D.utilisateur.nom };
+        const ok = F.mettre({
+            type: 'table', cle: cmd.cleFile, numero: numero, libelle: cmd.table + ' · commande', montant: totaux(cmd).ttc,
+            journeeId: D.journee.id, url: R.urlEnregistrer, urlJeton: D.urlJeton, champ: 'commande', donnees: d, base: cmd.base || {}
+        });
+        if (!ok) { message('Stockage du navigateur indisponible : la commande de la table ne peut pas être gardée hors ligne.', true); return false; }
+        if (t) t.commande = resumeLocal(d, t.commande);
+        garderPlan();
+        return true;
     }
 
     // POST d'un objet JSON (champ « champ ») ; renvoie { ok, status, r }.
@@ -295,8 +351,10 @@
     function commandeDepuis(s, table) {
         const t = table || tableDe(s.tableId) || {};
         return {
-            id: s.id, version: s.version, tableId: s.tableId, table: t.nom || 'Table', couverts: s.couverts, addition: !!s.addition,
-            lignes: (s.lignes || []).map(l => Object.assign({}, l)), clientId: s.clientId || null, remise: s.remise || null, choisie: -1, retire: false
+            id: s.id, version: s.version, tableId: s.tableId || t.id, table: t.nom || 'Table', couverts: s.couverts, addition: !!s.addition,
+            lignes: (s.lignes || []).map(l => Object.assign({}, l)), clientId: s.clientId || null, remise: s.remise || null, choisie: -1, retire: false,
+            // Articles connus du serveur (fusion si la table est modifiée ailleurs pendant une coupure).
+            base: Object.fromEntries((s.lignes || []).map(l => [l.uid, l.qte])), cleFile: null
         };
     }
 
@@ -305,6 +363,7 @@
         if (!cmd) return;
         if (!s) { cmd.id = 0; cmd.version = 0; cmd.addition = false; cmd.lignes.forEach(l => { l.envoye = 0; }); return; }
         cmd.id = s.id; cmd.version = s.version; cmd.addition = !!s.addition;
+        cmd.base = Object.fromEntries((s.lignes || []).map(l => [l.uid, l.qte]));
         const envoye = new Map((s.lignes || []).map(l => [l.uid, l.envoye]));
         cmd.lignes.forEach(l => { l.envoye = envoye.get(l.uid) || 0; });
     }
@@ -329,12 +388,15 @@
 
     async function synchroniser() {
         if (!cmd) return true;
+        // Hors ligne, ou commande déjà dans la file du poste (l'ordre des envois est gardé).
+        if (cmd.cleFile || horsLigne()) { clearTimeout(sync.minuterie); return garderTable(); }
         if (sync.enCours) { sync.encore = true; return true; }
         clearTimeout(sync.minuterie);
         sync.enCours = true;
         const c = cmd;
         const res = await appel(R.urlEnregistrer, 'commande', donneesCommande());
         sync.enCours = false;
+        if (res.status === 0 && F && cmd === c) { window.gcConnexion.verifier(); return garderTable(); }
         if (cmd !== c) return res.ok;
         if (!res.ok) { traiterEchec(res); return false; }
         appliquerServeur(res.r.commande);
@@ -401,6 +463,7 @@
     async function envoyer(silencieux) {
         if (!cmd) return true;
         if (!aEnvoyer()) { if (!silencieux) message('Tous les articles sont déjà envoyés.'); return true; }
+        if (cmd.cleFile || horsLigne()) { envoyerHorsLigne(); return true; }
         while (sync.enCours) await new Promise(r => setTimeout(r, 80));
         clearTimeout(sync.minuterie);
         sync.enCours = true;
@@ -420,6 +483,25 @@
         return true;
     }
 
+    // Sans connexion, l'écran cuisine ne reçoit rien : bon imprimé sur le poste (si la caisse imprime
+    // ses bons) et articles notés « envoyés » ; à annoncer en cuisine ou au bar.
+    function envoyerHorsLigne() {
+        const nouveaux = cmd.lignes.map(l => ({ l: l, delta: Math.round((l.qte - (l.envoye || 0)) * 100) / 100 })).filter(x => Math.abs(x.delta) >= 0.01);
+        if (R.imprimerBons && nouveaux.length) {
+            imprimerHtml(enteteTicket('Bon ' + cmd.table) + '<div class="ticket"><div class="c b grand">BON DE PRÉPARATION</div>'
+                + '<div class="c b">' + echap(cmd.table) + ' · ' + cmd.couverts + ' couvert(s)</div><div class="c petit">Hors ligne · ' + dateFr(new Date()) + ' · ' + echap(D.utilisateur.nom) + '</div><hr>'
+                + nouveaux.map(x => '<div class="b">' + (x.delta < 0 ? 'ANNULÉ ' : '') + qte(Math.abs(x.delta)) + ' x ' + echap(x.l.nom) + '</div>'
+                    + (x.l.composants || []).map(c => '<div class="ind petit">· ' + qte(c.qte) + ' x ' + echap(c.nom) + '</div>').join('')
+                    + (x.l.note ? '<div class="ind note">» ' + echap(x.l.note) + '</div>' : '')).join('')
+                + '</div></body></html>');
+        }
+        cmd.lignes.forEach(l => { l.envoye = l.qte; });
+        cmd.retire = false;
+        garderTable();
+        message('Hors ligne : ' + (R.imprimerBons ? 'bon imprimé sur ce poste, ' : '') + 'annoncez la commande en cuisine ou au bar (l\'écran cuisine ne la reçoit pas).', true);
+        afficher();
+    }
+
     function tableDe(id) {
         for (const s of salles) for (const t of s.tables) if (t.id === id) return t;
         return null;
@@ -430,20 +512,42 @@
         try {
             const res = await fetch(R.urlPlan, { credentials: 'same-origin', cache: 'no-store' });
             const r = await res.json();
-            if (res.ok && r.salles) { salles = r.salles; if (vue === 'plan') afficher(); }
+            if (res.ok && r.salles) { salles = r.salles; superposer(); garderPlan(); if (vue === 'plan') afficher(); }
         } catch (err) { /* nouvel essai à la prochaine actualisation */ }
     }
 
     async function ouvrirTable(t) {
         let s = null;
-        try {
-            const res = await fetch(R.urlCommande + '&table=' + t.id, { credentials: 'same-origin', cache: 'no-store' });
-            const r = await res.json();
-            if (!res.ok || r.erreur) throw new Error(r.erreur || 'Erreur ' + res.status);
-            s = r.commande;
-        } catch (err) {
-            message(err.message && !/fetch|network|JSON/i.test(err.message) ? err.message : 'Connexion impossible : réessayez.', true);
+        // Commande de cette table prise hors ligne sur ce poste, pas encore envoyée : elle continue ici.
+        const locale = tablesHorsLigne().find(x => x.donnees.tableId === t.id);
+        if (locale) {
+            cmd = commandeDepuis(Object.assign({}, locale.donnees, { addition: t.commande && t.commande.addition }), t);
+            cmd.cleFile = locale.cle;
+            cmd.base = locale.base || {};
+            vue = 'vente'; mode = 'qte'; saisie = null;
+            afficher();
             return;
+        }
+        let horsReseau = horsLigne();
+        if (!horsReseau) {
+            try {
+                const res = await fetch(R.urlCommande + '&table=' + t.id, { credentials: 'same-origin', cache: 'no-store' });
+                const r = await res.json();
+                if (!res.ok || r.erreur) throw new Error(r.erreur || 'Erreur ' + res.status);
+                s = r.commande;
+            } catch (err) {
+                if (!(F && err instanceof TypeError)) {
+                    message(err.message && !/fetch|network|JSON/i.test(err.message) ? err.message : 'Connexion impossible : réessayez.', true);
+                    return;
+                }
+                horsReseau = true;
+                window.gcConnexion.verifier();
+            }
+        }
+        if (horsReseau) {
+            // Sans connexion : la commande telle que le plan du poste la connaît.
+            if (t.commande && !t.commande.lignes) { message('Commande de ' + t.nom + ' inconnue sur ce poste : attendez la connexion.', true); return; }
+            s = t.commande ? Object.assign({ tableId: t.id }, t.commande) : null;
         }
         if (s) {
             cmd = commandeDepuis(s, t);
@@ -510,6 +614,23 @@
 
     async function addition() {
         if (!cmd.lignes.length) { message('La commande est vide.'); return; }
+        if (cmd.cleFile || horsLigne()) {
+            // Addition imprimée sur le poste (NON PAYÉ).
+            await vider();
+            const tot = totaux(cmd);
+            imprimerHtml(enteteTicket('Addition ' + cmd.table) + '<div class="ticket">' + societeTicket() + '<hr>'
+                + '<div class="c b grand">ADDITION</div><div class="non-paye">NON PAYÉ</div>'
+                + '<div>Table  : ' + echap(cmd.table) + ' · ' + cmd.couverts + ' couvert(s)</div><div>Date   : ' + dateFr(new Date()) + '</div><hr>'
+                + cmd.lignes.map(ligneTicket).join('') + '<hr>'
+                + (tot.remise ? ligneR('Sous-total', fcfa(tot.brut)) + ligneR('Remise globale', '-' + fcfa(tot.remise)) : '')
+                + ligneR('TOTAL TTC', fcfa(tot.ttc) + ' FCFA', 'b grand') + '<hr><div class="c petit">Addition provisoire (hors ligne)</div></div></body></html>');
+            cmd.addition = true;
+            const t = tableDe(cmd.tableId);
+            if (t && t.commande) { t.commande.addition = true; garderPlan(); }
+            message('Addition imprimée sur ce poste (hors ligne).');
+            afficher();
+            return;
+        }
         if (!(await vider()) || !cmd.id) return;
         imprimerDans(R.urlAddition + cmd.id);
         cmd.addition = true;
@@ -520,6 +641,7 @@
     // Fenêtre : table de destination (une table occupée reçoit les articles en plus des siens).
     async function transferer() {
         if (!cmd.lignes.length) { message('La commande est vide.'); return; }
+        if (cmd.cleFile || horsLigne()) { message('Le transfert de table demande la connexion (la commande prise hors ligne doit d\'abord être envoyée).', true); return; }
         if (!(await vider()) || !cmd.id) return;
         await rafraichirPlan();
         const fond = document.createElement('div');
@@ -585,6 +707,7 @@
     function partager() {
         const t = ticket();
         if (!t.lignes.length) { message('La commande est vide.'); return; }
+        if (cmd && (cmd.cleFile || horsLigne())) { message('Hors ligne, l\'addition s\'encaisse en une fois : le partage demande la connexion.', true); return; }
         if (t.remise) { message('Retirez la remise globale pour partager l\'addition.', true); return; }
         const choix = {};
         const fond = document.createElement('div');
@@ -821,7 +944,8 @@
         corps.append('vente', JSON.stringify(vente));
         pay.envoi = true;
         afficher();
-        if (!cmd && horsLigne()) { garderVente(vente, e, t); return; }
+        // Hors ligne, ou table dont la commande attend son envoi : la vente passe par la file du poste.
+        if (horsLigne() || (cmd && cmd.cleFile)) { garderVente(vente, e, t); return; }
         let reponse = null;
         try {
             const res = await fetch(D.urlVendre, { method: 'POST', body: corps, credentials: 'same-origin' });
@@ -829,7 +953,7 @@
             if (!res.ok || !reponse || reponse.erreur) throw new Error(reponse && reponse.erreur ? reponse.erreur : 'Réponse inattendue du serveur (' + res.status + ').');
         } catch (err) {
             // Coupure pendant l'envoi : la vente est gardée sur le poste (même clé : jamais enregistrée deux fois).
-            if (!cmd && F && err instanceof TypeError) { window.gcConnexion.verifier(); garderVente(vente, e, t); return; }
+            if (F && err instanceof TypeError) { window.gcConnexion.verifier(); garderVente(vente, e, t); return; }
             pay.envoi = false;
             afficher();
             message((err && err.message && !/fetch|network/i.test(err.message) ? err.message : 'Connexion impossible : la vente n\'est pas enregistrée. Réessayez.'), true);
@@ -842,10 +966,12 @@
     function garderVente(vente, e, t) {
         const numero = F.numeroProvisoire();
         vente.horsLigne = { date: new Date().toISOString(), numero: numero, vendeur: D.utilisateur.nom };
+        // Table : la vente suit l'envoi de sa commande (ref : clé dans la file) ; nom pour le contrôle.
+        if (cmd) vente.commandeOuverte = Object.assign({}, vente.commandeOuverte, { ref: cmd.cleFile || null, table: cmd.table });
         const client = clients.get(t.clientId);
         const html = ticketLocal(vente, e, t, numero);
         const garde = F.ajouter({
-            type: 'vente', numero: numero, libelle: 'Vente · ' + D.journee.caisse + (client ? ' · ' + client.nom : ''), montant: e.total,
+            type: 'vente', numero: numero, libelle: 'Vente · ' + (cmd ? cmd.table : D.journee.caisse) + (client ? ' · ' + client.nom : ''), montant: e.total,
             journeeId: D.journee.id, url: D.urlVendre, urlJeton: D.urlJeton, champ: 'vente', donnees: vente
         });
         if (!garde) {
@@ -870,7 +996,14 @@
         // Vente directe en restaurant / bar : les articles sont partis en préparation (bons créés par le serveur).
         const bonsDirects = !cmd && R ? (reponse.bons || []) : [];
         if (bonsDirects.length && R.imprimerBons) imprimerDans(R.urlBons + bonsDirects.join(','));
-        if (cmd) {
+        if (cmd && html) {
+            // Table encaissée hors ligne : libérée sur le plan du poste.
+            const tbl = tableDe(cmd.tableId);
+            if (tbl) tbl.commande = null;
+            if (cmd.cleFile && F.trouver(cmd.cleFile)) F.mettre({ cle: cmd.cleFile, payee: true });
+            garderPlan();
+            cmd = null;
+        } else if (cmd) {
             // Addition partagée : le reste des articles demeure sur la table.
             if (reponse.commande) fin.resteTable = { id: cmd.tableId, nom: cmd.table };
             cmd = null;
@@ -920,6 +1053,7 @@
             + '<div>Date   : ' + dateFr(new Date()) + '</div>'
             + '<div>Caisse : ' + echap(D.journee.caisse) + ' · Vendeur : ' + echap(D.utilisateur.nom) + '</div>'
             + (client ? '<div>Client : ' + echap(client.nom) + '</div>' : '')
+            + (cmd ? '<div>Table  : ' + echap(cmd.table) + ' · ' + cmd.couverts + ' couvert(s)</div>' : '')
             + (t.livraison ? '<div>Livraison à : ' + echap(t.livraison.nom || (client ? client.nom : '')) + (t.livraison.telephone ? ' · ' + echap(t.livraison.telephone) : '') + '</div><div>' + echap(t.livraison.adresse || '') + '</div>' : '')
             + '<hr>' + lignes.map(ligneTicket).join('') + '<hr>'
             + (tot.remise ? ligneR('Sous-total', fcfa(tot.brut)) + ligneR('Remise globale', '-' + fcfa(tot.remise)) : '')
@@ -1424,6 +1558,7 @@
     // Commandes en attente (gardées sur le serveur, partagées entre les postes) et livraisons
     // ------------------------------------------------------------------
     let attentes = { attentes: [], livraisons: [] };
+    try { const a = JSON.parse(localStorage.getItem('gc-attentes:' + D.cle) || 'null'); if (a && Array.isArray(a.attentes)) attentes = a; } catch (err) { /* illisible */ }
     const livreurs = new Map((D.livreurs || []).map(l => [l.id, l]));
     const nomLivreur = id => (livreurs.get(id) || {}).nom || 'Livreur';
     // Pictogramme du moyen de livraison (Moto, Voiture, Vélo, Autre).
@@ -1431,7 +1566,7 @@
 
     function boutonAttentes() {
         if (!D.urlAttentes) return '';
-        const n = attentes.attentes.length + attentes.livraisons.length;
+        const n = attentes.attentes.length + attentes.livraisons.length + attentesLocales().length;
         return '<button type="button" class="pos-btn-top" data-action="attentes" title="Commandes en attente et livraisons à effectuer">'
             + '<i class="fas fa-clock"></i> Commandes en attente' + (n ? ' <b class="pos-compte">' + n + '</b>' : '') + '</button>';
     }
@@ -1443,6 +1578,7 @@
             const r = await res.json();
             if (!res.ok || !r || r.erreur) return;
             attentes = { attentes: r.attentes || [], livraisons: r.livraisons || [] };
+            try { localStorage.setItem('gc-attentes:' + D.cle, JSON.stringify(attentes)); } catch (err) { /* stockage plein */ }
             const liste = document.querySelector('.pos-modal-attentes');
             if (liste) remplirAttentes(liste);
             // Seul le bouton est redessiné : la saisie en cours (recherche…) n'est pas perdue.
@@ -1454,11 +1590,25 @@
     async function mettreEnAttente() {
         const t = ticket();
         if (!t.lignes.length) { message('Le ticket est vide.'); return false; }
-        const res = await appel(D.urlMettreEnAttente, 'commande', {
-            journeeId: D.journee.id,
+        if (!t.cleAttente) { t.cleAttente = identifiant(); enregistrer(); }   // même clé si l'envoi est refait
+        const donnees = {
+            cle: t.cleAttente, journeeId: D.journee.id,
             lignes: t.lignes.map(l => ({ uid: l.uid, produitId: l.produitId, nom: l.nom, qte: l.qte, prix: l.prix, remise: l.remise || 0, tva: l.tva, unite: l.unite, note: l.note || '', composants: l.composants || null })),
             clientId: t.clientId, remise: t.remise || null, livraison: t.livraison || null
-        });
+        };
+        let res = horsLigne() ? { ok: false, status: 0, r: null } : await appel(D.urlMettreEnAttente, 'commande', donnees);
+        if (!res.ok && res.status === 0 && F) {
+            // Sans connexion : la commande est gardée sur le poste et mise en attente au retour de la connexion.
+            const numero = F.numeroProvisoire();
+            donnees.horsLigne = { date: new Date().toISOString(), numero: numero, vendeur: D.utilisateur.nom };
+            const total = totaux(t).ttc + fraisLivraison(t);
+            if (!F.ajouter({ type: 'attente', numero: numero, libelle: (t.livraison ? 'Commande à livrer' : 'Commande en attente') + (clients.get(t.clientId) ? ' · ' + clients.get(t.clientId).nom : ''),
+                montant: total, journeeId: D.journee.id, url: D.urlMettreEnAttente, urlJeton: D.urlJeton, champ: 'commande', donnees: donnees })) {
+                message('Stockage du navigateur indisponible : la commande ne peut pas être gardée hors ligne.', true);
+                return false;
+            }
+            res = { ok: true, r: { numero: numero }, horsLigne: true };
+        }
         if (!res.ok) {
             message(res.r && res.r.erreur ? res.r.erreur : 'Connexion impossible : la commande n\'est pas mise en attente. Réessayez.', true);
             return false;
@@ -1471,8 +1621,8 @@
         saisie = null;
         enregistrer();
         afficher();
-        message(l ? 'Commande à livrer n° ' + res.r.numero + ' confiée à ' + nomLivreur(l.livreurId) + ' : à encaisser à son retour.'
-            : 'Commande mise en attente : n° ' + res.r.numero + '.');
+        message((l ? 'Commande à livrer n° ' + res.r.numero + ' confiée à ' + nomLivreur(l.livreurId) + ' : à encaisser à son retour.'
+            : 'Commande mise en attente : n° ' + res.r.numero + '.') + (res.horsLigne ? ' Hors ligne : gardée sur ce poste, envoyée au retour de la connexion.' : ''));
         rafraichirAttentes();
         return true;
     }
@@ -1483,10 +1633,19 @@
             + (l.adresse ? '<br><span>' + echap(l.adresse) + '</span>' : '') + '</div>';
     }
 
+    // Commandes mises en attente hors ligne sur ce poste, pas encore envoyées : reprises sur ce poste seulement.
+    const attentesLocales = () => F ? F.elements().filter(x => x.type === 'attente' && x.donnees.journeeId === D.journee.id) : [];
+
     function remplirAttentes(fond) {
-        const a = attentes.attentes, l = attentes.livraisons;
+        const a = attentes.attentes, l = attentes.livraisons, loc = attentesLocales();
         fond.querySelector('.pos-att-corps').innerHTML =
-            '<h6>En attente (' + a.length + ')</h6>'
+            '<h6>En attente (' + (a.length + loc.length) + ')</h6>'
+            + loc.map(x => '<div class="pos-att"><div class="pos-att-info"><b>' + echap(x.numero) + '</b> · ' + echap(new Date(x.cree).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }))
+                + (clients.get(x.donnees.clientId) ? ' · ' + echap(clients.get(x.donnees.clientId).nom) : '') + ' · ' + x.donnees.lignes.length + ' article(s)'
+                + '<span class="pos-att-badge annule">' + (x.erreur ? 'Refusée : ' + echap(x.erreur) : 'À envoyer') + '</span>'
+                + (x.donnees.livraison ? '<div class="pos-att-livraison"><i class="fas fa-motorcycle"></i> ' + echap(nomLivreur(x.donnees.livraison.livreurId)) + (x.donnees.livraison.adresse ? ' · ' + echap(x.donnees.livraison.adresse) : '') + '</div>' : '')
+                + '</div><div class="pos-att-total">' + fcfa(x.montant) + ' FCFA</div>'
+                + '<div class="pos-att-btns"><button type="button" class="pos-sec" data-reprendre-local="' + echap(x.numero) + '">Reprendre</button></div></div>').join('')
             + (a.length ? a.map(c => '<div class="pos-att">'
                 + '<div class="pos-att-info"><b>N° ' + c.numero + '</b> · ' + echap(c.heure) + (c.client ? ' · ' + echap(c.client) : '')
                 + ' · ' + c.articles + ' article(s)' + (c.utilisateur ? ' · <small>' + echap(c.utilisateur) + '</small>' : '')
@@ -1495,7 +1654,7 @@
                 + '<div class="pos-att-btns"><button type="button" class="pos-sec" data-reprendre="' + c.id + '">Reprendre</button>'
                 + '<button type="button" class="pos-sec rouge" data-supprimer="' + c.id + '" data-numero="' + c.numero + '" aria-label="Supprimer la commande n° ' + c.numero + '">'
                 + '<i class="fas fa-trash-can"></i></button></div></div>').join('')
-                : '<div class="pos-att-vide">Aucune commande en attente.</div>')
+                : loc.length ? '' : '<div class="pos-att-vide">Aucune commande en attente.</div>')
             + '<h6>Livraisons payées à effectuer (' + l.length + ')</h6>'
             + (l.length ? l.map(c => '<div class="pos-att">'
                 + '<div class="pos-att-info"><b>' + echap(c.numero) + '</b> · ' + echap(c.heure) + (c.client ? ' · ' + echap(c.client) : '')
@@ -1520,7 +1679,14 @@
             if (e.target === fond || e.target.closest('[data-close]')) { fermer(); return; }
             const b = e.target.closest('button');
             if (!b || b.disabled) return;
-            if (b.dataset.reprendre) {
+            if (b.dataset.reprendreLocal) {
+                const x = attentesLocales().find(y => y.numero === b.dataset.reprendreLocal);
+                if (!x) { remplirAttentes(fond); return; }
+                F.retirer(x.numero);
+                reprendre({ numero: x.numero, contenu: { lignes: x.donnees.lignes, clientId: x.donnees.clientId, remise: x.donnees.remise, livraison: x.donnees.livraison } });
+                fond.remove();
+            } else if (b.dataset.reprendre) {
+                if (horsLigne()) { message('Hors ligne : seules les commandes mises en attente sur ce poste peuvent être reprises.', true); return; }
                 b.disabled = true;
                 const res = await appel(D.urlReprendre, 'commande', { id: Number(b.dataset.reprendre) });
                 if (!res.ok) { message(res.r && res.r.erreur ? res.r.erreur : 'Connexion impossible. Réessayez.', true); rafraichirAttentes(); return; }
@@ -1972,6 +2138,14 @@
     });
 
     // Plan de salle actualisé régulièrement (tables ouvertes ou encaissées sur d'autres appareils).
+    if (R) {
+        // Page rouverte sans connexion : le dernier plan connu du poste.
+        try {
+            const p = JSON.parse(localStorage.getItem(CLE_PLAN) || 'null');
+            if (p && Array.isArray(p.salles) && !navigator.onLine) salles = p.salles;
+        } catch (err) { /* plan illisible */ }
+        superposer();
+    }
     if (R) setInterval(() => { if (vue === 'plan' && !document.querySelector('.pos-modal-fond')) rafraichirPlan(); }, 8000);
     // Commandes en attente actualisées régulièrement (mises en attente ou reprises sur d'autres postes).
     setInterval(rafraichirAttentes, 15000);
@@ -1980,10 +2154,21 @@
     window.addEventListener('gc-file', e => {
         const d = e.detail || {};
         if (d.envoye && d.reponse) {
-            message((d.envoye.type === 'depot' ? 'Dépôt ' + d.envoye.numero + ' envoyé : dépôt n° ' : 'Vente ' + d.envoye.numero + ' envoyée : ticket ') + d.reponse.numero + '.');
+            const libelles = { depot: 'Dépôt ' + d.envoye.numero + ' envoyé : dépôt n° ', attente: 'Commande ' + d.envoye.numero + ' mise en attente : n° ', vente: 'Vente ' + d.envoye.numero + ' envoyée : ticket ' };
+            if (libelles[d.envoye.type]) message(libelles[d.envoye.type] + d.reponse.numero + '.');
             if (d.envoye.type === 'depot' || d.envoye.donnees.depotId) rafraichirDepots();
         }
-        if (d.fin && d.envoyes) rafraichirAttentes();
+        // Commande de la table ouverte envoyée : elle reprend l'identifiant du serveur (fusionnée au besoin).
+        if (d.envoye && d.envoye.type === 'table' && cmd && cmd.cleFile === d.envoye.cle && !F.trouver(d.envoye.cle)) {
+            const tbl = { id: cmd.tableId, nom: cmd.table };
+            const choisie = cmd.choisie;
+            cmd = d.reponse.commande ? commandeDepuis(d.reponse.commande, tbl)
+                : { id: 0, version: 0, tableId: tbl.id, table: tbl.nom, couverts: cmd.couverts, addition: false, lignes: [], clientId: null, remise: null, choisie: -1, retire: false, base: {}, cleFile: null };
+            cmd.choisie = Math.min(choisie, cmd.lignes.length - 1);
+            if (vue === 'vente' && document.activeElement?.id !== 'posRecherche') afficher();
+        }
+        if (d.fin && d.envoyes) { rafraichirAttentes(); rafraichirPlan(); }
+        if (d.ajoute || d.envoye || d.retire) racine.querySelectorAll('[data-action="attentes"]').forEach(b => { b.outerHTML = boutonAttentes(); });
         if (d.ajoute || d.envoye) { const liste = document.querySelector('.pos-modal-depots'); if (liste) remplirDepots(liste); }
     });
 

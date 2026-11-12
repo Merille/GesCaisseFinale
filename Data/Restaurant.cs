@@ -67,7 +67,9 @@ namespace EasytransitCaisse.Data
         }
 
         // Lignes reçues de l'écran de vente, nettoyées ; « envoye » vient de la version enregistrée.
-        public static Contenu Nettoyer(Contenu saisi, Contenu avant)
+        // envoyeDuPoste : commande prise hors ligne, la quantité annoncée en cuisine depuis le poste est reprise
+        // (jamais au-delà de la quantité).
+        public static Contenu Nettoyer(Contenu saisi, Contenu avant, bool envoyeDuPoste = false)
         {
             var envoye = avant.Lignes.Where(l => l.Uid != "").GroupBy(l => l.Uid).ToDictionary(g => g.Key, g => g.First().Envoye);
             string Couper(string? s, int max) => (s ?? "").Length > max ? s![..max] : s ?? "";
@@ -87,7 +89,9 @@ namespace EasytransitCaisse.Data
                         Tva = l.Tva,
                         Unite = Couper(l.Unite, 20),
                         Note = Couper((l.Note ?? "").Trim(), 200),
-                        Envoye = envoye.TryGetValue(uid, out var e) ? e : 0,
+                        Envoye = envoyeDuPoste
+                            ? Math.Min(Math.Max(0, Math.Round(l.Qte, 2)), Math.Max(envoye.TryGetValue(uid, out var eb) ? eb : 0, Math.Round(l.Envoye, 2)))
+                            : envoye.TryGetValue(uid, out var e) ? e : 0,
                         Composants = (l.Composants ?? new()).Take(30).Select(c => new Combos.Composant
                         {
                             ProduitId = c.ProduitId, GroupeId = c.GroupeId, Nom = Couper(c.Nom, 200),
@@ -144,7 +148,9 @@ namespace EasytransitCaisse.Data
             {
                 id = c.Id, version = c.Version, couverts = c.Couverts, total = Total(contenu), articles = contenu.Lignes.Count,
                 addition = c.AdditionImprimee, aEnvoyer = contenu.Lignes.Any(l => l.Qte - l.Envoye > 0),
-                serveur, depuis = c.DateOuverture
+                serveur, depuis = c.DateOuverture,
+                // Détail de la commande : la table peut être reprise hors ligne sur un autre poste.
+                lignes = contenu.Lignes, clientId = contenu.ClientId, remise = contenu.Remise
             };
         }
 

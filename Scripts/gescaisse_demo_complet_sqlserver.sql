@@ -534,6 +534,7 @@ CREATE TABLE [CommandesAttente] (
     [NomLivraison] nvarchar(100) NULL,
     [TelephoneLivraison] nvarchar(30) NULL,
     [AdresseLivraison] nvarchar(200) NULL,
+    [CleClient] nvarchar(64) NULL,
     CONSTRAINT [PK_CommandesAttente] PRIMARY KEY ([Id]),
     CONSTRAINT [FK_CommandesAttente_JourneesCaisses_JourneeCaisseId] FOREIGN KEY ([JourneeCaisseId]) REFERENCES [JourneesCaisses] ([Id]) ON DELETE CASCADE,
     CONSTRAINT [FK_CommandesAttente_Livreurs_LivreurId] FOREIGN KEY ([LivreurId]) REFERENCES [Livreurs] ([Id]) ON DELETE NO ACTION
@@ -989,7 +990,8 @@ INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion]) VALUES
     (N'20261111184559_DepotsLinge', N'10.0.9'),
     (N'20261112063241_Achats', N'10.0.9'),
     (N'20261112070814_DepotAchats', N'10.0.9'),
-    (N'20261112202612_HorsLigne', N'10.0.9');
+    (N'20261112202612_HorsLigne', N'10.0.9'),
+    (N'20261112210405_AttenteHorsLigne', N'10.0.9');
 GO
 
 -- =====================================================================

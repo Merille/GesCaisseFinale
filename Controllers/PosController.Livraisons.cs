@@ -51,6 +51,9 @@ namespace EasytransitCaisse.Controllers
             public int? ClientId { get; set; }
             public RemiseSaisie? Remise { get; set; }
             public LivraisonSaisie? Livraison { get; set; }
+            // Clé du poste et commande mise en attente hors ligne.
+            public string? Cle { get; set; }
+            public HorsLigneSaisie? HorsLigne { get; set; }
         }
 
         private static string? Texte(string? valeur, int max)
@@ -141,9 +144,19 @@ namespace EasytransitCaisse.Controllers
             var j = await _context.JourneesCaisses.FirstOrDefaultAsync(x => x.Id == s.JourneeId);
             if (j == null)
                 return Erreur(404, "Journée introuvable.");
+            var tenant = j.TenantId;
+            // Nouvel envoi (coupure réseau, ou commande mise en attente hors ligne) : la commande déjà
+            // enregistrée est renvoyée.
+            var cle = new string((s.Cle ?? "").Where(c => char.IsAsciiLetterOrDigit(c) || c == '-').Take(64).ToArray());
+            if (cle != "")
+            {
+                var deja = await _context.CommandesAttente.IgnoreQueryFilters().FirstOrDefaultAsync(c => c.TenantId == tenant && c.CleClient == cle);
+                if (deja != null)
+                    return Json(new { id = deja.Id, numero = deja.Numero });
+            }
             if (j.Statut != "Ouverte")
                 return Erreur(409, "Cette journée est clôturée : la commande ne peut pas être mise en attente.");
-            var tenant = j.TenantId;
+            var hl = LireHorsLigne(s.HorsLigne, j);
 
             // Lignes : produits actifs de la société ; nom, taux et unité repris du catalogue.
             var ids = s.Lignes.Select(l => l.ProduitId).Distinct().ToList();
@@ -183,7 +196,7 @@ namespace EasytransitCaisse.Controllers
                 .MaxAsync(c => (int?)c.Numero) ?? 0) + 1;
             var attente = new CommandeAttente
             {
-                TenantId = tenant, JourneeCaisseId = j.Id, Numero = numero, DateCreation = DateTime.Now,
+                TenantId = tenant, JourneeCaisseId = j.Id, Numero = numero, DateCreation = hl?.Date ?? DateTime.Now, CleClient = cle == "" ? null : cle,
                 UtilisateurId = UtilisateurConnecte, ClientId = clientId,
                 Contenu = JsonSerializer.Serialize(new AttenteSaisie { Lignes = lignes, ClientId = clientId, Remise = remise, Livraison = livraison }, JsonAttente),
                 Total = brut - montantRemise + (livraison?.Frais ?? 0), NbArticles = lignes.Count,

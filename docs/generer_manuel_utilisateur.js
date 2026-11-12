@@ -98,7 +98,7 @@ const fiche = [
         ['Application', 'GesCaisse — gestion de caisse et point de vente (POS)'],
         ['Éditeur', 'M-ITECH AFRICA'],
         ['Public', 'Administrateurs, caissiers, vendeurs et serveurs des sociétés clientes'],
-        ['Version du document', '3.4'],
+        ['Version du document', '3.5'],
         ['Date', 'Novembre 2026']
     ], [3000, 6638])
 ];
@@ -211,9 +211,15 @@ const contenu = [
     pt('Envoi automatique', 'dès que la connexion revient, les ventes gardées sont envoyées au serveur, dans l’ordre, depuis n’importe quelle page de GesCaisse ouverte sur le poste. Chaque vente reçoit alors son numéro définitif (le numéro provisoire reste visible dans la liste des ventes). Une vente n’est jamais enregistrée deux fois, même si l’envoi est refait.'),
     pt('Indicateur', 'il affiche le nombre d’opérations à envoyer (« Hors ligne · 2 à envoyer », puis « En ligne · envoi de 2… »). Touchez-le pour voir le détail et, avec la connexion, **Envoyer maintenant**.'),
     ...figure('02d_envois_en_attente', 'Envois en attente sur le poste'),
+    ...figure('02f_restaurant_hors_ligne', 'Retour de la connexion : commandes de table et vente envoyées'),
     pt('Laverie', 'un **dépôt de linge** peut aussi être enregistré sans connexion : la souche et le ticket client portent le numéro provisoire, et le dépôt apparaît « À envoyer » dans la liste des dépôts. Après l’envoi, il reçoit son numéro définitif ; la recherche par le numéro provisoire le retrouve. Il ne peut être encaissé qu’une fois envoyé.'),
     pt('Clients en compte', 'la vente par compte reste possible avec le dernier solde connu du poste ; un dépassement du plafond constaté à l’envoi est signalé à l’administrateur.'),
-    pt('Non disponible sans connexion', 'les commandes de table (restaurant, bar), la mise en attente des commandes et les bons de préparation (prévenez la cuisine ou le bar de vive voix).'),
+    pt('Mettre en attente', 'une commande mise en attente sans connexion est gardée sur le poste (« À envoyer » dans **Commandes en attente**) ; elle se reprend sur ce poste à tout moment, et sur les autres postes une fois envoyée. Les commandes mises en attente sur les autres postes ne se reprennent qu’avec la connexion.'),
+    pt('Restaurant et bar', 'le plan de salle reste affiché avec le dernier état connu du poste, y compris le détail des commandes des tables. Vous pouvez ouvrir une table, prendre ou modifier la commande, imprimer l’**addition** et l’**encaisser** (en une fois). Chaque table modifiée est gardée sur le poste et envoyée au retour de la connexion, avant sa vente.'),
+    pt('Envoyer en préparation', 'sans connexion, l’écran cuisine ne reçoit rien : si la caisse imprime ses bons, le bon est imprimé sur le poste ; sinon, annoncez la commande en cuisine ou au bar. Les articles sont alors notés « envoyés ».'),
+    pt('Table modifiée sur un autre poste', 'si, pendant la coupure, la même table a été modifiée sur un autre poste, la commande du serveur est gardée et les articles ajoutés hors ligne y sont ajoutés ; un message le signale au retour de la connexion. Si la table encaissée hors ligne a changé entre-temps sur le serveur, la vente est enregistrée et signalée à vérifier, sans toucher à la table.'),
+    pt('Non disponible sans connexion', 'le transfert de table, le partage de l’addition et la reprise des commandes en attente des autres postes.'),
+    pt('Après l’envoi', 'un message indique le nombre d’opérations envoyées, sur la page ouverte (même hors de l’écran de vente). Le panneau de l’indicateur garde la liste des **derniers envois** (numéro provisoire, numéro définitif). Une opération refusée par le serveur reste dans la file avec son motif (indicateur rouge) ; une commande de table ou une mise en attente refusée (journée clôturée…) peut être **retirée** de la file, jamais une vente.'),
     pt('Ventes à vérifier', 'une vente faite hors ligne est toujours enregistrée, puisqu’elle a déjà eu lieu. Si elle arrive après la clôture de sa journée, si un prix a changé, si le stock manque ou si le plafond d’un client est dépassé, elle est signalée : badge orange dans la liste des ventes, encadré « À vérifier » dans la fiche de la vente et ligne « vente hors ligne à vérifier » dans la cloche. Après contrôle, un administrateur clique sur **Marquer vérifiée**.'),
     ...figure('02e_vente_hors_ligne_a_verifier', 'Vente hors ligne arrivée après la clôture, à vérifier'),
     attention('Ouvrez la journée et l’écran de vente au moins une fois avec la connexion avant une coupure. Les ventes gardées sont dans le navigateur du poste : ne videz pas ses données et ne changez pas de navigateur tant qu’elles ne sont pas envoyées. La clôture de la journée est refusée sur un poste qui a encore des ventes de cette journée à envoyer.'),

@@ -180,6 +180,7 @@ CREATE TABLE `CommandesAttente` (
   `NomLivraison` varchar(100) DEFAULT NULL,
   `TelephoneLivraison` varchar(30) DEFAULT NULL,
   `AdresseLivraison` varchar(200) DEFAULT NULL,
+  `CleClient` varchar(64) DEFAULT NULL,
   PRIMARY KEY (`Id`),
   KEY `IX_CommandesAttente_JourneeCaisseId_Numero` (`JourneeCaisseId`,`Numero`),
   KEY `IX_CommandesAttente_LivreurId` (`LivreurId`),
@@ -492,6 +493,7 @@ INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('020_depot
 INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('021_achats.sql','2026-11-12 00:00:00');
 INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('022_depot_achats.sql','2026-11-12 00:00:00');
 INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('023_hors_ligne.sql','2026-11-12 00:00:00');
+INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('024_attente_hors_ligne.sql','2026-11-12 00:00:00');
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `ModesPaiement` (

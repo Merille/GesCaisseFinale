@@ -434,10 +434,20 @@ function pos_vendre(): void
         if ($ouverte) {
             $co = q1('SELECT co.*, t.Nom AS TableNom FROM CommandesOuvertes co LEFT JOIN TablesRestaurant t ON t.Id = co.TableId
                       WHERE co.Id = ? AND co.JourneeCaisseId = ? FOR UPDATE', [(int) ($ouverte['id'] ?? 0), $journee['Id']]);
-            if (!$co || (int) $co['Version'] !== (int) ($ouverte['version'] ?? 0)) {
+            if ((!$co || (int) $co['Version'] !== (int) ($ouverte['version'] ?? 0)) && !$hl) {
                 db()->rollBack();
                 pos_json(['erreur' => 'La commande de la table a été modifiée sur un autre appareil : rechargez la table puis recommencez.'], 409);
             }
+            // Table encaissée hors ligne, mais sa commande a changé (ou n'a pas pu être enregistrée) sur
+            // le serveur : la vente est gardée, la table n'est pas touchée, à vérifier.
+            if (!$co || (int) $co['Version'] !== (int) ($ouverte['version'] ?? 0)) {
+                $nomTable = pos_texte($ouverte['table'] ?? null, 60) ?? ($co['TableNom'] ?? 'table');
+                $alertes[] = 'commande de « ' . $nomTable . ' » modifiée ou introuvable sur le serveur : table à vérifier';
+                $ouverte = null;
+                $tableNom = $nomTable;
+            }
+        }
+        if ($ouverte) {
             $tableNom = $co['TableNom'];
             $couverts = (int) $co['Couverts'];
             $avant = restaurant_contenu($co['Contenu']);
@@ -715,7 +725,8 @@ function pos_enregistrer_commande(array $c, bool $envoyer): array
             pos_json(['erreur' => 'La commande de ' . $table['Nom'] . " n'existe plus (encaissée ou transférée sur un autre appareil).", 'commande' => null], 409);
         }
         $avant = $co ? restaurant_contenu($co['Contenu']) : ['lignes' => []];
-        $contenu = restaurant_contenu(restaurant_contenu_saisi($c, $avant));
+        // Commande prise hors ligne : les articles annoncés en cuisine depuis le poste sont « envoyés ».
+        $contenu = restaurant_contenu(restaurant_contenu_saisi($c, $avant, is_array($c['horsLigne'] ?? null)));
         $vide = !$contenu['lignes'];
         if (!$co && $vide) {
             db()->commit();
@@ -935,10 +946,17 @@ function pos_mettreenattente(): void
     if (!$journee) {
         pos_json(['erreur' => 'Journée introuvable.'], 404);
     }
+    $tenant = (int) $journee['TenantId'];
+    // Nouvel envoi (coupure réseau, ou commande mise en attente hors ligne) : la commande déjà
+    // enregistrée est renvoyée.
+    $cle = substr(preg_replace('/[^A-Za-z0-9-]/', '', (string) ($s['cle'] ?? '')), 0, 64) ?: null;
+    if ($cle && ($deja = q1('SELECT Id, Numero FROM CommandesAttente WHERE TenantId = ? AND CleClient = ?', [$tenant, $cle]))) {
+        pos_json(['id' => (int) $deja['Id'], 'numero' => (int) $deja['Numero']]);
+    }
     if ($journee['Statut'] !== 'Ouverte') {
         pos_json(['erreur' => 'Cette journée est clôturée : la commande ne peut pas être mise en attente.'], 409);
     }
-    $tenant = (int) $journee['TenantId'];
+    $hl = pos_hors_ligne($s, $journee);
 
     // Lignes : produits actifs de la société ; nom, taux et unité repris du catalogue.
     $lignes = [];
@@ -985,12 +1003,12 @@ function pos_mettreenattente(): void
         $numero = (int) qv('SELECT COALESCE(MAX(Numero), 0) FROM CommandesAttente WHERE JourneeCaisseId = ?', [$journee['Id']]) + 1;
         $id = run(
             'INSERT INTO CommandesAttente (TenantId, JourneeCaisseId, Numero, DateCreation, UtilisateurId, ClientId, Contenu, Total, NbArticles,
-                LivreurId, NomLivraison, TelephoneLivraison, AdresseLivraison)
-             VALUES (?, ?, ?, NOW(), ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            [$tenant, $journee['Id'], $numero, user()['id'], $client,
+                LivreurId, NomLivraison, TelephoneLivraison, AdresseLivraison, CleClient)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [$tenant, $journee['Id'], $numero, $hl['date'] ?? date('Y-m-d H:i:s'), user()['id'], $client,
              json_encode(['lignes' => $lignes, 'clientId' => $client, 'remise' => $remise, 'livraison' => $livraison], JSON_UNESCAPED_UNICODE),
              $brut - $montantRemise + ($livraison['frais'] ?? 0), count($lignes),
-             $livraison['livreurId'] ?? null, $livraison['nom'] ?? null, $livraison['telephone'] ?? null, $livraison['adresse'] ?? null]
+             $livraison['livreurId'] ?? null, $livraison['nom'] ?? null, $livraison['telephone'] ?? null, $livraison['adresse'] ?? null, $cle]
         );
         db()->commit();
     } catch (Throwable $e) {

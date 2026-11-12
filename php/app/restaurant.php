@@ -32,7 +32,8 @@ function restaurant_plan(int $caisseId, ?int $journee = null): array
         ];
         if ($journee !== null) {
             $co = $commandes[(int) $t['Id']] ?? null;
-            $table['commande'] = $co ? restaurant_resume($co) : null;
+            // Avec le détail de la commande : la table peut être reprise hors ligne sur un autre poste.
+            $table['commande'] = $co ? restaurant_resume($co) + array_intersect_key(restaurant_commande_json($co), ['lignes' => 1, 'clientId' => 1, 'remise' => 1]) : null;
         }
         $parSalle[(int) $t['SalleId']][] = $table;
     }
@@ -94,7 +95,7 @@ function restaurant_commande_json(array $co): array
  * Lignes reçues de l'écran de vente, nettoyées. La quantité déjà envoyée en préparation
  * (« envoye ») vient toujours de la version enregistrée, jamais du navigateur.
  */
-function restaurant_lignes_saisies(array $lignes, array $avant): array
+function restaurant_lignes_saisies(array $lignes, array $avant, bool $envoyeDuPoste = false): array
 {
     $envoye = [];
     foreach ($avant as $l) {
@@ -118,7 +119,10 @@ function restaurant_lignes_saisies(array $lignes, array $avant): array
             'tva' => (float) ($l['tva'] ?? 0),
             'unite' => mb_substr((string) ($l['unite'] ?? ''), 0, 20),
             'note' => mb_substr(trim((string) ($l['note'] ?? '')), 0, 200),
-            'envoye' => $envoye[$uid] ?? 0.0,
+            // Hors ligne : quantité annoncée en cuisine depuis le poste (jamais au-delà de la quantité).
+            'envoye' => $envoyeDuPoste
+                ? min(max(0, round((float) ($l['qte'] ?? 0), 2)), max($envoye[$uid] ?? 0.0, round((float) ($l['envoye'] ?? 0), 2)))
+                : $envoye[$uid] ?? 0.0,
             // Combo : articles choisis (contrôlés à l'encaissement).
             'composants' => array_values(array_map(fn($c) => [
                 'produitId' => (int) ($c['produitId'] ?? 0), 'groupeId' => (int) ($c['groupeId'] ?? 0),
@@ -131,13 +135,13 @@ function restaurant_lignes_saisies(array $lignes, array $avant): array
 }
 
 /** Contenu à enregistrer (lignes, client, remise) en JSON. */
-function restaurant_contenu_saisi(array $saisi, array $avant): string
+function restaurant_contenu_saisi(array $saisi, array $avant, bool $envoyeDuPoste = false): string
 {
     $remise = $saisi['remise'] ?? null;
     $remise = is_array($remise) && (float) ($remise['valeur'] ?? 0) > 0
         ? ['type' => ($remise['type'] ?? '') === 'pct' ? 'pct' : 'montant', 'valeur' => (float) $remise['valeur']] : null;
     return json_encode([
-        'lignes' => restaurant_lignes_saisies((array) ($saisi['lignes'] ?? []), $avant['lignes'] ?? []),
+        'lignes' => restaurant_lignes_saisies((array) ($saisi['lignes'] ?? []), $avant['lignes'] ?? [], $envoyeDuPoste),
         'clientId' => int_or_null($saisi['clientId'] ?? null),
         'remise' => $remise,
     ], JSON_UNESCAPED_UNICODE);
