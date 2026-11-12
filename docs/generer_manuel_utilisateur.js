@@ -98,7 +98,7 @@ const fiche = [
         ['Application', 'GesCaisse — gestion de caisse et point de vente (POS)'],
         ['Éditeur', 'M-ITECH AFRICA'],
         ['Public', 'Administrateurs, caissiers, vendeurs et serveurs des sociétés clientes'],
-        ['Version du document', '3.0'],
+        ['Version du document', '3.1'],
         ['Date', 'Novembre 2026']
     ], [3000, 6638])
 ];
@@ -531,13 +531,14 @@ const contenu = [
 
     // 9 ------------------------------------------------------------------
     h1('9. Rapports de ventes'),
-    p('Menu **Rapports ventes** (administrateurs). Choisissez la période (**Aujourd’hui**, **7 jours**, **Ce mois**, **Mois dernier** ou des dates), la caisse, puis **Filtrer**.'),
+    p('Les rapports du point de vente sont regroupés dans le menu **Rapports** de la rubrique Point de vente (administrateurs) : cliquez dessus pour l’ouvrir, puis choisissez **Ventes**, **Livraisons** et, en laverie, **Dépôts de linge** et **Achats**. Le sous-menu reste ouvert tant que vous consultez l’un de ces rapports.'),
+    p('Menu **Rapports** › **Ventes**. Choisissez la période (**Aujourd’hui**, **7 jours**, **Ce mois**, **Mois dernier** ou des dates), la caisse, puis **Filtrer**.'),
     ...figure('28_rapport_ventes', 'Rapports de ventes'),
     p('Le rapport présente le chiffre d’affaires TTC, le nombre de tickets, le panier moyen, les taxes, les retours, le chiffre d’affaires par jour, les ventes par mode de paiement, par catégorie et par vendeur, et le classement des produits les plus vendus.'),
     pt('Imprimer / PDF', 'aperçu imprimable du rapport.'),
     pt('Excel', 'export du rapport pour vos analyses.'),
     h2('9.1 Rapport des livraisons'),
-    p('Menu **Rapport des livraisons** (administrateurs, rubrique Point de vente). Choisissez la période, au besoin un **livreur** et un **statut** (Livrée, À livrer, À encaisser), puis **Filtrer**.'),
+    p('Menu **Rapports** › **Livraisons** (administrateurs, rubrique Point de vente). Choisissez la période, au besoin un **livreur** et un **statut** (Livrée, À livrer, À encaisser), puis **Filtrer**.'),
     ...figure('28b_rapport_livraisons', 'Rapport des livraisons'),
     p('Les cartes donnent le nombre de livraisons, les livraisons effectuées, celles en cours, le montant des ventes livrées et le total des frais de livraison. Le rapport présente ensuite :'),
     pt('Par livreur', 'pour chaque livreur et son moyen de livraison : nombre de livraisons, livrées, à livrer, à encaisser, montant des ventes et frais de livraison, avec le total.'),
@@ -545,7 +546,7 @@ const contenu = [
     p('Statuts : **Livrée** (livraison effectuée), **À livrer** (vente payée, livreur pas encore revenu), **À encaisser** (commande confiée au livreur, à encaisser à son retour depuis **Commandes en attente**). Les ventes annulées ne sont pas comptées.'),
     pt('Imprimer / PDF et Exporter Excel', 'reprennent la synthèse par livreur et le détail (deux feuilles dans le fichier Excel).'),
     h2('9.2 Rapport des dépôts de linge'),
-    p('Menu **Rapport des dépôts de linge** (administrateurs, rubrique Point de vente ; il n’apparaît que si la société a une caisse de type Laverie). Choisissez la période de dépôt et, au besoin, un **statut**, puis **Filtrer**.'),
+    p('Menu **Rapports** › **Dépôts de linge** (administrateurs, rubrique Point de vente ; il n’apparaît que si la société a une caisse de type Laverie). Choisissez la période de dépôt et, au besoin, un **statut**, puis **Filtrer**.'),
     pt('À retirer / En retard', 'ces deux filtres prennent tous les dépôts non retirés, quelle que soit leur date de dépôt (la période est alors grisée) : pratique pour faire le point sur le linge en attente et relancer les clients en retard.'),
     pt('En cours, Prêt, Retiré, Annulé', 'les dépôts de la période ayant ce statut.'),
     ...figure('28c_rapport_linge', 'Rapport des dépôts de linge'),
@@ -554,7 +555,7 @@ const contenu = [
     pt('Détail des dépôts', 'numéro, date et caisse du dépôt, client et téléphone, articles, montant, acompte, reste, retrait prévu (en rouge s’il est passé), statut et sa date, avec un lien vers la vente du retrait.'),
     pt('Imprimer / PDF et Excel', 'comme les autres rapports ; le fichier Excel a deux feuilles, Synthèse et Dépôts.'),
     h2('9.3 Rapport des achats et consommations'),
-    p('Menu **Rapport des achats** (administrateurs, rubrique Point de vente ; il n’apparaît que si la société a une caisse de type Laverie). Choisissez la période (date d’achat, par défaut du 1er du mois à aujourd’hui) et, au besoin, un **fournisseur**, puis **Filtrer**.'),
+    p('Menu **Rapports** › **Achats** (administrateurs, rubrique Point de vente ; il n’apparaît que si la société a une caisse de type Laverie). Choisissez la période (date d’achat, par défaut du 1er du mois à aujourd’hui) et, au besoin, un **fournisseur**, puis **Filtrer**.'),
     ...figure('28d_rapport_achats', 'Rapport des achats et consommations'),
     p('Les cartes donnent le nombre d’achats, leur montant, le montant réglé, le reste à payer aux fournisseurs et la valeur des produits consommés sur la période. Le rapport présente ensuite :'),
     pt('Par fournisseur', 'nombre d’achats, montant, réglé et reste à payer de chaque fournisseur, avec le total.'),

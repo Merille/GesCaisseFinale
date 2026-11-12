@@ -225,33 +225,46 @@
                 }
                 @if (isAdmin)
                 {
-                    <a class="sb-link @(controller == "PosRapport" ? "active" : "")" href="/PosRapport/Index" title="Rapports ventes">
-                        <i class="fas fa-chart-pie"></i>
-                        <span class="sb-label">Rapports ventes</span>
-                    </a>
-                    <a class="sb-link @(controller == "RapportLivraison" ? "active" : "")" href="/RapportLivraison/Index" title="Rapport des livraisons">
-                        <i class="fas fa-truck-fast"></i>
-                        <span class="sb-label">Rapport des livraisons</span>
-                    </a>
                     @if (DbContext.Caisses.Any(c => c.TypePointVente == "Laverie"))
                     {
-                        <a class="sb-link @(controller == "RapportLinge" ? "active" : "")" href="/RapportLinge/Index" title="Rapport des dépôts de linge">
-                            <i class="fas fa-shirt"></i>
-                            <span class="sb-label">Rapport des dépôts de linge</span>
-                        </a>
                         <a class="sb-link @(controller == "Achat" ? "active" : "")" href="/Achat/Index" title="Achats">
                             <i class="fas fa-cart-flatbed"></i>
                             <span class="sb-label">Achats</span>
-                        </a>
-                        <a class="sb-link @(controller == "RapportAchat" ? "active" : "")" href="/RapportAchat/Index" title="Rapport des achats">
-                            <i class="fas fa-chart-bar"></i>
-                            <span class="sb-label">Rapport des achats</span>
                         </a>
                     }
                     <a class="sb-link @(controller == "Stock" ? "active" : "")" href="/Stock/Index" title="Stock">
                         <i class="fas fa-warehouse"></i>
                         <span class="sb-label">Stock</span>
                     </a>
+                    @* Rapports du point de vente, regroupés (titre complet en infobulle). *@
+                    var rapportsActif = controller is "PosRapport" or "RapportLivraison" or "RapportLinge" or "RapportAchat";
+                    <button type="button" class="sb-link sb-parent @(rapportsActif ? "parent-actif" : "")" title="Rapports"
+                            aria-expanded="@(rapportsActif ? "true" : "false")" aria-controls="sbRapportsPos" onclick="basculerSousMenu(this)">
+                        <i class="fas fa-chart-line"></i>
+                        <span class="sb-label">Rapports</span>
+                        <i class="fas fa-chevron-down sb-chevron"></i>
+                    </button>
+                    <div class="sb-sub @(rapportsActif ? "open" : "")" id="sbRapportsPos">
+                        <a class="sb-link @(controller == "PosRapport" ? "active" : "")" href="/PosRapport/Index" title="Rapports ventes">
+                            <i class="fas fa-chart-pie"></i>
+                            <span class="sb-label">Ventes</span>
+                        </a>
+                        <a class="sb-link @(controller == "RapportLivraison" ? "active" : "")" href="/RapportLivraison/Index" title="Rapport des livraisons">
+                            <i class="fas fa-truck-fast"></i>
+                            <span class="sb-label">Livraisons</span>
+                        </a>
+                        @if (DbContext.Caisses.Any(c => c.TypePointVente == "Laverie"))
+                        {
+                            <a class="sb-link @(controller == "RapportLinge" ? "active" : "")" href="/RapportLinge/Index" title="Rapport des dépôts de linge">
+                                <i class="fas fa-shirt"></i>
+                                <span class="sb-label">Dépôts de linge</span>
+                            </a>
+                            <a class="sb-link @(controller == "RapportAchat" ? "active" : "")" href="/RapportAchat/Index" title="Rapport des achats et consommations">
+                                <i class="fas fa-chart-bar"></i>
+                                <span class="sb-label">Achats</span>
+                            </a>
+                        }
+                    </div>
                     var configurationActif = controller is "Categorie" or "Produit" or "Combo";
                     <button type="button" class="sb-link sb-parent @(configurationActif ? "parent-actif" : "")" title="Configuration"
                             aria-expanded="@(configurationActif ? "true" : "false")" aria-controls="sbConfiguration" onclick="basculerSousMenu(this)">

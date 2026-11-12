@@ -63,7 +63,7 @@ const fiche = [
         ['Projet', 'GesCaisse — gestion de caisse et point de vente (POS)'],
         ['Éditeur', 'M-ITECH AFRICA'],
         ['Versions', 'ASP.NET Core (.NET 10) / SQL Server — PHP 8 / MySQL'],
-        ['Version du document', '3.1'],
+        ['Version du document', '3.2'],
         ['Date', 'Novembre 2026'],
         ['Statut', 'Document de référence (fonctionnalités réalisées)']
     ], [3000, 6638])
@@ -250,6 +250,7 @@ const contenu = [
     puce('Dépôt des achats (« Magasin des produits d\'entretien », ACH01, un par société, créé au besoin) : tous les achats y entrent et toutes les consommations en sortent ; il reçoit aussi le stock initial des nouveaux consommables. Il n\'est proposé à aucune caisse (principal ou secondaire) et ne peut être ni dépôt par défaut, ni désactivé, ni supprimé ; Paramètres › Dépôts permet d\'en choisir un autre (actif, hors dépôt par défaut, sans caisse). Onglet « Dépôt des achats » : par produit, entrées et sorties de la période, stock, seuil d\'alerte (ligne en rouge), coût et valeur ; détail des mouvements ; accès à l\'inventaire et au transfert du dépôt.'),
     puce('Alerte de stock bas des produits d\'entretien (administrateurs) : consommables actifs dont le stock dans le dépôt des achats atteint le seuil d\'alerte ou passe en dessous (sans seuil : pas d\'alerte). ligne dans la cloche de notifications (lien vers le dépôt des achats), ligne « produits d\'entretien à racheter » dans « À traiter » du tableau de bord, bandeau sur les onglets du module Achats (produit, stock, seuil, le plus urgent en premier) avec un bouton « Racheter » qui ouvre un nouvel achat prérempli (une ligne par produit en alerte, prix d\'achat actuel).'),
     h2('4.7 Rapports de ventes'),
+    puce('Menu « Rapports » de la rubrique Point de vente (administrateurs) : sous-menu repliable regroupant les rapports du point de vente — Ventes, Livraisons et, pour une société ayant une caisse Laverie, Dépôts de linge et Achats (et consommations) ; ouvert automatiquement sur l\'un de ces rapports, titre complet en infobulle.'),
     puce('Chiffre d\'affaires, nombre de tickets, panier moyen, taxes, ventes par mode de paiement, par catégorie, par vendeur.'),
     puce('Classement des produits les plus vendus ; aperçu imprimable (PDF) et export Excel.'),
     puce('Rapport des dépôts de linge (administrateurs, module Point de vente, société ayant une caisse Laverie) : filtres période de dépôt (par défaut du 1er du mois à aujourd\'hui) et statut (En cours, Prêt, Retiré, Annulé, ou « À retirer » / « En retard » : tous les dépôts non retirés, sans période) ; cartes (dépôts, à retirer, en retard, montant, acomptes, reste à encaisser), synthèse par statut (total hors annulés) et détail (numéro, dates, client, téléphone, articles, montant, acompte, reste, retrait prévu, statut, lien vers la vente du retrait) ; impression / PDF et export Excel (feuilles Synthèse et Dépôts).'),

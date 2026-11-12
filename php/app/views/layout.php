@@ -112,14 +112,26 @@ $badge = $nbJourneesOuvertes > 0
                 <?= $lien('cuisine/index', 'cuisine', 'fa-fire-burner', 'Écran cuisine / bar') ?>
             <?php endif; ?>
             <?php if (is_admin()): ?>
-                <?= $lien('posrapport/index', 'posrapport', 'fa-chart-pie', 'Rapports ventes') ?>
-                <?= $lien('rapportlivraison/index', 'rapportlivraison', 'fa-truck-fast', 'Rapport des livraisons') ?>
                 <?php if (laverie_actif()): ?>
-                    <?= $lien('rapportlinge/index', 'rapportlinge', 'fa-shirt', 'Rapport des dépôts de linge') ?>
                     <?= $lien('achat/index', 'achat', 'fa-cart-flatbed', 'Achats') ?>
-                    <?= $lien('rapportachat/index', 'rapportachat', 'fa-chart-bar', 'Rapport des achats') ?>
                 <?php endif; ?>
                 <?= $lien('stock/index', 'stock', 'fa-warehouse', 'Stock') ?>
+                <?php // Rapports du point de vente, regroupés (titre complet en infobulle). ?>
+                <?php $lienRapport = fn(string $route, string $mod, string $icone, string $libelle, string $titre)
+                    => str_replace('title="' . h($libelle) . '"', 'title="' . h($titre) . '"', $lien($route, $mod, $icone, $libelle)); ?>
+                <?php $rapportsActif = in_array($module, ['posrapport', 'rapportlivraison', 'rapportlinge', 'rapportachat'], true); ?>
+                <button type="button" class="sb-link sb-parent <?= $rapportsActif ? 'parent-actif' : '' ?>" title="Rapports"
+                        aria-expanded="<?= $rapportsActif ? 'true' : 'false' ?>" aria-controls="sbRapportsPos" onclick="basculerSousMenu(this)">
+                    <i class="fas fa-chart-line"></i><span class="sb-label">Rapports</span><i class="fas fa-chevron-down sb-chevron"></i>
+                </button>
+                <div class="sb-sub <?= $rapportsActif ? 'open' : '' ?>" id="sbRapportsPos">
+                    <?= $lienRapport('posrapport/index', 'posrapport', 'fa-chart-pie', 'Ventes', 'Rapports ventes') ?>
+                    <?= $lienRapport('rapportlivraison/index', 'rapportlivraison', 'fa-truck-fast', 'Livraisons', 'Rapport des livraisons') ?>
+                    <?php if (laverie_actif()): ?>
+                        <?= $lienRapport('rapportlinge/index', 'rapportlinge', 'fa-shirt', 'Dépôts de linge', 'Rapport des dépôts de linge') ?>
+                        <?= $lienRapport('rapportachat/index', 'rapportachat', 'fa-chart-bar', 'Achats', 'Rapport des achats et consommations') ?>
+                    <?php endif; ?>
+                </div>
                 <?php $configurationActif = in_array($module, ['categorie', 'produit', 'combo'], true); ?>
                 <button type="button" class="sb-link sb-parent <?= $configurationActif ? 'parent-actif' : '' ?>" title="Configuration"
                         aria-expanded="<?= $configurationActif ? 'true' : 'false' ?>" aria-controls="sbConfiguration" onclick="basculerSousMenu(this)">
