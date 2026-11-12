@@ -9,6 +9,9 @@
 //   vendues) ; les règlements passés par une caisse dont la journée est encore ouverte y sont
 //   remboursés (encaissement) ; journée clôturée : refus.
 // - Consommation : sortie du stock des produits utilisés pour le service (mouvement « Consommation »).
+// Achats et consommations se font dans le dépôt des achats (« Magasin des produits d'entretien »,
+// créé au besoin), qui ne sert à aucune caisse ; l'onglet « Dépôt des achats » en suit les entrées,
+// les sorties et le stock.
 // Réservé aux profils Admin et SuperAdmin.
 
 const ACHAT_STATUTS = ['Validé', 'Annulé'];
@@ -37,11 +40,15 @@ function achat_fournisseurs(): array
     return q("SELECT Id, CodeClient, NomSociete FROM Clients WHERE Type = 'Fournisseur' AND " . tf() . ' ORDER BY NomSociete');
 }
 
-/** Produits achetables (suivis en stock, hors modèles et combos), les consommables en premier. */
-function achat_produits(): array
+/**
+ * Produits achetables (suivis en stock, hors modèles et combos), les consommables en premier ;
+ * StockDepot = quantité dans le dépôt donné.
+ */
+function achat_produits(int $depot = 0): array
 {
-    return q('SELECT Id, Code, Nom, Unite, Cout, StockActuel, Consommable FROM Produits
-              WHERE SuiviStock = 1 AND Actif = 1 AND EstModele = 0 AND EstCombo = 0 AND ' . tf() . ' ORDER BY Consommable DESC, Nom');
+    return q('SELECT p.Id, p.Code, p.Nom, p.Unite, p.Cout, p.StockActuel, p.Consommable, COALESCE(sd.Quantite, 0) AS StockDepot
+              FROM Produits p LEFT JOIN StocksDepots sd ON sd.ProduitId = p.Id AND sd.DepotId = ?
+              WHERE p.SuiviStock = 1 AND p.Actif = 1 AND p.EstModele = 0 AND p.EstCombo = 0 AND ' . tf('p') . ' ORDER BY p.Consommable DESC, p.Nom', [$depot]);
 }
 
 /** Journées de caisse ouvertes de la société (règlement par la caisse). */
@@ -148,19 +155,17 @@ function achat_index(): void
 /** Nouvel achat : saisie et enregistrement (entrée en stock, coût, règlement éventuel). */
 function achat_nouveau(): void
 {
+    $depot = achat_depot();
     if (!is_post()) {
         render('achat/form', [
-            'fournisseurs' => achat_fournisseurs(), 'produits' => achat_produits(), 'depots' => achat_depots(),
+            'fournisseurs' => achat_fournisseurs(), 'produits' => achat_produits((int) ($depot['Id'] ?? 0)), 'depot' => $depot,
             'journees' => achat_journees(), 'modes' => achat_modes(),
         ]);
         return;
     }
     $tenant = tenant_insert();
     $retour = fn(string $m) => [flash('danger', $m), redirect('achat/nouveau')];
-    $depot = q1('SELECT * FROM Depots WHERE Id = ? AND TenantId = ? AND Actif = 1', [(int) post('depot', 0) ?: depot_par_defaut($tenant), $tenant]);
-    if (!$depot) {
-        $retour("Choisissez le dépôt qui reçoit l'achat.");
-    }
+    $depot = depot_des_achats($tenant);
     $fournisseur = (int) post('fournisseur', 0);
     if ($fournisseur && !qv("SELECT Id FROM Clients WHERE Id = ? AND TenantId = ? AND Type = 'Fournisseur'", [$fournisseur, $tenant])) {
         $retour('Fournisseur introuvable.');
@@ -235,13 +240,10 @@ function achat_nouveau(): void
     redirect('achat/details', ['id' => $id]);
 }
 
-/** Dépôts actifs, le dépôt par défaut en premier. */
-function achat_depots(): array
+/** Dépôt des achats de la société consultée (null en mode « toutes les sociétés »). */
+function achat_depot(): ?array
 {
-    if (tenant_id() > 0) {
-        depot_par_defaut(tenant_id());
-    }
-    return q('SELECT Id, Code, Nom, ParDefaut FROM Depots WHERE Actif = 1 AND ' . tf() . ' ORDER BY ParDefaut DESC, Code');
+    return tenant_id() > 0 ? depot_des_achats(tenant_id()) : null;
 }
 
 /** Détail d'un achat : lignes, règlements, formulaire de règlement, annulation. */
@@ -343,11 +345,8 @@ function achat_consommation(): void
 {
     if (is_post()) {
         $tenant = tenant_insert();
-        $depot = q1('SELECT * FROM Depots WHERE Id = ? AND TenantId = ? AND Actif = 1', [(int) post('depot', 0) ?: depot_par_defaut($tenant), $tenant]);
+        $depot = depot_des_achats($tenant);
         $retour = fn(string $m) => [flash('danger', $m), redirect('achat/consommation')];
-        if (!$depot) {
-            $retour('Choisissez le dépôt où les produits sont pris.');
-        }
         $commentaire = mb_substr(trim((string) post('commentaire', '')), 0, 300) ?: null;
         $lignes = [];
         foreach ((array) ($_POST['produit'] ?? []) as $i => $id) {
@@ -399,5 +398,38 @@ function achat_consommation(): void
         unset($s);
     }
     usort($synthese, fn($x, $y) => $y['Valeur'] <=> $x['Valeur'] ?: strcmp($x['Nom'], $y['Nom']));
-    render('achat/consommation', ['f' => $f, 'mouvements' => $mouvements, 'synthese' => $synthese, 'produits' => achat_produits(), 'depots' => achat_depots()]);
+    $depot = achat_depot();
+    render('achat/consommation', ['f' => $f, 'mouvements' => $mouvements, 'synthese' => $synthese, 'produits' => achat_produits((int) ($depot['Id'] ?? 0)), 'depot' => $depot]);
+}
+
+/**
+ * Dépôt des achats : stock de chaque produit (valeur au coût, alerte), entrées et sorties de la
+ * période par produit, et détail des mouvements du dépôt.
+ */
+function achat_stock(): void
+{
+    $f = achat_filtres();
+    $depot = achat_depot();
+    $id = (int) ($depot['Id'] ?? 0);
+    $mouvements = q('SELECT m.*, p.Code, p.Nom, p.Unite, u.NomComplet AS Utilisateur
+                     FROM MouvementsStock m JOIN Produits p ON p.Id = m.ProduitId LEFT JOIN Utilisateurs u ON u.Id = m.UtilisateurId
+                     WHERE m.DepotId = ? AND m.DateMouvement >= ? AND m.DateMouvement < DATE_ADD(?, INTERVAL 1 DAY)
+                     ORDER BY m.DateMouvement DESC, m.Id DESC', [$id, $f['du'], $f['au']]);
+    $produits = [];
+    foreach (q('SELECT p.Id, p.Code, p.Nom, p.Unite, p.Cout, p.SeuilAlerte, p.Consommable, COALESCE(sd.Quantite, 0) AS Stock
+                FROM Produits p LEFT JOIN StocksDepots sd ON sd.ProduitId = p.Id AND sd.DepotId = ?
+                WHERE p.SuiviStock = 1 AND p.EstModele = 0 AND ' . tf('p') . '
+                  AND (p.Consommable = 1 AND p.Actif = 1 OR sd.Quantite <> 0 OR EXISTS (SELECT 1 FROM MouvementsStock x WHERE x.ProduitId = p.Id AND x.DepotId = ?))
+                ORDER BY p.Consommable DESC, p.Nom', [$id, $id]) as $p) {
+        $p['Entrees'] = $p['Sorties'] = 0.0;
+        $p['Valeur'] = (float) $p['Stock'] * (float) $p['Cout'];
+        $p['Alerte'] = $p['SeuilAlerte'] !== null && (float) $p['Stock'] <= (float) $p['SeuilAlerte'];
+        $produits[(int) $p['Id']] = $p;
+    }
+    foreach ($mouvements as $m) {
+        if (isset($produits[(int) $m['ProduitId']])) {
+            $produits[(int) $m['ProduitId']][(float) $m['Quantite'] >= 0 ? 'Entrees' : 'Sorties'] += abs((float) $m['Quantite']);
+        }
+    }
+    render('achat/stock', ['f' => $f, 'depot' => $depot, 'produits' => array_values($produits), 'mouvements' => $mouvements]);
 }

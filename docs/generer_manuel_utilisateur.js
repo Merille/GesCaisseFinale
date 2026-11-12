@@ -98,7 +98,7 @@ const fiche = [
         ['Application', 'GesCaisse — gestion de caisse et point de vente (POS)'],
         ['Éditeur', 'M-ITECH AFRICA'],
         ['Public', 'Administrateurs, caissiers, vendeurs et serveurs des sociétés clientes'],
-        ['Version du document', '2.5'],
+        ['Version du document', '2.6'],
         ['Date', 'Novembre 2026']
     ], [3000, 6638])
 ];
@@ -485,16 +485,17 @@ const contenu = [
     p('L’option de la page Stock détermine ce qui se passe quand un article est épuisé dans le dépôt de la caisse : vente **autorisée, avec un avertissement**, ou **interdite** (le point de vente refuse l’article).'),
     h2('8.7 Achats de produits et consommations (laverie)'),
     p('Une laverie achète des produits qu’elle ne vend pas : lessive, eau de Javel, assouplissant, détachant, cintres, housses… Le menu **Achats** (administrateurs, rubrique Point de vente ; il n’apparaît que si la société a une caisse de type Laverie) enregistre ces achats chez les fournisseurs, leur règlement et l’utilisation des produits.'),
+    p('Ces produits ont leur propre dépôt, le **dépôt des achats** (« Magasin des produits d’entretien », code ACH01, créé automatiquement à la première ouverture du menu) : tous les achats y entrent et toutes les consommations en sortent. Il ne sert à aucune caisse : la vente n’y puise jamais. Le stock initial d’un nouveau produit consommable y est aussi placé.'),
     h3('Préparer les produits et les fournisseurs'),
     pt('Produits', 'créez chaque produit dans **Configuration** › **Produits** (11.2) et cochez **Consommable (non vendu en caisse)** : son stock est suivi et il n’apparaît jamais sur l’écran de vente. Un produit vendu (lessive en bouteille, par exemple) peut aussi être acheté ici : laissez-le simplement non consommable.'),
     pt('Fournisseurs', 'ce sont les tiers de type **Fournisseur** (4).'),
     h3('Enregistrer un achat'),
     ...etapes([
         'Cliquez sur **Nouvel achat**.',
-        'Choisissez le **fournisseur**, la **date d’achat**, le **dépôt qui reçoit** et la référence de sa facture ou de son bon de livraison.',
+        'Choisissez le **fournisseur**, la **date d’achat** et la référence de sa facture ou de son bon de livraison. Le **dépôt qui reçoit** est toujours le dépôt des achats.',
         'Ajoutez une ligne par produit avec la **quantité** et le **prix d’achat unitaire** (proposé au coût actuel du produit) : le montant de chaque ligne et le total se calculent.',
         'Choisissez le **règlement** : **à crédit** (à régler plus tard), **payé par la caisse** (montant, mode de paiement et journée de caisse ouverte qui paie) ou **payé hors caisse** (virement, chèque…). Le montant réglé peut être partiel.',
-        'Cliquez sur **Enregistrer l’achat** : les quantités entrent dans le stock du dépôt (mouvement « Achat ») et le détail de l’achat s’affiche.'
+        'Cliquez sur **Enregistrer l’achat** : les quantités entrent dans le dépôt des achats (mouvement « Achat ») et le détail de l’achat s’affiche.'
     ]),
     ...figure('26c_nouvel_achat', 'Nouvel achat chez un fournisseur'),
     p('Le **coût** de chaque produit est recalculé en coût moyen pondéré : par exemple, 10 bidons en stock à 2 500 FCFA et 10 bidons achetés à 3 000 FCFA donnent un coût de 2 750 FCFA. Un paiement par la caisse est un **décaissement** de la journée choisie (motif « Achat fournisseur ») : il compte dans la clôture comme toute sortie d’argent.'),
@@ -505,9 +506,14 @@ const contenu = [
     ...figure('26d_achat_details', 'Détail d’un achat à crédit et règlement'),
     pt('Annuler l’achat', 'les quantités ressortent du stock et les paiements faits par une caisse sont remboursés par un encaissement dans la même journée. L’annulation est refusée si cette journée est clôturée, ou si les produits ont déjà été utilisés ou vendus : corrigez alors le stock par un inventaire (8.5).'),
     h3('Enregistrer les consommations'),
-    p('L’onglet **Consommations** sort du stock les produits utilisés pour le service (par exemple chaque soir ou chaque semaine) : choisissez le dépôt, ajoutez une ligne par produit avec la **quantité utilisée** et un commentaire, puis **Enregistrer la consommation** (mouvement « Consommation »). Une quantité supérieure au stock du dépôt est refusée.'),
+    p('L’onglet **Consommations** sort du dépôt des achats les produits utilisés pour le service (par exemple chaque soir ou chaque semaine) : ajoutez une ligne par produit avec la **quantité utilisée** et un commentaire, puis **Enregistrer la consommation** (mouvement « Consommation »). La liste des produits indique la quantité **en magasin** ; une quantité supérieure est refusée.'),
     p('Sous le formulaire, la période choisie présente les consommations **par produit**, avec leur valeur au coût, et leur détail. Comparez cette valeur au chiffre d’affaires de la laverie pour suivre le coût des produits par lavage.'),
     ...figure('26e_consommations', 'Consommations de produits d’entretien'),
+    h3('Suivre le dépôt des achats'),
+    p('L’onglet **Dépôt des achats** présente, pour la période choisie, chaque produit du dépôt avec ses **entrées** (achats, transferts reçus, écarts d’inventaire positifs), ses **sorties** (consommations, annulations d’achats, transferts, écarts négatifs), le **stock** actuel, le seuil d’alerte, le coût et la valeur. Une ligne rouge signale un produit au niveau ou sous son seuil d’alerte : pensez à le racheter. Les cartes donnent le nombre de produits en alerte et la valeur du stock au coût ; le détail des entrées et sorties suit.'),
+    ...figure('26f_depot_achats', 'Dépôt des achats : entrées, sorties et stock'),
+    pt('Inventaire', 'comptez régulièrement le magasin : le bouton **Inventaire** ouvre l’inventaire (8.5) sur le dépôt des achats.'),
+    pt('Transfert', 'un produit acheté pour être revendu (lessive en bouteille, par exemple) se transfère vers le dépôt d’une caisse avec le bouton **Transfert** (8.4).'),
 
     // 9 ------------------------------------------------------------------
     h1('9. Rapports de ventes'),
@@ -656,6 +662,7 @@ const contenu = [
     pt('Par défaut', 'le dépôt par défaut reçoit le stock initial des nouveaux produits et sert aux caisses sans dépôt choisi (elles passent automatiquement au nouveau dépôt par défaut si vous en changez). Il ne peut être ni désactivé ni supprimé : choisissez d’abord un autre dépôt par défaut.'),
     pt('Désactiver', 'un dépôt désactivé n’est plus proposé pour les caisses ni les mouvements de stock, et les caisses ne s’en servent plus comme dépôt secondaire. Un dépôt principal d’une caisse ne peut pas être désactivé.'),
     pt('Supprimer', 'seul un dépôt sans mouvement de stock ni caisse peut être supprimé ; sinon, désactivez-le.'),
+    pt('Dépôt des achats', 'laverie : dépôt des produits d’entretien (voir 8.7), signalé par un badge. Il n’est pas proposé sur les caisses et ne peut être ni dépôt par défaut, ni désactivé, ni supprimé. Pour en changer, cliquez sur **Dépôt des achats** sur la ligne d’un autre dépôt actif qui ne sert à aucune caisse.'),
     h2('12.8 Livreurs'),
     p('Menu **Paramètres** › **Livreurs**. Les livreurs sont proposés au point de vente sur une commande à livrer ; ils n’ont pas de compte de connexion. Cliquez sur **Nouveau livreur** (ou **Modifier**) et renseignez le **nom**, le **téléphone** et le **moyen de livraison** : **Moto**, **Voiture**, **Vélo** ou **Autre**. La liste indique le moyen et le nombre de livraisons de chacun.'),
     pt('Moyen de livraison', 'il apparaît au point de vente dans le choix du livreur et dans la liste des commandes en attente, ainsi que sur le ticket et le détail de la vente (ex. « Jean Moussavou (Moto) »).'),

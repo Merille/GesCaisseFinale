@@ -33,14 +33,15 @@ function caisse_utilisateurs(): array
 /** Dépôts proposés sur la fiche caisse (dépôts actifs de la société). */
 function caisse_depots(): array
 {
-    return q('SELECT Id, Code, Nom, ParDefaut FROM Depots WHERE Actif = 1 AND ' . tf() . ' ORDER BY ParDefaut DESC, Code');
+    // Le dépôt des achats (produits d'entretien) ne sert à aucune caisse.
+    return q('SELECT Id, Code, Nom, ParDefaut FROM Depots WHERE Actif = 1 AND DepotAchats = 0 AND ' . tf() . ' ORDER BY ParDefaut DESC, Code');
 }
 
 /** Dépôt saisi sur la fiche caisse, s'il est actif et de la société ; sinon null : la caisse utilise le dépôt par défaut de la société. */
 function caisse_depot_saisi(): ?int
 {
     $id = int_or_null(post('DepotId'));
-    return $id && qv('SELECT Id FROM Depots WHERE Id = ? AND Actif = 1 AND ' . tf(), [$id]) ? $id : null;
+    return $id && qv('SELECT Id FROM Depots WHERE Id = ? AND Actif = 1 AND DepotAchats = 0 AND ' . tf(), [$id]) ? $id : null;
 }
 
 /** Dépôts secondaires de la caisse : [DepotId => Ordre]. */

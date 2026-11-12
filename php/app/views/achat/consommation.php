@@ -5,7 +5,7 @@ require __DIR__ . '/_onglets.php';
 $options = function () use ($produits): string {
     $html = '<option value="">-- Produit --</option>';
     foreach ($produits as $p) {
-        $html .= '<option value="' . (int) $p['Id'] . '">' . h($p['Code'] . ' · ' . $p['Nom'] . ($p['Consommable'] ? ' (consommable)' : '') . ' — stock ' . quantite_fr($p['StockActuel']) . ' ' . $p['Unite']) . '</option>';
+        $html .= '<option value="' . (int) $p['Id'] . '">' . h($p['Code'] . ' · ' . $p['Nom'] . ($p['Consommable'] ? ' (consommable)' : '') . ' — en magasin ' . quantite_fr($p['StockDepot']) . ' ' . $p['Unite']) . '</option>';
     }
     return $html;
 };
@@ -17,10 +17,9 @@ $valeur = array_sum(array_column($synthese, 'Valeur'));
     <div class="card-body">
         <?= csrf_field() ?>
         <div class="row g-3 mb-3">
-            <div class="col-md-4"><label class="form-label" for="depot">Dépôt</label>
-                <select class="form-select" id="depot" name="depot" required>
-                    <?php foreach ($depots as $d): ?><option value="<?= (int) $d['Id'] ?>"><?= h($d['Code'] . ' · ' . $d['Nom']) ?></option><?php endforeach; ?>
-                </select></div>
+            <div class="col-md-4"><label class="form-label" for="depot">Dépôt où les produits sont pris</label>
+                <input class="form-control" id="depot" value="<?= h($depot ? $depot['Code'] . ' · ' . $depot['Nom'] : 'Dépôt des achats') ?>" readonly>
+                <div class="form-text">Dépôt des achats : <a href="<?= h(url('achat/stock')) ?>">entrées, sorties et stock</a>.</div></div>
             <div class="col-md-8"><label class="form-label" for="commentaire">Commentaire</label><input class="form-control" id="commentaire" name="commentaire" maxlength="300" placeholder="Ex : lavages de la semaine"></div>
         </div>
         <table class="table align-middle" id="lignesConsommation">

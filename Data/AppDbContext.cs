@@ -173,6 +173,7 @@ namespace EasytransitCaisse.Data
             modelBuilder.Entity<ReglementAchat>().ToTable("ReglementsAchats")
                 .HasOne<Achat>().WithMany(a => a.Reglements).HasForeignKey(r => r.AchatId).OnDelete(DeleteBehavior.Cascade);
             modelBuilder.Entity<Produit>().Property(p => p.Consommable).HasDefaultValue(false);
+            modelBuilder.Entity<Depot>().Property(d => d.DepotAchats).HasDefaultValue(false);
             modelBuilder.Entity<CommandePos>()
                 .HasOne<Livreur>().WithMany().HasForeignKey(c => c.LivreurId).OnDelete(DeleteBehavior.Restrict);
             modelBuilder.Entity<CommandePos>().Property(c => c.NomLivraison).HasMaxLength(100);

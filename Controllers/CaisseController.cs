@@ -41,7 +41,7 @@ namespace EasytransitCaisse.Controllers
         // Dépôt saisi sur la fiche caisse, s'il est actif et de la société ; sinon null : la caisse utilise
         // le dépôt par défaut de la société.
         private int? DepotValide(int? depotId)
-            => depotId.HasValue && _context.Depots.Any(d => d.Id == depotId && d.Actif) ? depotId : null;
+            => depotId.HasValue && _context.Depots.Any(d => d.Id == depotId && d.Actif && !d.DepotAchats) ? depotId : null;
 
         // Enregistre les dépôts secondaires cochés sur la fiche (dépôts actifs de la société, autres que le
         // principal), avec leur ordre d'utilisation. Sans effet si la fiche ne les proposait pas.
@@ -49,7 +49,7 @@ namespace EasytransitCaisse.Controllers
         {
             if (string.IsNullOrEmpty(Request.Form["SecondairesSaisis"]))
                 return;
-            var actifs = _context.Depots.Where(d => d.Actif).Select(d => d.Id).ToHashSet();
+            var actifs = _context.Depots.Where(d => d.Actif && !d.DepotAchats).Select(d => d.Id).ToHashSet();
             _context.CaissesDepots.Where(c => c.CaisseId == caisseId).ExecuteDelete();
             var ids = Request.Form["Secondaires[]"].Select(v => int.TryParse(v, out var x) ? x : 0).Distinct();
             foreach (var id in ids.Where(id => id != principal && actifs.Contains(id)))

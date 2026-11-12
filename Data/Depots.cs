@@ -26,6 +26,33 @@ namespace EasytransitCaisse.Data
             return ids.First();
         }
 
+        // Dépôt des achats de la société (laverie : « Magasin des produits d'entretien ») : les achats y
+        // entrent et les consommations en sortent ; il ne sert à aucune caisse. Créé (ACH01…) au besoin,
+        // réactivé s'il avait été désactivé. Comme depot_des_achats() en PHP.
+        public static async Task<Models.Depot> DepotDesAchatsAsync(this AppDbContext context, int tenantId)
+        {
+            var depot = await context.Depots.IgnoreQueryFilters().AsNoTracking()
+                .Where(d => d.TenantId == tenantId && d.DepotAchats).OrderBy(d => d.Id).FirstOrDefaultAsync();
+            if (depot != null)
+            {
+                if (!depot.Actif)
+                {
+                    await context.Database.ExecuteSqlInterpolatedAsync($"UPDATE Depots SET Actif = 1 WHERE Id = {depot.Id}");
+                    depot.Actif = true;
+                }
+                return depot;
+            }
+            await context.DepotParDefautAsync(tenantId);
+            var codes = await context.Depots.IgnoreQueryFilters().Where(d => d.TenantId == tenantId).Select(d => d.Code).ToListAsync();
+            var n = 1;
+            while (codes.Contains($"ACH{n:D2}"))
+                n++;
+            var code = $"ACH{n:D2}";
+            var ids = await context.Database.SqlQuery<int>($@"INSERT INTO Depots (TenantId, Code, Nom, Actif, ParDefaut, DepotAchats)
+                OUTPUT INSERTED.Id AS Value VALUES ({tenantId}, {code}, N'Magasin des produits d''entretien', 1, 0, 1)").ToListAsync();
+            return await context.Depots.IgnoreQueryFilters().AsNoTracking().FirstAsync(d => d.Id == ids.First());
+        }
+
         // Dépôt d'une caisse : celui choisi sur la caisse, sinon le dépôt par défaut de la société.
         public static async Task<int> DepotCaisseAsync(this AppDbContext context, int caisseId)
         {

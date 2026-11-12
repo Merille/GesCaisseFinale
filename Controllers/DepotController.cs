@@ -10,7 +10,9 @@ namespace EasytransitCaisse.Controllers
     // Dépôts de stockage (magasin, entrepôt, réserve…) : le stock de chaque produit est suivi par dépôt.
     // Le dépôt par défaut reçoit le stock initial des produits et sert aux caisses sans dépôt choisi ;
     // il ne peut être ni désactivé ni supprimé. Un dépôt qui a un historique se désactive au lieu
-    // d'être supprimé. Réservé aux profils Admin et SuperAdmin.
+    // d'être supprimé. Le dépôt des achats (laverie : produits d'entretien) reçoit les achats et fournit
+    // les consommations ; il ne sert à aucune caisse et ne peut être ni désactivé ni supprimé.
+    // Réservé aux profils Admin et SuperAdmin.
     [Authorize(Policy = "Admin")]
     public class DepotController : Controller
     {
@@ -44,6 +46,7 @@ namespace EasytransitCaisse.Controllers
                 .Select(c => new { Depot = c.DepotId, Caisse = c.CaisseId }).ToListAsync();
             ViewBag.NbCaisses = principaux.Concat(secondaires).Distinct()
                 .GroupBy(x => x.Depot).ToDictionary(g => g.Key, g => g.Count());
+            ViewBag.Laverie = await _context.Caisses.AnyAsync(c => c.TypePointVente == "Laverie");
             return View(depots);
         }
 
@@ -52,6 +55,8 @@ namespace EasytransitCaisse.Controllers
         {
             if (d.ParDefaut)
                 return "Le dépôt par défaut ne peut pas être désactivé : choisissez d'abord un autre dépôt par défaut.";
+            if (d.DepotAchats)
+                return "Le dépôt des achats ne peut pas être désactivé : choisissez d'abord un autre dépôt des achats.";
             var nb = await _context.Caisses.IgnoreQueryFilters().CountAsync(c => c.DepotId == d.Id);
             return nb > 0 ? $"Le dépôt « {d.Nom} » est utilisé par {nb} caisse(s) : rattachez-les à un autre dépôt avant de le désactiver." : null;
         }
@@ -135,6 +140,8 @@ namespace EasytransitCaisse.Controllers
                 return NotFound();
             if (!depot.Actif)
                 return Erreur($"Activez d'abord le dépôt « {depot.Nom} ».");
+            if (depot.DepotAchats)
+                return Erreur("Le dépôt des achats ne peut pas être le dépôt par défaut : il ne sert à aucune caisse.");
             await _context.Depots.IgnoreQueryFilters().Where(d => d.TenantId == depot.TenantId)
                 .ExecuteUpdateAsync(s => s.SetProperty(d => d.ParDefaut, d => d.Id == depot.Id));
             TempData["Success"] = $"« {depot.Nom} » est maintenant le dépôt par défaut.";
@@ -150,6 +157,8 @@ namespace EasytransitCaisse.Controllers
             {
                 if (depot.ParDefaut)
                     return Erreur("Le dépôt par défaut ne peut pas être supprimé.");
+                if (depot.DepotAchats)
+                    return Erreur("Le dépôt des achats ne peut pas être supprimé.");
                 var utilise = await _context.MouvementsStock.IgnoreQueryFilters().AnyAsync(m => m.DepotId == id)
                     || await _context.Caisses.IgnoreQueryFilters().AnyAsync(c => c.DepotId == id)
                     || await _context.StocksDepots.AnyAsync(s => s.DepotId == id && s.Quantite != 0);
@@ -160,6 +169,29 @@ namespace EasytransitCaisse.Controllers
                 await _context.SaveChangesAsync();
                 TempData["Success"] = $"Dépôt « {depot.Nom} » supprimé.";
             }
+            return RedirectToAction("Index");
+        }
+
+        // Choisit le dépôt des achats de la société (laverie) : un dépôt actif, autre que le dépôt par
+        // défaut et utilisé par aucune caisse (ni principal ni secondaire).
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Achats(int id)
+        {
+            var depot = await _context.Depots.FirstOrDefaultAsync(d => d.Id == id);
+            if (depot == null)
+                return NotFound();
+            var caisses = await _context.Caisses.IgnoreQueryFilters()
+                .CountAsync(c => c.DepotId == id || _context.CaissesDepots.Any(cd => cd.CaisseId == c.ID && cd.DepotId == id));
+            if (!depot.Actif)
+                return Erreur($"Activez d'abord le dépôt « {depot.Nom} ».");
+            if (depot.ParDefaut)
+                return Erreur("Le dépôt par défaut ne peut pas être le dépôt des achats : il sert aux caisses.");
+            if (caisses > 0)
+                return Erreur($"Le dépôt « {depot.Nom} » est utilisé par {caisses} caisse(s) : le dépôt des achats ne sert à aucune caisse.");
+            await _context.Depots.IgnoreQueryFilters().Where(d => d.TenantId == depot.TenantId)
+                .ExecuteUpdateAsync(s => s.SetProperty(d => d.DepotAchats, d => d.Id == depot.Id));
+            TempData["Success"] = $"« {depot.Nom} » est maintenant le dépôt des achats : les achats y entrent et les consommations en sortent.";
             return RedirectToAction("Index");
         }
 

@@ -157,7 +157,9 @@ namespace EasytransitCaisse.Controllers
             _context.AssurerUnite(produit.Unite, produit.TenantId);
             _context.EnregistrerTaxes(produit, taxes);
             int.TryParse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var utilisateurId);
-            await _context.MouvementAsync(produit.Id, initial, "Stock initial", utilisateurId: utilisateurId);
+            // Stock initial d'un consommable (lessive, javel…) : dans le dépôt des achats.
+            int? depot = produit.Consommable && Math.Abs(initial) >= 0.0001m ? (await _context.DepotDesAchatsAsync(produit.TenantId)).Id : null;
+            await _context.MouvementAsync(produit.Id, initial, "Stock initial", utilisateurId: utilisateurId, depotId: depot);
             await _context.SaveChangesAsync();
             await transaction.CommitAsync();
         }

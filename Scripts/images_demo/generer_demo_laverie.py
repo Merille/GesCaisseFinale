@@ -264,6 +264,10 @@ def achats(a, sqlserver, jour, dual, last):
     a("SET @achats = (SELECT COUNT(*) FROM Achats WHERE TenantId = @t AND Reference LIKE 'FAC-CP-%');")
     a('SET @numA = (SELECT COALESCE(MAX(Numero), 0) FROM Achats WHERE TenantId = @t);')
     a("SET @fourn = (SELECT MIN(Id) FROM Clients WHERE TenantId = @t AND CodeClient = 'LAVF001');")
+    a("-- Dépôt des achats (« Magasin des produits d'entretien ») : reçoit les achats, fournit les consommations, ne sert à aucune caisse")
+    a("INSERT INTO Depots (TenantId, Code, Nom, Actif, ParDefaut, DepotAchats) SELECT @t, 'ACH01', %s, 1, 0, 1%s WHERE NOT EXISTS (SELECT 1 FROM Depots WHERE TenantId = @t AND DepotAchats = 1);"
+      % (N + "'Magasin des produits d''entretien'", dual))
+    a('SET @ach = (SELECT MIN(Id) FROM Depots WHERE TenantId = @t AND DepotAchats = 1);')
     if sqlserver:
         a('IF @achats = 0')
         a('BEGIN')
@@ -271,7 +275,7 @@ def achats(a, sqlserver, jour, dual, last):
     for k, (n, ref, lignes, mode) in enumerate(ACHATS, 1):
         total = sum(prix[c] * q for c, q in lignes)
         a('INSERT INTO Achats (TenantId, Numero, DateAchat, FournisseurId, DepotId, Reference, Commentaire, Total, Statut, UtilisateurId, DateCreation)')
-        a("    SELECT @t, @numA + %d, %s, @fourn, @dep, '%s', NULL, %d, %s, @admin, %s%s%s;"
+        a("    SELECT @t, @numA + %d, %s, @fourn, @ach, '%s', NULL, %d, %s, @admin, %s%s%s;"
           % (k, ('CAST(%s AS date)' % jour(n, 600)) if sqlserver else ('DATE(%s)' % jour(n, 600)), ref, total, N + "'Validé'", jour(n, 600), dual, w))
         a('SET @achat = %s;' % last)
         for c, q in lignes:
@@ -279,7 +283,7 @@ def achats(a, sqlserver, jour, dual, last):
             a('INSERT INTO LignesAchats (AchatId, ProduitId, Quantite, PrixUnitaire, Montant)')
             a("    SELECT @achat, p.Id, %d, %d, %d FROM Produits p WHERE p.TenantId = @t AND p.Code = '%s'%s;" % (q, prix[c], q * prix[c], c, g))
             a('INSERT INTO MouvementsStock (TenantId, ProduitId, DateMouvement, TypeMouvement, Quantite, StockApres, Reference, UtilisateurId, DepotId, Commentaire)')
-            a("    SELECT @t, p.Id, %s, 'Achat', %d, %d, %s, @admin, @dep, '%s' FROM Produits p WHERE p.TenantId = @t AND p.Code = '%s'%s;"
+            a("    SELECT @t, p.Id, %s, 'Achat', %d, %d, %s, @admin, @ach, '%s' FROM Produits p WHERE p.TenantId = @t AND p.Code = '%s'%s;"
               % (jour(n, 600), q, stock[c], (N + "'Achat n° '") + (' + CAST(@numA + %d AS nvarchar(10))' % k if sqlserver else '') if sqlserver else "CONCAT('Achat n° ', @numA + %d)" % k, ref, c, g))
         if mode:
             a('INSERT INTO ReglementsAchats (AchatId, DateReglement, Montant, ModePaiementId, OperationCaisseId, UtilisateurId)')
@@ -287,13 +291,13 @@ def achats(a, sqlserver, jour, dual, last):
     for c, q in CONSOMMATION:
         stock[c] -= q
         a('INSERT INTO MouvementsStock (TenantId, ProduitId, DateMouvement, TypeMouvement, Quantite, StockApres, Reference, UtilisateurId, DepotId, Commentaire)')
-        a("    SELECT @t, p.Id, %s, 'Consommation', -%d, %d, 'CONSO-DEMO', @admin, @dep, %s FROM Produits p WHERE p.TenantId = @t AND p.Code = '%s'%s;"
+        a("    SELECT @t, p.Id, %s, 'Consommation', -%d, %d, 'CONSO-DEMO', @admin, @ach, %s FROM Produits p WHERE p.TenantId = @t AND p.Code = '%s'%s;"
           % (jour(1, 1000), q, stock[c], N + "'Lavages de la semaine'", c, g))
     for c, q in stock.items():
         a("UPDATE Produits SET StockActuel = StockActuel + %d WHERE TenantId = @t AND Code = '%s'%s;" % (q, c, g))
-        a("INSERT INTO StocksDepots (DepotId, ProduitId, Quantite) SELECT @dep, p.Id, 0 FROM Produits p WHERE p.TenantId = @t AND p.Code = '%s'" % c)
-        a('    AND NOT EXISTS (SELECT 1 FROM StocksDepots s WHERE s.ProduitId = p.Id AND s.DepotId = @dep)%s;' % g)
-        a("UPDATE StocksDepots SET Quantite = Quantite + %d WHERE DepotId = @dep AND ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = '%s')%s;" % (q, c, g))
+        a("INSERT INTO StocksDepots (DepotId, ProduitId, Quantite) SELECT @ach, p.Id, 0 FROM Produits p WHERE p.TenantId = @t AND p.Code = '%s'" % c)
+        a('    AND NOT EXISTS (SELECT 1 FROM StocksDepots s WHERE s.ProduitId = p.Id AND s.DepotId = @ach)%s;' % g)
+        a("UPDATE StocksDepots SET Quantite = Quantite + %d WHERE DepotId = @ach AND ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = '%s')%s;" % (q, c, g))
     if sqlserver:
         a('END')
 
@@ -313,7 +317,7 @@ def ecrire(sqlserver):
     a('-- en stock), 4 tiers (entreprises et particuliers, dont 2 clients en compte) et 20 ventes à ces')
     a('-- tiers (5 chacun, dont 7 par compte, et 2 règlements) sur les 5 jours précédant l\'exécution,')
     a('-- en journées clôturées, 3 dépôts de linge, 5 produits d\'entretien consommables (non vendus en caisse),')
-    a('-- 2 achats au fournisseur (un réglé par carte, un à crédit) et une consommation.')
+    a('-- 2 achats au fournisseur (un réglé par carte, un à crédit) et une consommation, dans le dépôt des achats.')
     a('-- Mode « Compte client » créé. La société de démonstration existante')
     a('-- n\'est pas modifiée.')
     a('--')
@@ -330,7 +334,7 @@ def ecrire(sqlserver):
         a('DECLARE @t INT, @admin INT, @caissier INT, @dep INT, @tva INT, @c INT;')
         a('DECLARE @caisse INT, @code NVARCHAR(50), @motif INT, @motifRegl INT, @ventes INT, @j INT, @cmd INT, @l INT, @op INT, @esp INT, @mm INT, @cb INT, @cpt INT;')
         a('DECLARE @depots INT, @num INT, @jd INT, @motifAcompte INT;')
-        a('DECLARE @achats INT, @numA INT, @fourn INT, @achat INT;')
+        a('DECLARE @achats INT, @numA INT, @fourn INT, @achat INT, @ach INT;')
         a('BEGIN TRANSACTION;')
     else:
         a('SET NAMES utf8mb4;')

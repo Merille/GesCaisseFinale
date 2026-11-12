@@ -5,7 +5,8 @@
 </div>
 <p class="small text-muted">Le stock de chaque produit est suivi par dépôt (magasin, entrepôt, réserve…). Chaque caisse vend depuis son dépôt principal, complété au besoin par ses dépôts secondaires ;
     les entrées, les inventaires et les transferts se font dans le dépôt choisi. Le dépôt par défaut reçoit le stock initial des nouveaux produits
-    et sert aux caisses sans dépôt choisi.</p>
+    et sert aux caisses sans dépôt choisi. Le dépôt des achats (laverie) reçoit les achats de produits d'entretien et fournit les consommations ;
+    il ne sert à aucune caisse.</p>
 <div class="card shadow-sm border-0">
     <div class="card-body">
         <table id="depotsTable" class="table table-hover align-middle mb-0">
@@ -22,17 +23,24 @@
                     <td class="text-center">
                         <?= $d['Actif'] ? '<span class="badge bg-success">Actif</span>' : '<span class="badge bg-secondary">Inactif</span>' ?>
                         <?php if ($d['ParDefaut']): ?><span class="badge bg-primary">Par défaut</span><?php endif; ?>
+                        <?php if ($d['DepotAchats']): ?><span class="badge bg-info text-dark">Dépôt des achats</span><?php endif; ?>
                     </td>
                     <td class="text-center table-actions">
                         <button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#modalDepot"
                                 data-id="<?= (int) $d['Id'] ?>" data-code="<?= h($d['Code']) ?>" data-nom="<?= h($d['Nom']) ?>"
                                 data-adresse="<?= h($d['Adresse'] ?? '') ?>" data-responsable="<?= h($d['Responsable'] ?? '') ?>" data-actif="<?= $d['Actif'] ? '1' : '0' ?>">Modifier</button>
-                        <?php if (!$d['ParDefaut']): ?>
+                        <?php if (!$d['ParDefaut'] && !$d['DepotAchats']): ?>
                             <?php if ($d['Actif']): ?>
                                 <form method="post" action="<?= h(url('depot/defaut')) ?>">
                                     <?= csrf_field() ?><input type="hidden" name="id" value="<?= (int) $d['Id'] ?>">
                                     <button class="btn btn-outline-primary btn-sm">Par défaut</button>
                                 </form>
+                                <?php if (laverie_actif() && !(int) $d['NbCaisses']): ?>
+                                    <form method="post" action="<?= h(url('depot/achats')) ?>">
+                                        <?= csrf_field() ?><input type="hidden" name="id" value="<?= (int) $d['Id'] ?>">
+                                        <button class="btn btn-outline-info btn-sm">Dépôt des achats</button>
+                                    </form>
+                                <?php endif; ?>
                             <?php endif; ?>
                             <form method="post" action="<?= h(url('depot/toggle')) ?>">
                                 <?= csrf_field() ?><input type="hidden" name="id" value="<?= (int) $d['Id'] ?>">

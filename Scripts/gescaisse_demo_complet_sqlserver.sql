@@ -11,7 +11,7 @@
 --   6 catégories et 24 articles avec leur image (prestations et produits en stock), 4 tiers dont
 --   2 clients en compte, et 20 ventes à ces tiers (dont 7 par compte, puis 2 règlements) sur 5 journées clôturées ;
 --   5 produits d'entretien consommables (non vendus en caisse), 2 achats au fournisseur Chimie Propre SARL
---   (un réglé par carte, un à crédit) et une consommation.
+--   (un réglé par carte, un à crédit) et une consommation, dans le dépôt des achats ACH01.
 --   Chaque société a son mode de paiement « Compte client ».
 --
 -- Utilisation : créer une base VIDE (ex. GesCaisseDemo), puis exécuter ce script sur cette base
@@ -113,6 +113,7 @@ CREATE TABLE [Depots] (
     [Responsable] nvarchar(100) NULL,
     [Actif] bit NOT NULL,
     [ParDefaut] bit NOT NULL,
+    [DepotAchats] bit NOT NULL DEFAULT CAST(0 AS bit),
     CONSTRAINT [PK_Depots] PRIMARY KEY ([Id])
 );
 GO
@@ -982,7 +983,8 @@ INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion]) VALUES
     (N'20261109225752_FraisLivraison', N'10.0.9'),
     (N'20261110133047_DepotsSecondaires', N'10.0.9'),
     (N'20261111184559_DepotsLinge', N'10.0.9'),
-    (N'20261112063241_Achats', N'10.0.9');
+    (N'20261112063241_Achats', N'10.0.9'),
+    (N'20261112070814_DepotAchats', N'10.0.9');
 GO
 
 -- =====================================================================
@@ -1036,8 +1038,8 @@ GO
 -- Achats (2)
 SET IDENTITY_INSERT [Achats] ON;
 INSERT INTO [Achats] ([Id], [TenantId], [Numero], [DateAchat], [FournisseurId], [DepotId], [Reference], [Commentaire], [Total], [Statut], [UtilisateurId], [DateCreation], [DateAnnulation]) VALUES
-(1, 2, 1, N'2026-11-07', 10, 2, N'FAC-CP-0412', NULL, 117000.00, N'Validé', 5, N'2026-11-07 10:00:00', NULL),
-(2, 2, 2, N'2026-11-10', 10, 2, N'FAC-CP-0431', NULL, 39500.00, N'Validé', 5, N'2026-11-10 10:00:00', NULL);
+(1, 2, 1, N'2026-11-07', 10, 3, N'FAC-CP-0412', NULL, 117000.00, N'Validé', 5, N'2026-11-07 10:00:00', NULL),
+(2, 2, 2, N'2026-11-10', 10, 3, N'FAC-CP-0431', NULL, 39500.00, N'Validé', 5, N'2026-11-10 10:00:00', NULL);
 SET IDENTITY_INSERT [Achats] OFF;
 GO
 
@@ -1292,11 +1294,12 @@ INSERT INTO [CommandesPos] ([Id], [TenantId], [Numero], [CleClient], [JourneeCai
 SET IDENTITY_INSERT [CommandesPos] OFF;
 GO
 
--- Depots (2)
+-- Depots (3)
 SET IDENTITY_INSERT [Depots] ON;
-INSERT INTO [Depots] ([Id], [TenantId], [Code], [Nom], [Adresse], [Responsable], [Actif], [ParDefaut]) VALUES
-(1, 1, N'DEP01', N'Dépôt principal', NULL, NULL, 1, 1),
-(2, 2, N'DEP01', N'Réserve de la laverie', N'Avenue de la Laverie, BP 4321', NULL, 1, 1);
+INSERT INTO [Depots] ([Id], [TenantId], [Code], [Nom], [Adresse], [Responsable], [Actif], [ParDefaut], [DepotAchats]) VALUES
+(1, 1, N'DEP01', N'Dépôt principal', NULL, NULL, 1, 1, 0),
+(2, 2, N'DEP01', N'Réserve de la laverie', N'Avenue de la Laverie, BP 4321', NULL, 1, 1, 0),
+(3, 2, N'ACH01', N'Magasin des produits d''entretien', NULL, NULL, 1, 0, 1);
 SET IDENTITY_INSERT [Depots] OFF;
 GO
 
@@ -1328,12 +1331,12 @@ GO
 -- LignesAchats (6)
 SET IDENTITY_INSERT [LignesAchats] ON;
 INSERT INTO [LignesAchats] ([Id], [AchatId], [ProduitId], [Quantite], [PrixUnitaire], [Montant]) VALUES
-(1, 1, 69, 4.00, 18000.00, 72000.00),
-(2, 1, 70, 6.00, 3500.00, 21000.00),
-(3, 1, 71, 4.00, 6000.00, 24000.00),
-(4, 2, 70, 2.00, 3500.00, 7000.00),
-(5, 2, 72, 2.00, 5000.00, 10000.00),
-(6, 2, 73, 3.00, 7500.00, 22500.00);
+(1, 1, 64, 4.00, 18000.00, 72000.00),
+(2, 1, 65, 6.00, 3500.00, 21000.00),
+(3, 1, 66, 4.00, 6000.00, 24000.00),
+(4, 2, 65, 2.00, 3500.00, 7000.00),
+(5, 2, 67, 2.00, 5000.00, 10000.00),
+(6, 2, 68, 3.00, 7500.00, 22500.00);
 SET IDENTITY_INSERT [LignesAchats] OFF;
 GO
 
@@ -2412,14 +2415,14 @@ INSERT INTO [MouvementsStock] ([Id], [TenantId], [ProduitId], [DateMouvement], [
 (329, 2, 61, N'2026-11-06 14:40:00', N'Vente', -1.00, 17.00, N'POS-LAV1-20261106-D003', 162, 6, NULL, 2),
 (330, 2, 62, N'2026-11-07 18:20:00', N'Vente', -1.00, 11.00, N'POS-LAV1-20261107-D004', 167, 6, NULL, 2),
 (331, 2, 63, N'2026-11-08 17:20:00', N'Vente', -2.00, 33.00, N'POS-LAV1-20261108-D004', 171, 6, NULL, 2),
-(332, 2, 69, N'2026-11-07 10:00:00', N'Achat', 4.00, 4.00, N'Achat n° 1', NULL, 5, N'FAC-CP-0412', 2),
-(333, 2, 70, N'2026-11-07 10:00:00', N'Achat', 6.00, 6.00, N'Achat n° 1', NULL, 5, N'FAC-CP-0412', 2),
-(334, 2, 71, N'2026-11-07 10:00:00', N'Achat', 4.00, 4.00, N'Achat n° 1', NULL, 5, N'FAC-CP-0412', 2),
-(335, 2, 70, N'2026-11-10 10:00:00', N'Achat', 2.00, 8.00, N'Achat n° 2', NULL, 5, N'FAC-CP-0431', 2),
-(336, 2, 72, N'2026-11-10 10:00:00', N'Achat', 2.00, 2.00, N'Achat n° 2', NULL, 5, N'FAC-CP-0431', 2),
-(337, 2, 73, N'2026-11-10 10:00:00', N'Achat', 3.00, 3.00, N'Achat n° 2', NULL, 5, N'FAC-CP-0431', 2),
-(338, 2, 69, N'2026-11-11 16:40:00', N'Consommation', -1.00, 3.00, N'CONSO-DEMO', NULL, 5, N'Lavages de la semaine', 2),
-(339, 2, 70, N'2026-11-11 16:40:00', N'Consommation', -2.00, 6.00, N'CONSO-DEMO', NULL, 5, N'Lavages de la semaine', 2);
+(332, 2, 64, N'2026-11-07 10:00:00', N'Achat', 4.00, 4.00, N'Achat n° 1', NULL, 5, N'FAC-CP-0412', 3),
+(333, 2, 65, N'2026-11-07 10:00:00', N'Achat', 6.00, 6.00, N'Achat n° 1', NULL, 5, N'FAC-CP-0412', 3),
+(334, 2, 66, N'2026-11-07 10:00:00', N'Achat', 4.00, 4.00, N'Achat n° 1', NULL, 5, N'FAC-CP-0412', 3),
+(335, 2, 65, N'2026-11-10 10:00:00', N'Achat', 2.00, 8.00, N'Achat n° 2', NULL, 5, N'FAC-CP-0431', 3),
+(336, 2, 67, N'2026-11-10 10:00:00', N'Achat', 2.00, 2.00, N'Achat n° 2', NULL, 5, N'FAC-CP-0431', 3),
+(337, 2, 68, N'2026-11-10 10:00:00', N'Achat', 3.00, 3.00, N'Achat n° 2', NULL, 5, N'FAC-CP-0431', 3),
+(338, 2, 64, N'2026-11-11 16:40:00', N'Consommation', -1.00, 3.00, N'CONSO-DEMO', NULL, 5, N'Lavages de la semaine', 3),
+(339, 2, 65, N'2026-11-11 16:40:00', N'Consommation', -2.00, 6.00, N'CONSO-DEMO', NULL, 5, N'Lavages de la semaine', 3);
 SET IDENTITY_INSERT [MouvementsStock] OFF;
 GO
 
@@ -2999,11 +3002,11 @@ INSERT INTO [Produits] ([Id], [TenantId], [Code], [CodeBarres], [Nom], [Categori
 (61, 2, N'PRO02', NULL, N'Assouplissant 1 L', 19, 2500.00, 18.00, 1, 17.00, 5.00, 1, 1375.00, N'Bouteille', N'2026-11-02 00:15:20', NULL, 0, 0.00, NULL, 0, 0),
 (62, 2, N'PRO03', NULL, N'Détachant 500 ml', 19, 2000.00, 18.00, 1, 11.00, 5.00, 1, 1100.00, N'Bouteille', N'2026-11-02 00:15:20', NULL, 0, 0.00, NULL, 0, 0),
 (63, 2, N'PRO04', NULL, N'Housse de protection pour vêtement', 19, 1000.00, 18.00, 1, 33.00, 5.00, 1, 550.00, N'Unité', N'2026-11-02 00:15:20', NULL, 0, 0.00, NULL, 0, 0),
-(69, 2, N'CON01', NULL, N'Lessive en poudre (sac 25 kg)', NULL, 0.00, 0.00, 1, 3.00, 1.00, 1, 18000.00, N'Sac', NULL, NULL, 0, 0.00, NULL, 0, 1),
-(70, 2, N'CON02', NULL, N'Eau de Javel (bidon 5 L)', NULL, 0.00, 0.00, 1, 6.00, 1.00, 1, 3500.00, N'Bouteille', NULL, NULL, 0, 0.00, NULL, 0, 1),
-(71, 2, N'CON03', NULL, N'Assouplissant professionnel (bidon 5 L)', NULL, 0.00, 0.00, 1, 4.00, 1.00, 1, 6000.00, N'Bouteille', NULL, NULL, 0, 0.00, NULL, 0, 1),
-(72, 2, N'CON04', NULL, N'Cintres (lot de 50)', NULL, 0.00, 0.00, 1, 2.00, 1.00, 1, 5000.00, N'Paquet', NULL, NULL, 0, 0.00, NULL, 0, 1),
-(73, 2, N'CON05', NULL, N'Housses plastique (rouleau de 100)', NULL, 0.00, 0.00, 1, 3.00, 1.00, 1, 7500.00, N'Unité', NULL, NULL, 0, 0.00, NULL, 0, 1);
+(64, 2, N'CON01', NULL, N'Lessive en poudre (sac 25 kg)', NULL, 0.00, 0.00, 1, 3.00, 1.00, 1, 18000.00, N'Sac', NULL, NULL, 0, 0.00, NULL, 0, 1),
+(65, 2, N'CON02', NULL, N'Eau de Javel (bidon 5 L)', NULL, 0.00, 0.00, 1, 6.00, 1.00, 1, 3500.00, N'Bouteille', NULL, NULL, 0, 0.00, NULL, 0, 1),
+(66, 2, N'CON03', NULL, N'Assouplissant professionnel (bidon 5 L)', NULL, 0.00, 0.00, 1, 4.00, 1.00, 1, 6000.00, N'Bouteille', NULL, NULL, 0, 0.00, NULL, 0, 1),
+(67, 2, N'CON04', NULL, N'Cintres (lot de 50)', NULL, 0.00, 0.00, 1, 2.00, 1.00, 1, 5000.00, N'Paquet', NULL, NULL, 0, 0.00, NULL, 0, 1),
+(68, 2, N'CON05', NULL, N'Housses plastique (rouleau de 100)', NULL, 0.00, 0.00, 1, 3.00, 1.00, 1, 7500.00, N'Unité', NULL, NULL, 0, 0.00, NULL, 0, 1);
 SET IDENTITY_INSERT [Produits] OFF;
 GO
 
@@ -3057,11 +3060,11 @@ INSERT INTO [StocksDepots] ([DepotId], [ProduitId], [Quantite]) VALUES
 (2, 61, 17.00),
 (2, 62, 11.00),
 (2, 63, 33.00),
-(2, 69, 3.00),
-(2, 70, 6.00),
-(2, 71, 4.00),
-(2, 72, 2.00),
-(2, 73, 3.00);
+(3, 64, 3.00),
+(3, 65, 6.00),
+(3, 66, 4.00),
+(3, 67, 2.00),
+(3, 68, 3.00);
 GO
 
 -- TablesRestaurant (9)

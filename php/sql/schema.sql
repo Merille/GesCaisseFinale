@@ -2,7 +2,7 @@
 -- Les noms de tables et de colonnes reprennent ceux de la version .NET
 -- (SQL Server) pour faciliter une éventuelle reprise des données.
 --
--- Base à jour : intègre toutes les migrations de sql/migrations (001 à 021),
+-- Base à jour : intègre toutes les migrations de sql/migrations (001 à 022),
 -- notées comme appliquées dans MigrationsAppliquees.
 --
 -- Utilisation (NOUVELLE installation uniquement) : créer une base VIDE (ex. gescaisse),
@@ -278,12 +278,13 @@ CREATE TABLE `Depots` (
   `Responsable` varchar(100) DEFAULT NULL,
   `Actif` tinyint(1) NOT NULL DEFAULT '1',
   `ParDefaut` tinyint(1) NOT NULL DEFAULT '0',
+  `DepotAchats` tinyint(1) NOT NULL DEFAULT '0',
   PRIMARY KEY (`Id`),
   UNIQUE KEY `IX_Depots_TenantId_Code` (`TenantId`,`Code`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
-INSERT INTO `Depots` (`Id`, `TenantId`, `Code`, `Nom`, `Adresse`, `Responsable`, `Actif`, `ParDefaut`) VALUES (1,1,'DEP01','Dépôt principal',NULL,NULL,1,1);
+INSERT INTO `Depots` (`Id`, `TenantId`, `Code`, `Nom`, `Adresse`, `Responsable`, `Actif`, `ParDefaut`, `DepotAchats`) VALUES (1,1,'DEP01','Dépôt principal',NULL,NULL,1,1,0);
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `DepotsLinge` (
@@ -485,6 +486,7 @@ INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('018_frais
 INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('019_depots_secondaires.sql','2026-11-02 00:15:20');
 INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('020_depots_linge.sql','2026-11-02 00:15:20');
 INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('021_achats.sql','2026-11-12 00:00:00');
+INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('022_depot_achats.sql','2026-11-12 00:00:00');
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `ModesPaiement` (

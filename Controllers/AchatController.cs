@@ -20,6 +20,9 @@ namespace EasytransitCaisse.Controllers
     //   vendues) ; les règlements passés par une caisse dont la journée est encore ouverte y sont
     //   remboursés (encaissement) ; journée clôturée : refus.
     // - Consommation : sortie du stock des produits utilisés pour le service (mouvement « Consommation »).
+    // Achats et consommations se font dans le dépôt des achats (« Magasin des produits d'entretien »,
+    // créé au besoin), qui ne sert à aucune caisse ; l'onglet « Dépôt des achats » en suit les entrées,
+    // les sorties et le stock.
     // Réservé aux profils Admin et SuperAdmin. Même fonctionnement que la version PHP (achat.php).
     [Authorize(Policy = "Admin")]
     public class AchatController : Controller
@@ -75,12 +78,15 @@ namespace EasytransitCaisse.Controllers
             => _context.Produits.Where(p => p.SuiviStock && p.Actif && !p.EstModele && !p.EstCombo)
                 .OrderByDescending(p => p.Consommable).ThenBy(p => p.Nom).ToListAsync();
 
-        // Dépôts actifs, le dépôt par défaut en premier.
-        private async Task<List<Depot>> DepotsActifs()
+        // Dépôt des achats de la société consultée (null en mode « toutes les sociétés »), et quantité de
+        // chaque produit dans ce dépôt (listes des formulaires).
+        private async Task<Depot?> DepotAchats()
         {
-            if (_tenant.TenantId > 0)
-                await _context.DepotParDefautAsync(_tenant.TenantId);
-            return await _context.Depots.Where(d => d.Actif).OrderByDescending(d => d.ParDefaut).ThenBy(d => d.Code).ToListAsync();
+            var depot = _tenant.TenantId > 0 ? await _context.DepotDesAchatsAsync(_tenant.TenantId) : null;
+            ViewBag.Depot = depot;
+            var id = depot?.Id ?? 0;
+            ViewBag.StocksDepot = await _context.StocksDepots.Where(s => s.DepotId == id).ToDictionaryAsync(s => s.ProduitId, s => s.Quantite);
+            return depot;
         }
 
         private async Task ListesSaisie()
@@ -173,7 +179,7 @@ namespace EasytransitCaisse.Controllers
         public async Task<IActionResult> Nouveau()
         {
             ViewBag.Fournisseurs = await Fournisseurs();
-            ViewBag.Depots = await DepotsActifs();
+            await DepotAchats();
             await ListesSaisie();
             return View(await ProduitsAchetables());
         }
@@ -181,7 +187,7 @@ namespace EasytransitCaisse.Controllers
         // Nouvel achat : entrée en stock, coût moyen pondéré, règlement éventuel.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Nouveau(int fournisseur, string? date, int depot, string? reference, string? commentaire,
+        public async Task<IActionResult> Nouveau(int fournisseur, string? date, string? reference, string? commentaire,
             List<int> produit, List<string> qte, List<string> prix, string? paiement, string? montantRegle, int mode, int journee)
         {
             IActionResult Retour(string m)
@@ -192,11 +198,7 @@ namespace EasytransitCaisse.Controllers
             var tenant = _tenant.TenantId;
             if (tenant == 0)
                 return Retour(MessageSociete);
-            if (depot == 0)
-                depot = await _context.DepotParDefautAsync(tenant);
-            var dDepot = await _context.Depots.FirstOrDefaultAsync(d => d.Id == depot && d.TenantId == tenant && d.Actif);
-            if (dDepot == null)
-                return Retour("Choisissez le dépôt qui reçoit l'achat.");
+            var dDepot = await _context.DepotDesAchatsAsync(tenant);
             if (fournisseur > 0 && !await _context.Clients.AnyAsync(c => c.Id == fournisseur && c.TenantId == tenant && c.Type == "Fournisseur"))
                 return Retour("Fournisseur introuvable.");
             var jour = DateTime.TryParseExact(date ?? "", "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var dt) ? dt.Date : DateTime.Today;
@@ -388,13 +390,13 @@ namespace EasytransitCaisse.Controllers
             }).OrderByDescending(s => s.Valeur).ThenBy(s => s.Nom, StringComparer.Ordinal).ToList();
             ViewBag.Filtres = f;
             ViewBag.Produits = await ProduitsAchetables();
-            ViewBag.Depots = await DepotsActifs();
+            await DepotAchats();
             return View(mouvements);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Consommation(int depot, string? commentaire, List<int> produit, List<string> qte)
+        public async Task<IActionResult> Consommation(string? commentaire, List<int> produit, List<string> qte)
         {
             IActionResult Retour(string m)
             {
@@ -404,11 +406,7 @@ namespace EasytransitCaisse.Controllers
             var tenant = _tenant.TenantId;
             if (tenant == 0)
                 return Retour(MessageSociete);
-            if (depot == 0)
-                depot = await _context.DepotParDefautAsync(tenant);
-            var dDepot = await _context.Depots.FirstOrDefaultAsync(d => d.Id == depot && d.TenantId == tenant && d.Actif);
-            if (dDepot == null)
-                return Retour("Choisissez le dépôt où les produits sont pris.");
+            var dDepot = await _context.DepotDesAchatsAsync(tenant);
             commentaire = string.IsNullOrWhiteSpace(commentaire) ? null : commentaire.Trim()[..Math.Min(300, commentaire.Trim().Length)];
             var lignes = new Dictionary<int, decimal>();
             for (var i = 0; i < produit.Count; i++)
@@ -439,6 +437,39 @@ namespace EasytransitCaisse.Controllers
             await transaction.CommitAsync();
             TempData["Success"] = $"{lignes.Count} produit(s) sorti(s) du stock (consommation, {dDepot.Nom}).";
             return RedirectToAction("Consommation");
+        }
+    
+        // Dépôt des achats : stock de chaque produit (valeur au coût, alerte), entrées et sorties de la
+        // période par produit, et détail des mouvements du dépôt.
+        public async Task<IActionResult> Stock(DateTime? du = null, DateTime? au = null)
+        {
+            var f = Filtres(du, au, 0, null);
+            var fin = f.Au.AddDays(1);
+            var depot = await DepotAchats();
+            var id = depot?.Id ?? 0;
+            var mouvements = await _context.MouvementsStock.Include(m => m.Produit)
+                .Where(m => m.DepotId == id && m.DateMouvement >= f.Du && m.DateMouvement < fin)
+                .OrderByDescending(m => m.DateMouvement).ThenByDescending(m => m.Id).ToListAsync();
+            var stocks = (Dictionary<int, decimal>)ViewBag.StocksDepot;
+            var avecMouvement = _context.MouvementsStock.Where(m => m.DepotId == id).Select(m => m.ProduitId);
+            var lignes = (await _context.Produits
+                    .Where(p => p.SuiviStock && !p.EstModele && ((p.Consommable && p.Actif) || avecMouvement.Contains(p.Id)
+                        || _context.StocksDepots.Any(s => s.DepotId == id && s.ProduitId == p.Id && s.Quantite != 0)))
+                    .OrderByDescending(p => p.Consommable).ThenBy(p => p.Nom).ToListAsync())
+                .Select(p =>
+                {
+                    var stock = stocks.GetValueOrDefault(p.Id);
+                    var siens = mouvements.Where(m => m.ProduitId == p.Id).ToList();
+                    return new StockDepotAchats
+                    {
+                        Produit = p, Stock = stock, Valeur = stock * (p.Cout ?? 0), Alerte = p.SeuilAlerte.HasValue && stock <= p.SeuilAlerte.Value,
+                        Entrees = siens.Where(m => m.Quantite >= 0).Sum(m => m.Quantite), Sorties = -siens.Where(m => m.Quantite < 0).Sum(m => m.Quantite)
+                    };
+                }).ToList();
+            ViewBag.Filtres = f;
+            ViewBag.Lignes = lignes;
+            ViewBag.Utilisateurs = await Restaurant.NomsAsync(_context, mouvements.Select(m => m.UtilisateurId));
+            return View(mouvements);
         }
     }
 }

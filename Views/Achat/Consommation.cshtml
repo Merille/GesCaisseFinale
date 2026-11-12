@@ -8,7 +8,8 @@
     var f = (FiltresAchats)ViewBag.Filtres;
     var synthese = (List<SyntheseConsommation>)ViewBag.Synthese;
     var produits = (List<EasytransitCaisse.Models.Produit>)ViewBag.Produits;
-    var depots = (List<EasytransitCaisse.Models.Depot>)ViewBag.Depots;
+    var depot = (EasytransitCaisse.Models.Depot?)ViewBag.Depot;
+    var stocksDepot = (Dictionary<int, decimal>)ViewBag.StocksDepot;
     var utilisateurs = (Dictionary<int, string>)ViewBag.Utilisateurs;
     var valeur = synthese.Sum(s => s.Valeur);
 }
@@ -19,13 +20,9 @@
         <div class="card-header bg-brand text-white">Produits utilisés (sortie du stock)</div>
         <div class="card-body">
             <div class="row g-3 mb-3">
-                <div class="col-md-4"><label class="form-label" for="depot">Dépôt</label>
-                    <select class="form-select" id="depot" name="depot" required>
-                        @foreach (var d in depots)
-                        {
-                            <option value="@d.Id">@d.Code · @d.Nom</option>
-                        }
-                    </select></div>
+                <div class="col-md-4"><label class="form-label" for="depot">Dépôt où les produits sont pris</label>
+                    <input class="form-control" id="depot" value="@(depot != null ? depot.Code + " · " + depot.Nom : "Dépôt des achats")" readonly>
+                    <div class="form-text">Dépôt des achats : <a href="/Achat/Stock">entrées, sorties et stock</a>.</div></div>
                 <div class="col-md-8"><label class="form-label" for="commentaire">Commentaire</label><input class="form-control" id="commentaire" name="commentaire" maxlength="300" placeholder="Ex : lavages de la semaine"></div>
             </div>
             <table class="table align-middle" id="lignesConsommation">
@@ -38,7 +35,7 @@
                                 <option value="0">-- Produit --</option>
                                 @foreach (var p in produits)
                                 {
-                                    <option value="@p.Id">@p.Code · @p.Nom@(p.Consommable ? " (consommable)" : "") — stock @Qte(p.StockActuel) @p.Unite</option>
+                                    <option value="@p.Id">@p.Code · @p.Nom@(p.Consommable ? " (consommable)" : "") — en magasin @Qte(stocksDepot.GetValueOrDefault(p.Id)) @p.Unite</option>
                                 }
                             </select></td>
                             <td><input class="form-control text-end" name="qte" inputmode="decimal" aria-label="Quantité utilisée"></td>

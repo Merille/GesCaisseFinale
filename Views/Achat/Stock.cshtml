@@ -1,0 +1,103 @@
+@model List<EasytransitCaisse.Models.MouvementStock>
+@using EasytransitCaisse.Models.ViewModels
+@{
+    ViewData["Title"] = "Dépôt des achats";
+    var fr = System.Globalization.CultureInfo.GetCultureInfo("fr-FR");
+    string Fcfa(decimal n) => n.ToString("N0", fr);
+    string Qte(decimal n) => n.ToString(n == Math.Round(n) ? "#,0" : "#,0.00", fr);
+    var f = (FiltresAchats)ViewBag.Filtres;
+    var depot = (EasytransitCaisse.Models.Depot?)ViewBag.Depot;
+    var lignes = (List<StockDepotAchats>)ViewBag.Lignes;
+    var utilisateurs = (Dictionary<int, string>)ViewBag.Utilisateurs;
+    var valeur = lignes.Sum(l => l.Valeur);
+    var alertes = lignes.Count(l => l.Alerte);
+    var param = depot != null ? "?depot=" + depot.Id : "";
+    string Badge(string t) => t switch
+    {
+        "Achat" => "bg-success", "Consommation" => "bg-danger", "Annulation" => "bg-info text-dark", "Transfert" => "bg-dark",
+        "Inventaire" => "bg-warning text-dark", _ => "bg-secondary"
+    };
+}
+<partial name="_Onglets" model="@("Stock")" />
+<div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+    <h2 class="h5 mb-0"><i class="fas fa-warehouse text-muted"></i> @(depot != null ? depot.Code + " · " + depot.Nom : "Dépôt des achats")</h2>
+    <span class="small text-muted">Les achats y entrent, les consommations en sortent ; il ne sert à aucune caisse.</span>
+    <div class="ms-auto d-flex gap-2">
+        <a class="btn btn-sm btn-outline-primary" href="/Stock/Inventaire@(param)"><i class="fa fa-clipboard-check"></i> Inventaire</a>
+        <a class="btn btn-sm btn-outline-secondary" href="/Stock/Transfert@(param)"><i class="fa fa-right-left"></i> Transfert</a>
+    </div>
+</div>
+
+<form method="get" action="/Achat/Stock" class="card shadow-sm border-0 mb-3">
+    <div class="card-body d-flex flex-wrap align-items-end gap-3">
+        <div><label class="form-label small fw-semibold text-muted mb-1" for="du">Mouvements du</label><input type="date" class="form-control" id="du" name="du" value="@f.Du.ToString("yyyy-MM-dd")"></div>
+        <div><label class="form-label small fw-semibold text-muted mb-1" for="au">Au</label><input type="date" class="form-control" id="au" name="au" value="@f.Au.ToString("yyyy-MM-dd")"></div>
+        <button class="btn btn-primary"><i class="fa fa-search"></i> Filtrer</button>
+        <div class="ms-auto d-flex gap-4 text-end">
+            <div><div class="small text-muted">Produits en alerte</div><div class="fs-5 fw-bold@(alertes > 0 ? " text-danger" : "")">@alertes</div></div>
+            <div><div class="small text-muted">Valeur du stock (au coût)</div><div class="fs-5 fw-bold">@Fcfa(valeur) <small class="fs-6 fw-normal text-muted">FCFA</small></div></div>
+        </div>
+    </div>
+</form>
+
+<div class="card shadow-sm border-0 mb-3">
+    <div class="card-header bg-white fw-semibold">Stock et mouvements de la période par produit</div>
+    <div class="card-body table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-dark"><tr><th>Produit</th><th class="text-end">Entrées</th><th class="text-end">Sorties</th><th class="text-end">En stock</th>
+                <th class="text-end">Seuil d'alerte</th><th class="text-end">Coût</th><th class="text-end">Valeur</th></tr></thead>
+            <tbody>
+                @foreach (var l in lignes)
+                {
+                    var p = l.Produit;
+                    <tr class="@(l.Alerte ? "table-danger" : "")">
+                        <td>@p.Code · @p.Nom@if (p.Consommable) {<text> <span class="badge text-bg-info">Consommable</span></text>}</td>
+                        <td class="text-end text-nowrap">@if (l.Entrees != 0) {@("+" + Qte(l.Entrees))} else {<span class="text-muted">—</span>}</td>
+                        <td class="text-end text-nowrap">@if (l.Sorties != 0) {@("−" + Qte(l.Sorties))} else {<span class="text-muted">—</span>}</td>
+                        <td class="text-end text-nowrap fw-semibold">@Qte(l.Stock) @p.Unite</td>
+                        <td class="text-end">@if (p.SeuilAlerte.HasValue) {@Qte(p.SeuilAlerte.Value)} else {<span class="text-muted">—</span>}</td>
+                        <td class="text-end text-nowrap">@if (p.Cout.HasValue) {@Qte(p.Cout.Value)} else {<span class="text-muted">—</span>}</td>
+                        <td class="text-end text-nowrap">@Fcfa(l.Valeur)</td>
+                    </tr>
+                }
+                @if (!lignes.Any())
+                {
+                    <tr><td colspan="7" class="text-muted">Aucun produit : créez vos produits d'entretien en cochant « Consommable », puis enregistrez un achat.</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-header bg-white fw-semibold">Entrées et sorties</div>
+    <div class="card-body table-responsive">
+        <table id="mouvementsAchatsTable" class="table align-middle mb-0 small">
+            <thead class="table-dark"><tr><th>Date</th><th>Produit</th><th>Type</th><th class="text-end">Quantité</th><th class="text-end">Stock après</th><th>Référence</th><th>Commentaire</th><th>Par</th></tr></thead>
+            <tbody>
+                @for (var i = 0; i < Model.Count; i++)
+                {
+                    var m = Model[i];
+                    <tr><td class="text-nowrap" data-order="@((Model.Count - i).ToString("D6"))">@m.DateMouvement.ToString("dd/MM/yyyy HH:mm")</td><td>@m.Produit?.Nom</td>
+                        <td><span class="badge @Badge(m.TypeMouvement)">@m.TypeMouvement</span></td>
+                        <td class="text-end text-nowrap fw-semibold @(m.Quantite < 0 ? "text-danger" : "text-success")">@((m.Quantite > 0 ? "+" : "") + Qte(m.Quantite))</td>
+                        <td class="text-end text-nowrap">@Qte(m.StockApres)</td><td>@m.Reference</td><td>@m.Commentaire</td>
+                        <td>@(m.UtilisateurId is int u && utilisateurs.TryGetValue(u, out var n) ? n : "")</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+<p class="small text-muted mt-2">Entrées : achats, transferts reçus, écarts d'inventaire positifs ; sorties : consommations, annulations d'achats, transferts, écarts négatifs. Une ligne rouge signale un produit au niveau ou sous son seuil d'alerte.</p>
+
+@section Scripts {
+    <script>
+        $('#mouvementsAchatsTable').DataTable({
+            language: { url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/fr-FR.json' },
+            pageLength: 20,
+            lengthMenu: [20, 50, 100],
+            order: [[0, 'desc']],
+            dom: '<"d-flex justify-content-between align-items-center mb-3"lf>rtip'
+        });
+    </script>
+}

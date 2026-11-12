@@ -704,6 +704,30 @@ function depot_par_defaut(int $tenant): int
     return (int) run("INSERT INTO Depots (TenantId, Code, Nom, Actif, ParDefaut) VALUES (?, 'DEP01', 'Dépôt principal', 1, 1)", [$tenant]);
 }
 
+/**
+ * Dépôt des achats de la société (laverie : « Magasin des produits d'entretien ») : les achats y
+ * entrent et les consommations en sortent ; il ne sert à aucune caisse. Créé au besoin.
+ */
+function depot_des_achats(int $tenant): array
+{
+    $d = q1('SELECT * FROM Depots WHERE TenantId = ? AND DepotAchats = 1 ORDER BY Id LIMIT 1', [$tenant]);
+    if ($d) {
+        if (!$d['Actif']) {
+            run('UPDATE Depots SET Actif = 1 WHERE Id = ?', [$d['Id']]);
+            $d['Actif'] = 1;
+        }
+        return $d;
+    }
+    depot_par_defaut($tenant);
+    $n = 1;
+    while (qv('SELECT COUNT(*) FROM Depots WHERE TenantId = ? AND Code = ?', [$tenant, sprintf('ACH%02d', $n)])) {
+        $n++;
+    }
+    $id = run("INSERT INTO Depots (TenantId, Code, Nom, Actif, ParDefaut, DepotAchats) VALUES (?, ?, 'Magasin des produits d''entretien', 1, 0, 1)",
+        [$tenant, sprintf('ACH%02d', $n)]);
+    return q1('SELECT * FROM Depots WHERE Id = ?', [$id]);
+}
+
 /** Dépôt d'une caisse : celui choisi sur la caisse, sinon le dépôt par défaut de la société. */
 function depot_caisse(int $caisseId): int
 {

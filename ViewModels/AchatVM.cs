@@ -43,4 +43,15 @@ namespace EasytransitCaisse.Models.ViewModels
         public decimal Quantite { get; set; }
         public decimal Valeur { get; set; }
     }
+
+    // Dépôt des achats : stock d'un produit, entrées et sorties de la période.
+    public class StockDepotAchats
+    {
+        public Produit Produit { get; set; } = null!;
+        public decimal Entrees { get; set; }
+        public decimal Sorties { get; set; }
+        public decimal Stock { get; set; }
+        public decimal Valeur { get; set; }
+        public bool Alerte { get; set; }
+    }
 }

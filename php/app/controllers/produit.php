@@ -122,7 +122,10 @@ function produit_inserer(array $v, int $tenant): int
         $id = run("INSERT INTO Produits ($cols, TenantId) VALUES ($marques, ?)", [...array_map(fn($c) => $v[$c], PRODUIT_CHAMPS), $tenant]);
         unite_assurer($v['Unite'], $tenant);
         produit_enregistrer_taxes($id, $v['TaxeIds'] ?? taxes_par_defaut($tenant), $tenant);
-        mouvement_stock($id, (float) ($v['StockActuel'] ?? 0), 'Stock initial');
+        // Stock initial d'un consommable (lessive, javel…) : dans le dépôt des achats.
+        $initial = (float) ($v['StockActuel'] ?? 0);
+        mouvement_stock($id, $initial, 'Stock initial', null, null, null,
+            !empty($v['Consommable']) && abs($initial) >= 0.0001 ? (int) depot_des_achats($tenant)['Id'] : null);
         db()->commit();
     } catch (Throwable $e) {
         db()->rollBack();

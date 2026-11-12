@@ -6,7 +6,7 @@ $options = function () use ($produits): string {
     $html = '<option value="">-- Produit --</option>';
     foreach ($produits as $p) {
         $html .= '<option value="' . (int) $p['Id'] . '" data-cout="' . h($p['Cout'] === null ? '' : quantite_fr($p['Cout'], false)) . '">'
-            . h($p['Code'] . ' · ' . $p['Nom'] . ($p['Consommable'] ? ' (consommable)' : '') . ' — stock ' . quantite_fr($p['StockActuel']) . ' ' . $p['Unite']) . '</option>';
+            . h($p['Code'] . ' · ' . $p['Nom'] . ($p['Consommable'] ? ' (consommable)' : '') . ' — en magasin ' . quantite_fr($p['StockDepot']) . ' ' . $p['Unite']) . '</option>';
     }
     return $html;
 };
@@ -28,9 +28,8 @@ $options = function () use ($produits): string {
                 <div class="form-text"><a href="<?= h(url('client/create')) ?>">Nouveau tiers</a> de type « Fournisseur ».</div></div>
             <div class="col-md-2"><label class="form-label" for="date">Date d'achat</label><input type="date" class="form-control" id="date" name="date" value="<?= date('Y-m-d') ?>" max="<?= date('Y-m-d') ?>" required></div>
             <div class="col-md-3"><label class="form-label" for="depot">Dépôt qui reçoit</label>
-                <select class="form-select" id="depot" name="depot" required>
-                    <?php foreach ($depots as $d): ?><option value="<?= (int) $d['Id'] ?>"><?= h($d['Code'] . ' · ' . $d['Nom']) ?></option><?php endforeach; ?>
-                </select></div>
+                <input class="form-control" id="depot" value="<?= h($depot ? $depot['Code'] . ' · ' . $depot['Nom'] : 'Dépôt des achats') ?>" readonly>
+                <div class="form-text">Dépôt des achats : <a href="<?= h(url('achat/stock')) ?>">entrées, sorties et stock</a>.</div></div>
             <div class="col-md-4"><label class="form-label" for="reference">Référence (facture, bon de livraison)</label><input class="form-control" id="reference" name="reference" maxlength="100" placeholder="Ex : FAC-2026-0412"></div>
         </div>
         <table class="table align-middle" id="lignesAchat">
@@ -68,7 +67,7 @@ $options = function () use ($produits): string {
                 </select></div>
             <div class="col-12"><label class="form-label" for="commentaire">Commentaire</label><input class="form-control" id="commentaire" name="commentaire" maxlength="300"></div>
         </div>
-        <p class="small text-muted mt-2 mb-0">Les quantités entrent en stock dans le dépôt choisi et le coût des produits est recalculé (coût moyen pondéré).
+        <p class="small text-muted mt-2 mb-0">Les quantités entrent dans le dépôt des achats et le coût des produits est recalculé (coût moyen pondéré).
             Payé par la caisse : un décaissement est enregistré dans la journée ouverte choisie. À crédit : réglez plus tard depuis le détail de l'achat.</p>
     </div>
     <div class="card-footer bg-white d-flex gap-2">

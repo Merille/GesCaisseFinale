@@ -674,6 +674,11 @@ namespace EasytransitCaisse.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
+                    b.Property<bool>("DepotAchats")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
                     b.Property<string>("Nom")
                         .IsRequired()
                         .HasMaxLength(100)

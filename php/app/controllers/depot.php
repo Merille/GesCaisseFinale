@@ -2,7 +2,8 @@
 // Dépôts de stockage (magasin, entrepôt, réserve…) : le stock de chaque produit est suivi par dépôt.
 // Le dépôt par défaut reçoit le stock initial des produits et sert aux caisses sans dépôt choisi ;
 // il ne peut être ni désactivé ni supprimé. Un dépôt qui a un historique se désactive au lieu
-// d'être supprimé.
+// d'être supprimé. Le dépôt des achats (laverie : produits d'entretien) reçoit les achats et fournit
+// les consommations ; il ne sert à aucune caisse et ne peut être ni désactivé ni supprimé.
 
 function depot_index(): void
 {
@@ -34,6 +35,9 @@ function depot_refus_desactivation(array $d): ?string
 {
     if ($d['ParDefaut']) {
         return "Le dépôt par défaut ne peut pas être désactivé : choisissez d'abord un autre dépôt par défaut.";
+    }
+    if ($d['DepotAchats']) {
+        return "Le dépôt des achats ne peut pas être désactivé : choisissez d'abord un autre dépôt des achats.";
     }
     $nb = (int) qv('SELECT COUNT(*) FROM Caisses WHERE DepotId = ?', [$d['Id']]);
     return $nb ? "Le dépôt « {$d['Nom']} » est utilisé par $nb caisse(s) : rattachez-les à un autre dépôt avant de le désactiver." : null;
@@ -101,6 +105,8 @@ function depot_defaut(): void
         $d = depot_charger((int) post('id'));
         if (!$d['Actif']) {
             flash('danger', "Activez d'abord le dépôt « {$d['Nom']} ».");
+        } elseif ($d['DepotAchats']) {
+            flash('danger', "Le dépôt des achats ne peut pas être le dépôt par défaut : il ne sert à aucune caisse.");
         } else {
             run('UPDATE Depots SET ParDefaut = (Id = ?) WHERE TenantId = ?', [$d['Id'], $d['TenantId']]);
             flash('success', "« {$d['Nom']} » est maintenant le dépôt par défaut.");
@@ -118,12 +124,37 @@ function depot_delete(): void
             + (int) qv('SELECT COUNT(*) FROM StocksDepots WHERE DepotId = ? AND Quantite <> 0', [$d['Id']]);
         if ($d['ParDefaut']) {
             flash('danger', 'Le dépôt par défaut ne peut pas être supprimé.');
+        } elseif ($d['DepotAchats']) {
+            flash('danger', 'Le dépôt des achats ne peut pas être supprimé.');
         } elseif ($utilise) {
             flash('danger', "Le dépôt « {$d['Nom']} » a déjà des mouvements de stock ou des caisses rattachées : désactivez-le plutôt que de le supprimer.");
         } else {
             run('DELETE FROM StocksDepots WHERE DepotId = ?', [$d['Id']]);
             run('DELETE FROM Depots WHERE Id = ?', [$d['Id']]);
             flash('success', "Dépôt « {$d['Nom']} » supprimé.");
+        }
+    }
+    redirect('depot/index');
+}
+
+/**
+ * Choisit le dépôt des achats de la société (laverie) : un dépôt actif, autre que le dépôt par
+ * défaut et utilisé par aucune caisse (ni principal ni secondaire).
+ */
+function depot_achats(): void
+{
+    if (is_post()) {
+        $d = depot_charger((int) post('id'));
+        $caisses = (int) qv('SELECT COUNT(*) FROM Caisses c WHERE c.DepotId = ? OR EXISTS (SELECT 1 FROM CaissesDepots cd WHERE cd.CaisseId = c.ID AND cd.DepotId = ?)', [$d['Id'], $d['Id']]);
+        if (!$d['Actif']) {
+            flash('danger', "Activez d'abord le dépôt « {$d['Nom']} ».");
+        } elseif ($d['ParDefaut']) {
+            flash('danger', 'Le dépôt par défaut ne peut pas être le dépôt des achats : il sert aux caisses.');
+        } elseif ($caisses) {
+            flash('danger', "Le dépôt « {$d['Nom']} » est utilisé par $caisses caisse(s) : le dépôt des achats ne sert à aucune caisse.");
+        } else {
+            run('UPDATE Depots SET DepotAchats = (Id = ?) WHERE TenantId = ?', [$d['Id'], $d['TenantId']]);
+            flash('success', "« {$d['Nom']} » est maintenant le dépôt des achats : les achats y entrent et les consommations en sortent.");
         }
     }
     redirect('depot/index');

@@ -30,6 +30,10 @@ namespace EasytransitCaisse.Models
         public bool Actif { get; set; } = true;
 
         public bool ParDefaut { get; set; }
+
+        // Dépôt des achats (laverie : « Magasin des produits d'entretien ») : reçoit les achats et fournit
+        // les consommations ; il ne sert à aucune caisse. Un seul par société.
+        public bool DepotAchats { get; set; }
     }
 
     // Quantité d'un produit dans un dépôt. Produit.StockActuel reste le total de tous les dépôts.
