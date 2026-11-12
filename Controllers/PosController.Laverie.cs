@@ -29,6 +29,8 @@ namespace EasytransitCaisse.Controllers
             public decimal Acompte { get; set; }
             public int? ModeId { get; set; }
             public List<Restaurant.Ligne> Lignes { get; set; } = new();
+            // Dépôt fait sans connexion, envoyé au retour de la connexion.
+            public HorsLigneSaisie? HorsLigne { get; set; }
         }
 
         // Lignes d'un ticket reçu de l'écran de vente, reprises du catalogue : nom, taux et prix du
@@ -83,14 +85,15 @@ namespace EasytransitCaisse.Controllers
         }
 
         // Journée ouverte d'une caisse Laverie, pour un dépôt ; sinon le message d'erreur et son code.
-        private async Task<(JourneeCaisse? Journee, IActionResult? Erreur)> JourneeLaverieAsync(int id)
+        // clotureeAdmise : dépôt fait hors ligne, envoyé après la clôture de sa journée (il a déjà eu lieu).
+        private async Task<(JourneeCaisse? Journee, IActionResult? Erreur)> JourneeLaverieAsync(int id, bool clotureeAdmise = false)
         {
             var j = await _context.JourneesCaisses.Include(x => x.Caisse).FirstOrDefaultAsync(x => x.Id == id);
             if (j == null)
                 return (null, Erreur(404, "Journée introuvable."));
             if (j.Caisse?.TypePointVente != "Laverie")
                 return (null, Erreur(400, "Les dépôts de linge sont réservés aux caisses de type Laverie."));
-            if (j.Statut != "Ouverte")
+            if (j.Statut != "Ouverte" && !clotureeAdmise)
                 return (null, Erreur(409, "Cette journée est clôturée : ouvrez une nouvelle journée."));
             return (j, null);
         }
@@ -105,10 +108,13 @@ namespace EasytransitCaisse.Controllers
             var s = LireDepot(commande);
             if (s == null)
                 return Erreur(400, "Dépôt illisible.");
-            var (j, refus) = await JourneeLaverieAsync(s.JourneeId);
+            var (j, refus) = await JourneeLaverieAsync(s.JourneeId, s.HorsLigne != null);
             if (j == null)
                 return refus!;
             var tenant = j.TenantId;
+            // Dépôt fait hors ligne : date réelle et numéro provisoire de la souche imprimée sur le poste.
+            var hl = LireHorsLigne(s.HorsLigne, j);
+            var date = hl?.Date ?? DateTime.Now;
             // Nouvel envoi après une coupure réseau : le dépôt déjà enregistré est renvoyé.
             var cle = new string((s.Cle ?? "").Where(c => char.IsAsciiLetterOrDigit(c) || c == '-').Take(64).ToArray());
             if (cle != "")
@@ -127,7 +133,7 @@ namespace EasytransitCaisse.Controllers
             if (nom == null || telephone == null)
                 return Erreur(400, "Indiquez le nom et le téléphone du client.");
             DateTime? retrait = DateTime.TryParseExact(s.Retrait ?? "", "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var r) ? r : null;
-            if (retrait.HasValue && retrait.Value < DateTime.Today)
+            if (retrait.HasValue && retrait.Value < DateTime.Today && hl == null)
                 return Erreur(400, "La date de retrait prévue est déjà passée.");
             int? clientId = s.ClientId.HasValue && await _context.Clients.AnyAsync(c => c.Id == s.ClientId && c.TenantId == tenant) ? s.ClientId : null;
             var acompte = Math.Max(0, Math.Round(s.Acompte, 0, MidpointRounding.AwayFromZero));
@@ -149,8 +155,8 @@ namespace EasytransitCaisse.Controllers
             {
                 operation = new OperationCaisse
                 {
-                    TenantId = tenant, JourneeCaisseId = j.Id, DateOperation = DateTime.Now, TypeOperation = "Encaissement",
-                    Montant = acompte, Libelle = $"Acompte dépôt de linge n° {numero} ({nom})", ClientId = clientId,
+                    TenantId = tenant, JourneeCaisseId = j.Id, DateOperation = date, TypeOperation = "Encaissement",
+                    Montant = acompte, Libelle = $"Acompte dépôt de linge n° {numero} ({nom})" + (hl != null ? " (hors ligne)" : ""), ClientId = clientId,
                     MotifId = await MotifLaverieAsync(tenant), ModePaiementId = mode!.Id, UtilisateurId = UtilisateurConnecte,
                     EstJustifie = true, StatutValidation = "Validé", Valideur = "Point de vente"
                 };
@@ -160,7 +166,7 @@ namespace EasytransitCaisse.Controllers
             var depot = new DepotLinge
             {
                 TenantId = tenant, CaisseId = j.CaisseId, JourneeCaisseId = j.Id, Numero = numero, CleClient = cle == "" ? null : cle,
-                DateDepot = DateTime.Now, DateRetraitPrevue = retrait, NomClient = nom, TelephoneClient = telephone, ClientId = clientId,
+                DateDepot = date, DateRetraitPrevue = retrait, NumeroHorsLigne = hl?.Numero, NomClient = nom, TelephoneClient = telephone, ClientId = clientId,
                 UtilisateurId = UtilisateurConnecte,
                 Contenu = Restaurant.Ecrire(new Restaurant.Contenu { Lignes = lignes, ClientId = clientId, Remise = remise }),
                 Total = total, NbArticles = lignes.Sum(l => l.Qte), Acompte = acompte, AcompteModePaiementId = mode?.Id,
@@ -186,7 +192,9 @@ namespace EasytransitCaisse.Controllers
                 articles = d.NbArticles, total = d.Total, acompte = d.Acompte, reste = Math.Max(0, d.Total - d.Acompte), statut = d.Statut,
                 retire = d.DateRetrait?.ToString("dd/MM/yyyy HH:mm"),
                 venteId = d.CommandePosId,
-                contenu = actif ? Restaurant.Lire(d.Contenu) : null
+                contenu = actif ? Restaurant.Lire(d.Contenu) : null,
+                // Dépôt fait hors ligne : numéro provisoire de la souche (recherche du linge).
+                horsLigne = d.NumeroHorsLigne
             };
         }
 

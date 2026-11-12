@@ -126,6 +126,7 @@ CREATE TABLE [DepotsLinge] (
     [JourneeCaisseId] int NOT NULL,
     [Numero] int NOT NULL,
     [CleClient] nvarchar(64) NULL,
+    [NumeroHorsLigne] nvarchar(30) NULL,
     [DateDepot] datetime2 NOT NULL,
     [DateRetraitPrevue] date NULL,
     [NomClient] nvarchar(100) NOT NULL,
@@ -583,6 +584,9 @@ CREATE TABLE [CommandesPos] (
     [Couverts] int NULL,
     [Pourboire] decimal(18,2) NOT NULL,
     [FraisLivraison] decimal(18,2) NOT NULL DEFAULT 0.0,
+    [NumeroHorsLigne] nvarchar(30) NULL,
+    [AlerteHorsLigne] nvarchar(500) NULL,
+    [AlerteHorsLigneVue] datetime2 NULL,
     [LivreurId] int NULL,
     [NomLivraison] nvarchar(100) NULL,
     [TelephoneLivraison] nvarchar(30) NULL,
@@ -984,7 +988,8 @@ INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion]) VALUES
     (N'20261110133047_DepotsSecondaires', N'10.0.9'),
     (N'20261111184559_DepotsLinge', N'10.0.9'),
     (N'20261112063241_Achats', N'10.0.9'),
-    (N'20261112070814_DepotAchats', N'10.0.9');
+    (N'20261112070814_DepotAchats', N'10.0.9'),
+    (N'20261112202612_HorsLigne', N'10.0.9');
 GO
 
 -- =====================================================================

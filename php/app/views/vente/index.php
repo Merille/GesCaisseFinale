@@ -15,7 +15,8 @@
             <tbody>
             <?php foreach ($ventes as $v): ?>
                 <tr>
-                    <td class="fw-semibold"><?= h($v['Numero']) ?></td>
+                    <td class="fw-semibold"><?= h($v['Numero']) ?><?php if (!empty($v['NumeroHorsLigne'])): ?>
+                        <span class="badge <?= $v['AlerteHorsLigne'] && !$v['AlerteHorsLigneVue'] ? 'text-bg-warning' : 'text-bg-light border' ?>" title="Enregistrée hors ligne (ticket provisoire <?= h($v['NumeroHorsLigne']) ?>)<?= $v['AlerteHorsLigne'] && !$v['AlerteHorsLigneVue'] ? ' : à vérifier' : '' ?>"><i class="fa fa-wifi"></i> <?= h($v['NumeroHorsLigne']) ?></span><?php endif; ?></td>
                     <td class="text-nowrap" data-order="<?= h($v['DateCommande']) ?>"><?= date_fr($v['DateCommande'], 'd/m/Y H:i') ?></td>
                     <td><?= h($v['ChkCode']) ?></td>
                     <td><?= $v['Client'] ? h($v['Client']) : '<span class="text-muted">—</span>' ?></td>

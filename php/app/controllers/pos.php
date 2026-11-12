@@ -110,6 +110,14 @@ function pos_index(): void
         'urlLivree' => url('pos/livree'),
         'venteSansStock' => vente_sans_stock($tenant),
         'jeton' => ['nom' => '_csrf', 'valeur' => csrf_token()],
+        // Hors ligne : jeton frais pour les envois différés, et en-tête du ticket provisoire imprimé sur le poste.
+        'urlJeton' => url('pos/jeton'),
+        'ticket' => [
+            'societe' => ($societe = societe_courante())['Nom'] ?? 'GesCaisse',
+            'coordonnees' => societe_coordonnees($societe),
+            'description' => $journee['ChkDescription'],
+            'css' => asset('assets/css/ticket.css'),
+        ],
         // Laverie : dépôts de linge payés au retrait.
         'laverie' => ($journee['TypePointVente'] ?? '') === 'Laverie' ? [
             'urlDeposer' => url('pos/deposer'),
@@ -157,6 +165,28 @@ function pos_json(array $reponse, int $code = 200): never
 }
 
 /**
+ * Vente ou dépôt enregistré sur le poste sans connexion (champ « horsLigne » : date et heure réelles,
+ * numéro provisoire), envoyé au retour de la connexion. Renvoie [date, numéro] ou null. La date est
+ * bornée : pas dans le futur, ni plus d'un jour avant l'ouverture de la journée.
+ */
+function pos_hors_ligne(array $s, array $journee): ?array
+{
+    $hl = $s['horsLigne'] ?? null;
+    if (!is_array($hl)) {
+        return null;
+    }
+    $t = strtotime((string) ($hl['date'] ?? ''));
+    $min = strtotime((string) $journee['DateOuverture']) - 86400;
+    if (!$t || $t > time() + 300 || $t < $min) {
+        $t = time();
+    }
+    $numero = substr(preg_replace('/[^A-Za-z0-9-]/', '', (string) ($hl['numero'] ?? '')), 0, 30) ?: null;
+    // Vendeur connecté sur le poste au moment de la vente (l'envoi peut se faire sous une autre session).
+    $vendeur = mb_substr(trim((string) ($hl['vendeur'] ?? '')), 0, 100);
+    return ['date' => date('Y-m-d H:i:s', min($t, time())), 'numero' => $numero, 'vendeur' => $vendeur];
+}
+
+/**
  * Enregistre une vente payée : commande, lignes, règlements, un encaissement par
  * règlement dans la journée (motif « Vente POS ») et sortie de stock.
  * Reçoit le ticket en JSON (champ « vente ») ; répond en JSON.
@@ -187,16 +217,30 @@ function pos_vendre(): void
     if ($deja) {
         pos_json(['id' => (int) $deja['Id'], 'numero' => $deja['Numero']]);
     }
+    // Vente faite hors ligne : elle a déjà eu lieu, elle est enregistrée même si la journée a été
+    // clôturée, un prix a changé, le stock manque ou le plafond est dépassé ; ces écarts sont notés
+    // (AlerteHorsLigne) pour vérification par un administrateur.
+    $hl = pos_hors_ligne($v, $journee);
+    $alertes = [];
+    $u = user();
+    if ($hl && $hl['vendeur'] !== '' && !in_array($hl['vendeur'], [$u['nomComplet'] ?? '', $u['nom'] ?? ''], true)) {
+        $alertes[] = 'faite par « ' . $hl['vendeur'] . ' », envoyée sous la session de « ' . (($u['nomComplet'] ?? '') ?: $u['nom']) . ' »';
+    }
     if ($journee['Statut'] !== 'Ouverte') {
-        pos_json(['erreur' => 'Cette journée est clôturée : la vente ne peut pas être enregistrée.'], 409);
+        if (!$hl) {
+            pos_json(['erreur' => 'Cette journée est clôturée : la vente ne peut pas être enregistrée.'], 409);
+        }
+        $alertes[] = 'arrivée après la clôture de la journée';
     }
 
-    // Lignes : prix et taxes repris du catalogue ; prix saisi accepté pour un administrateur seulement.
+    // Lignes : prix et taxes repris du catalogue ; prix saisi accepté pour un administrateur seulement
+    // (et, hors ligne, le prix encaissé sur le poste).
     $lignes = [];
     $ttc = $tva = 0.0;
     foreach ($v['lignes'] as $l) {
         $p = q1('SELECT p.* FROM Produits p LEFT JOIN Produits m ON m.Id = p.ParentId
-                 WHERE p.Id = ? AND p.TenantId = ? AND p.Actif = 1 AND p.Consommable = 0 AND (p.ParentId IS NULL OR m.Actif = 1)', [(int) ($l['produitId'] ?? 0), $tenant]);
+                 WHERE p.Id = ? AND p.TenantId = ? AND p.Consommable = 0' . ($hl ? '' : ' AND p.Actif = 1 AND (p.ParentId IS NULL OR m.Actif = 1)'),
+                [(int) ($l['produitId'] ?? 0), $tenant]);
         $qte = round((float) ($l['qte'] ?? 0), 2);
         if (!$p || $qte <= 0) {
             pos_json(['erreur' => 'Un article du ticket est introuvable, inactif ou de quantité nulle.'], 400);
@@ -215,7 +259,10 @@ function pos_vendre(): void
             [$composants, $supplements] = $r;
             $prixCatalogue += $supplements;
         }
-        $prix = is_admin() && isset($l['prix']) ? max(0, round((float) $l['prix'], 2)) : $prixCatalogue;
+        $prix = (is_admin() || $hl) && isset($l['prix']) ? max(0, round((float) $l['prix'], 2)) : $prixCatalogue;
+        if ($hl && !is_admin() && abs($prix - $prixCatalogue) > 0.001) {
+            $alertes[] = 'prix de « ' . $p['Nom'] . ' » : ' . fcfa($prix) . ' encaissé, ' . fcfa($prixCatalogue) . ' au catalogue';
+        }
         $remise = min(100, max(0, round((float) ($l['remise'] ?? 0), 2)));
         $total = round($qte * $prix * (1 - $remise / 100));
         $taux = (float) $p['TauxTVA'];
@@ -293,18 +340,25 @@ function pos_vendre(): void
     $acompte = 0.0;
     if (!empty($v['depotId'])) {
         $depot = q1("SELECT * FROM DepotsLinge WHERE Id = ? AND TenantId = ? AND Statut IN ('En cours', 'Prêt')", [(int) $v['depotId'], $tenant]);
-        if (!$depot) {
+        if (!$depot && $hl) {
+            // Retiré ou annulé sur un autre poste pendant la coupure : vente gardée, acompte non déduit.
+            $autre = q1('SELECT Numero, Statut FROM DepotsLinge WHERE Id = ? AND TenantId = ?', [(int) $v['depotId'], $tenant]);
+            $alertes[] = 'dépôt de linge' . ($autre ? ' n° ' . $autre['Numero'] . ' déjà ' . mb_strtolower($autre['Statut']) : ' introuvable') . ' : acompte non déduit';
+        } elseif (!$depot) {
             pos_json(['erreur' => 'Ce dépôt de linge a déjà été retiré ou annulé.'], 409);
         }
-        $acompte = (float) $depot['Acompte'];
+        $acompte = $depot ? (float) $depot['Acompte'] : 0.0;
         if ($acompte > $ttc + $pourboire + $fraisLivraison) {
             pos_json(['erreur' => "L'acompte versé (" . fcfa($acompte) . ' FCFA) dépasse le total : remettez les articles du dépôt sur le ticket.'], 400);
         }
     }
     if ($recu + $acompte < $ttc + $pourboire + $fraisLivraison) {
-        pos_json(['erreur' => 'Le montant payé est inférieur au total.'], 400);
+        if (!$hl) {
+            pos_json(['erreur' => 'Le montant payé est inférieur au total.'], 400);
+        }
+        $alertes[] = 'montant payé inférieur au total de ' . fcfa($ttc + $pourboire + $fraisLivraison - $recu - $acompte) . ' FCFA';
     }
-    $rendu = $recu + $acompte - $ttc - $pourboire - $fraisLivraison;
+    $rendu = max(0, $recu + $acompte - $ttc - $pourboire - $fraisLivraison);
     if ($rendu > $especes) {
         pos_json(['erreur' => 'Seule la monnaie sur les espèces peut être rendue : le montant payé par les autres modes dépasse le total.'], 400);
     }
@@ -349,7 +403,9 @@ function pos_vendre(): void
             foreach ($parProduit as $pid => $qte) {
                 $p = q1('SELECT Nom, SuiviStock FROM Produits WHERE Id = ? FOR UPDATE', [$pid]);
                 $dispo = stock_caisse((int) $pid, $depotsVente);
-                if ($p['SuiviStock'] && $dispo < $qte - 0.001) {
+                if ($p['SuiviStock'] && $dispo < $qte - 0.001 && $hl) {
+                    $alertes[] = 'stock insuffisant pour « ' . $p['Nom'] . ' » (' . quantite_fr($dispo) . ' disponible(s))';
+                } elseif ($p['SuiviStock'] && $dispo < $qte - 0.001) {
                     db()->rollBack();
                     pos_json(['erreur' => 'Stock insuffisant pour « ' . $p['Nom'] . ' » : ' . quantite_fr($dispo) . ' disponible(s).'], 409);
                 }
@@ -359,14 +415,16 @@ function pos_vendre(): void
         if ($parCompte > 0) {
             $fiche = q1('SELECT NomSociete, PlafondCredit FROM Clients WHERE Id = ? FOR UPDATE', [$client]);
             $du = compte_solde($tenant, $client);
-            if ($fiche['PlafondCredit'] !== null && !is_admin() && $du + $parCompte > (float) $fiche['PlafondCredit'] + 0.001) {
+            if ($fiche['PlafondCredit'] !== null && !is_admin() && $du + $parCompte > (float) $fiche['PlafondCredit'] + 0.001 && $hl) {
+                $alertes[] = 'plafond de crédit de « ' . $fiche['NomSociete'] . ' » dépassé (solde dû ' . fcfa($du + $parCompte) . ', plafond ' . fcfa($fiche['PlafondCredit']) . ')';
+            } elseif ($fiche['PlafondCredit'] !== null && !is_admin() && $du + $parCompte > (float) $fiche['PlafondCredit'] + 0.001) {
                 db()->rollBack();
                 pos_json(['erreur' => 'Plafond de crédit dépassé pour « ' . $fiche['NomSociete'] . ' » : solde dû ' . fcfa($du) . ' FCFA, plafond '
                     . fcfa($fiche['PlafondCredit']) . ' FCFA (encore ' . fcfa(max(0, (float) $fiche['PlafondCredit'] - $du)) . ' FCFA possibles).'], 409);
             }
         }
         // Dépôt de linge : verrouillé, il ne peut être retiré qu'une fois.
-        if ($depot && !q1("SELECT Id FROM DepotsLinge WHERE Id = ? AND Statut IN ('En cours', 'Prêt') FOR UPDATE", [$depot['Id']])) {
+        if ($depot && !q1("SELECT Id FROM DepotsLinge WHERE Id = ? AND Statut IN ('En cours', 'Prêt') FOR UPDATE", [$depot['Id']]) && !$hl) {
             db()->rollBack();
             pos_json(['erreur' => 'Ce dépôt de linge a déjà été retiré ou annulé.'], 409);
         }
@@ -402,14 +460,17 @@ function pos_vendre(): void
         $rang = (int) qv('SELECT COUNT(*) FROM CommandesPos WHERE JourneeCaisseId = ?', [$journee['Id']]) + 1;
         $numero = sprintf('POS-%s-%s-%04d', $journee['ChkCode'], date('Ymd', strtotime($journee['DateJournee'])), $rang);
 
+        // Date de la vente : maintenant, ou l'heure réelle de la vente faite hors ligne.
+        $date = $hl['date'] ?? date('Y-m-d H:i:s');
         $commandeId = run(
             "INSERT INTO CommandesPos (TenantId, Numero, CleClient, JourneeCaisseId, ClientId, UtilisateurId, DateCommande,
                 TotalHT, TotalTVA, TotalTTC, MontantRecu, MonnaieRendue, Statut, RemiseGlobale, RemiseGlobaleTaux, TableNom, Couverts, Pourboire,
-                LivreurId, NomLivraison, TelephoneLivraison, AdresseLivraison, StatutLivraison, DateLivraison, FraisLivraison)
-             VALUES (?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?, ?, 'Payée', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, " . ($livree ? 'NOW()' : 'NULL') . ", ?)",
-            [$tenant, $numero, $cle, $journee['Id'], $client, user()['id'], $ttc - $tva, $tva, $ttc, $recu + $acompte, $rendu, $remiseGlobale, $tauxRemise, $tableNom, $couverts, $pourboire,
+                LivreurId, NomLivraison, TelephoneLivraison, AdresseLivraison, StatutLivraison, DateLivraison, FraisLivraison, NumeroHorsLigne, AlerteHorsLigne)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Payée', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            [$tenant, $numero, $cle, $journee['Id'], $client, user()['id'], $date, $ttc - $tva, $tva, $ttc, $recu + $acompte, $rendu, $remiseGlobale, $tauxRemise, $tableNom, $couverts, $pourboire,
              $livraison['livreurId'] ?? null, $livraison['nom'] ?? null, $livraison['telephone'] ?? null, $livraison['adresse'] ?? null,
-             $livraison ? ($livree ? 'Livrée' : 'À livrer') : null, $livraison ? $fraisLivraison : 0]
+             $livraison ? ($livree ? 'Livrée' : 'À livrer') : null, $livree ? $date : null, $livraison ? $fraisLivraison : 0,
+             $hl ? ($hl['numero'] ?? 'hors ligne') : null, $alertes ? mb_substr(implode(' ; ', $alertes), 0, 500) : null]
         );
         foreach ($lignes as $l) {
             $ligneId = run(
@@ -440,8 +501,8 @@ function pos_vendre(): void
                 $operation = run(
                     "INSERT INTO OperationsCaisses (TenantId, JourneeCaisseId, DateOperation, TypeOperation, Montant, Libelle,
                         ClientId, MotifId, ModePaiementId, UtilisateurId, EstJustifie, StatutValidation, Valideur)
-                     VALUES (?, ?, NOW(), 'Encaissement', ?, ?, ?, ?, ?, ?, 1, 'Validé', 'Point de vente')",
-                    [$tenant, $journee['Id'], $net, 'Vente POS ' . $numero . ($pourboire > 0 ? ' (dont pourboire ' . fcfa($pourboire) . ')' : '')
+                     VALUES (?, ?, ?, 'Encaissement', ?, ?, ?, ?, ?, ?, 1, 'Validé', 'Point de vente')",
+                    [$tenant, $journee['Id'], $date, $net, 'Vente POS ' . $numero . ($hl ? ' (hors ligne)' : '') . ($pourboire > 0 ? ' (dont pourboire ' . fcfa($pourboire) . ')' : '')
                         . ($livraison && $fraisLivraison > 0 ? ' (dont frais de livraison ' . fcfa($fraisLivraison) . ')' : ''), $client, $motif, $pm['mode']['Id'], user()['id']]
                 );
             }
@@ -461,12 +522,13 @@ function pos_vendre(): void
                     [$tenant, $commandeId, $depot['AcompteModePaiementId'], 'Acompte (dépôt n° ' . $depot['Numero'] . ')', $acompte, $acompte, $depot['AcompteOperationId']]
                 );
             }
-            run("UPDATE DepotsLinge SET Statut = 'Retiré', DateRetrait = NOW(), CommandePosId = ? WHERE Id = ?", [$commandeId, $depot['Id']]);
+            run("UPDATE DepotsLinge SET Statut = 'Retiré', DateRetrait = ?, CommandePosId = ? WHERE Id = ? AND Statut IN ('En cours', 'Prêt')", [$date, $commandeId, $depot['Id']]);
         }
         // Vente directe d'une caisse restaurant / bar : à l'encaissement, les articles partent en
         // préparation (un bon par poste, comme pour une table).
         $bons = [];
-        if (!$ouverte && in_array($journee['TypePointVente'], RESTAURANT_TYPES, true)) {
+        // (Pas pour une vente faite hors ligne : elle a déjà été servie.)
+        if (!$ouverte && !$hl && in_array($journee['TypePointVente'], RESTAURANT_TYPES, true)) {
             $contenu = ['lignes' => array_map(fn($l, $i) => [
                 'uid' => (string) $i, 'produitId' => (int) $l['produit']['Id'], 'nom' => $l['produit']['Nom'], 'qte' => $l['qte'], 'envoye' => 0,
                 'note' => $l['note'], 'composants' => $l['composants'] ?: [],
@@ -984,4 +1046,13 @@ function pos_livree(): void
         run("UPDATE CommandesPos SET StatutLivraison = 'Livrée', DateLivraison = NOW() WHERE Id = ?", [$c['Id']]);
     }
     pos_json(['ok' => true]);
+}
+
+/**
+ * Jeton anti-falsification à jour, pour envoyer les ventes et dépôts faits hors ligne (le jeton de
+ * l'écran de vente gardé sur le poste peut avoir changé depuis). Session expirée : page de connexion.
+ */
+function pos_jeton(): void
+{
+    pos_json(['nom' => '_csrf', 'valeur' => csrf_token()]);
 }

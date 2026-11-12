@@ -38,7 +38,11 @@
                 @foreach (var v in Model)
                 {
                     <tr>
-                        <td class="fw-semibold">@v.Numero</td>
+                        <td class="fw-semibold">@v.Numero@if (!string.IsNullOrEmpty(v.NumeroHorsLigne))
+                        {
+                            var aVerifier = v.AlerteHorsLigne != null && v.AlerteHorsLigneVue == null;
+                            <text> </text><span class="badge @(aVerifier ? "text-bg-warning" : "text-bg-light border")" title="Enregistrée hors ligne (ticket provisoire @v.NumeroHorsLigne)@(aVerifier ? " : à vérifier" : "")"><i class="fas fa-wifi"></i> @v.NumeroHorsLigne</span>
+                        }</td>
                         <td class="text-nowrap" data-order="@v.DateCommande.ToString("yyyy-MM-ddTHH:mm:ss")">@v.DateCommande.ToString("dd/MM/yyyy HH:mm")</td>
                         <td>@v.JourneeCaisse?.Caisse?.ChkCode</td>
                         <td>@(v.ClientId.HasValue && clients.TryGetValue(v.ClientId.Value, out var c) ? c : "—")</td>

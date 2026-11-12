@@ -27,6 +27,10 @@ namespace EasytransitCaisse.Models
         [StringLength(64)]
         public string? CleClient { get; set; }
 
+        // Dépôt fait hors ligne : numéro provisoire de la souche imprimée sur le poste.
+        [StringLength(30)]
+        public string? NumeroHorsLigne { get; set; }
+
         public DateTime DateDepot { get; set; }
 
         public DateTime? DateRetraitPrevue { get; set; }

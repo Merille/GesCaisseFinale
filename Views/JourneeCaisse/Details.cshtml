@@ -318,7 +318,7 @@
                     <h5 class="modal-title">Clôture de la journée — comptage</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
                 </div>
-                <form method="post" asp-action="Cloturer" asp-route-id="@Model.Id">
+                <form method="post" asp-action="Cloturer" asp-route-id="@Model.Id" data-gc-cloture="@Model.Id">
                     <input type="hidden" name="id" value="@Model.Id" />
                     <div class="modal-body">
                         <p class="text-muted small">Saisissez, pour chaque mode de paiement, le montant réellement compté. L'écart avec le montant théorique (net des opérations de la journée) est enregistré.</p>

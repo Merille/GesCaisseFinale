@@ -55,6 +55,13 @@
     const L = D.laverie || null;
     let depots = [];
 
+    // Hors ligne (hors-ligne.js) : vente ou dépôt gardé sur le poste, envoyé au retour de la connexion
+    // avec un numéro provisoire (H-poste-n°) ; le ticket provisoire est imprimé depuis le poste.
+    const F = window.gcFile || null;
+    const horsLigne = () => !!F && !!window.gcConnexion && !window.gcConnexion.enLigne;
+    // Feuille de style du ticket gardée par le service worker, pour imprimer sans connexion.
+    if (D.ticket && D.ticket.css && navigator.onLine) fetch(D.ticket.css, { credentials: 'same-origin' }).catch(() => {});
+
     function charger() {
         try {
             const e = JSON.parse(localStorage.getItem(D.cle) || 'null');
@@ -233,6 +240,7 @@
     // partage : { uid: quantité payée maintenant } pour une addition partagée (restaurant).
     async function payer(partage) {
         if (!ticket().lignes.length) { message('Le ticket est vide.'); return; }
+        if (cmd && horsLigne()) { message('Hors ligne : les commandes de table s\'encaissent avec la connexion. Les ventes directes restent possibles.', true); return; }
         if (ticket().lignes.some(l => l.qte <= 0)) { message('Une ligne a une quantité nulle : corrigez-la ou supprimez-la.', true); return; }
         if (cmd) {
             // Articles pas encore envoyés : envoyés en préparation avant l'encaissement.
@@ -357,7 +365,13 @@
         }
         return f;
     }
-    function imprimerDans(url) { cadreImpression().src = url; }
+    function imprimerDans(url) { const f = cadreImpression(); f.removeAttribute('srcdoc'); f.src = url; }
+    // Ticket fabriqué sur le poste (hors ligne) : imprimé dès son chargement.
+    function imprimerHtml(html) {
+        const f = cadreImpression();
+        f.removeAttribute('src');
+        f.srcdoc = html.replace('</body>', '<script>window.addEventListener("load", function () { window.print(); });<\/script></body>');
+    }
 
     // Addition (note provisoire « NON PAYÉ ») d'un ticket hors table : le ticket est envoyé au serveur,
     // qui reprend les prix du catalogue et imprime l'addition dans le cadre caché.
@@ -807,23 +821,52 @@
         corps.append('vente', JSON.stringify(vente));
         pay.envoi = true;
         afficher();
+        if (!cmd && horsLigne()) { garderVente(vente, e, t); return; }
         let reponse = null;
         try {
             const res = await fetch(D.urlVendre, { method: 'POST', body: corps, credentials: 'same-origin' });
             reponse = await res.json().catch(() => null);
             if (!res.ok || !reponse || reponse.erreur) throw new Error(reponse && reponse.erreur ? reponse.erreur : 'Réponse inattendue du serveur (' + res.status + ').');
         } catch (err) {
+            // Coupure pendant l'envoi : la vente est gardée sur le poste (même clé : jamais enregistrée deux fois).
+            if (!cmd && F && err instanceof TypeError) { window.gcConnexion.verifier(); garderVente(vente, e, t); return; }
             pay.envoi = false;
             afficher();
             message((err && err.message && !/fetch|network/i.test(err.message) ? err.message : 'Connexion impossible : la vente n\'est pas enregistrée. Réessayez.'), true);
             return;
         }
+        terminer(t, e, reponse, null);
+    }
+
+    // Vente sans connexion : gardée dans la file du poste, ticket provisoire imprimé sur le poste.
+    function garderVente(vente, e, t) {
+        const numero = F.numeroProvisoire();
+        vente.horsLigne = { date: new Date().toISOString(), numero: numero, vendeur: D.utilisateur.nom };
+        const client = clients.get(t.clientId);
+        const html = ticketLocal(vente, e, t, numero);
+        const garde = F.ajouter({
+            type: 'vente', numero: numero, libelle: 'Vente · ' + D.journee.caisse + (client ? ' · ' + client.nom : ''), montant: e.total,
+            journeeId: D.journee.id, url: D.urlVendre, urlJeton: D.urlJeton, champ: 'vente', donnees: vente
+        });
+        if (!garde) {
+            pay.envoi = false;
+            afficher();
+            message('Stockage du navigateur indisponible : la vente ne peut pas être gardée hors ligne.', true);
+            return;
+        }
+        terminer(t, e, { id: null, numero: numero, bons: [] }, html);
+        message('Hors ligne : vente ' + numero + ' gardée sur ce poste, envoyée au retour de la connexion.');
+    }
+
+    // Vente enregistrée (sur le serveur, ou gardée hors ligne avec son ticket provisoire « html »).
+    function terminer(t, e, reponse, html) {
         // Stock affiché mis à jour sans recharger la page.
         lignesAPayer().forEach(l => { const p = produits.get(l.produitId); if (p && p.suivi) p.stock -= l.qte; });
         // Solde dû du client en compte mis à jour (plafond des ventes suivantes).
         const client = clients.get(t.clientId);
         if (client) client.du += pay.lignes.filter(r => modes.get(r.modeId)?.compte).reduce((s, r) => s + r.montant, 0);
-        fin = { id: reponse.id, numero: reponse.numero, rendu: e.rendu, direct: !cmd, resteTable: null };
+        fin = { id: reponse.id, numero: reponse.numero, rendu: e.rendu, direct: !cmd, resteTable: null, ticket: html };
+        if (html && t.depot) depots = depots.filter(d => d.id !== t.depot.id);
         // Vente directe en restaurant / bar : les articles sont partis en préparation (bons créés par le serveur).
         const bonsDirects = !cmd && R ? (reponse.bons || []) : [];
         if (bonsDirects.length && R.imprimerBons) imprimerDans(R.urlBons + bonsDirects.join(','));
@@ -844,7 +887,83 @@
         afficher();
         if (depotRetire) { message('Dépôt n° ' + t.depot.numero + ' retiré et encaissé.'); rafraichirDepots(); }
         if (bonsDirects.length) message(bonsDirects.length > 1 ? 'Commande envoyée en cuisine et au bar.' : 'Commande envoyée en préparation.');
+        if (html && R) message('Hors ligne : les bons de préparation ne sont pas envoyés, prévenez la cuisine ou le bar.', true);
         rafraichirAttentes();
+    }
+
+    // ------------------------------------------------------------------
+    // Tickets provisoires (hors ligne), sur le modèle des tickets du serveur
+    // ------------------------------------------------------------------
+    const dateFr = d => d.toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).replace(',', '');
+    function enteteTicket(titre) {
+        const T = D.ticket || {};
+        return '<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>' + echap(titre) + '</title>'
+            + '<meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="' + echap(T.css || '') + '"></head><body>';
+    }
+    const societeTicket = () => '<div class="c b grand">' + echap((D.ticket || {}).societe || 'GesCaisse') + '</div>'
+        + ((D.ticket || {}).coordonnees || []).map(l => '<div class="c petit">' + echap(l) + '</div>').join('');
+    const ligneR = (g, d, cls) => '<div class="r' + (cls ? ' ' + cls : '') + '"><span>' + g + '</span><span>' + d + '</span></div>';
+    const ligneTicket = l => '<div class="b">' + echap(l.nom) + '</div>'
+        + (l.composants || []).map(c => '<div class="ind petit">· ' + qte(c.qte) + ' x ' + echap(c.nom) + (c.supplement > 0 ? ' (+' + fcfa(c.supplement) + ')' : '') + '</div>').join('')
+        + (l.note ? '<div class="ind note">» ' + echap(l.note) + '</div>' : '')
+        + ligneR(qte(l.qte) + (l.unite && l.unite !== 'Unité' ? ' ' + echap(l.unite) : '') + ' x ' + fcfa(l.prix) + (l.remise > 0 ? ' -' + qte(l.remise) + '%' : ''), fcfa(totalLigne(l)), 'ind');
+
+    function ticketLocal(vente, e, t, numero) {
+        const client = clients.get(t.clientId);
+        const lignes = lignesAPayer();
+        const tot = totaux({ lignes: lignes, remise: vente.remiseGlobale });
+        const total = tot.ttc + (vente.pourboire || 0) + e.frais;
+        return enteteTicket('Ticket ' + numero) + '<div class="ticket">' + societeTicket()
+            + '<div class="c">' + echap((D.ticket || {}).description || '') + '</div>'
+            + '<div class="c b">TICKET PROVISOIRE · HORS LIGNE</div><hr>'
+            + '<div>Ticket : ' + echap(numero) + '</div>'
+            + '<div>Date   : ' + dateFr(new Date()) + '</div>'
+            + '<div>Caisse : ' + echap(D.journee.caisse) + ' · Vendeur : ' + echap(D.utilisateur.nom) + '</div>'
+            + (client ? '<div>Client : ' + echap(client.nom) + '</div>' : '')
+            + (t.livraison ? '<div>Livraison à : ' + echap(t.livraison.nom || (client ? client.nom : '')) + (t.livraison.telephone ? ' · ' + echap(t.livraison.telephone) : '') + '</div><div>' + echap(t.livraison.adresse || '') + '</div>' : '')
+            + '<hr>' + lignes.map(ligneTicket).join('') + '<hr>'
+            + (tot.remise ? ligneR('Sous-total', fcfa(tot.brut)) + ligneR('Remise globale', '-' + fcfa(tot.remise)) : '')
+            + ligneR('TOTAL TTC', fcfa(tot.ttc) + ' FCFA', 'b grand')
+            + ligneR('Total HT', fcfa(tot.ttc - tot.tva)) + (tot.tva ? ligneR('Taxes comprises', fcfa(tot.tva)) : '')
+            + (e.frais ? ligneR('Frais de livraison', fcfa(e.frais)) : '')
+            + (vente.pourboire ? ligneR('Pourboire', fcfa(vente.pourboire)) : '')
+            + (vente.pourboire || e.frais ? ligneR('TOTAL PAYÉ', fcfa(total) + ' FCFA', 'b') : '')
+            + '<hr>' + (e.acompte ? ligneR('Acompte (dépôt n° ' + echap(t.depot.numero) + ')', fcfa(e.acompte)) : '')
+            + pay.lignes.map(r => ligneR(echap((modes.get(r.modeId) || {}).libelle || '?'), fcfa(r.montant))).join('')
+            + (e.rendu > 0 ? ligneR('Monnaie rendue', fcfa(e.rendu), 'b') : '')
+            + '<hr><div class="c">Merci de votre visite !</div>'
+            + '<div class="c petit">' + echap(numero) + ' · numéro définitif attribué à l\'envoi</div>'
+            + '</div></body></html>';
+    }
+
+    function ticketDepotLocal(dep, numero, total) {
+        const brut = dep.lignes.reduce((s, l) => s + totalLigne(l), 0);
+        const reste = Math.max(0, total - dep.acompte);
+        const mode = dep.acompte > 0 ? (modes.get(dep.modeId) || {}).libelle : '';
+        const retrait = dep.retrait ? dep.retrait.split('-').reverse().join('/') : '';
+        const articles = dep.lignes.reduce((s, l) => s + l.qte, 0);
+        return enteteTicket('Dépôt ' + numero)
+            + '<div class="ticket saut">' + societeTicket() + '<hr>'
+            + '<div class="c b tres-grand">DÉPÔT N° ' + echap(numero) + '</div><div class="non-paye">NON PAYÉ</div>'
+            + '<div class="c petit">Exemplaire client · numéro provisoire (hors ligne)</div>'
+            + '<div>Déposé le : ' + dateFr(new Date()) + '</div>'
+            + (retrait ? '<div class="b">Retrait   : à partir du ' + retrait + '</div>' : '')
+            + '<div>Client    : ' + echap(dep.nom) + '</div><div>Téléphone : ' + echap(dep.telephone) + '</div>'
+            + '<div>Reçu par  : ' + echap(D.utilisateur.nom) + '</div><hr>'
+            + dep.lignes.map(ligneTicket).join('') + '<hr>'
+            + (brut !== total ? ligneR('Sous-total', fcfa(brut)) + ligneR('Remise globale', '-' + fcfa(brut - total)) : '')
+            + ligneR('TOTAL TTC', fcfa(total) + ' FCFA', 'b grand')
+            + (dep.acompte > 0 ? ligneR('Acompte versé' + (mode ? ' (' + echap(mode) + ')' : ''), '-' + fcfa(dep.acompte)) : '')
+            + ligneR('RESTE À PAYER', fcfa(reste) + ' FCFA', 'b grand')
+            + '<hr><div class="c">Présentez ce ticket pour retirer votre linge.<br>Le paiement se fait au retrait.</div></div>'
+            + '<div class="ticket">' + '<div class="c b grand">' + echap((D.ticket || {}).societe || 'GesCaisse') + '</div>'
+            + '<div class="c petit">Souche à joindre au linge</div><hr>'
+            + '<div class="c b tres-grand">DÉPÔT N° ' + echap(numero) + '</div>'
+            + '<div class="c b grand">' + echap(dep.nom) + '</div><div class="c b">' + echap(dep.telephone) + '</div><hr>'
+            + '<div>Déposé le : ' + dateFr(new Date()) + '</div>' + (retrait ? '<div class="b">Retrait   : ' + retrait + '</div>' : '') + '<hr>'
+            + dep.lignes.map(l => ligneR(echap(l.nom), 'x ' + qte(l.qte)) + (l.note ? '<div class="ind petit note">' + echap(l.note) + '</div>' : '')).join('')
+            + '<hr>' + ligneR('Articles', qte(articles), 'b') + ligneR(reste > 0 ? 'Reste à payer' : 'Payé', reste > 0 ? fcfa(reste) + ' FCFA' : '', 'b')
+            + '</div></body></html>';
     }
 
     function nouvelleVente() {
@@ -934,13 +1053,15 @@
     }
 
     function afficherFin() {
-        racine.innerHTML = enteteSimple('Vente terminée · ' + fin.numero, D.journee.caisse + ' · ' + D.journee.libelle)
+        racine.innerHTML = enteteSimple((fin.ticket ? 'Vente hors ligne · ' : 'Vente terminée · ') + fin.numero, D.journee.caisse + ' · ' + D.journee.libelle)
             + '<div class="pos-finzone">'
-            + '<div class="pos-apercu"><iframe id="posTicket" title="Ticket de caisse" src="' + echap(D.urlTicket + fin.id) + '"></iframe></div>'
+            + '<div class="pos-apercu"><iframe id="posTicket" title="Ticket de caisse" '
+            + (fin.ticket ? 'srcdoc="' + echap(fin.ticket) + '"' : 'src="' + echap(D.urlTicket + fin.id) + '"') + '></iframe></div>'
             + '<div class="pos-fin">'
-            + '<div class="pos-ok"><i class="fas fa-check"></i></div>'
-            + '<h2>Paiement enregistré</h2>'
-            + '<p>Les encaissements sont dans la journée de caisse ' + echap(D.journee.caisse) + '.</p>'
+            + '<div class="pos-ok' + (fin.ticket ? ' hors-ligne' : '') + '"><i class="fas ' + (fin.ticket ? 'fa-cloud-arrow-up' : 'fa-check') + '"></i></div>'
+            + (fin.ticket
+                ? '<h2>Paiement gardé sur ce poste</h2><p>Pas de connexion : la vente (ticket provisoire ' + echap(fin.numero) + ') sera envoyée automatiquement au serveur dès le retour de la connexion.</p>'
+                : '<h2>Paiement enregistré</h2><p>Les encaissements sont dans la journée de caisse ' + echap(D.journee.caisse) + '.</p>')
             + (fin.rendu > 0 ? '<p class="pos-rendu">Monnaie à rendre : <b>' + fcfa(fin.rendu) + ' FCFA</b></p>' : '')
             + '<button type="button" class="pos-sec" data-action="imprimer"><i class="fas fa-print"></i> Imprimer le ticket</button>'
             + (fin.resteTable ? '<button type="button" class="pos-sec" data-action="continuer-table"><i class="fas fa-utensils"></i> Continuer : ' + echap(fin.resteTable.nom) + ' (reste à payer)</button>' : '')
@@ -1580,15 +1701,26 @@
             if (acompte > total) { message('L\'acompte dépasse le total du dépôt (' + fcfa(total) + ' FCFA).', true); champ('acompte').focus(); return; }
             if (!t.cleDepot) { t.cleDepot = identifiant(); enregistrer(); }   // même clé si l'envoi est refait
             b.disabled = true;
-            const res = await appel(L.urlDeposer, 'commande', {
+            const donnees = {
                 cle: t.cleDepot, journeeId: D.journee.id, clientId: t.clientId, remise: t.remise || null,
                 nom: nom, telephone: telephone, retrait: champ('retrait').value || null,
                 acompte: acompte, modeId: acompte > 0 ? Number(champ('modeId').value) : null,
                 lignes: t.lignes.map(l => ({ uid: l.uid, produitId: l.produitId, nom: l.nom, qte: l.qte, prix: l.prix, remise: l.remise || 0, note: l.note || '', composants: l.composants || [] }))
-            });
-            if (!res.ok) { b.disabled = false; message(res.r && res.r.erreur ? res.r.erreur : 'Connexion impossible : le dépôt n\'est pas enregistré. Réessayez.', true); return; }
+            };
+            const res = horsLigne() ? { ok: false, status: 0, r: null } : await appel(L.urlDeposer, 'commande', donnees);
+            let numero = res.ok ? res.r.numero : null;
+            if (!res.ok && res.status === 0 && F) {
+                // Sans connexion : dépôt gardé sur le poste, souche imprimée avec un numéro provisoire.
+                numero = F.numeroProvisoire();
+                donnees.horsLigne = { date: new Date().toISOString(), numero: numero, vendeur: D.utilisateur.nom };
+                if (!F.ajouter({ type: 'depot', numero: numero, libelle: 'Dépôt de linge · ' + nom, montant: total, journeeId: D.journee.id,
+                    url: L.urlDeposer, urlJeton: D.urlJeton, champ: 'commande', donnees: donnees })) {
+                    b.disabled = false; message('Stockage du navigateur indisponible : le dépôt ne peut pas être gardé hors ligne.', true); return;
+                }
+                imprimerHtml(ticketDepotLocal(donnees, numero, total));
+            } else if (!res.ok) { b.disabled = false; message(res.r && res.r.erreur ? res.r.erreur : 'Connexion impossible : le dépôt n\'est pas enregistré. Réessayez.', true); return; }
+            else imprimerDans(L.urlTicket + res.r.id);
             fermer();
-            imprimerDans(L.urlTicket + res.r.id);
             etat.tickets.splice(etat.actif, 1);
             if (!etat.tickets.length) { etat.compteur += 1; etat.tickets.push(nouveauTicket(etat.compteur)); }
             etat.actif = Math.min(etat.actif, etat.tickets.length - 1);
@@ -1596,7 +1728,8 @@
             saisie = null;
             enregistrer();
             afficher();
-            message('Dépôt n° ' + res.r.numero + ' enregistré' + (acompte ? ' (acompte ' + fcfa(acompte) + ' FCFA encaissé)' : '') + ' : ticket imprimé.');
+            message(res.ok ? 'Dépôt n° ' + numero + ' enregistré' + (acompte ? ' (acompte ' + fcfa(acompte) + ' FCFA encaissé)' : '') + ' : ticket imprimé.'
+                : 'Hors ligne : dépôt ' + numero + ' gardé sur ce poste (ticket imprimé), envoyé au retour de la connexion.');
             rafraichirDepots();
         };
         fond.addEventListener('click', e => {
@@ -1612,14 +1745,21 @@
     function remplirDepots(fond) {
         const q = rechercheDepots.trim().toLowerCase();
         const liste = depots.filter(d => (filtreDepots === 'actifs') === (d.statut === 'En cours' || d.statut === 'Prêt'))
-            .filter(d => !q || String(d.numero) === q.replace(/^n°\s*/, '') || (d.nom || '').toLowerCase().includes(q) || (d.telephone || '').replace(/\s/g, '').includes(q.replace(/\s/g, '')));
+            .filter(d => !q || String(d.numero) === q.replace(/^n°\s*/, '') || (d.horsLigne || '').toLowerCase() === q || (d.nom || '').toLowerCase().includes(q) || (d.telephone || '').replace(/\s/g, '').includes(q.replace(/\s/g, '')));
+        // Dépôts faits hors ligne sur ce poste, pas encore envoyés : affichés, encaissables après l'envoi.
+        const enAttente = filtreDepots !== 'actifs' || !F ? [] : F.elements().filter(x => x.type === 'depot')
+            .filter(x => !q || x.numero.toLowerCase() === q || (x.donnees.nom || '').toLowerCase().includes(q) || (x.donnees.telephone || '').replace(/\s/g, '').includes(q.replace(/\s/g, '')));
         fond.querySelectorAll('[data-filtre]').forEach(b => b.classList.toggle('on', b.dataset.filtre === filtreDepots));
         const badge = d => d.statut === 'Prêt' ? '<span class="pos-att-badge paye">Prêt</span>'
             : d.statut === 'En cours' ? '<span class="pos-att-badge">En cours</span>'
             : d.statut === 'Retiré' ? '<span class="pos-att-badge paye">Retiré le ' + echap(d.retire || '') + '</span>'
             : '<span class="pos-att-badge annule">Annulé</span>';
-        fond.querySelector('.pos-att-corps').innerHTML = liste.length ? liste.map(d => '<div class="pos-att">'
-            + '<div class="pos-att-info"><b>N° ' + d.numero + '</b> · ' + echap(d.nom) + (d.telephone ? ' · ' + echap(d.telephone) : '') + badge(d)
+        fond.querySelector('.pos-att-corps').innerHTML = enAttente.map(x => '<div class="pos-att"><div class="pos-att-info"><b>' + echap(x.numero) + '</b> · ' + echap(x.donnees.nom)
+            + (x.donnees.telephone ? ' · ' + echap(x.donnees.telephone) : '') + '<span class="pos-att-badge annule">À envoyer</span>'
+            + '<div class="pos-att-livraison">Fait hors ligne sur ce poste : encaissable une fois envoyé au serveur.</div></div>'
+            + '<div class="pos-att-total">' + fcfa(x.montant - (x.donnees.acompte || 0)) + ' FCFA<small>reste à payer</small></div><div class="pos-att-btns"></div></div>').join('')
+            + (liste.length ? liste.map(d => '<div class="pos-att">'
+            + '<div class="pos-att-info"><b>N° ' + d.numero + '</b>' + (d.horsLigne ? ' <small>(provisoire ' + echap(d.horsLigne) + ')</small>' : '') + ' · ' + echap(d.nom) + (d.telephone ? ' · ' + echap(d.telephone) : '') + badge(d)
             + '<div class="pos-att-livraison">Déposé le ' + echap(d.depose) + ' · ' + qte(d.articles) + ' article(s)'
             + (d.retrait ? ' · retrait prévu le <span class="' + (d.enRetard ? 'pos-retard' : '') + '">' + echap(d.retrait) + (d.enRetard ? ' (en retard)' : '') + '</span>' : '')
             + (d.acompte ? ' · acompte ' + fcfa(d.acompte) : '') + '</div></div>'
@@ -1635,7 +1775,7 @@
             + ((d.statut === 'En cours' || d.statut === 'Prêt') && L.peutAnnuler
                 ? '<button type="button" class="pos-sec rouge" data-annuler="' + d.id + '" aria-label="Annuler le dépôt n° ' + d.numero + '"><i class="fas fa-ban"></i></button>' : '')
             + '</div></div>').join('')
-            : '<div class="pos-att-vide">' + (q ? 'Aucun dépôt ne correspond à « ' + echap(rechercheDepots) + ' ».' : filtreDepots === 'actifs' ? 'Aucun dépôt en cours.' : 'Aucun dépôt retiré ou annulé depuis 30 jours.') + '</div>';
+            : enAttente.length ? '' : '<div class="pos-att-vide">' + (q ? 'Aucun dépôt ne correspond à « ' + echap(rechercheDepots) + ' ».' : filtreDepots === 'actifs' ? 'Aucun dépôt en cours.' : 'Aucun dépôt retiré ou annulé depuis 30 jours.') + '</div>');
     }
 
     function listeDepots() {
@@ -1836,6 +1976,16 @@
     // Commandes en attente actualisées régulièrement (mises en attente ou reprises sur d'autres postes).
     setInterval(rafraichirAttentes, 15000);
     if (L) setInterval(rafraichirDepots, 30000);
+    // Envoi d'une vente ou d'un dépôt fait hors ligne : numéro définitif annoncé, listes actualisées.
+    window.addEventListener('gc-file', e => {
+        const d = e.detail || {};
+        if (d.envoye && d.reponse) {
+            message((d.envoye.type === 'depot' ? 'Dépôt ' + d.envoye.numero + ' envoyé : dépôt n° ' : 'Vente ' + d.envoye.numero + ' envoyée : ticket ') + d.reponse.numero + '.');
+            if (d.envoye.type === 'depot' || d.envoye.donnees.depotId) rafraichirDepots();
+        }
+        if (d.fin && d.envoyes) rafraichirAttentes();
+        if (d.ajoute || d.envoye) { const liste = document.querySelector('.pos-modal-depots'); if (liste) remplirDepots(liste); }
+    });
 
     afficher();
     rafraichirAttentes();

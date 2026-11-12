@@ -20,6 +20,21 @@ $peutAnnuler = $peutRembourser && !$estRetour && $vente['Statut'] === 'Payée' &
     </div>
 </div>
 
+<?php if (!empty($vente['NumeroHorsLigne'])): ?>
+    <div class="alert <?= $vente['AlerteHorsLigne'] && !$vente['AlerteHorsLigneVue'] ? 'alert-warning' : 'alert-info' ?> d-flex flex-wrap align-items-center gap-2" id="venteHorsLigne">
+        <i class="fa fa-wifi"></i>
+        <span>Vente enregistrée <strong>hors ligne</strong> (ticket provisoire <strong><?= h($vente['NumeroHorsLigne']) ?></strong>), envoyée au retour de la connexion.
+            <?php if ($vente['AlerteHorsLigne']): ?><br>À vérifier : <?= h($vente['AlerteHorsLigne']) ?>.
+                <?php if ($vente['AlerteHorsLigneVue']): ?><span class="text-muted">Vérifiée le <?= date_fr($vente['AlerteHorsLigneVue'], 'd/m/Y H:i') ?>.</span><?php endif; ?>
+            <?php endif; ?></span>
+        <?php if ($vente['AlerteHorsLigne'] && !$vente['AlerteHorsLigneVue'] && is_admin()): ?>
+            <form method="post" action="<?= h(url('vente/verifier')) ?>" class="ms-auto">
+                <?= csrf_field() ?><input type="hidden" name="id" value="<?= (int) $vente['Id'] ?>">
+                <button class="btn btn-sm btn-warning"><i class="fa fa-check"></i> Marquer vérifiée</button>
+            </form>
+        <?php endif; ?>
+    </div>
+<?php endif; ?>
 <div class="row g-3 mb-3">
     <div class="col-md-3"><div class="card h-100 border-0 shadow-sm"><div class="card-body">
         <div class="small text-muted">Date</div><div class="fw-bold"><?= date_fr($vente['DateCommande'], 'd/m/Y H:i') ?></div>

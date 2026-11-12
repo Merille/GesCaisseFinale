@@ -20,6 +20,8 @@ namespace EasytransitCaisse.Controllers
             _context = context;
         }
 
+        private bool EstAdmin => User.FindFirst(AppClaimTypes.Profil)?.Value is "Admin" or "SuperAdmin";
+
         private bool PeutRembourser =>
             User.FindFirst(AppClaimTypes.Profil)?.Value is "Admin" or "SuperAdmin"
             || (bool.TryParse(User.FindFirst(AppClaimTypes.PeutValiderOperations)?.Value, out var pv) && pv);
@@ -90,6 +92,7 @@ namespace EasytransitCaisse.Controllers
             ViewBag.Modes = await _context.ModesPaiement.Where(m => m.Actif && m.TenantId == vente.TenantId && (!m.EstCompte || clientEnCompte))
                 .OrderBy(m => m.Libelle).ToListAsync();
             ViewBag.PeutRembourser = PeutRembourser;
+            ViewBag.EstAdmin = EstAdmin;
             return View(vente);
         }
 
@@ -280,6 +283,23 @@ namespace EasytransitCaisse.Controllers
                 vente.DateLivraison = DateTime.Now;
                 await _context.SaveChangesAsync();
                 TempData["Success"] = $"Livraison de la vente {vente.Numero} marquée comme effectuée.";
+            }
+            return RedirectToAction("Details", new { id });
+        }
+
+        // Vente faite hors ligne avec des écarts (AlerteHorsLigne) : marquée vérifiée par un administrateur.
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Verifier(int id)
+        {
+            var vente = await _context.CommandesPos.FirstOrDefaultAsync(c => c.Id == id);
+            if (vente == null)
+                return NotFound();
+            if (EstAdmin && vente.AlerteHorsLigne != null && vente.AlerteHorsLigneVue == null)
+            {
+                vente.AlerteHorsLigneVue = DateTime.Now;
+                await _context.SaveChangesAsync();
+                TempData["Success"] = $"Vente {vente.Numero} marquée vérifiée.";
             }
             return RedirectToAction("Details", new { id });
         }

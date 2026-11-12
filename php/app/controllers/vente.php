@@ -324,3 +324,14 @@ function vente_annuler(): void
     flash('success', 'Vente ' . $vente['Numero'] . ' annulée : ses encaissements sont rejetés et le stock est remis.');
     redirect('vente/details', ['id' => $vente['Id']]);
 }
+
+/** Vente faite hors ligne avec des écarts (AlerteHorsLigne) : marquée vérifiée par un administrateur. */
+function vente_verifier(): void
+{
+    $vente = vente_charger((int) post('id'));
+    if (is_admin() && $vente['AlerteHorsLigne'] && !$vente['AlerteHorsLigneVue']) {
+        run('UPDATE CommandesPos SET AlerteHorsLigneVue = NOW() WHERE Id = ?', [$vente['Id']]);
+        flash('success', 'Vente ' . $vente['Numero'] . ' marquée vérifiée.');
+    }
+    redirect('vente/details', ['id' => $vente['Id']]);
+}

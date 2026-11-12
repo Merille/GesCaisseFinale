@@ -39,6 +39,29 @@
     </div>
 </div>
 
+@if (!string.IsNullOrEmpty(v.NumeroHorsLigne))
+{
+    var aVerifier = v.AlerteHorsLigne != null && v.AlerteHorsLigneVue == null;
+    <div class="alert @(aVerifier ? "alert-warning" : "alert-info") d-flex flex-wrap align-items-center gap-2" id="venteHorsLigne">
+        <i class="fas fa-wifi"></i>
+        <span>Vente enregistrée <strong>hors ligne</strong> (ticket provisoire <strong>@v.NumeroHorsLigne</strong>), envoyée au retour de la connexion.
+            @if (v.AlerteHorsLigne != null)
+            {
+                <br />@:À vérifier : @v.AlerteHorsLigne.
+                @if (v.AlerteHorsLigneVue.HasValue)
+                {
+                    <span class="text-muted">Vérifiée le @v.AlerteHorsLigneVue.Value.ToString("dd/MM/yyyy HH:mm").</span>
+                }
+            }</span>
+        @if (aVerifier && (bool)ViewBag.EstAdmin)
+        {
+            <form method="post" action="/Vente/Verifier/@v.Id" class="ms-auto">
+                @Html.AntiForgeryToken()
+                <button class="btn btn-sm btn-warning"><i class="fas fa-check"></i> Marquer vérifiée</button>
+            </form>
+        }
+    </div>
+}
 <div class="row g-3 mb-3">
     <div class="col-md-3"><div class="card h-100 border-0 shadow-sm"><div class="card-body">
         <div class="small text-muted">Date</div><div class="fw-bold">@v.DateCommande.ToString("dd/MM/yyyy HH:mm")</div>

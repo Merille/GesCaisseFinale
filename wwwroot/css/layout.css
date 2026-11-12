@@ -658,3 +658,20 @@ html.sidebar-replie .sb-sub {
 .gc-connexion.hors-ligne { background: #f59e0b; color: #1f1300; }
 .gc-connexion.hors-ligne .gc-point { background: #7c2d12; animation: gc-clignote 1.2s infinite; }
 @keyframes gc-clignote { 50% { opacity: .25; } }
+/* File d'attente hors ligne : indicateur « n à envoyer » et panneau du détail. */
+.gc-connexion.gc-attente { cursor: pointer; }
+.gc-connexion.en-ligne.gc-attente { background: #fde68a; color: #422006; }
+.gc-connexion.en-ligne.gc-attente .gc-point { background: #b45309; }
+.gc-file-fond { position: fixed; inset: 0; z-index: 3000; background: rgba(15, 23, 42, .45); display: flex; align-items: center; justify-content: center; padding: 16px; }
+.gc-file { width: min(520px, 100%); max-height: calc(100vh - 32px); display: flex; flex-direction: column; background: #fff; color: #1e293b; border-radius: 14px; box-shadow: 0 10px 40px rgba(0, 0, 0, .25); overflow: hidden; font-size: 14px; }
+.gc-file-tete { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: #1b5e84; color: #fff; font-weight: 700; }
+.gc-file-tete button { border: 0; background: none; color: inherit; font-size: 22px; line-height: 1; cursor: pointer; }
+.gc-file-aide { padding: 10px 16px; background: #fff7ed; color: #9a3412; font-size: 13px; }
+.gc-file-liste { overflow: auto; padding: 4px 16px; }
+.gc-file-el { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px solid #e2e8f0; }
+.gc-file-el small { display: block; color: #64748b; }
+.gc-file-el > span { font-weight: 700; white-space: nowrap; }
+.gc-file-erreur { color: #b91c1c; }
+.gc-file-vide { padding: 16px 0; color: #64748b; }
+.gc-file-envoyer { margin: 12px 16px; padding: 10px; border: 0; border-radius: 10px; background: #1b5e84; color: #fff; font-weight: 600; cursor: pointer; }
+.gc-file-envoyer:disabled { opacity: .6; }

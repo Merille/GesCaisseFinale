@@ -241,6 +241,9 @@ CREATE TABLE `CommandesPos` (
   `StatutLivraison` varchar(20) DEFAULT NULL,
   `DateLivraison` datetime DEFAULT NULL,
   `FraisLivraison` decimal(18,2) NOT NULL DEFAULT '0.00',
+  `NumeroHorsLigne` varchar(30) DEFAULT NULL,
+  `AlerteHorsLigne` varchar(500) DEFAULT NULL,
+  `AlerteHorsLigneVue` datetime DEFAULT NULL,
   PRIMARY KEY (`Id`),
   UNIQUE KEY `UX_CommandesPos_Numero` (`TenantId`,`Numero`),
   UNIQUE KEY `UX_CommandesPos_Cle` (`TenantId`,`CleClient`),
@@ -311,6 +314,7 @@ CREATE TABLE `DepotsLinge` (
   `DateRetrait` datetime DEFAULT NULL,
   `DateAnnulation` datetime DEFAULT NULL,
   `CommandePosId` int DEFAULT NULL,
+  `NumeroHorsLigne` varchar(30) DEFAULT NULL,
   PRIMARY KEY (`Id`),
   UNIQUE KEY `IX_DepotsLinge_TenantId_Numero` (`TenantId`,`Numero`),
   KEY `IX_DepotsLinge_TenantId_Statut` (`TenantId`,`Statut`)
@@ -487,6 +491,7 @@ INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('019_depot
 INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('020_depots_linge.sql','2026-11-02 00:15:20');
 INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('021_achats.sql','2026-11-12 00:00:00');
 INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('022_depot_achats.sql','2026-11-12 00:00:00');
+INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('023_hors_ligne.sql','2026-11-12 00:00:00');
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `ModesPaiement` (

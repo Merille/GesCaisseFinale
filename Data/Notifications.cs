@@ -91,6 +91,11 @@ namespace EasytransitCaisse.Data
             }
             if (admin && modulePointVente)
             {
+                // Ventes faites hors ligne avec des écarts (après clôture, prix, stock, plafond) à vérifier.
+                var aVerifier = context.CommandesPos.Where(c => c.AlerteHorsLigne != null && c.AlerteHorsLigneVue == null);
+                var nbAVerifier = aVerifier.Count();
+                if (nbAVerifier > 0)
+                    Ajouter(nbAVerifier, "vente%s hors ligne à vérifier", $"/Vente/Details/{aVerifier.OrderBy(c => c.DateCommande).Select(c => c.Id).First()}", "fa-wifi", "#b45309");
                 Ajouter(context.Produits.Count(p => p.SuiviStock && p.Actif && !p.EstModele && !p.Consommable && p.SeuilAlerte != null && p.StockActuel <= p.SeuilAlerte),
                     "produit%s sous le seuil d'alerte", "/Stock/Index", "fa-boxes-stacked", "#dc2626");
                 Ajouter(context.EntretienEnAlerte().Count, "produit%s d'entretien à racheter", "/Achat/Stock", "fa-bottle-droplet", "#dc2626");

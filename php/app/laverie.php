@@ -51,8 +51,11 @@ function laverie_motif(int $tenant): int
         ?: run("INSERT INTO Motifs (LibelleMotif, TypeModif, TenantId) VALUES ('Acompte laverie', 'Client', ?)", [$tenant]));
 }
 
-/** Journée ouverte d'une caisse Laverie, pour un dépôt (sinon réponse d'erreur). */
-function laverie_journee(int $id): array
+/**
+ * Journée ouverte d'une caisse Laverie, pour un dépôt (sinon réponse d'erreur). $clotureeAdmise : dépôt
+ * fait hors ligne, envoyé après la clôture de sa journée (il a déjà eu lieu).
+ */
+function laverie_journee(int $id, bool $clotureeAdmise = false): array
 {
     $journee = q1('SELECT j.*, c.TypePointVente FROM JourneesCaisses j JOIN Caisses c ON c.ID = j.CaisseId WHERE j.Id = ? AND ' . tf('j'), [$id]);
     if (!$journee) {
@@ -61,7 +64,7 @@ function laverie_journee(int $id): array
     if ($journee['TypePointVente'] !== 'Laverie') {
         pos_json(['erreur' => 'Les dépôts de linge sont réservés aux caisses de type Laverie.'], 400);
     }
-    if ($journee['Statut'] !== 'Ouverte') {
+    if ($journee['Statut'] !== 'Ouverte' && !$clotureeAdmise) {
         pos_json(['erreur' => 'Cette journée est clôturée : ouvrez une nouvelle journée.'], 409);
     }
     return $journee;
@@ -71,8 +74,11 @@ function laverie_journee(int $id): array
 function pos_deposer(): void
 {
     $s = pos_saisie();
-    $journee = laverie_journee((int) ($s['journeeId'] ?? 0));
+    $journee = laverie_journee((int) ($s['journeeId'] ?? 0), is_array($s['horsLigne'] ?? null));
     $tenant = (int) $journee['TenantId'];
+    // Dépôt fait hors ligne : date réelle et numéro provisoire de la souche imprimée sur le poste.
+    $hl = pos_hors_ligne($s, $journee);
+    $date = $hl['date'] ?? date('Y-m-d H:i:s');
     // Nouvel envoi après une coupure réseau : le dépôt déjà enregistré est renvoyé.
     $cle = substr(preg_replace('/[^A-Za-z0-9-]/', '', (string) ($s['cle'] ?? '')), 0, 64) ?: null;
     if ($cle && ($deja = q1('SELECT Id, Numero FROM DepotsLinge WHERE TenantId = ? AND CleClient = ?', [$tenant, $cle]))) {
@@ -91,7 +97,7 @@ function pos_deposer(): void
     }
     $retrait = (string) ($s['retrait'] ?? '');
     $retrait = DateTime::createFromFormat('!Y-m-d', $retrait) ? $retrait : null;
-    if ($retrait !== null && $retrait < date('Y-m-d')) {
+    if ($retrait !== null && $retrait < date('Y-m-d') && !$hl) {
         pos_json(['erreur' => 'La date de retrait prévue est déjà passée.'], 400);
     }
     $client = int_or_null($s['clientId'] ?? null);
@@ -119,17 +125,17 @@ function pos_deposer(): void
             $operation = run(
                 "INSERT INTO OperationsCaisses (TenantId, JourneeCaisseId, DateOperation, TypeOperation, Montant, Libelle,
                     ClientId, MotifId, ModePaiementId, UtilisateurId, EstJustifie, StatutValidation, Valideur)
-                 VALUES (?, ?, NOW(), 'Encaissement', ?, ?, ?, ?, ?, ?, 1, 'Validé', 'Point de vente')",
-                [$tenant, $journee['Id'], $acompte, 'Acompte dépôt de linge n° ' . $numero . ' (' . $nom . ')', $client, laverie_motif($tenant), $mode['Id'], user()['id']]
+                 VALUES (?, ?, ?, 'Encaissement', ?, ?, ?, ?, ?, ?, 1, 'Validé', 'Point de vente')",
+                [$tenant, $journee['Id'], $date, $acompte, 'Acompte dépôt de linge n° ' . $numero . ' (' . $nom . ')' . ($hl ? ' (hors ligne)' : ''), $client, laverie_motif($tenant), $mode['Id'], user()['id']]
             );
         }
         $id = run(
             "INSERT INTO DepotsLinge (TenantId, CaisseId, JourneeCaisseId, Numero, CleClient, DateDepot, DateRetraitPrevue, NomClient, TelephoneClient,
-                ClientId, UtilisateurId, Contenu, Total, NbArticles, Acompte, AcompteModePaiementId, AcompteOperationId, Statut)
-             VALUES (?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'En cours')",
-            [$tenant, $journee['CaisseId'], $journee['Id'], $numero, $cle, $retrait, $nom, $telephone, $client, user()['id'],
+                ClientId, UtilisateurId, Contenu, Total, NbArticles, Acompte, AcompteModePaiementId, AcompteOperationId, Statut, NumeroHorsLigne)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'En cours', ?)",
+            [$tenant, $journee['CaisseId'], $journee['Id'], $numero, $cle, $date, $retrait, $nom, $telephone, $client, user()['id'],
              json_encode(['lignes' => $lignes, 'clientId' => $client, 'remise' => $remise], JSON_UNESCAPED_UNICODE),
-             $total, array_sum(array_column($lignes, 'qte')), $acompte, $mode['Id'] ?? null, $operation]
+             $total, array_sum(array_column($lignes, 'qte')), $acompte, $mode['Id'] ?? null, $operation, $hl ? ($hl['numero'] ?? 'hors ligne') : null]
         );
         db()->commit();
     } catch (Throwable $e) {
@@ -154,6 +160,8 @@ function laverie_depot_json(array $d): array
         'retire' => $d['DateRetrait'] ? date('d/m/Y H:i', strtotime($d['DateRetrait'])) : null,
         'venteId' => $d['CommandePosId'] !== null ? (int) $d['CommandePosId'] : null,
         'contenu' => $actif ? json_decode((string) $d['Contenu'], true) : null,
+        // Dépôt fait hors ligne : numéro provisoire de la souche (recherche du linge).
+        'horsLigne' => $d['NumeroHorsLigne'] ?? null,
     ];
 }
 

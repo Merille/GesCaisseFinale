@@ -181,7 +181,7 @@ $ouverte = $journee['Statut'] === 'Ouverte';
                     <h5 class="modal-title">Clôture de la journée — comptage</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
                 </div>
-                <form method="post" action="<?= h(url('journee/cloturer')) ?>">
+                <form method="post" action="<?= h(url('journee/cloturer')) ?>" data-gc-cloture="<?= (int) $journee['Id'] ?>">
                     <?= csrf_field() ?>
                     <input type="hidden" name="id" value="<?= (int) $journee['Id'] ?>">
                     <div class="modal-body">

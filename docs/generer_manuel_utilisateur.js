@@ -98,7 +98,7 @@ const fiche = [
         ['Application', 'GesCaisse — gestion de caisse et point de vente (POS)'],
         ['Éditeur', 'M-ITECH AFRICA'],
         ['Public', 'Administrateurs, caissiers, vendeurs et serveurs des sociétés clientes'],
-        ['Version du document', '3.3'],
+        ['Version du document', '3.4'],
         ['Date', 'Novembre 2026']
     ], [3000, 6638])
 ];
@@ -197,7 +197,7 @@ const contenu = [
     pt('Pour tous les utilisateurs', 'opérations en attente de validation, décaissements sans justificatif et journées ouvertes depuis plus de 24 h, toutes caisses confondues (la ligne ouvre la plus ancienne journée concernée).'),
     pt('Livraisons à livrer', 'ventes payées confiées à un livreur dont la livraison n’est pas encore marquée **Livrée** (6.6), avec leur montant, frais de livraison compris. La ligne ouvre l’écran de vente de la journée de la plus ancienne, où **Commandes en attente** permet de la marquer livrée (ou la fiche de la vente si sa journée est clôturée) ; pour un administrateur, le rapport des livraisons filtré « À livrer » (9.1). Les ventes annulées ne sont pas comptées.'),
     pt('Livraisons à encaisser', 'commandes confiées à un livreur et pas encore encaissées (6.6), avec le montant attendu, frais de livraison compris. La ligne ouvre l’écran de vente de la journée de la plus ancienne commande, où vous l’encaissez au retour du livreur depuis **Commandes en attente** ; pour un administrateur, elle ouvre le rapport des livraisons filtré « À encaisser » (9.1).'),
-    pt('Pour les administrateurs', 'produits en vente au niveau ou sous leur seuil d’alerte (page Stock) et, en laverie, produits d’entretien à racheter (dépôt des achats, 8.7) et dépôts de linge en retard (rapport des dépôts filtré « En retard », 9.2).'),
+    pt('Pour les administrateurs', 'ventes faites hors ligne à vérifier (2.5), produits en vente au niveau ou sous leur seuil d’alerte (page Stock) et, en laverie, produits d’entretien à racheter (dépôt des achats, 8.7) et dépôts de linge en retard (rapport des dépôts filtré « En retard », 9.2).'),
     p('Quand tout est traité, la cloche s’éteint et indique « Rien à traiter pour le moment ».'),
     h2('2.5 Installer l’application et travailler sans connexion'),
     p('GesCaisse peut s’installer comme une application sur le poste de caisse, la tablette ou le téléphone : cliquez sur l’icône **Installer l’application** (flèche vers le bas) dans la barre du haut quand elle apparaît, ou utilisez le menu du navigateur (« Installer GesCaisse » / « Ajouter à l’écran d’accueil »). L’application s’ouvre alors dans sa propre fenêtre, avec son icône.'),
@@ -205,7 +205,18 @@ const contenu = [
     pt('Écran de vente sans connexion', 'chaque écran de vente ouvert avec la connexion est enregistré sur le poste, avec ses articles, ses images et ses icônes. Si la connexion tombe, l’écran reste utilisable et se rouvre même après un rechargement : le ticket en cours est conservé.'),
     pt('Autres pages', 'hors connexion, elles affichent une page « Pas de connexion au serveur » qui propose de revenir aux écrans de vente enregistrés sur le poste, et un bouton **Réessayer**.'),
     pt('Confidentialité', 'les écrans de vente enregistrés sont effacés du poste à la déconnexion.'),
-    attention('Ouvrez la journée et l’écran de vente au moins une fois avec la connexion avant une coupure. Dans cette version, la validation d’une vente demande encore la connexion : l’enregistrement des ventes hors ligne et leur envoi automatique au retour de la connexion arrivent dans la prochaine mise à jour.'),
+    h3('Vendre sans connexion'),
+    p('Sans connexion, vous continuez à encaisser normalement. Au moment de **Valider le paiement**, la vente est **gardée sur le poste** : elle reçoit un **numéro provisoire** (par exemple H-K7Q2-0001 : « H » pour hors ligne, le code du poste, puis un compteur) et un **ticket provisoire** s’affiche, prêt à imprimer. Si la connexion tombe pendant l’envoi, la vente est gardée de la même façon.'),
+    ...figure('02c_vente_hors_ligne', 'Vente gardée sur le poste, avec son ticket provisoire'),
+    pt('Envoi automatique', 'dès que la connexion revient, les ventes gardées sont envoyées au serveur, dans l’ordre, depuis n’importe quelle page de GesCaisse ouverte sur le poste. Chaque vente reçoit alors son numéro définitif (le numéro provisoire reste visible dans la liste des ventes). Une vente n’est jamais enregistrée deux fois, même si l’envoi est refait.'),
+    pt('Indicateur', 'il affiche le nombre d’opérations à envoyer (« Hors ligne · 2 à envoyer », puis « En ligne · envoi de 2… »). Touchez-le pour voir le détail et, avec la connexion, **Envoyer maintenant**.'),
+    ...figure('02d_envois_en_attente', 'Envois en attente sur le poste'),
+    pt('Laverie', 'un **dépôt de linge** peut aussi être enregistré sans connexion : la souche et le ticket client portent le numéro provisoire, et le dépôt apparaît « À envoyer » dans la liste des dépôts. Après l’envoi, il reçoit son numéro définitif ; la recherche par le numéro provisoire le retrouve. Il ne peut être encaissé qu’une fois envoyé.'),
+    pt('Clients en compte', 'la vente par compte reste possible avec le dernier solde connu du poste ; un dépassement du plafond constaté à l’envoi est signalé à l’administrateur.'),
+    pt('Non disponible sans connexion', 'les commandes de table (restaurant, bar), la mise en attente des commandes et les bons de préparation (prévenez la cuisine ou le bar de vive voix).'),
+    pt('Ventes à vérifier', 'une vente faite hors ligne est toujours enregistrée, puisqu’elle a déjà eu lieu. Si elle arrive après la clôture de sa journée, si un prix a changé, si le stock manque ou si le plafond d’un client est dépassé, elle est signalée : badge orange dans la liste des ventes, encadré « À vérifier » dans la fiche de la vente et ligne « vente hors ligne à vérifier » dans la cloche. Après contrôle, un administrateur clique sur **Marquer vérifiée**.'),
+    ...figure('02e_vente_hors_ligne_a_verifier', 'Vente hors ligne arrivée après la clôture, à vérifier'),
+    attention('Ouvrez la journée et l’écran de vente au moins une fois avec la connexion avant une coupure. Les ventes gardées sont dans le navigateur du poste : ne videz pas ses données et ne changez pas de navigateur tant qu’elles ne sont pas envoyées. La clôture de la journée est refusée sur un poste qui a encore des ventes de cette journée à envoyer.'),
     h2('2.6 Se déconnecter'),
     p('Cliquez sur l’icône de sortie, à droite de votre nom dans la barre du haut. Pensez à vous déconnecter sur un poste partagé.'),
 
@@ -257,7 +268,7 @@ const contenu = [
         'GesCaisse calcule l’**écart** avec le montant théorique. Ajoutez au besoin une **note de clôture** pour l’expliquer.',
         'Cliquez sur **Clôturer la journée** et confirmez.'
     ]),
-    attention('La clôture est définitive : plus aucune opération ne peut être ajoutée à la journée. Elle est refusée tant qu’une commande est en attente au point de vente ou, dans un restaurant, tant qu’une table a une commande en cours.'),
+    attention('La clôture est définitive : plus aucune opération ne peut être ajoutée à la journée. Elle est refusée tant qu’une commande est en attente au point de vente ou, dans un restaurant, tant qu’une table a une commande en cours, et sur un poste qui a encore des ventes faites hors ligne à envoyer (2.5). Une vente hors ligne envoyée depuis un autre poste après la clôture est tout de même enregistrée et signalée à vérifier.'),
     h2('3.6 Règlement d’un client en compte'),
     p('Quand un client en compte (4.2) vient régler ce qu’il doit, enregistrez son règlement dans la journée ouverte :'),
     ...etapes([

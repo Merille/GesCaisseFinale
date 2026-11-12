@@ -503,6 +503,13 @@ namespace EasytransitCaisse.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<string>("AlerteHorsLigne")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime?>("AlerteHorsLigneVue")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("CleClient")
                         .IsRequired()
                         .HasMaxLength(64)
@@ -558,6 +565,10 @@ namespace EasytransitCaisse.Migrations
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("NumeroHorsLigne")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
 
                     b.Property<decimal>("Pourboire")
                         .HasPrecision(18, 2)
@@ -770,6 +781,10 @@ namespace EasytransitCaisse.Migrations
 
                     b.Property<int>("Numero")
                         .HasColumnType("int");
+
+                    b.Property<string>("NumeroHorsLigne")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
 
                     b.Property<string>("Statut")
                         .IsRequired()

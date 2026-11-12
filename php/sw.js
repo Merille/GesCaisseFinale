@@ -5,7 +5,8 @@
 //   rafraîchies en arrière-plan.
 // - Autre page demandée hors ligne : page de secours « hors-ligne.html » (liste des caisses disponibles).
 // - Déconnexion, ou passage par la page de connexion (session expirée) : les pages enregistrées sont effacées.
-// Les envois (ventes, POST) ne passent pas par le cache : ils seront mis en file à l'étape 2.
+// Les envois (ventes, POST) ne passent pas par le cache : faits sans connexion, ils sont gardés dans la
+// file du poste et envoyés au retour de la connexion (hors-ligne.js).
 const VERSION = 'gc-1';
 const STATIQUE = 'gc-statique-' + VERSION;
 const IMAGES = 'gc-images';

@@ -935,6 +935,11 @@ function notifications(): array
         }
     }
     if (is_admin() && module_pos_actif()) {
+        // Ventes faites hors ligne avec des écarts (après clôture, prix, stock, plafond) à vérifier.
+        $n = (int) qv('SELECT COUNT(*) FROM CommandesPos WHERE AlerteHorsLigne IS NOT NULL AND AlerteHorsLigneVue IS NULL AND ' . tf());
+        if ($n) {
+            $ajouter($n, 'vente%s hors ligne à vérifier', url('vente/details', ['id' => qv('SELECT Id FROM CommandesPos WHERE AlerteHorsLigne IS NOT NULL AND AlerteHorsLigneVue IS NULL AND ' . tf() . ' ORDER BY DateCommande LIMIT 1')]), 'fa-wifi', '#b45309');
+        }
         $ajouter((int) qv('SELECT COUNT(*) FROM Produits WHERE SuiviStock = 1 AND Actif = 1 AND EstModele = 0 AND Consommable = 0
                            AND SeuilAlerte IS NOT NULL AND StockActuel <= SeuilAlerte AND ' . tf()),
             'produit%s sous le seuil d\'alerte', url('stock/index'), 'fa-boxes-stacked', '#dc2626');

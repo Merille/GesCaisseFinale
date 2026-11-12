@@ -128,6 +128,7 @@ namespace EasytransitCaisse.Controllers
 
             var profil = User.FindFirst(AppClaimTypes.Profil)?.Value ?? "";
             var nom = User.FindFirst(AppClaimTypes.NomComplet)?.Value;
+            var societeTicket = await _context.Tenants.AsNoTracking().FirstOrDefaultAsync(t => t.Id == tenant);
             var donnees = new
             {
                 cle = $"gescaisse-pos:{tenant}:{j.Id}",
@@ -167,6 +168,15 @@ namespace EasytransitCaisse.Controllers
                 urlLivree = "/Pos/Livree",
                 venteSansStock = (await _context.Tenants.AsNoTracking().FirstOrDefaultAsync(t => t.Id == tenant))?.PosVenteSansStock ?? true,
                 jeton = new { nom = jetons.FormFieldName, valeur = jetons.RequestToken },
+                // Hors ligne : jeton frais pour les envois différés, et en-tête du ticket provisoire imprimé sur le poste.
+                urlJeton = "/Pos/Jeton",
+                ticket = new
+                {
+                    societe = societeTicket?.Nom ?? "GesCaisse",
+                    coordonnees = Images.Coordonnees(societeTicket),
+                    description = j.Caisse?.ChkDescription ?? "",
+                    css = "/css/ticket.css?v=" + System.IO.File.GetLastWriteTimeUtc(Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "css", "ticket.css")).Ticks
+                },
                 // Laverie : dépôts de linge payés au retrait.
                 laverie = j.Caisse?.TypePointVente == "Laverie" ? new
                 {
@@ -213,6 +223,46 @@ namespace EasytransitCaisse.Controllers
             public LivraisonSaisie? Livraison { get; set; }
             // Laverie : retrait d'un dépôt de linge (acompte déduit).
             public int? DepotId { get; set; }
+            // Vente faite sans connexion, envoyée au retour de la connexion.
+            public HorsLigneSaisie? HorsLigne { get; set; }
+        }
+
+        // Vente ou dépôt fait hors ligne sur le poste : date et heure réelles, numéro provisoire,
+        // vendeur connecté sur le poste.
+        private sealed class HorsLigneSaisie
+        {
+            public string? Date { get; set; }
+            public string? Numero { get; set; }
+            public string? Vendeur { get; set; }
+        }
+
+        private sealed record HorsLigneInfo(DateTime Date, string Numero, string Vendeur);
+
+        // Date bornée : pas dans le futur, ni plus d'un jour avant l'ouverture de la journée.
+        private static HorsLigneInfo? LireHorsLigne(HorsLigneSaisie? hl, JourneeCaisse j)
+        {
+            if (hl == null)
+                return null;
+            var maintenant = DateTime.Now;
+            var date = DateTimeOffset.TryParse(hl.Date, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AssumeLocal, out var d)
+                ? d.ToLocalTime().DateTime : maintenant;
+            if (date > maintenant.AddMinutes(5) || date < j.DateOuverture.AddDays(-1))
+                date = maintenant;
+            if (date > maintenant)
+                date = maintenant;
+            date = new DateTime(date.Year, date.Month, date.Day, date.Hour, date.Minute, date.Second);
+            var numero = new string((hl.Numero ?? "").Where(c => char.IsAsciiLetterOrDigit(c) || c == '-').Take(30).ToArray());
+            var vendeur = (hl.Vendeur ?? "").Trim();
+            return new HorsLigneInfo(date, numero == "" ? "hors ligne" : numero, vendeur.Length > 100 ? vendeur[..100] : vendeur);
+        }
+
+        // Jeton anti-falsification à jour, pour envoyer les ventes et dépôts faits hors ligne (le jeton
+        // de l'écran de vente gardé sur le poste peut avoir changé depuis). Session expirée : connexion.
+        [HttpGet]
+        public IActionResult Jeton()
+        {
+            var jetons = _antiforgery.GetAndStoreTokens(HttpContext);
+            return Json(new { nom = jetons.FormFieldName, valeur = jetons.RequestToken });
         }
 
         private sealed class OuverteSaisie
@@ -275,17 +325,31 @@ namespace EasytransitCaisse.Controllers
             var deja = await _context.CommandesPos.FirstOrDefaultAsync(c => c.TenantId == tenant && c.CleClient == cle);
             if (deja != null)
                 return Json(new { id = deja.Id, numero = deja.Numero });
+            // Vente faite hors ligne : elle a déjà eu lieu, elle est enregistrée même si la journée a été
+            // clôturée, un prix a changé, le stock manque ou le plafond est dépassé ; ces écarts sont notés
+            // (AlerteHorsLigne) pour vérification par un administrateur.
+            var hl = LireHorsLigne(v.HorsLigne, j);
+            var alertes = new List<string>();
+            var nomSession = User.FindFirst(AppClaimTypes.NomComplet)?.Value;
+            var loginSession = User.FindFirst(ClaimTypes.Name)?.Value ?? "";
+            if (hl != null && hl.Vendeur != "" && hl.Vendeur != nomSession && hl.Vendeur != loginSession)
+                alertes.Add($"faite par « {hl.Vendeur} », envoyée sous la session de « {(string.IsNullOrWhiteSpace(nomSession) ? loginSession : nomSession)} »");
             if (j.Statut != "Ouverte")
-                return Erreur(409, "Cette journée est clôturée : la vente ne peut pas être enregistrée.");
+            {
+                if (hl == null)
+                    return Erreur(409, "Cette journée est clôturée : la vente ne peut pas être enregistrée.");
+                alertes.Add("arrivée après la clôture de la journée");
+            }
 
-            // Lignes : prix et taxes repris du catalogue ; prix saisi accepté pour un administrateur seulement.
+            // Lignes : prix et taxes repris du catalogue ; prix saisi accepté pour un administrateur seulement
+            // (et, hors ligne, le prix encaissé sur le poste).
             var taxesProduits = _context.TaxesDesProduits(v.Lignes.Select(l => l.ProduitId));
             var lignes = new List<(Produit Produit, LigneCommandePos Ligne)>();
             decimal ttc = 0, tva = 0;
             foreach (var l in v.Lignes)
             {
-                var p = await _context.Produits.FirstOrDefaultAsync(x => x.Id == l.ProduitId && x.TenantId == tenant && x.Actif && !x.Consommable
-                    && (x.ParentId == null || _context.Produits.Any(m => m.Id == x.ParentId && m.Actif)));
+                var p = await _context.Produits.FirstOrDefaultAsync(x => x.Id == l.ProduitId && x.TenantId == tenant && !x.Consommable
+                    && (hl != null || x.Actif && (x.ParentId == null || _context.Produits.Any(m => m.Id == x.ParentId && m.Actif))));
                 var qte = Math.Round(l.Qte, 2);
                 if (p == null || qte <= 0)
                     return Erreur(400, "Un article du ticket est introuvable, inactif ou de quantité nulle.");
@@ -302,7 +366,9 @@ namespace EasytransitCaisse.Controllers
                     composants = liste;
                     prixCatalogue += supplements;
                 }
-                var prix = EstAdmin && l.Prix.HasValue ? Math.Max(0, Math.Round(l.Prix.Value, 2)) : prixCatalogue;
+                var prix = (EstAdmin || hl != null) && l.Prix.HasValue ? Math.Max(0, Math.Round(l.Prix.Value, 2)) : prixCatalogue;
+                if (hl != null && !EstAdmin && Math.Abs(prix - prixCatalogue) > 0.001m)
+                    alertes.Add($"prix de « {p.Nom} » : {Fcfa(prix)} encaissé, {Fcfa(prixCatalogue)} au catalogue");
                 var remise = Math.Min(100, Math.Max(0, Math.Round(l.Remise, 2)));
                 var total = Math.Round(qte * prix * (1 - remise / 100), 0, MidpointRounding.AwayFromZero);
                 ttc += total;
@@ -381,15 +447,25 @@ namespace EasytransitCaisse.Controllers
             {
                 depot = await _context.DepotsLinge.IgnoreQueryFilters()
                     .FirstOrDefaultAsync(d => d.Id == v.DepotId && d.TenantId == tenant && DepotLinge.Actifs.Contains(d.Statut));
-                if (depot == null)
+                if (depot == null && hl != null)
+                {
+                    // Retiré ou annulé sur un autre poste pendant la coupure : vente gardée, acompte non déduit.
+                    var autre = await _context.DepotsLinge.IgnoreQueryFilters().AsNoTracking().FirstOrDefaultAsync(d => d.Id == v.DepotId && d.TenantId == tenant);
+                    alertes.Add("dépôt de linge" + (autre != null ? $" n° {autre.Numero} déjà {autre.Statut.ToLowerInvariant()}" : " introuvable") + " : acompte non déduit");
+                }
+                else if (depot == null)
                     return Erreur(409, "Ce dépôt de linge a déjà été retiré ou annulé.");
-                acompte = depot.Acompte;
+                acompte = depot?.Acompte ?? 0;
                 if (acompte > ttc + pourboire + fraisLivraison)
                     return Erreur(400, $"L'acompte versé ({Fcfa(acompte)} FCFA) dépasse le total : remettez les articles du dépôt sur le ticket.");
             }
             if (recu + acompte < ttc + pourboire + fraisLivraison)
-                return Erreur(400, "Le montant payé est inférieur au total.");
-            var rendu = recu + acompte - ttc - pourboire - fraisLivraison;
+            {
+                if (hl == null)
+                    return Erreur(400, "Le montant payé est inférieur au total.");
+                alertes.Add($"montant payé inférieur au total de {Fcfa(ttc + pourboire + fraisLivraison - recu - acompte)} FCFA");
+            }
+            var rendu = Math.Max(0, recu + acompte - ttc - pourboire - fraisLivraison);
             if (rendu > especes)
                 return Erreur(400, "Seule la monnaie sur les espèces peut être rendue : le montant payé par les autres modes dépasse le total.");
 
@@ -429,7 +505,9 @@ namespace EasytransitCaisse.Controllers
                         .FromSqlInterpolated($"SELECT * FROM Produits WITH (UPDLOCK, ROWLOCK) WHERE Id = {g.Key}")
                         .AsNoTracking().Select(p => new { p.Nom, p.SuiviStock }).FirstAsync();
                     var dispo = await _context.StockCaisseAsync(g.Key, depotsVente);
-                    if (stock.SuiviStock && dispo < g.Sum(x => x.Qte) - 0.001m)
+                    if (stock.SuiviStock && dispo < g.Sum(x => x.Qte) - 0.001m && hl != null)
+                        alertes.Add($"stock insuffisant pour « {stock.Nom} » ({dispo.ToString("0.##", System.Globalization.CultureInfo.GetCultureInfo("fr-FR"))} disponible(s))");
+                    else if (stock.SuiviStock && dispo < g.Sum(x => x.Qte) - 0.001m)
                         return Erreur(409, $"Stock insuffisant pour « {stock.Nom} » : {dispo:0.##} disponible(s).");
                 }
             }
@@ -439,7 +517,9 @@ namespace EasytransitCaisse.Controllers
                 await _context.Database.ExecuteSqlInterpolatedAsync($"SELECT Id FROM Clients WITH (UPDLOCK, HOLDLOCK) WHERE Id = {clientId}");
                 var fiche = await _context.Clients.AsNoTracking().FirstAsync(c => c.Id == clientId);
                 var du = await _context.SoldeCompteAsync(tenant, clientId!.Value);
-                if (fiche.PlafondCredit.HasValue && !EstAdmin && du + parCompte > fiche.PlafondCredit.Value + 0.001m)
+                if (fiche.PlafondCredit.HasValue && !EstAdmin && du + parCompte > fiche.PlafondCredit.Value + 0.001m && hl != null)
+                    alertes.Add($"plafond de crédit de « {fiche.NomSociete} » dépassé (solde dû {Fcfa(du + parCompte)}, plafond {Fcfa(fiche.PlafondCredit.Value)})");
+                else if (fiche.PlafondCredit.HasValue && !EstAdmin && du + parCompte > fiche.PlafondCredit.Value + 0.001m)
                 {
                     var fr = System.Globalization.CultureInfo.GetCultureInfo("fr-FR");
                     return Erreur(409, $"Plafond de crédit dépassé pour « {fiche.NomSociete} » : solde dû {du.ToString("N0", fr)} FCFA, plafond "
@@ -451,7 +531,7 @@ namespace EasytransitCaisse.Controllers
             {
                 await _context.Database.ExecuteSqlInterpolatedAsync($"SELECT Id FROM DepotsLinge WITH (UPDLOCK, ROWLOCK) WHERE Id = {depot.Id}");
                 await _context.Entry(depot).ReloadAsync();
-                if (!DepotLinge.Actifs.Contains(depot.Statut))
+                if (!DepotLinge.Actifs.Contains(depot.Statut) && hl == null)
                     return Erreur(409, "Ce dépôt de linge a déjà été retiré ou annulé.");
             }
             // Commande de table : payée en entier (table libérée) ou en partie (addition partagée : le
@@ -494,11 +574,13 @@ namespace EasytransitCaisse.Controllers
             var commande = new CommandePos
             {
                 TenantId = tenant, Numero = numero, CleClient = cle, JourneeCaisseId = j.Id, ClientId = clientId,
-                UtilisateurId = utilisateurId, DateCommande = DateTime.Now, TotalHT = ttc - tva, TotalTVA = tva,
+                UtilisateurId = utilisateurId, DateCommande = hl?.Date ?? DateTime.Now, TotalHT = ttc - tva, TotalTVA = tva,
                 TotalTTC = ttc, MontantRecu = recu + acompte, MonnaieRendue = rendu, Statut = "Payée",
                 RemiseGlobale = remiseGlobale, RemiseGlobaleTaux = tauxRemise,
                 TableNom = tableNom, Couverts = couverts, Pourboire = pourboire,
-                Lignes = lignes.Select(x => x.Ligne).ToList()
+                Lignes = lignes.Select(x => x.Ligne).ToList(),
+                NumeroHorsLigne = hl?.Numero,
+                AlerteHorsLigne = alertes.Count == 0 ? null : string.Join(" ; ", alertes) is var a && a.Length > 500 ? a[..500] : a
             };
             if (livraison != null)
             {
@@ -509,7 +591,7 @@ namespace EasytransitCaisse.Controllers
                 commande.TelephoneLivraison = livraison.Telephone;
                 commande.AdresseLivraison = livraison.Adresse;
                 commande.StatutLivraison = livree ? "Livrée" : "À livrer";
-                commande.DateLivraison = livree ? DateTime.Now : null;
+                commande.DateLivraison = livree ? hl?.Date ?? DateTime.Now : null;
                 commande.FraisLivraison = fraisLivraison;
             }
             var motif = await _context.Motifs.FirstOrDefaultAsync(m => m.LibelleMotif == "Vente POS" && m.TenantId == tenant);
@@ -540,9 +622,9 @@ namespace EasytransitCaisse.Controllers
                 {
                     operation = new OperationCaisse
                     {
-                        TenantId = tenant, JourneeCaisseId = j.Id, DateOperation = DateTime.Now,
+                        TenantId = tenant, JourneeCaisseId = j.Id, DateOperation = hl?.Date ?? DateTime.Now,
                         TypeOperation = "Encaissement", Montant = net,
-                        Libelle = "Vente POS " + numero + (pourboire > 0 ? " (dont pourboire " + pourboire.ToString("N0", System.Globalization.CultureInfo.GetCultureInfo("fr-FR")) + ")" : "")
+                        Libelle = "Vente POS " + numero + (hl != null ? " (hors ligne)" : "") + (pourboire > 0 ? " (dont pourboire " + pourboire.ToString("N0", System.Globalization.CultureInfo.GetCultureInfo("fr-FR")) + ")" : "")
                             + (livraison != null && fraisLivraison > 0 ? " (dont frais de livraison " + fraisLivraison.ToString("N0", System.Globalization.CultureInfo.GetCultureInfo("fr-FR")) + ")" : ""),
                         ClientId = clientId, MotifId = motif.ID, ModePaiementId = mode.Id,
                         UtilisateurId = utilisateurId, EstJustifie = true,
@@ -568,14 +650,18 @@ namespace EasytransitCaisse.Controllers
                         TenantId = tenant, CommandePosId = commande.Id, ModePaiementId = depot.AcompteModePaiementId,
                         Libelle = $"Acompte (dépôt n° {depot.Numero})", MontantRecu = acompte, Montant = acompte, OperationCaisseId = depot.AcompteOperationId
                     });
-                depot.Statut = DepotLinge.Retire;
-                depot.DateRetrait = DateTime.Now;
-                depot.CommandePosId = commande.Id;
+                if (DepotLinge.Actifs.Contains(depot.Statut))
+                {
+                    depot.Statut = DepotLinge.Retire;
+                    depot.DateRetrait = hl?.Date ?? DateTime.Now;
+                    depot.CommandePosId = commande.Id;
+                }
             }
             // Vente directe d'une caisse restaurant / bar : à l'encaissement, les articles partent en
             // préparation (un bon par poste, comme pour une table).
             var bons = new List<BonPreparation>();
-            if (v.CommandeOuverte == null && j.Caisse != null && j.Caisse.EstRestaurant)
+            // (Pas pour une vente faite hors ligne : elle a déjà été servie.)
+            if (v.CommandeOuverte == null && hl == null && j.Caisse != null && j.Caisse.EstRestaurant)
             {
                 var contenu = new Restaurant.Contenu
                 {

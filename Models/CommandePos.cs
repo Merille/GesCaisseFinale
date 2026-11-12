@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using EasytransitCaisse.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -68,6 +69,17 @@ namespace EasytransitCaisse.Models
         // Frais de livraison : en plus du total TTC (hors taxes), recette de la société.
         [Precision(18, 2)]
         public decimal FraisLivraison { get; set; }
+
+        // Vente faite hors ligne sur un poste, envoyée au retour de la connexion : numéro provisoire du
+        // ticket imprimé, écarts constatés à l'arrivée (après clôture, prix, stock, plafond…) et date à
+        // laquelle un administrateur les a vérifiés.
+        [StringLength(30)]
+        public string? NumeroHorsLigne { get; set; }
+
+        [StringLength(500)]
+        public string? AlerteHorsLigne { get; set; }
+
+        public DateTime? AlerteHorsLigneVue { get; set; }
 
         // Commande livrée : livreur, destinataire et statut de la livraison (« À livrer » tant
         // qu'une vente payée à la commande n'est pas livrée, puis « Livrée »). Vide hors livraison.
