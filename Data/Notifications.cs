@@ -9,7 +9,7 @@ namespace EasytransitCaisse.Data
     // Notifications de la cloche (barre du haut) : ce qui attend une action, toutes caisses confondues.
     // Pour tous : opérations en attente de validation, décaissements sans justificatif, journées ouvertes
     // depuis plus de 24 h (lien vers la plus ancienne journée concernée) ; module Point de vente : livraisons
-    // à encaisser (commandes confiées à un livreur). Administrateurs, module Point de
+    // à livrer (ventes payées pas encore livrées) et à encaisser (commandes confiées à un livreur). Administrateurs, module Point de
     // vente : produits sous le seuil d'alerte (hors produits d'entretien), et en laverie, produits
     // d'entretien à racheter et dépôts de linge en retard. Comme notifications() en PHP.
     public static class Notifications
@@ -53,6 +53,25 @@ namespace EasytransitCaisse.Data
             var nbAnciennes = anciennes.Count();
             if (nbAnciennes > 0)
                 Ajouter(nbAnciennes, "journée%s ouverte%s depuis plus de 24 h", $"/JourneeCaisse/Details/{anciennes.OrderBy(j => j.DateOuverture).Select(j => j.Id).First()}", "fa-clock", "#7c2d12");
+            // Livraisons à livrer : ventes payées confiées à un livreur, pas encore marquées « Livrée » (montant
+            // frais compris). Administrateur : rapport des livraisons filtré ; sinon écran de vente de la journée
+            // (Commandes en attente › Marquer livrée), ou la vente si sa journée est clôturée.
+            if (modulePointVente)
+            {
+                var aLivrer = context.CommandesPos.Where(c => c.StatutLivraison == "À livrer" && c.Statut != "Annulée")
+                    .OrderBy(c => c.DateCommande).ThenBy(c => c.Id)
+                    .Select(c => new { c.Id, c.JourneeCaisseId, c.DateCommande, Montant = c.TotalTTC + c.FraisLivraison,
+                        Ouverte = context.JourneesCaisses.Any(j => j.Id == c.JourneeCaisseId && j.Statut == "Ouverte") })
+                    .ToList();
+                if (aLivrer.Count > 0)
+                {
+                    var p = aLivrer[0];
+                    var url = admin
+                        ? $"/RapportLivraison/Index?statut={Uri.EscapeDataString("À livrer")}&du={p.DateCommande:yyyy-MM-dd}&au={DateTime.Today:yyyy-MM-dd}"
+                        : p.Ouverte ? $"/Pos/Index?journee={p.JourneeCaisseId}" : $"/Vente/Details/{p.Id}";
+                    Ajouter(aLivrer.Count, $"livraison%s à livrer ({aLivrer.Sum(x => x.Montant).ToString("N0", System.Globalization.CultureInfo.GetCultureInfo("fr-FR"))} FCFA)", url, "fa-route", "#0f766e");
+                }
+            }
             // Livraisons à encaisser : commandes confiées à un livreur, encaissées à son retour (montant attendu,
             // frais de livraison compris). Administrateur : rapport des livraisons filtré ; sinon écran de vente.
             if (modulePointVente)

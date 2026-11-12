@@ -98,7 +98,7 @@ const fiche = [
         ['Application', 'GesCaisse — gestion de caisse et point de vente (POS)'],
         ['Éditeur', 'M-ITECH AFRICA'],
         ['Public', 'Administrateurs, caissiers, vendeurs et serveurs des sociétés clientes'],
-        ['Version du document', '3.1'],
+        ['Version du document', '3.2'],
         ['Date', 'Novembre 2026']
     ], [3000, 6638])
 ];
@@ -195,6 +195,7 @@ const contenu = [
     p('La **cloche**, en haut à droite de chaque page, rassemble ce qui attend une action. Quand il y a quelque chose à traiter, elle s’allume et une pastille rouge indique le nombre total d’éléments ; cliquez dessus pour ouvrir la liste, puis sur une ligne pour aller directement à la bonne page.'),
     ...figure('02b_cloche', 'Notifications de la cloche'),
     pt('Pour tous les utilisateurs', 'opérations en attente de validation, décaissements sans justificatif et journées ouvertes depuis plus de 24 h, toutes caisses confondues (la ligne ouvre la plus ancienne journée concernée).'),
+    pt('Livraisons à livrer', 'ventes payées confiées à un livreur dont la livraison n’est pas encore marquée **Livrée** (6.6), avec leur montant, frais de livraison compris. La ligne ouvre l’écran de vente de la journée de la plus ancienne, où **Commandes en attente** permet de la marquer livrée (ou la fiche de la vente si sa journée est clôturée) ; pour un administrateur, le rapport des livraisons filtré « À livrer » (9.1). Les ventes annulées ne sont pas comptées.'),
     pt('Livraisons à encaisser', 'commandes confiées à un livreur et pas encore encaissées (6.6), avec le montant attendu, frais de livraison compris. La ligne ouvre l’écran de vente de la journée de la plus ancienne commande, où vous l’encaissez au retour du livreur depuis **Commandes en attente** ; pour un administrateur, elle ouvre le rapport des livraisons filtré « À encaisser » (9.1).'),
     pt('Pour les administrateurs', 'produits en vente au niveau ou sous leur seuil d’alerte (page Stock) et, en laverie, produits d’entretien à racheter (dépôt des achats, 8.7) et dépôts de linge en retard (rapport des dépôts filtré « En retard », 9.2).'),
     p('Quand tout est traité, la cloche s’éteint et indique « Rien à traiter pour le moment ».'),

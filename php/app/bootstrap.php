@@ -878,7 +878,8 @@ function entretien_en_alerte(): array
  * Notifications de la cloche (barre du haut) : ce qui attend une action, toutes caisses confondues.
  * Pour tous : opérations en attente de validation, décaissements sans justificatif, journées ouvertes
  * depuis plus de 24 h (lien vers la plus ancienne journée concernée) ; module Point de vente :
- * livraisons à encaisser (commandes confiées à un livreur). Administrateurs, module Point
+ * livraisons à livrer (ventes payées pas encore livrées) et à encaisser (commandes confiées à un
+ * livreur). Administrateurs, module Point
  * de vente : produits sous le seuil d'alerte (hors produits d'entretien), et en laverie, produits
  * d'entretien à racheter et dépôts de linge en retard. Chaque entrée : n, texte, url, icone, couleur.
  */
@@ -904,6 +905,21 @@ function notifications(): array
     if ($n) {
         $id = qv("SELECT j.Id FROM JourneesCaisses j WHERE " . tf('j') . " AND j.Statut = 'Ouverte' AND j.DateOuverture < ? ORDER BY j.DateOuverture LIMIT 1", [$limite]);
         $ajouter($n, 'journée%s ouverte%s depuis plus de 24 h', url('journee/details', ['id' => $id]), 'fa-clock', '#7c2d12');
+    }
+    // Livraisons à livrer : ventes payées confiées à un livreur, pas encore marquées « Livrée » (montant
+    // frais compris). Administrateur : rapport des livraisons filtré ; sinon écran de vente de la journée
+    // (Commandes en attente › Marquer livrée), ou la vente si sa journée est clôturée.
+    if (module_pos_actif()) {
+        $aLivrer = q("SELECT c.Id, c.JourneeCaisseId, c.DateCommande, c.TotalTTC + c.FraisLivraison AS Montant, j.Statut FROM CommandesPos c
+                      JOIN JourneesCaisses j ON j.Id = c.JourneeCaisseId
+                      WHERE c.StatutLivraison = 'À livrer' AND c.Statut <> 'Annulée' AND " . tf('c') . ' ORDER BY c.DateCommande, c.Id');
+        if ($aLivrer) {
+            $p = $aLivrer[0];
+            $url = is_admin()
+                ? url('rapportlivraison/index', ['statut' => 'À livrer', 'du' => substr($p['DateCommande'], 0, 10), 'au' => date('Y-m-d')])
+                : ($p['Statut'] === 'Ouverte' ? url('pos/index', ['journee' => $p['JourneeCaisseId']]) : url('vente/details', ['id' => $p['Id']]));
+            $ajouter(count($aLivrer), 'livraison%s à livrer (' . fcfa(array_sum(array_column($aLivrer, 'Montant'))) . ' FCFA)', $url, 'fa-route', '#0f766e');
+        }
     }
     // Livraisons à encaisser : commandes confiées à un livreur, encaissées à son retour (montant attendu,
     // frais de livraison compris). Administrateur : rapport des livraisons filtré ; sinon écran de vente.
