@@ -222,11 +222,20 @@ $badge = $nbJourneesOuvertes > 0
                 <?php endif; ?>
             </div>
         </div>
-        <div class="topbar-user">
-            <span class="topbar-avatar" title="<?= h($u['nom']) ?>"><?= h($initiales) ?></span>
-            <div class="topbar-user-text">
-                <strong><?= h($u['nom']) ?></strong>
-                <small><?= h($libelleProfil) ?></small>
+        <div class="topbar-user dropdown">
+            <?php // Menu de l'utilisateur (comme Odoo) : installer l'application sur le poste, se déconnecter. ?>
+            <button type="button" class="topbar-user-bouton" data-bs-toggle="dropdown" aria-expanded="false" title="Menu de <?= h($u['nom']) ?>">
+                <span class="topbar-avatar"><?= h($initiales) ?></span>
+                <span class="topbar-user-text">
+                    <strong><?= h($u['nom']) ?></strong>
+                    <small><?= h($libelleProfil) ?></small>
+                </span>
+                <i class="fas fa-chevron-down topbar-user-chevron"></i>
+            </button>
+            <div class="dropdown-menu dropdown-menu-end shadow">
+                <button type="button" class="dropdown-item" data-gc-installer><i class="fas fa-desktop fa-fw me-2"></i><span>Installer l'application</span></button>
+                <div class="dropdown-divider"></div>
+                <a class="dropdown-item" href="<?= h(url('auth/logout')) ?>"><i class="fas fa-right-from-bracket fa-fw me-2"></i>Se déconnecter</a>
             </div>
             <a class="topbar-logout" href="<?= h(url('auth/logout')) ?>" title="Se déconnecter" aria-label="Se déconnecter">
                 <i class="fas fa-right-from-bracket"></i>

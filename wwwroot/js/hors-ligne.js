@@ -5,7 +5,8 @@
 // - Indicateur de connexion (éléments .gc-connexion) : « En ligne » / « Hors ligne », vérifié par un
 //   petit appel au serveur toutes les 30 s (un wifi branché sans internet est détecté). Événement
 //   « gc-connexion » à chaque changement ; window.gcConnexion.html() donne le badge à jour (pos.js).
-// - Bouton « Installer l'application » (élément #gcInstaller) quand le navigateur le propose.
+// - « Installer l'application » : entrée du menu de l'utilisateur et bouton #gcInstaller (raccourci sur le
+//   bureau, fenêtre propre), avec une aide quand le navigateur ne propose pas l'installation directe.
 // - File d'attente du poste (window.gcFile) : ventes et dépôts de linge faits sans connexion, gardés
 //   dans le navigateur et envoyés dans l'ordre dès le retour de la connexion (sur n'importe quelle page
 //   de l'application), avec un jeton frais. Le serveur reconnaît un envoi déjà reçu (clé de la vente) :
@@ -373,21 +374,76 @@
         }).catch(() => { /* navigateur sans service worker : pas de mode hors ligne */ });
     }
 
-    // Installation de l'application (bouton #gcInstaller affiché quand le navigateur la propose).
+    // Installation de l'application, comme dans Odoo : entrée « Installer l'application » du menu de
+    // l'utilisateur ([data-gc-installer]) et bouton #gcInstaller (affiché quand le navigateur la propose).
+    // GesCaisse s'ouvre alors dans sa propre fenêtre, avec un raccourci sur le bureau et dans le menu
+    // Démarrer (Windows) ou le Launchpad (Mac). Si le navigateur ne propose pas l'installation directe,
+    // une fenêtre explique comment faire avec ce navigateur.
     let proposition = null;
+    const installee = () => window.matchMedia('(display-mode: standalone)').matches || window.matchMedia('(display-mode: window-controls-overlay)').matches || navigator.standalone === true;
+    function majInstallation() {
+        document.querySelectorAll('[data-gc-installer]').forEach(b => {
+            const fait = installee();
+            b.disabled = fait;
+            const texte = b.querySelector('span');
+            if (texte) texte.textContent = fait ? 'Application installée sur ce poste' : 'Installer l\'application';
+        });
+        const bouton = document.getElementById('gcInstaller');
+        if (bouton) bouton.classList.toggle('d-none', !proposition || installee());
+    }
+    function aideInstallation() {
+        document.querySelector('.gc-file-fond')?.remove();
+        const ua = navigator.userAgent;
+        const ios = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        const navigateur = /Edg\//.test(ua) ? 'edge' : /SamsungBrowser/.test(ua) ? 'samsung' : /Firefox|FxiOS/.test(ua) ? 'firefox'
+            : ios ? 'ios' : /Chrome|CriOS|Chromium/.test(ua) ? 'chrome' : /Safari/.test(ua) ? 'safari' : 'autre';
+        const etapes = {
+            chrome: ['Cliquez sur l\'icône <b>Installer</b> (un écran avec une flèche) à droite de la barre d\'adresse,',
+                     'ou ouvrez le menu <b>⋮</b> › <b>Caster, enregistrer et partager</b> › <b>Installer la page en tant qu\'application</b>,',
+                     'confirmez avec <b>Installer</b>.'],
+            edge: ['Cliquez sur l\'icône <b>Application disponible</b> à droite de la barre d\'adresse,',
+                   'ou ouvrez le menu <b>…</b> › <b>Applications</b> › <b>Installer ce site en tant qu\'application</b>,',
+                   'confirmez avec <b>Installer</b>.'],
+            samsung: ['Ouvrez le menu <b>≡</b> › <b>Ajouter la page à</b> › <b>Écran d\'accueil</b>.'],
+            ios: ['Touchez le bouton <b>Partager</b> (carré avec une flèche vers le haut),', 'choisissez <b>Sur l\'écran d\'accueil</b>, puis <b>Ajouter</b>.'],
+            safari: ['Menu <b>Fichier</b> › <b>Ajouter au Dock</b> (macOS Sonoma ou plus récent).'],
+            firefox: ['Firefox ne sait pas installer les applications web sur ordinateur : ouvrez GesCaisse avec <b>Google Chrome</b> ou <b>Microsoft Edge</b>, puis utilisez « Installer l\'application ».'],
+            autre: ['Ouvrez GesCaisse avec <b>Google Chrome</b> ou <b>Microsoft Edge</b>, puis utilisez « Installer l\'application ».']
+        }[navigateur];
+        const fond = document.createElement('div');
+        fond.className = 'gc-file-fond';
+        fond.innerHTML = '<div class="gc-file gc-install" role="dialog" aria-modal="true" aria-label="Installer l\'application">'
+            + '<div class="gc-file-tete">Installer GesCaisse sur ce poste<button type="button" data-gc-fermer aria-label="Fermer">×</button></div>'
+            + '<div class="gc-file-liste" style="padding:14px 16px">'
+            + '<p>Installée, GesCaisse s\'ouvre dans sa propre fenêtre, comme un logiciel, avec un raccourci sur le bureau et dans le menu Démarrer. '
+            + 'Elle reste disponible sans connexion pour vendre.</p>'
+            + (window.isSecureContext ? '' : '<div class="gc-install-actuel">L\'installation demande une adresse sécurisée (https://). Ouvrez GesCaisse par son adresse en https.</div>')
+            + '<div class="gc-install-actuel">Votre navigateur ne propose pas l\'installation directe pour le moment. Avec '
+            + ({ chrome: 'Google Chrome', edge: 'Microsoft Edge', samsung: 'Samsung Internet', ios: 'Safari (iPhone, iPad)', safari: 'Safari (Mac)', firefox: 'Firefox', autre: 'ce navigateur' }[navigateur]) + ' :</div>'
+            + '<ol>' + etapes.map(e => '<li>' + e + '</li>').join('') + '</ol>'
+            + '<p class="text-muted small" style="color:#64748b;font-size:13px">Sous Windows, l\'application installée peut ensuite être épinglée à la barre des tâches (clic droit sur son icône › Épingler). '
+            + 'Si GesCaisse est déjà installée, ouvrez-la depuis son raccourci.</p>'
+            + '</div></div>';
+        document.body.appendChild(fond);
+        fond.addEventListener('click', e => { if (e.target === fond || e.target.closest('[data-gc-fermer]')) fond.remove(); });
+    }
+    function installer() {
+        if (installee()) { notifier('GesCaisse est déjà installée : vous l\'utilisez dans sa fenêtre d\'application.'); return; }
+        if (!proposition) { aideInstallation(); return; }
+        proposition.prompt();
+        proposition.userChoice.then(choix => {
+            if (choix && choix.outcome === 'accepted') notifier('GesCaisse est installée : un raccourci a été ajouté sur ce poste.');
+        }).finally(() => { proposition = null; majInstallation(); });
+    }
     window.addEventListener('beforeinstallprompt', e => {
         e.preventDefault();
         proposition = e;
-        const b = document.getElementById('gcInstaller');
-        if (b) b.classList.remove('d-none');
+        majInstallation();
     });
     document.addEventListener('click', e => {
-        if (!e.target.closest('#gcInstaller') || !proposition) return;
-        proposition.prompt();
-        proposition.userChoice.finally(() => {
-            proposition = null;
-            document.getElementById('gcInstaller')?.classList.add('d-none');
-        });
+        if (e.target.closest('#gcInstaller, [data-gc-installer]')) installer();
     });
-    window.addEventListener('appinstalled', () => document.getElementById('gcInstaller')?.classList.add('d-none'));
+    window.addEventListener('appinstalled', () => { proposition = null; majInstallation(); });
+    document.addEventListener('DOMContentLoaded', majInstallation);
+    window.gcInstaller = { installer, aideInstallation };
 })();

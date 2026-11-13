@@ -98,7 +98,7 @@ const fiche = [
         ['Application', 'GesCaisse — gestion de caisse et point de vente (POS)'],
         ['Éditeur', 'M-ITECH AFRICA'],
         ['Public', 'Administrateurs, caissiers, vendeurs et serveurs des sociétés clientes'],
-        ['Version du document', '3.6'],
+        ['Version du document', '3.7'],
         ['Date', 'Novembre 2026']
     ], [3000, 6638])
 ];
@@ -200,7 +200,10 @@ const contenu = [
     pt('Pour les administrateurs', 'ventes faites hors ligne à vérifier et postes qui ont encore des opérations hors ligne à envoyer (page Synchronisation, 2.6), produits en vente au niveau ou sous leur seuil d’alerte (page Stock) et, en laverie, produits d’entretien à racheter (dépôt des achats, 8.7) et dépôts de linge en retard (rapport des dépôts filtré « En retard », 9.2).'),
     p('Quand tout est traité, la cloche s’éteint et indique « Rien à traiter pour le moment ».'),
     h2('2.5 Installer l’application et travailler sans connexion'),
-    p('GesCaisse peut s’installer comme une application sur le poste de caisse, la tablette ou le téléphone : cliquez sur l’icône **Installer l’application** (flèche vers le bas) dans la barre du haut quand elle apparaît, ou utilisez le menu du navigateur (« Installer GesCaisse » / « Ajouter à l’écran d’accueil »). L’application s’ouvre alors dans sa propre fenêtre, avec son icône.'),
+    p('GesCaisse peut s’installer comme une application sur le poste de caisse, la tablette ou le téléphone : cliquez sur votre nom en haut à droite, puis sur **Installer l’application** (l’icône flèche vers le bas de la barre du haut fait de même quand elle apparaît). Confirmez avec **Installer** : GesCaisse s’ouvre alors dans sa propre fenêtre, comme un logiciel, avec un raccourci sur le bureau et dans le menu Démarrer (Windows) ; vous pouvez l’épingler à la barre des tâches (clic droit sur son icône › Épingler). Un clic droit sur l’icône propose aussi les raccourcis **Vendre**, **Ventes** et **Tableau de bord**.'),
+    ...figure('02h_installer_menu', 'Menu de l’utilisateur : Installer l’application'),
+    pt('Si l’installation directe n’est pas proposée', 'une fenêtre explique comment faire avec votre navigateur : dans Google Chrome, icône **Installer** à droite de la barre d’adresse, ou menu ⋮ › Caster, enregistrer et partager › Installer la page en tant qu’application ; dans Microsoft Edge, menu … › Applications › Installer ce site en tant qu’application ; sur iPhone ou iPad (Safari), Partager › Sur l’écran d’accueil. Firefox n’installe pas les applications web sur ordinateur : utilisez Chrome ou Edge. L’adresse doit être en **https**.'),
+    pt('Déjà installée', 'dans la fenêtre de l’application, le menu indique « Application installée sur ce poste ».'),
     pt('Indicateur de connexion', 'en haut de chaque page et de l’écran de vente : **En ligne** (point vert) ou **Hors ligne** (badge orange). La connexion au serveur est vérifiée toutes les 30 secondes : un wifi branché mais sans internet est détecté.'),
     pt('Écran de vente sans connexion', 'chaque écran de vente ouvert avec la connexion est enregistré sur le poste, avec ses articles, ses images et ses icônes. Si la connexion tombe, l’écran reste utilisable et se rouvre même après un rechargement : le ticket en cours est conservé.'),
     pt('Autres pages', 'hors connexion, elles affichent une page « Pas de connexion au serveur » qui propose de revenir aux écrans de vente enregistrés sur le poste, et un bouton **Réessayer**.'),

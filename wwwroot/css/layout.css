@@ -370,6 +370,18 @@ button.topbar-icone:hover { background: rgba(255, 255, 255, .12); }
     color: #fff;
 }
 
+/* Menu de l'utilisateur : avatar, nom et profil forment le bouton du menu. */
+.topbar-user-bouton { display: flex; align-items: center; gap: 10px; padding: 0; border: 0; background: none; color: inherit; text-align: left; cursor: pointer; }
+.topbar-user-bouton:focus-visible { outline: 2px solid #fff; outline-offset: 2px; border-radius: 8px; }
+.topbar-user-chevron { font-size: 10px; opacity: .8; }
+.topbar-user .dropdown-menu { min-width: 220px; }
+/* Aide à l'installation de l'application (navigateur sans installation directe). */
+.gc-install p { margin: 0 0 10px; }
+.gc-install ol { margin: 0 0 10px; padding-left: 20px; }
+.gc-install li { margin-bottom: 4px; }
+.gc-install .gc-install-actuel { padding: 10px 12px; border-radius: 10px; background: #eff6ff; color: #1e3a8a; margin-bottom: 12px; }
+
+
 .page-content {
     padding: 30px;
 }

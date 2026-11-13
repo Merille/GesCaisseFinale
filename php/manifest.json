@@ -9,8 +9,63 @@
   "background_color": "#f5f7fb",
   "theme_color": "#1b5e84",
   "icons": [
-    { "src": "assets/icones/icone-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "assets/icones/icone-512.png", "sizes": "512x512", "type": "image/png" },
-    { "src": "assets/icones/icone-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    {
+      "src": "assets/icones/icone-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/icones/icone-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/icones/icone-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "id": "index.php?r=pos/index",
+  "shortcuts": [
+    {
+      "name": "Vendre",
+      "short_name": "Vendre",
+      "description": "Ouvrir l'écran de vente",
+      "url": "index.php?r=pos/index",
+      "icons": [
+        {
+          "src": "assets/icones/icone-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Ventes",
+      "short_name": "Ventes",
+      "description": "Liste des ventes",
+      "url": "index.php?r=vente/index",
+      "icons": [
+        {
+          "src": "assets/icones/icone-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Tableau de bord",
+      "short_name": "Tableau de bord",
+      "description": "Activité des caisses",
+      "url": "index.php?r=dashboard/index",
+      "icons": [
+        {
+          "src": "assets/icones/icone-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
   ]
 }
