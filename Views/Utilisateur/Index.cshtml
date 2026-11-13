@@ -45,7 +45,7 @@
                                 <span class="badge bg-primary">Remises@(u.RemiseMax.HasValue ? " jusqu'à " + u.RemiseMax.Value.ToString("0.##", System.Globalization.CultureInfo.GetCultureInfo("fr-FR")) + " %" : "")</span>
                             }</td>
                         <td class="text-center table-actions">
-                            <a href="/Utilisateur/Edit/@u.Id" class="btn btn-warning btn-sm">Modifier</a>
+                            <a href="/Utilisateur/Edit/@u.Id" class="btn btn-warning btn-sm" data-modale>Modifier</a>
                             <form asp-action="Delete" asp-route-id="@u.Id" method="post" onsubmit="return confirm('Supprimer cet utilisateur ?');">
                                 <button class="btn btn-danger btn-sm">Supprimer</button>
                             </form>

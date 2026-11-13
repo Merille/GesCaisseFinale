@@ -61,7 +61,7 @@
                 <div class="col-md-6">
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" value="true" id="PeutRemise" name="PeutRemise" checked="@Model.PeutRemise"
-                               onchange="document.getElementById('RemiseMax').disabled = !this.checked" />
+                               onchange="this.form.elements.RemiseMax.disabled = !this.checked" />
                         <input type="hidden" name="PeutRemise" value="false" />
                         <label class="form-check-label" for="PeutRemise">Peut accorder des remises au point de vente</label>
                     </div>
