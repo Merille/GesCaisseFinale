@@ -149,7 +149,7 @@ function tenant_id(): int
 
 // Modules du point de vente (vente, catalogue, stock, restaurant, taxes, unités) : accessibles
 // seulement si la société a le module Point de vente.
-const MODULES_POINT_VENTE = ['pos', 'vente', 'stock', 'posrapport', 'rapportlivraison', 'rapportlinge', 'rapportachat', 'achat', 'produit', 'categorie', 'combo', 'salle', 'cuisine', 'taxe', 'unite', 'depot', 'livreur'];
+const MODULES_POINT_VENTE = ['pos', 'vente', 'synchro', 'stock', 'posrapport', 'rapportlivraison', 'rapportlinge', 'rapportachat', 'achat', 'produit', 'categorie', 'combo', 'salle', 'cuisine', 'taxe', 'unite', 'depot', 'livreur'];
 
 /** La société courante a-t-elle le module Point de vente ? (toujours oui pour « toutes les sociétés »). */
 function module_pos_actif(): bool
@@ -938,8 +938,10 @@ function notifications(): array
         // Ventes faites hors ligne avec des écarts (après clôture, prix, stock, plafond) à vérifier.
         $n = (int) qv('SELECT COUNT(*) FROM CommandesPos WHERE AlerteHorsLigne IS NOT NULL AND AlerteHorsLigneVue IS NULL AND ' . tf());
         if ($n) {
-            $ajouter($n, 'vente%s hors ligne à vérifier', url('vente/details', ['id' => qv('SELECT Id FROM CommandesPos WHERE AlerteHorsLigne IS NOT NULL AND AlerteHorsLigneVue IS NULL AND ' . tf() . ' ORDER BY DateCommande LIMIT 1')]), 'fa-wifi', '#b45309');
+            $ajouter($n, 'vente%s hors ligne à vérifier', url('synchro/index'), 'fa-wifi', '#b45309');
         }
+        // Postes qui ont des opérations faites hors ligne pas encore envoyées (page Synchronisation).
+        $ajouter((int) qv('SELECT COUNT(*) FROM PostesHorsLigne WHERE EnAttente > 0 AND ' . tf()), 'poste%s avec des opérations hors ligne à envoyer', url('synchro/index'), 'fa-cloud-arrow-up', '#c2410c');
         $ajouter((int) qv('SELECT COUNT(*) FROM Produits WHERE SuiviStock = 1 AND Actif = 1 AND EstModele = 0 AND Consommable = 0
                            AND SeuilAlerte IS NOT NULL AND StockActuel <= SeuilAlerte AND ' . tf()),
             'produit%s sous le seuil d\'alerte', url('stock/index'), 'fa-boxes-stacked', '#dc2626');

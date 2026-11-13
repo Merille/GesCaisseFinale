@@ -25,6 +25,7 @@ $routes = [
                       'attentes', 'mettreenattente', 'reprendre', 'supprimerattente', 'livree', 'jeton'],
     'cuisine'     => ['index', 'bons', 'statut'],
     'vente'       => ['index', 'details', 'facture', 'retour', 'annuler', 'livree', 'verifier'],
+    'synchro'     => ['index', 'verifier', 'oublier', 'rapport'],
     'stock'       => ['index', 'depots', 'entree', 'transfert', 'inventaire', 'option'],
     'posrapport'  => ['index', 'preview', 'excel'],
     'rapportlivraison' => ['index', 'imprimer', 'excel'],

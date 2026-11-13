@@ -184,6 +184,24 @@ CREATE TABLE [Motifs] (
 GO
 
 
+CREATE TABLE [PostesHorsLigne] (
+    [Id] int NOT NULL IDENTITY,
+    [TenantId] int NOT NULL,
+    [Code] nvarchar(10) NOT NULL,
+    [UtilisateurId] int NULL,
+    [Navigateur] nvarchar(150) NULL,
+    [EnAttente] int NOT NULL,
+    [Refusees] int NOT NULL,
+    [MontantEnAttente] decimal(18,2) NOT NULL,
+    [PlusAncien] datetime2 NULL,
+    [DernierEnvoi] datetime2 NULL,
+    [DernierRapport] datetime2 NOT NULL,
+    [Detail] nvarchar(max) NULL,
+    CONSTRAINT [PK_PostesHorsLigne] PRIMARY KEY ([Id])
+);
+GO
+
+
 CREATE TABLE [Taxes] (
     [Id] int NOT NULL IDENTITY,
     [TenantId] int NOT NULL,
@@ -888,6 +906,10 @@ CREATE INDEX [IX_PaiementsPos_CommandePosId] ON [PaiementsPos] ([CommandePosId])
 GO
 
 
+CREATE UNIQUE INDEX [IX_PostesHorsLigne_TenantId_Code] ON [PostesHorsLigne] ([TenantId], [Code]);
+GO
+
+
 CREATE INDEX [IX_ProduitAttributs_ProduitId] ON [ProduitAttributs] ([ProduitId]);
 GO
 
@@ -991,7 +1013,8 @@ INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion]) VALUES
     (N'20261112063241_Achats', N'10.0.9'),
     (N'20261112070814_DepotAchats', N'10.0.9'),
     (N'20261112202612_HorsLigne', N'10.0.9'),
-    (N'20261112210405_AttenteHorsLigne', N'10.0.9');
+    (N'20261112210405_AttenteHorsLigne', N'10.0.9'),
+    (N'20261113052742_PostesHorsLigne', N'10.0.9');
 GO
 
 -- =====================================================================
@@ -1024,6 +1047,7 @@ ALTER TABLE [Motifs] NOCHECK CONSTRAINT ALL;
 ALTER TABLE [MouvementsStock] NOCHECK CONSTRAINT ALL;
 ALTER TABLE [OperationsCaisses] NOCHECK CONSTRAINT ALL;
 ALTER TABLE [PaiementsPos] NOCHECK CONSTRAINT ALL;
+ALTER TABLE [PostesHorsLigne] NOCHECK CONSTRAINT ALL;
 ALTER TABLE [ProduitAttributValeurs] NOCHECK CONSTRAINT ALL;
 ALTER TABLE [ProduitAttributs] NOCHECK CONSTRAINT ALL;
 ALTER TABLE [ProduitCombos] NOCHECK CONSTRAINT ALL;
@@ -3180,6 +3204,7 @@ ALTER TABLE [Motifs] WITH CHECK CHECK CONSTRAINT ALL;
 ALTER TABLE [MouvementsStock] WITH CHECK CHECK CONSTRAINT ALL;
 ALTER TABLE [OperationsCaisses] WITH CHECK CHECK CONSTRAINT ALL;
 ALTER TABLE [PaiementsPos] WITH CHECK CHECK CONSTRAINT ALL;
+ALTER TABLE [PostesHorsLigne] WITH CHECK CHECK CONSTRAINT ALL;
 ALTER TABLE [ProduitAttributValeurs] WITH CHECK CHECK CONSTRAINT ALL;
 ALTER TABLE [ProduitAttributs] WITH CHECK CHECK CONSTRAINT ALL;
 ALTER TABLE [ProduitCombos] WITH CHECK CHECK CONSTRAINT ALL;

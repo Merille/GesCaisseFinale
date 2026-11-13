@@ -1379,6 +1379,59 @@ namespace EasytransitCaisse.Migrations
                     b.ToTable("PaiementsPos");
                 });
 
+            modelBuilder.Entity("EasytransitCaisse.Models.PosteHorsLigne", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<DateTime?>("DernierEnvoi")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("DernierRapport")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Detail")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("EnAttente")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("MontantEnAttente")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Navigateur")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<DateTime?>("PlusAncien")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Refusees")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("UtilisateurId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "Code")
+                        .IsUnique();
+
+                    b.ToTable("PostesHorsLigne", (string)null);
+                });
+
             modelBuilder.Entity("EasytransitCaisse.Models.Produit", b =>
                 {
                     b.Property<int>("Id")

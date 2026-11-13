@@ -15,11 +15,15 @@
 //   la commande de la table). Commande de table modifiée entre-temps sur un autre poste : les articles
 //   ajoutés hors ligne sont ajoutés à la commande du serveur. Après l'envoi : message sur la page,
 //   journal des derniers envois dans le panneau.
+// - Rapport du poste (attributs data-rapport et data-jeton du script) : quand le poste est connecté, il
+//   indique au serveur ce qu'il lui reste à envoyer (page Synchronisation des administrateurs).
 // - Clôture protégée : un formulaire [data-gc-cloture="id de la journée"] n'est pas envoyé tant que
 //   ce poste a des ventes de cette journée à envoyer.
 (function () {
     const script = document.currentScript;
     const sw = script && script.dataset.sw;
+    const urlRapport = script && script.dataset.rapport;
+    const urlJetonRapport = script && script.dataset.jeton;
     let enLigne = navigator.onLine;
     let sondage = null;
 
@@ -40,15 +44,49 @@
     function signaler(detail) {
         majAffichage();
         window.dispatchEvent(new CustomEvent('gc-file', { detail: detail || {} }));
+        clearTimeout(signaler.rapport);
+        signaler.rapport = setTimeout(() => rapporter(false), 2000);
+    }
+
+    // Rapport du poste au serveur : envoyé quand l'état de la file change, et au moins toutes les 5 min.
+    const CLE_RAPPORT = 'gc-hors-ligne-rapport';
+    async function rapporter(force) {
+        if (!urlRapport || !urlJetonRapport || !enLigne) return;
+        const f = elements();
+        const etat = {
+            poste: poste().code, enAttente: f.length, refusees: f.filter(x => x.erreur).length,
+            montant: f.filter(x => x.type === 'vente' || x.type === 'depot' || x.type === 'attente').reduce((n, x) => n + (Number(x.montant) || 0), 0),
+            plusAncien: f.reduce((m, x) => !m || x.cree < m ? x.cree : m, null),
+            dernierEnvoi: (journal()[0] || {}).quand || null,
+            elements: f.slice(0, 50).map(x => ({ numero: x.numero, type: x.type, libelle: x.libelle, montant: x.montant, cree: x.cree, erreur: x.erreur || '' }))
+        };
+        const signature = JSON.stringify(etat);
+        const avant = lire(CLE_RAPPORT, {}) || {};
+        if (!force && avant.signature === signature && Date.now() - (avant.quand || 0) < 300000) return;
+        try {
+            const jeton = await (await fetch(urlJetonRapport, { credentials: 'same-origin', cache: 'no-store' })).json().catch(() => null);
+            if (!jeton || !jeton.nom) return;
+            const corps = new FormData();
+            corps.append(jeton.nom, jeton.valeur);
+            corps.append('rapport', signature);
+            const r = await fetch(urlRapport, { method: 'POST', body: corps, credentials: 'same-origin' });
+            const reponse = await r.json().catch(() => null);   // réponse lue : la requête se termine
+            if (r.ok && reponse && reponse.ok) ecrire(CLE_RAPPORT, { signature: signature, quand: Date.now() });
+        } catch (e) { /* nouvel essai plus tard */ }
     }
 
     // Identifiant court du poste (navigateur) et compteur : numéros provisoires H-K7Q2-0001…
-    function numeroProvisoire() {
+    function poste() {
         let p = lire(CLE_POSTE, null);
         if (!p || !p.code) {
             const lettres = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
             p = { code: Array.from({ length: 4 }, () => lettres[Math.floor(Math.random() * lettres.length)]).join(''), n: 0 };
+            ecrire(CLE_POSTE, p);
         }
+        return p;
+    }
+    function numeroProvisoire() {
+        const p = poste();
         p.n += 1;
         ecrire(CLE_POSTE, p);
         return 'H-' + p.code + '-' + String(p.n).padStart(4, '0');
@@ -187,13 +225,15 @@
                     break;
                 } else {
                     vus.add(el.numero);
-                    refuses += 1;
+                    // Seul un nouveau refus est annoncé (pas chaque nouvel essai).
+                    if (!el.erreur) refuses += 1;
                     modifier(el.numero, { essais: (el.essais || 0) + 1, erreur: r.erreur || ('Erreur ' + res.status) });
                 }
             }
         } finally {
             envoi.enCours = false;
             signaler({ fin: true, envoyes: envoyes, refuses: refuses, notes: notes });
+            rapporter(true);
             if (envoyes || refuses || notes.length) {
                 notifier((envoyes ? envoyes + ' opération' + (envoyes > 1 ? 's' : '') + ' faite' + (envoyes > 1 ? 's' : '') + ' hors ligne envoyée' + (envoyes > 1 ? 's' : '') + ' au serveur.' : '')
                     + (refuses ? ' ' + refuses + ' refusée' + (refuses > 1 ? 's' : '') + ' : touchez l\'indicateur pour le détail.' : '')
@@ -252,7 +292,8 @@
         });
     }
 
-    window.gcFile = { ajouter, mettre, trouver, retirer, elements, nombre, envoyer, numeroProvisoire, panneau, refs, notifier };
+    window.gcFile = { rapporter, poste,
+        ajouter, mettre, trouver, retirer, elements, nombre, envoyer, numeroProvisoire, panneau, refs, notifier };
 
     // ------------------------------------------------------------------
     // Indicateur
@@ -298,8 +339,8 @@
     window.gcConnexion = { get enLigne() { return enLigne; }, html, verifier };
     window.addEventListener('online', verifier);
     window.addEventListener('offline', () => changer(false));
-    sondage = setInterval(() => verifier().then(envoyer), 30000);
-    document.addEventListener('DOMContentLoaded', () => { majAffichage(); verifier().then(envoyer); });
+    sondage = setInterval(() => verifier().then(envoyer).then(() => rapporter(false)), 30000);
+    document.addEventListener('DOMContentLoaded', () => { majAffichage(); verifier().then(envoyer).then(() => rapporter(false)); });
     // Autre onglet du même poste : file modifiée.
     window.addEventListener('storage', e => { if (e.key === CLE_FILE) majAffichage(); });
     document.addEventListener('click', e => { if (e.target.closest('[data-gc-file]')) panneau(); });

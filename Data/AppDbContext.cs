@@ -151,6 +151,10 @@ namespace EasytransitCaisse.Data
             modelBuilder.Entity<CommandeAttente>().HasIndex(c => new { c.JourneeCaisseId, c.Numero });
 
             // Laverie : dépôts de linge payés au retrait (numéro unique par société).
+            // Postes et leur file hors ligne (page Synchronisation) : un par société et code de poste.
+            modelBuilder.Entity<PosteHorsLigne>().ToTable("PostesHorsLigne")
+                .HasQueryFilter(e => _currentTenantId == 0 || e.TenantId == _currentTenantId);
+            modelBuilder.Entity<PosteHorsLigne>().HasIndex(p => new { p.TenantId, p.Code }).IsUnique();
             modelBuilder.Entity<DepotLinge>().ToTable("DepotsLinge")
                 .HasQueryFilter(e => _currentTenantId == 0 || e.TenantId == _currentTenantId);
             modelBuilder.Entity<DepotLinge>().HasIndex(d => new { d.TenantId, d.Numero }).IsUnique();
@@ -402,6 +406,7 @@ namespace EasytransitCaisse.Data
         public DbSet<Livreur> Livreurs { get; set; }
         public DbSet<CommandeAttente> CommandesAttente { get; set; }
         public DbSet<DepotLinge> DepotsLinge { get; set; }
+        public DbSet<PosteHorsLigne> PostesHorsLigne { get; set; }
         public DbSet<Achat> Achats { get; set; }
         public DbSet<LigneAchat> LignesAchats { get; set; }
         public DbSet<ReglementAchat> ReglementsAchats { get; set; }

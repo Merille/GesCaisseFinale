@@ -36,7 +36,7 @@
     {
         "Dashboard" or "Caisse" or "JourneeCaisse" or "Client" => "Activité",
         "Rapport" or "RapportTiers" => "Analyse",
-        "Pos" or "Vente" or "Stock" or "PosRapport" or "RapportLivraison" or "RapportLinge" or "RapportAchat" or "Achat" or "Cuisine" => "Point de vente",
+        "Pos" or "Vente" or "Stock" or "PosRapport" or "RapportLivraison" or "RapportLinge" or "RapportAchat" or "Achat" or "Cuisine" or "Synchro" => "Point de vente",
         "Salle" => "Activité",
         "Produit" or "Categorie" or "Combo" => "Configuration",
         "Utilisateur" or "Motif" or "ModePaiement" or "Taxe" or "Unite" or "Depot" or "Livreur" or "Societe" => "Paramètres",
@@ -74,6 +74,7 @@
             "RapportLivraison" => "Rapport des livraisons",
             "RapportLinge" => "Rapport des dépôts de linge",
             "Achat" => "Achats",
+            "Synchro" => "Synchronisation",
             "RapportAchat" => "Rapport des achats",
             _ => "GesCaisse"
         };
@@ -238,6 +239,16 @@
                     <a class="sb-link @(controller == "Stock" ? "active" : "")" href="/Stock/Index" title="Stock">
                         <i class="fas fa-warehouse"></i>
                         <span class="sb-label">Stock</span>
+                    </a>
+                    @* Synchronisation du mode hors ligne : pastille = postes qui ont des opérations à envoyer. *@
+                    var postesEnAttente = DbContext.PostesHorsLigne.Count(p => p.EnAttente > 0);
+                    <a class="sb-link @(controller == "Synchro" ? "active" : "")" href="/Synchro/Index" title="Synchronisation">
+                        <i class="fas fa-arrows-rotate"></i>
+                        <span class="sb-label">Synchronisation</span>
+                        @if (postesEnAttente > 0)
+                        {
+                            <span class="sb-badge" title="Postes avec des opérations à envoyer">@postesEnAttente</span>
+                        }
                     </a>
                     @* Rapports du point de vente, regroupés (titre complet en infobulle). *@
                     var rapportsActif = controller is "PosRapport" or "RapportLivraison" or "RapportLinge" or "RapportAchat";
@@ -461,7 +472,7 @@
 
     <script src="~/js/modale-creation.js" asp-append-version="true"></script>
     <script src="~/js/vues.js" asp-append-version="true"></script>
-    <script src="~/js/hors-ligne.js" asp-append-version="true" data-sw="/sw.js"></script>
+    <script src="~/js/hors-ligne.js" asp-append-version="true" data-sw="/sw.js" data-rapport="@(modulePointVente ? "/Synchro/Rapport" : null)" data-jeton="@(modulePointVente ? "/Pos/Jeton" : null)"></script>
 
     @await RenderSectionAsync("Scripts", required: false)
 

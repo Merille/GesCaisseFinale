@@ -494,6 +494,7 @@ INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('021_achat
 INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('022_depot_achats.sql','2026-11-12 00:00:00');
 INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('023_hors_ligne.sql','2026-11-12 00:00:00');
 INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('024_attente_hors_ligne.sql','2026-11-12 00:00:00');
+INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('025_postes_hors_ligne.sql','2026-11-13 00:00:00');
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `ModesPaiement` (
@@ -651,6 +652,25 @@ CREATE TABLE `ProduitTaxes` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `PostesHorsLigne` (
+  `Id` int NOT NULL AUTO_INCREMENT,
+  `TenantId` int NOT NULL,
+  `Code` varchar(10) NOT NULL,
+  `UtilisateurId` int DEFAULT NULL,
+  `Navigateur` varchar(150) DEFAULT NULL,
+  `EnAttente` int NOT NULL DEFAULT '0',
+  `Refusees` int NOT NULL DEFAULT '0',
+  `MontantEnAttente` decimal(18,2) NOT NULL DEFAULT '0.00',
+  `PlusAncien` datetime DEFAULT NULL,
+  `DernierEnvoi` datetime DEFAULT NULL,
+  `DernierRapport` datetime NOT NULL,
+  `Detail` text,
+  PRIMARY KEY (`Id`),
+  UNIQUE KEY `IX_PostesHorsLigne_TenantId_Code` (`TenantId`,`Code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `Produits` (

@@ -98,7 +98,7 @@ const fiche = [
         ['Application', 'GesCaisse — gestion de caisse et point de vente (POS)'],
         ['Éditeur', 'M-ITECH AFRICA'],
         ['Public', 'Administrateurs, caissiers, vendeurs et serveurs des sociétés clientes'],
-        ['Version du document', '3.5'],
+        ['Version du document', '3.6'],
         ['Date', 'Novembre 2026']
     ], [3000, 6638])
 ];
@@ -197,7 +197,7 @@ const contenu = [
     pt('Pour tous les utilisateurs', 'opérations en attente de validation, décaissements sans justificatif et journées ouvertes depuis plus de 24 h, toutes caisses confondues (la ligne ouvre la plus ancienne journée concernée).'),
     pt('Livraisons à livrer', 'ventes payées confiées à un livreur dont la livraison n’est pas encore marquée **Livrée** (6.6), avec leur montant, frais de livraison compris. La ligne ouvre l’écran de vente de la journée de la plus ancienne, où **Commandes en attente** permet de la marquer livrée (ou la fiche de la vente si sa journée est clôturée) ; pour un administrateur, le rapport des livraisons filtré « À livrer » (9.1). Les ventes annulées ne sont pas comptées.'),
     pt('Livraisons à encaisser', 'commandes confiées à un livreur et pas encore encaissées (6.6), avec le montant attendu, frais de livraison compris. La ligne ouvre l’écran de vente de la journée de la plus ancienne commande, où vous l’encaissez au retour du livreur depuis **Commandes en attente** ; pour un administrateur, elle ouvre le rapport des livraisons filtré « À encaisser » (9.1).'),
-    pt('Pour les administrateurs', 'ventes faites hors ligne à vérifier (2.5), produits en vente au niveau ou sous leur seuil d’alerte (page Stock) et, en laverie, produits d’entretien à racheter (dépôt des achats, 8.7) et dépôts de linge en retard (rapport des dépôts filtré « En retard », 9.2).'),
+    pt('Pour les administrateurs', 'ventes faites hors ligne à vérifier et postes qui ont encore des opérations hors ligne à envoyer (page Synchronisation, 2.6), produits en vente au niveau ou sous leur seuil d’alerte (page Stock) et, en laverie, produits d’entretien à racheter (dépôt des achats, 8.7) et dépôts de linge en retard (rapport des dépôts filtré « En retard », 9.2).'),
     p('Quand tout est traité, la cloche s’éteint et indique « Rien à traiter pour le moment ».'),
     h2('2.5 Installer l’application et travailler sans connexion'),
     p('GesCaisse peut s’installer comme une application sur le poste de caisse, la tablette ou le téléphone : cliquez sur l’icône **Installer l’application** (flèche vers le bas) dans la barre du haut quand elle apparaît, ou utilisez le menu du navigateur (« Installer GesCaisse » / « Ajouter à l’écran d’accueil »). L’application s’ouvre alors dans sa propre fenêtre, avec son icône.'),
@@ -223,7 +223,14 @@ const contenu = [
     pt('Ventes à vérifier', 'une vente faite hors ligne est toujours enregistrée, puisqu’elle a déjà eu lieu. Si elle arrive après la clôture de sa journée, si un prix a changé, si le stock manque ou si le plafond d’un client est dépassé, elle est signalée : badge orange dans la liste des ventes, encadré « À vérifier » dans la fiche de la vente et ligne « vente hors ligne à vérifier » dans la cloche. Après contrôle, un administrateur clique sur **Marquer vérifiée**.'),
     ...figure('02e_vente_hors_ligne_a_verifier', 'Vente hors ligne arrivée après la clôture, à vérifier'),
     attention('Ouvrez la journée et l’écran de vente au moins une fois avec la connexion avant une coupure. Les ventes gardées sont dans le navigateur du poste : ne videz pas ses données et ne changez pas de navigateur tant qu’elles ne sont pas envoyées. La clôture de la journée est refusée sur un poste qui a encore des ventes de cette journée à envoyer.'),
-    h2('2.6 Se déconnecter'),
+    h2('2.6 La page Synchronisation (administrateur)'),
+    p('Menu **Point de vente › Synchronisation**. Elle montre, pour toute la société, où en est le travail fait sans connexion. Chaque poste connecté à GesCaisse indique au serveur, à l’ouverture des pages, après chaque envoi et toutes les 5 minutes, ce qu’il lui reste à envoyer. Une pastille sur le menu donne le nombre de postes qui ont des opérations en attente.'),
+    ...figure('02g_synchronisation', 'Page Synchronisation'),
+    pt('Indicateurs', 'postes suivis, postes avec des envois en attente, nombre et montant des opérations à envoyer, ventes enregistrées hors ligne sur la période et ventes à vérifier.'),
+    pt('Postes', 'chaque poste est désigné par son code (celui des numéros provisoires, par exemple H-K7Q2), avec le dernier utilisateur, le dernier contact, le nombre et le montant des opérations à envoyer, la plus ancienne et le dernier envoi. État : **À jour**, **En attente d’envoi**, **Refus** (le serveur a refusé une opération : le motif est dans le détail) ou **Sans nouvelles** (opérations à envoyer et aucun contact depuis plus d’une heure : vérifiez la connexion du poste et ouvrez GesCaisse dessus). **Détail** liste les opérations du poste. La croix retire de la liste un poste qui ne sert plus.'),
+    pt('Ventes enregistrées hors ligne', 'par défaut, toutes les ventes **à vérifier** (quelle que soit leur date) ; le filtre propose aussi Vérifiées, Sans écart et Toutes, sur une période. Cochez les ventes contrôlées puis cliquez sur **Marquer les ventes cochées vérifiées** ; le numéro de ticket ouvre la fiche de la vente.'),
+    pt('Dépôts de linge', 'en laverie, les dépôts enregistrés hors ligne sur la période, avec leur numéro définitif et leur numéro provisoire.'),
+    h2('2.7 Se déconnecter'),
     p('Cliquez sur l’icône de sortie, à droite de votre nom dans la barre du haut. Pensez à vous déconnecter sur un poste partagé.'),
 
     // 3 ------------------------------------------------------------------

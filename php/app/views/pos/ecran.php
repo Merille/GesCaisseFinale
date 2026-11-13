@@ -13,7 +13,7 @@
 <body class="pos-body">
 <div id="pos" class="pos"></div>
 <script id="pos-donnees" type="application/json"><?= json_encode($donnees, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?></script>
-<script src="<?= asset('assets/js/hors-ligne.js') ?>" data-sw="sw.js"></script>
+<script src="<?= asset('assets/js/hors-ligne.js') ?>" data-sw="sw.js" data-rapport="<?= h(url('synchro/rapport')) ?>" data-jeton="<?= h(url('pos/jeton')) ?>"></script>
 <script src="<?= asset('assets/js/pos.js') ?>"></script>
 </body>
 </html>

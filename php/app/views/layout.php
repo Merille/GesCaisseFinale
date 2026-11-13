@@ -21,7 +21,7 @@ $nbJourneesOuvertes = (int) qv("SELECT COUNT(*) FROM JourneesCaisses WHERE Statu
 $rubrique = match ($module) {
     'dashboard', 'caisse', 'journee', 'client', 'facture' => 'Activité',
     'rapport', 'rapporttiers' => 'Analyse',
-    'pos', 'vente', 'stock', 'posrapport', 'rapportlivraison', 'rapportlinge', 'rapportachat', 'achat', 'cuisine' => 'Point de vente',
+    'pos', 'vente', 'stock', 'posrapport', 'rapportlivraison', 'rapportlinge', 'rapportachat', 'achat', 'cuisine', 'synchro' => 'Point de vente',
     'salle' => 'Activité',
     'produit', 'categorie', 'combo' => 'Configuration',
     'utilisateur', 'motif', 'modepaiement', 'taxe', 'unite', 'depot', 'livreur', 'societe' => 'Paramètres',
@@ -119,6 +119,10 @@ $badge = $nbJourneesOuvertes > 0
                     <?= $lien('achat/index', 'achat', 'fa-cart-flatbed', 'Achats') ?>
                 <?php endif; ?>
                 <?= $lien('stock/index', 'stock', 'fa-warehouse', 'Stock') ?>
+                <?php // Synchronisation du mode hors ligne : pastille = postes qui ont des opérations à envoyer. ?>
+                <?php $postesEnAttente = (int) qv('SELECT COUNT(*) FROM PostesHorsLigne WHERE EnAttente > 0 AND ' . tf()); ?>
+                <?= $lien('synchro/index', 'synchro', 'fa-arrows-rotate', 'Synchronisation',
+                    $postesEnAttente ? '<span class="sb-badge" title="Postes avec des opérations à envoyer">' . $postesEnAttente . '</span>' : '') ?>
                 <?php // Rapports du point de vente, regroupés (titre complet en infobulle). ?>
                 <?php $lienRapport = fn(string $route, string $mod, string $icone, string $libelle, string $titre)
                     => str_replace('title="' . h($libelle) . '"', 'title="' . h($titre) . '"', $lien($route, $mod, $icone, $libelle)); ?>
@@ -277,7 +281,7 @@ $badge = $nbJourneesOuvertes > 0
 </script>
 <script src="<?= asset('assets/js/vues.js') ?>"></script>
 <script src="<?= asset('assets/js/listes.js') ?>"></script>
-<script src="<?= asset('assets/js/hors-ligne.js') ?>" data-sw="sw.js"></script>
+<script src="<?= asset('assets/js/hors-ligne.js') ?>" data-sw="sw.js"<?= module_pos_actif() ? ' data-rapport="' . h(url('synchro/rapport')) . '" data-jeton="' . h(url('pos/jeton')) . '"' : '' ?>></script>
 <?= $scripts ?? '' ?>
 </body>
 </html>
