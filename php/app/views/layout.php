@@ -47,8 +47,8 @@ $badge = $nbJourneesOuvertes > 0
     <meta charset="utf-8">
     <title><?= h($titrePage) ?> - GesCaisse</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="<?= asset('assets/vendor/bootstrap/bootstrap.min.css') ?>">
+    <link rel="stylesheet" href="<?= asset('assets/vendor/fontawesome/css/all.min.css') ?>">
     <link rel="stylesheet" href="<?= asset('assets/css/dataTables.bootstrap5.min.css') ?>">
     <link rel="stylesheet" href="<?= asset('assets/css/theme.css') ?>">
     <link rel="stylesheet" href="<?= asset('assets/css/layout.css') ?>">
@@ -119,10 +119,6 @@ $badge = $nbJourneesOuvertes > 0
                     <?= $lien('achat/index', 'achat', 'fa-cart-flatbed', 'Achats') ?>
                 <?php endif; ?>
                 <?= $lien('stock/index', 'stock', 'fa-warehouse', 'Stock') ?>
-                <?php // Synchronisation du mode hors ligne : pastille = postes qui ont des opérations à envoyer. ?>
-                <?php $postesEnAttente = (int) qv('SELECT COUNT(*) FROM PostesHorsLigne WHERE EnAttente > 0 AND ' . tf()); ?>
-                <?= $lien('synchro/index', 'synchro', 'fa-arrows-rotate', 'Synchronisation',
-                    $postesEnAttente ? '<span class="sb-badge" title="Postes avec des opérations à envoyer">' . $postesEnAttente . '</span>' : '') ?>
                 <?php // Rapports du point de vente, regroupés (titre complet en infobulle). ?>
                 <?php $lienRapport = fn(string $route, string $mod, string $icone, string $libelle, string $titre)
                     => str_replace('title="' . h($libelle) . '"', 'title="' . h($titre) . '"', $lien($route, $mod, $icone, $libelle)); ?>
@@ -149,6 +145,10 @@ $badge = $nbJourneesOuvertes > 0
                     <?= $lien('produit/index', 'produit', 'fa-box-open', 'Produits') ?>
                     <?= $lien('combo/index', 'combo', 'fa-layer-group', 'Combos') ?>
                 </div>
+                <?php // Synchronisation du mode hors ligne : pastille = postes qui ont des opérations à envoyer. ?>
+                <?php $postesEnAttente = (int) qv('SELECT COUNT(*) FROM PostesHorsLigne WHERE EnAttente > 0 AND ' . tf()); ?>
+                <?= $lien('synchro/index', 'synchro', 'fa-arrows-rotate', 'Synchronisation',
+                    $postesEnAttente ? '<span class="sb-badge" title="Postes avec des opérations à envoyer">' . $postesEnAttente . '</span>' : '') ?>
             <?php endif; ?>
         </div>
         <?php endif; ?>
@@ -255,11 +255,12 @@ $badge = $nbJourneesOuvertes > 0
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<?php // Bibliothèques servies par l'application (aucune dépendance à Internet) : assets/vendor. ?>
+<script src="<?= asset('assets/vendor/bootstrap/bootstrap.bundle.min.js') ?>"></script>
+<script src="<?= asset('assets/vendor/chartjs/chart.umd.min.js') ?>"></script>
+<script src="<?= asset('assets/vendor/jquery/jquery-3.7.0.min.js') ?>"></script>
+<script src="<?= asset('assets/vendor/datatables/jquery.dataTables.min.js') ?>"></script>
+<script src="<?= asset('assets/vendor/datatables/dataTables.bootstrap5.min.js') ?>"></script>
 <script>
     // Menu latéral replié / déplié, mémorisé dans le navigateur.
     function basculerMenu() {

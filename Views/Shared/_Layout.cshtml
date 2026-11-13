@@ -90,8 +90,8 @@
     <meta charset="utf-8" />
     <title>@titrePage - GesCaisse</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="~/vendor/bootstrap/bootstrap.min.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/vendor/fontawesome/css/all.min.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/dataTables.bootstrap5.min.css" />
     <link rel="stylesheet" href="~/css/theme.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/print.css" />
@@ -240,16 +240,6 @@
                         <i class="fas fa-warehouse"></i>
                         <span class="sb-label">Stock</span>
                     </a>
-                    @* Synchronisation du mode hors ligne : pastille = postes qui ont des opérations à envoyer. *@
-                    var postesEnAttente = DbContext.PostesHorsLigne.Count(p => p.EnAttente > 0);
-                    <a class="sb-link @(controller == "Synchro" ? "active" : "")" href="/Synchro/Index" title="Synchronisation">
-                        <i class="fas fa-arrows-rotate"></i>
-                        <span class="sb-label">Synchronisation</span>
-                        @if (postesEnAttente > 0)
-                        {
-                            <span class="sb-badge" title="Postes avec des opérations à envoyer">@postesEnAttente</span>
-                        }
-                    </a>
                     @* Rapports du point de vente, regroupés (titre complet en infobulle). *@
                     var rapportsActif = controller is "PosRapport" or "RapportLivraison" or "RapportLinge" or "RapportAchat";
                     <button type="button" class="sb-link sb-parent @(rapportsActif ? "parent-actif" : "")" title="Rapports"
@@ -300,6 +290,16 @@
                             <span class="sb-label">Combos</span>
                         </a>
                     </div>
+                    @* Synchronisation du mode hors ligne : pastille = postes qui ont des opérations à envoyer. *@
+                    var postesEnAttente = DbContext.PostesHorsLigne.Count(p => p.EnAttente > 0);
+                    <a class="sb-link @(controller == "Synchro" ? "active" : "")" href="/Synchro/Index" title="Synchronisation">
+                        <i class="fas fa-arrows-rotate"></i>
+                        <span class="sb-label">Synchronisation</span>
+                        @if (postesEnAttente > 0)
+                        {
+                            <span class="sb-badge" title="Postes avec des opérations à envoyer">@postesEnAttente</span>
+                        }
+                    </a>
                 }
             </div>
             }
@@ -448,11 +448,12 @@
 
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    @* Bibliothèques servies par l'application (aucune dépendance à Internet) : wwwroot/vendor. *@
+    <script src="~/vendor/bootstrap/bootstrap.bundle.min.js" asp-append-version="true"></script>
+    <script src="~/vendor/chartjs/chart.umd.min.js" asp-append-version="true"></script>
+    <script src="~/vendor/jquery/jquery-3.7.0.min.js" asp-append-version="true"></script>
+    <script src="~/vendor/datatables/jquery.dataTables.min.js" asp-append-version="true"></script>
+    <script src="~/vendor/datatables/dataTables.bootstrap5.min.js" asp-append-version="true"></script>
 
     <script>
             // Menu latéral replié / déplié, mémorisé dans le navigateur.
