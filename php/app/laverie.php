@@ -40,7 +40,7 @@ function pos_lignes_catalogue(array $saisies, int $tenant): array
 /** Remise globale saisie, si l'utilisateur y a droit : { type: pct|montant, valeur } ou null. */
 function pos_remise_saisie(mixed $r): ?array
 {
-    return is_array($r) && (float) ($r['valeur'] ?? 0) > 0 && pos_peut_remise_globale()
+    return is_array($r) && (float) ($r['valeur'] ?? 0) > 0 && pos_droit_remise()[0]
         ? ['type' => ($r['type'] ?? '') === 'pct' ? 'pct' : 'montant', 'valeur' => (float) $r['valeur']] : null;
 }
 
@@ -90,6 +90,12 @@ function pos_deposer(): void
     }
     $remise = pos_remise_saisie($s['remise'] ?? null);
     $total = restaurant_total(['lignes' => $lignes, 'remise' => $remise]);
+    // Droit de remise de l'utilisateur (un dépôt fait hors ligne a déjà eu lieu : il est gardé).
+    $brut = restaurant_total(['lignes' => $lignes, 'remise' => null]);
+    $pctGlobal = $remise && $brut > 0 ? ($remise['type'] === 'pct' ? $remise['valeur'] : min($brut, $remise['valeur']) / $brut * 100) : null;
+    if (!$hl && ($refus = pos_controle_remises(array_map(fn($l) => [$l['nom'], (float) ($l['remise'] ?? 0)], $lignes), $pctGlobal))) {
+        pos_json(['erreur' => $refus], 403);
+    }
     $nom = pos_texte($s['nom'] ?? null, 100);
     $telephone = pos_texte($s['telephone'] ?? null, 30);
     if (!$nom || !$telephone) {
@@ -213,7 +219,7 @@ function pos_depotpret(): void
 function pos_depotannuler(): void
 {
     $s = pos_saisie();
-    if (!pos_peut_remise_globale()) {
+    if (!pos_peut_annuler()) {
         pos_json(['erreur' => "L'annulation d'un dépôt est réservée aux administrateurs et aux utilisateurs autorisés à valider."], 403);
     }
     $journee = laverie_journee((int) ($s['journeeId'] ?? 0));

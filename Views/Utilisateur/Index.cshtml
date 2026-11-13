@@ -35,6 +35,14 @@
                         <td>@if (u.PeutValiderOperations)
                             {
                                 <span class="badge bg-success">Peut valider / rejeter</span>
+                            }
+                            @if (u.Profil is "Admin" or "SuperAdmin")
+                            {
+                                <span class="badge text-bg-light border">Remises sans limite</span>
+                            }
+                            else if (u.PeutRemise)
+                            {
+                                <span class="badge bg-primary">Remises@(u.RemiseMax.HasValue ? " jusqu'à " + u.RemiseMax.Value.ToString("0.##", System.Globalization.CultureInfo.GetCultureInfo("fr-FR")) + " %" : "")</span>
                             }</td>
                         <td class="text-center table-actions">
                             <a href="/Utilisateur/Edit/@u.Id" class="btn btn-warning btn-sm">Modifier</a>

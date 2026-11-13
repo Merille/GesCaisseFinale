@@ -495,6 +495,7 @@ INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('022_depot
 INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('023_hors_ligne.sql','2026-11-12 00:00:00');
 INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('024_attente_hors_ligne.sql','2026-11-12 00:00:00');
 INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('025_postes_hors_ligne.sql','2026-11-13 00:00:00');
+INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('026_droit_remise.sql','2026-11-13 00:00:00');
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `ModesPaiement` (
@@ -855,6 +856,8 @@ CREATE TABLE `Utilisateurs` (
   `Profil` varchar(30) NOT NULL,
   `PeutValiderOperations` tinyint(1) NOT NULL DEFAULT '0',
   `TenantId` int DEFAULT NULL,
+  `PeutRemise` tinyint(1) NOT NULL DEFAULT '0',
+  `RemiseMax` decimal(5,2) DEFAULT NULL,
   PRIMARY KEY (`Id`),
   UNIQUE KEY `UX_Utilisateurs_Nom` (`NomUtilisateur`),
   KEY `FK_Utilisateurs_Tenants` (`TenantId`),
@@ -862,8 +865,8 @@ CREATE TABLE `Utilisateurs` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
-INSERT INTO `Utilisateurs` (`Id`, `NomUtilisateur`, `MotPasse`, `NomComplet`, `Profil`, `PeutValiderOperations`, `TenantId`) VALUES (1,'superadmin','pmWkWSBCL51Bfkhn79xPuKBKHz//H6B+mY6G9/eieuM=','Super Administrateur','SuperAdmin',1,NULL);
-INSERT INTO `Utilisateurs` (`Id`, `NomUtilisateur`, `MotPasse`, `NomComplet`, `Profil`, `PeutValiderOperations`, `TenantId`) VALUES (2,'admin','pmWkWSBCL51Bfkhn79xPuKBKHz//H6B+mY6G9/eieuM=','Administrateur','Admin',1,1);
+INSERT INTO `Utilisateurs` (`Id`, `NomUtilisateur`, `MotPasse`, `NomComplet`, `Profil`, `PeutValiderOperations`, `TenantId`, `PeutRemise`, `RemiseMax`) VALUES (1,'superadmin','pmWkWSBCL51Bfkhn79xPuKBKHz//H6B+mY6G9/eieuM=','Super Administrateur','SuperAdmin',1,NULL,1,NULL);
+INSERT INTO `Utilisateurs` (`Id`, `NomUtilisateur`, `MotPasse`, `NomComplet`, `Profil`, `PeutValiderOperations`, `TenantId`, `PeutRemise`, `RemiseMax`) VALUES (2,'admin','pmWkWSBCL51Bfkhn79xPuKBKHz//H6B+mY6G9/eieuM=','Administrateur','Admin',1,1,1,NULL);
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `VarianteValeurs` (

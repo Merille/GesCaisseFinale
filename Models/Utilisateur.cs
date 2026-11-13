@@ -20,6 +20,13 @@ namespace EasytransitCaisse.Models
         // si la valeur est falsifiée côté client — vérifié aussi côté serveur).
         public bool PeutValiderOperations { get; set; }
 
+        // Droit d'accorder des remises au point de vente (sur un article et globale), avec un
+        // pourcentage maximal facultatif (null : sans limite). Les administrateurs l'ont toujours.
+        public bool PeutRemise { get; set; }
+
+        [Microsoft.EntityFrameworkCore.Precision(5, 2)]
+        public decimal? RemiseMax { get; set; }
+
         public int? TenantId { get; set; }
 
         public virtual Tenant? Tenant { get; set; }

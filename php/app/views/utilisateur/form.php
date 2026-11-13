@@ -43,5 +43,20 @@ require __DIR__ . '/../partials/form_debut.php';
                         <label class="form-check-label" for="PeutValiderOperations">Peut valider / rejeter les opérations de caisse</label>
                     </div>
                 </div>
+                <?php // Remises au point de vente (sur un article et globale) ; les administrateurs les font toujours, sans limite. ?>
+                <div class="col-md-6">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" value="1" id="PeutRemise" name="PeutRemise" <?= !empty($u['PeutRemise']) ? 'checked' : '' ?>
+                               onchange="document.getElementById('RemiseMax').disabled = !this.checked">
+                        <label class="form-check-label" for="PeutRemise">Peut accorder des remises au point de vente</label>
+                    </div>
+                    <div class="form-text">Remise sur un article et remise globale du ticket. Les administrateurs ont toujours ce droit.</div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="RemiseMax">Remise maximale (%)</label>
+                    <input class="form-control" id="RemiseMax" name="RemiseMax" inputmode="decimal" placeholder="Sans limite"
+                           value="<?= isset($u['RemiseMax']) && $u['RemiseMax'] !== null ? h(quantite_fr((float) $u['RemiseMax'])) : '' ?>"<?= empty($u['PeutRemise']) ? ' disabled' : '' ?>>
+                    <div class="form-text">Laissez vide pour ne pas limiter.</div>
+                </div>
             </div>
 <?php require __DIR__ . '/../partials/form_fin.php'; ?>

@@ -74,6 +74,8 @@ namespace EasytransitCaisse.Controllers
                 return "Le nom d'utilisateur et le nom complet sont obligatoires.";
             if (creation && (u.MotPasse ?? "").Length < 3)
                 return "Le mot de passe doit contenir au moins 3 caractères.";
+            if (remiseMaxInvalide || u.RemiseMax.HasValue && (u.RemiseMax <= 0 || u.RemiseMax > 100))
+                return "La remise maximale doit être comprise entre 0 et 100 % (laissez vide pour ne pas limiter).";
             if (u.Profil != "SuperAdmin" && (u.TenantId ?? 0) == 0)
                 return "Choisissez la société de cet utilisateur.";
             var nom = u.NomUtilisateur.Trim();
@@ -93,7 +95,12 @@ namespace EasytransitCaisse.Controllers
                 saisie.TenantId = tenantExistant ?? _tenantProvider.TenantId;
             saisie.NomUtilisateur = (saisie.NomUtilisateur ?? "").Trim();
             saisie.NomComplet = (saisie.NomComplet ?? "").Trim();
+            // Remise maximale : « 10 » ou « 12,5 » ; vide = sans limite (et sans objet sans le droit).
+            var max = (Request.Form["RemiseMax"].ToString() ?? "").Trim().Replace(',', '.');
+            saisie.RemiseMax = saisie.PeutRemise && max != "" && decimal.TryParse(max, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out var m) ? m : null;
+            remiseMaxInvalide = saisie.PeutRemise && max != "" && saisie.RemiseMax == null;
         }
+        private bool remiseMaxInvalide;
 
         // CREATE GET
         public IActionResult Create()
@@ -167,6 +174,8 @@ namespace EasytransitCaisse.Controllers
             existing.NomComplet = user.NomComplet;
             existing.Profil = user.Profil;
             existing.PeutValiderOperations = user.PeutValiderOperations;
+            existing.PeutRemise = user.PeutRemise;
+            existing.RemiseMax = user.RemiseMax;
             existing.TenantId = user.TenantId;
             // Mot de passe changé seulement s'il est saisi.
             if (!string.IsNullOrEmpty(user.MotPasse))

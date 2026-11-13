@@ -31,10 +31,10 @@ INSERT INTO Tenants (Nom, Code, Actif, ModeAcces, DateCreation, PosVenteSansStoc
 SET @t = (SELECT MIN(Id) FROM Tenants WHERE Code = 'LAVERIE');
 
 -- Comptes : administrateur et caissière (mot de passe 123)
-INSERT INTO Utilisateurs (NomUtilisateur, MotPasse, NomComplet, Profil, PeutValiderOperations, TenantId)
-    SELECT N'laverie', N'pmWkWSBCL51Bfkhn79xPuKBKHz//H6B+mY6G9/eieuM=', N'Gérant de la laverie', N'Admin', 1, @t WHERE NOT EXISTS (SELECT 1 FROM Utilisateurs WHERE NomUtilisateur = N'laverie');
-INSERT INTO Utilisateurs (NomUtilisateur, MotPasse, NomComplet, Profil, PeutValiderOperations, TenantId)
-    SELECT N'laverie.caisse', N'pmWkWSBCL51Bfkhn79xPuKBKHz//H6B+mY6G9/eieuM=', N'Caissière de la laverie', N'Caissier', 1, @t WHERE NOT EXISTS (SELECT 1 FROM Utilisateurs WHERE NomUtilisateur = N'laverie.caisse');
+INSERT INTO Utilisateurs (NomUtilisateur, MotPasse, NomComplet, Profil, PeutValiderOperations, PeutRemise, TenantId)
+    SELECT N'laverie', N'pmWkWSBCL51Bfkhn79xPuKBKHz//H6B+mY6G9/eieuM=', N'Gérant de la laverie', N'Admin', 1, 1, @t WHERE NOT EXISTS (SELECT 1 FROM Utilisateurs WHERE NomUtilisateur = N'laverie');
+INSERT INTO Utilisateurs (NomUtilisateur, MotPasse, NomComplet, Profil, PeutValiderOperations, PeutRemise, TenantId)
+    SELECT N'laverie.caisse', N'pmWkWSBCL51Bfkhn79xPuKBKHz//H6B+mY6G9/eieuM=', N'Caissière de la laverie', N'Caissier', 1, 1, @t WHERE NOT EXISTS (SELECT 1 FROM Utilisateurs WHERE NomUtilisateur = N'laverie.caisse');
 SET @admin = (SELECT MIN(Id) FROM Utilisateurs WHERE TenantId = @t AND Profil = 'Admin');
 SET @caissier = (SELECT MIN(Id) FROM Utilisateurs WHERE TenantId = @t AND Profil = 'Caissier');
 

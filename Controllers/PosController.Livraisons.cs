@@ -181,7 +181,7 @@ namespace EasytransitCaisse.Controllers
             var (livraison, erreur) = await ControlerLivraisonAsync(s.Livraison, tenant);
             if (erreur != null)
                 return Erreur(400, erreur);
-            var remise = s.Remise != null && s.Remise.Valeur > 0 && PeutRemiseGlobale
+            var remise = s.Remise != null && s.Remise.Valeur > 0 && (await DroitRemiseAsync()).Peut
                 ? new RemiseSaisie { Type = s.Remise.Type == "pct" ? "pct" : "montant", Valeur = s.Remise.Valeur } : null;
 
             // Total affiché dans la liste (même calcul que l'écran de vente).

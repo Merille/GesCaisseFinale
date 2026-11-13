@@ -14,7 +14,9 @@
                     <td><?= h($u['NomComplet']) ?></td>
                     <td><span class="badge bg-info text-dark"><?= h($u['Profil']) ?></span></td>
                     <?php if (is_super_admin()): ?><td><?= $u['Societe'] ? h($u['Societe']) : '<span class="text-muted">Toutes</span>' ?></td><?php endif; ?>
-                    <td><?= $u['PeutValiderOperations'] ? '<span class="badge bg-success">Peut valider / rejeter</span>' : '' ?></td>
+                    <td><?= $u['PeutValiderOperations'] ? '<span class="badge bg-success">Peut valider / rejeter</span>' : '' ?>
+                        <?php if (in_array($u['Profil'], ['Admin', 'SuperAdmin'], true)): ?><span class="badge text-bg-light border">Remises sans limite</span>
+                        <?php elseif (!empty($u['PeutRemise'])): ?><span class="badge bg-primary">Remises<?= $u['RemiseMax'] !== null ? ' jusqu\'à ' . h(quantite_fr((float) $u['RemiseMax'])) . ' %' : '' ?></span><?php endif; ?></td>
                     <td class="text-center table-actions">
                         <a href="<?= h(url('utilisateur/edit', ['id' => $u['Id']])) ?>" class="btn btn-warning btn-sm">Modifier</a>
                         <form method="post" action="<?= h(url('utilisateur/delete')) ?>" onsubmit="return confirm('Supprimer cet utilisateur ?');">

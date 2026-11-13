@@ -62,8 +62,8 @@ namespace EasytransitCaisse.Controllers
         }
 
         // Remise globale saisie, si l'utilisateur y a droit.
-        private Restaurant.RemiseTicket? RemiseAutorisee(Restaurant.RemiseTicket? r)
-            => r is { Valeur: > 0 } && PeutRemiseGlobale ? new Restaurant.RemiseTicket { Type = r.Type == "pct" ? "pct" : "montant", Valeur = r.Valeur } : null;
+        private async Task<Restaurant.RemiseTicket?> RemiseAutoriseeAsync(Restaurant.RemiseTicket? r)
+            => r is { Valeur: > 0 } && (await DroitRemiseAsync()).Peut ? new Restaurant.RemiseTicket { Type = r.Type == "pct" ? "pct" : "montant", Valeur = r.Valeur } : null;
 
         private static DepotSaisi? LireDepot(string? json)
         {
@@ -126,8 +126,14 @@ namespace EasytransitCaisse.Controllers
             var lignes = await LignesCatalogueAsync(s.Lignes, tenant);
             if (!lignes.Any())
                 return Erreur(400, "Le ticket est vide.");
-            var remise = RemiseAutorisee(s.Remise);
+            var remise = await RemiseAutoriseeAsync(s.Remise);
             var total = Restaurant.Total(new Restaurant.Contenu { Lignes = lignes, Remise = remise });
+            // Droit de remise de l'utilisateur (un dépôt fait hors ligne a déjà eu lieu : il est gardé).
+            var brut = Restaurant.Total(new Restaurant.Contenu { Lignes = lignes });
+            decimal? pctGlobal = remise != null && brut > 0 ? (remise.Type == "pct" ? remise.Valeur : Math.Min(brut, remise.Valeur) / brut * 100) : null;
+            var refusRemise = hl == null ? await ControleRemisesAsync(lignes.Select(l => (l.Nom, l.Remise)), pctGlobal) : null;
+            if (refusRemise != null)
+                return Erreur(403, refusRemise);
             var nom = Texte(s.Nom, 100);
             var telephone = Texte(s.Telephone, 30);
             if (nom == null || telephone == null)
@@ -245,7 +251,7 @@ namespace EasytransitCaisse.Controllers
         public async Task<IActionResult> DepotAnnuler([FromForm] string? commande)
         {
             var s = LireDepot(commande);
-            if (!PeutRemiseGlobale)
+            if (!PeutAnnuler)
                 return Erreur(403, "L'annulation d'un dépôt est réservée aux administrateurs et aux utilisateurs autorisés à valider.");
             var (j, refus) = await JourneeLaverieAsync(s?.JourneeId ?? 0);
             if (j == null)

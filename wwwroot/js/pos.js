@@ -29,6 +29,8 @@
     variantesDe.forEach(liste => liste.sort((a, b) => a.id - b.id));   // ordre de création : S, M, L…
     const categories = new Map(D.categories.map(c => [c.id, c]));
     const clients = new Map(D.clients.map(c => [c.id, c]));
+    // Droit de remise de l'utilisateur (article et globale) : { peut, max (en %, null = sans limite) }.
+    const droitRemise = D.remise || { peut: !!D.peutRemiseGlobale, max: null };
 
     // ------------------------------------------------------------------
     // État : tickets en cours, gardés dans le navigateur
@@ -213,7 +215,14 @@
             return;
         }
         if (mode === 'qte') l.qte = v;
-        else if (mode === 'remise') l.remise = Math.min(100, v);
+        else if (mode === 'remise') {
+            if (droitRemise.max != null && v > droitRemise.max) {
+                message('Votre remise maximale est de ' + qte(droitRemise.max) + ' %.', true);
+                saisie = saisie.slice(0, -1);
+                return;
+            }
+            l.remise = Math.min(100, v);
+        }
         else if (mode === 'prix') l.prix = v;
         enregistrer();
         afficher();
@@ -222,6 +231,10 @@
     function choisirMode(m) {
         if (m === 'prix' && !D.peutModifierPrix) {
             message('Seul un administrateur peut modifier le prix.', true);
+            return;
+        }
+        if (m === 'remise' && !droitRemise.peut) {
+            message('Vous n\'avez pas le droit d\'accorder des remises : demandez à un administrateur.', true);
             return;
         }
         mode = m;
@@ -1276,7 +1289,8 @@
         const client = clients.get(t.clientId);
         const k = (val, html, cls) => '<button type="button" class="pos-k ' + (cls || '') + '" data-touche="' + val + '">' + (html || val) + '</button>';
         const m = (val, txt) => '<button type="button" class="pos-k mode' + (mode === val ? ' on' : '') + '" data-mode="' + val + '"'
-            + (val === 'prix' && !D.peutModifierPrix ? ' disabled title="Réservé aux administrateurs"' : '') + '>' + txt + '</button>';
+            + (val === 'prix' && !D.peutModifierPrix ? ' disabled title="Réservé aux administrateurs"' : '')
+            + (val === 'remise' && !droitRemise.peut ? ' disabled title="Remises non autorisées : demandez à un administrateur"' : '') + '>' + txt + '</button>';
 
         racine.innerHTML =
             '<div class="pos-top">'
@@ -1315,7 +1329,7 @@
             + '<button type="button" class="pos-act" data-action="client"><i class="fas fa-user"></i> ' + (client ? 'Client : <b>' + echap(client.nom) + '</b>' : 'Choisir un client') + '</button>'
             + (cmd ? '<button type="button" class="pos-act" data-action="note"><i class="fas fa-comment-dots"></i> Note</button>'
                 : '<button type="button" class="pos-act" data-action="attente"' + (t.depot ? ' disabled title="Retrait d\'un dépôt : encaissez-le"' : '') + '><i class="fas fa-pause"></i> Mettre en attente</button>')
-            + '<button type="button" class="pos-act" data-action="remise"' + (D.peutRemiseGlobale ? '' : ' disabled title="Réservée aux administrateurs"') + '>'
+            + '<button type="button" class="pos-act" data-action="remise"' + (droitRemise.peut ? '' : ' disabled title="Remises non autorisées : demandez à un administrateur"') + '>'
             + '<i class="fas fa-percent"></i> ' + (t.remise ? 'Remise : <b>' + (t.remise.type === 'pct' ? qte(t.remise.valeur) + ' %' : fcfa(t.remise.valeur)) + '</b>' : 'Remise globale') + '</button>'
             + (cmd ? '' : '<button type="button" class="pos-act' + (t.livraison ? ' livraison' : '') + '" data-action="livraison"><i class="fas '
                 + iconeMoyen(t.livraison ? (livreurs.get(t.livraison.livreurId) || {}).moyen : null) + '"></i> '
@@ -1502,7 +1516,7 @@
     // Remise globale du ticket (administrateurs et utilisateurs autorisés à valider)
     // ------------------------------------------------------------------
     function remiseGlobale() {
-        if (!D.peutRemiseGlobale) { message('La remise globale est réservée aux administrateurs.', true); return; }
+        if (!droitRemise.peut) { message('Vous n\'avez pas le droit d\'accorder des remises : demandez à un administrateur.', true); return; }
         const t = ticket();
         if (!t.lignes.length) { message('Le ticket est vide.'); return; }
         let type = t.remise ? t.remise.type : 'pct';
@@ -1532,6 +1546,13 @@
         const appliquer = () => {
             const v = valeur();
             if (type === 'pct' && v > 100) { message('La remise ne peut pas dépasser 100 %.', true); return; }
+            // Remise maximale de l'utilisateur (une remise en FCFA est comparée en % du sous-total).
+            const brut = totaux({ lignes: t.lignes, remise: null }).brut;
+            const pct = type === 'pct' ? v : brut > 0 ? Math.min(brut, v) / brut * 100 : 0;
+            if (droitRemise.max != null && pct > droitRemise.max + 0.001) {
+                message('Votre remise maximale est de ' + qte(droitRemise.max) + ' %' + (type === 'montant' ? ' (soit ' + fcfa(brut * droitRemise.max / 100) + ' FCFA sur ce ticket)' : '') + '.', true);
+                return;
+            }
             t.remise = v > 0 ? { type: type, valeur: v } : null;
             enregistrer();
             fermer();

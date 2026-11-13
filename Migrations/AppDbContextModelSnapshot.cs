@@ -1942,12 +1942,19 @@ namespace EasytransitCaisse.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<bool>("PeutRemise")
+                        .HasColumnType("bit");
+
                     b.Property<bool>("PeutValiderOperations")
                         .HasColumnType("bit");
 
                     b.Property<string>("Profil")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal?>("RemiseMax")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
 
                     b.Property<int?>("TenantId")
                         .HasColumnType("int");

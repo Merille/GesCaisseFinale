@@ -42,6 +42,9 @@ function utilisateur_valeurs(?array $existant): array
         'NomComplet' => (string) post('NomComplet', ''),
         'Profil' => $profil,
         'PeutValiderOperations' => post('PeutValiderOperations') ? 1 : 0,
+        // Remises (article et globale) : droit et pourcentage maximal facultatif (vide = sans limite).
+        'PeutRemise' => post('PeutRemise') ? 1 : 0,
+        'RemiseMax' => post('PeutRemise') && trim((string) post('RemiseMax', '')) !== '' ? (float) str_replace(',', '.', (string) post('RemiseMax')) : null,
         'TenantId' => $tenant,
         'MotPasse' => (string) post('MotPasse', ''),
     ];
@@ -54,6 +57,9 @@ function utilisateur_erreur(array $v, ?int $idExclu, bool $creation): ?string
     }
     if ($creation && strlen($v['MotPasse']) < 3) {
         return 'Le mot de passe doit contenir au moins 3 caractères.';
+    }
+    if ($v['RemiseMax'] !== null && ($v['RemiseMax'] <= 0 || $v['RemiseMax'] > 100)) {
+        return 'La remise maximale doit être comprise entre 0 et 100 % (laissez vide pour ne pas limiter).';
     }
     if ($v['Profil'] !== 'SuperAdmin' && !$v['TenantId']) {
         return 'Choisissez la société de cet utilisateur.';
@@ -76,8 +82,8 @@ function utilisateur_create(): void
             flash('danger', $e);
         } else {
             run(
-                'INSERT INTO Utilisateurs (NomUtilisateur, MotPasse, NomComplet, Profil, PeutValiderOperations, TenantId) VALUES (?, ?, ?, ?, ?, ?)',
-                [$u['NomUtilisateur'], hash_mdp($u['MotPasse']), $u['NomComplet'], $u['Profil'], $u['PeutValiderOperations'], $u['TenantId']]
+                'INSERT INTO Utilisateurs (NomUtilisateur, MotPasse, NomComplet, Profil, PeutValiderOperations, PeutRemise, RemiseMax, TenantId) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                [$u['NomUtilisateur'], hash_mdp($u['MotPasse']), $u['NomComplet'], $u['Profil'], $u['PeutValiderOperations'], $u['PeutRemise'], $u['RemiseMax'], $u['TenantId']]
             );
             flash('success', 'Utilisateur créé.');
             redirect('utilisateur/index');
@@ -96,8 +102,8 @@ function utilisateur_edit(): void
             flash('danger', $e);
         } else {
             run(
-                'UPDATE Utilisateurs SET NomUtilisateur = ?, NomComplet = ?, Profil = ?, PeutValiderOperations = ?, TenantId = ? WHERE Id = ?',
-                [$u['NomUtilisateur'], $u['NomComplet'], $u['Profil'], $u['PeutValiderOperations'], $u['TenantId'], $existant['Id']]
+                'UPDATE Utilisateurs SET NomUtilisateur = ?, NomComplet = ?, Profil = ?, PeutValiderOperations = ?, PeutRemise = ?, RemiseMax = ?, TenantId = ? WHERE Id = ?',
+                [$u['NomUtilisateur'], $u['NomComplet'], $u['Profil'], $u['PeutValiderOperations'], $u['PeutRemise'], $u['RemiseMax'], $u['TenantId'], $existant['Id']]
             );
             if ($u['MotPasse'] !== '') {
                 run('UPDATE Utilisateurs SET MotPasse = ? WHERE Id = ?', [hash_mdp($u['MotPasse']), $existant['Id']]);

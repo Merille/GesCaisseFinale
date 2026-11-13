@@ -1,5 +1,5 @@
 -- GesCaisse (version PHP / MySQL) : base COMPLÈTE et à jour, avec données de démonstration.
--- Structure identique à sql/schema.sql (migrations 001 à 025 intégrées) et données fictives :
+-- Structure identique à sql/schema.sql (migrations 001 à 026 intégrées) et données fictives :
 --   société « Société de démonstration » (coordonnées), 4 utilisateurs, 2 caisses (Caisse principale,
 --   Restaurant Le Jardin avec 2 salles et 9 tables), 6 tiers (entreprises et particulier), 3 modes de paiement, 4 motifs,
 --   catégories et 39 produits avec leur image (dont un menu combo et 3 combos), 151 ventes réparties sur 14 journées
@@ -471,7 +471,7 @@ CREATE TABLE `MigrationsAppliquees` (
   PRIMARY KEY (`Nom`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('001_pos_catalogue.sql','2026-11-02 00:15:19'),('002_pos_ventes.sql','2026-11-02 00:15:19'),('003_pos_apres_vente.sql','2026-11-02 00:15:19'),('004_pos_stock.sql','2026-11-02 00:15:19'),('005_pos_taxes.sql','2026-11-02 00:15:19'),('006_societe_produits.sql','2026-11-02 00:15:19'),('007_variantes_remise.sql','2026-11-02 00:15:20'),('008_unites.sql','2026-11-02 00:15:20'),('009_restaurant.sql','2026-11-02 00:15:20'),('010_combos.sql','2026-11-02 00:15:20'),('011_combos_odoo.sql','2026-11-02 00:15:20'),('012_module_point_vente.sql','2026-11-02 00:15:20'),('013_depots.sql','2026-11-02 00:15:20'),('014_livraisons.sql','2026-11-02 00:15:20'),('015_moyen_livraison.sql','2026-11-02 00:15:20'),('016_genre_tiers.sql','2026-11-02 00:15:20'),('017_clients_en_compte.sql','2026-11-02 00:15:20'),('018_frais_livraison.sql','2026-11-02 00:15:20'),('019_depots_secondaires.sql','2026-11-02 00:15:20'),('020_depots_linge.sql','2026-11-02 00:15:20'),('021_achats.sql','2026-11-12 00:00:00'),('022_depot_achats.sql','2026-11-12 00:00:00'),('023_hors_ligne.sql','2026-11-12 00:00:00'),('024_attente_hors_ligne.sql','2026-11-12 00:00:00'),('025_postes_hors_ligne.sql','2026-11-13 00:00:00');
+INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('001_pos_catalogue.sql','2026-11-02 00:15:19'),('002_pos_ventes.sql','2026-11-02 00:15:19'),('003_pos_apres_vente.sql','2026-11-02 00:15:19'),('004_pos_stock.sql','2026-11-02 00:15:19'),('005_pos_taxes.sql','2026-11-02 00:15:19'),('006_societe_produits.sql','2026-11-02 00:15:19'),('007_variantes_remise.sql','2026-11-02 00:15:20'),('008_unites.sql','2026-11-02 00:15:20'),('009_restaurant.sql','2026-11-02 00:15:20'),('010_combos.sql','2026-11-02 00:15:20'),('011_combos_odoo.sql','2026-11-02 00:15:20'),('012_module_point_vente.sql','2026-11-02 00:15:20'),('013_depots.sql','2026-11-02 00:15:20'),('014_livraisons.sql','2026-11-02 00:15:20'),('015_moyen_livraison.sql','2026-11-02 00:15:20'),('016_genre_tiers.sql','2026-11-02 00:15:20'),('017_clients_en_compte.sql','2026-11-02 00:15:20'),('018_frais_livraison.sql','2026-11-02 00:15:20'),('019_depots_secondaires.sql','2026-11-02 00:15:20'),('020_depots_linge.sql','2026-11-02 00:15:20'),('021_achats.sql','2026-11-12 00:00:00'),('022_depot_achats.sql','2026-11-12 00:00:00'),('023_hors_ligne.sql','2026-11-12 00:00:00'),('024_attente_hors_ligne.sql','2026-11-12 00:00:00'),('025_postes_hors_ligne.sql','2026-11-13 00:00:00'),('026_droit_remise.sql','2026-11-13 00:00:00');
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `ModesPaiement` (
@@ -814,13 +814,15 @@ CREATE TABLE `Utilisateurs` (
   `Profil` varchar(30) NOT NULL,
   `PeutValiderOperations` tinyint(1) NOT NULL DEFAULT '0',
   `TenantId` int DEFAULT NULL,
+  `PeutRemise` tinyint(1) NOT NULL DEFAULT '0',
+  `RemiseMax` decimal(5,2) DEFAULT NULL,
   PRIMARY KEY (`Id`),
   UNIQUE KEY `UX_Utilisateurs_Nom` (`NomUtilisateur`),
   KEY `FK_Utilisateurs_Tenants` (`TenantId`),
   CONSTRAINT `FK_Utilisateurs_Tenants` FOREIGN KEY (`TenantId`) REFERENCES `Tenants` (`Id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-INSERT INTO `Utilisateurs` (`Id`, `NomUtilisateur`, `MotPasse`, `NomComplet`, `Profil`, `PeutValiderOperations`, `TenantId`) VALUES (1,'superadmin','pmWkWSBCL51Bfkhn79xPuKBKHz//H6B+mY6G9/eieuM=','Super Administrateur','SuperAdmin',1,NULL),(2,'admin','$2y$10$QswhbWr2CsdSv5g7Xgnp4unPBGnW0H.P/0qrNTkuhYduJ0/Ex7Tvq','Administrateur','Admin',1,1),(3,'vendeur','pmWkWSBCL51Bfkhn79xPuKBKHz//H6B+mY6G9/eieuM=','Awa Vendeuse','Vendeur',0,1),(4,'caissier','pmWkWSBCL51Bfkhn79xPuKBKHz//H6B+mY6G9/eieuM=','Jean Caissier','Caissier',1,1),(5,'laverie','pmWkWSBCL51Bfkhn79xPuKBKHz//H6B+mY6G9/eieuM=','Gérant de la laverie','Admin',1,2),(6,'laverie.caisse','pmWkWSBCL51Bfkhn79xPuKBKHz//H6B+mY6G9/eieuM=','Caissière de la laverie','Caissier',1,2);
+INSERT INTO `Utilisateurs` (`Id`, `NomUtilisateur`, `MotPasse`, `NomComplet`, `Profil`, `PeutValiderOperations`, `TenantId`, `PeutRemise`, `RemiseMax`) VALUES (1,'superadmin','pmWkWSBCL51Bfkhn79xPuKBKHz//H6B+mY6G9/eieuM=','Super Administrateur','SuperAdmin',1,NULL,1,NULL),(2,'admin','$2y$10$QswhbWr2CsdSv5g7Xgnp4unPBGnW0H.P/0qrNTkuhYduJ0/Ex7Tvq','Administrateur','Admin',1,1,1,NULL),(3,'vendeur','pmWkWSBCL51Bfkhn79xPuKBKHz//H6B+mY6G9/eieuM=','Awa Vendeuse','Vendeur',0,1,1,NULL),(4,'caissier','pmWkWSBCL51Bfkhn79xPuKBKHz//H6B+mY6G9/eieuM=','Jean Caissier','Caissier',1,1,1,NULL),(5,'laverie','pmWkWSBCL51Bfkhn79xPuKBKHz//H6B+mY6G9/eieuM=','Gérant de la laverie','Admin',1,2,1,NULL),(6,'laverie.caisse','pmWkWSBCL51Bfkhn79xPuKBKHz//H6B+mY6G9/eieuM=','Caissière de la laverie','Caissier',1,2,1,NULL);
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `VarianteValeurs` (

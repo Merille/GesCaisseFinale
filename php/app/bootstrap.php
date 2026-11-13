@@ -491,9 +491,51 @@ function journee_solde_suggere(int $caisseId): float
 }
 
 /** Remise globale sur un ticket : administrateurs et utilisateurs autorisés à valider. */
-function pos_peut_remise_globale(): bool
+/** Annulation d'un dépôt de linge : administrateurs et utilisateurs autorisés à valider. */
+function pos_peut_annuler(): bool
 {
     return is_admin() || peut_valider();
+}
+
+/**
+ * Droit d'accorder des remises (sur un article et globale) : [autorisé, pourcentage maximal ou null].
+ * Administrateurs : toujours, sans limite ; autres : fiche de l'utilisateur (relue à chaque appel :
+ * un changement fait par l'administrateur s'applique sans reconnexion).
+ */
+function pos_droit_remise(): array
+{
+    if (is_admin()) {
+        return [true, null];
+    }
+    $u = q1('SELECT PeutRemise, RemiseMax FROM Utilisateurs WHERE Id = ?', [user()['id'] ?? 0]);
+    return [(bool) ($u['PeutRemise'] ?? false), isset($u['RemiseMax']) && $u['RemiseMax'] !== null ? (float) $u['RemiseMax'] : null];
+}
+
+/**
+ * Contrôle des remises d'un ticket : remises des lignes [[nom, %]…], remise globale en % (ou null).
+ * Renvoie le message d'erreur, ou null si l'utilisateur a le droit.
+ */
+function pos_controle_remises(array $lignes, ?float $globalePct): ?string
+{
+    $avecRemise = array_filter($lignes, fn($l) => $l[1] > 0);
+    if (!$avecRemise && !($globalePct > 0)) {
+        return null;
+    }
+    [$peut, $max] = pos_droit_remise();
+    if (!$peut) {
+        return "Vous n'avez pas le droit d'accorder des remises : demandez à un administrateur.";
+    }
+    if ($max !== null) {
+        foreach ($avecRemise as [$nom, $pct]) {
+            if ($pct > $max + 0.001) {
+                return 'Remise de ' . quantite_fr($pct) . ' % sur « ' . $nom . ' » : votre remise maximale est de ' . quantite_fr($max) . ' %.';
+            }
+        }
+        if ($globalePct !== null && $globalePct > $max + 0.001) {
+            return 'Remise globale de ' . quantite_fr(round($globalePct, 2)) . ' % : votre remise maximale est de ' . quantite_fr($max) . ' %.';
+        }
+    }
+    return null;
 }
 
 /** Mode de paiement « Espèces » : le seul sur lequel on peut rendre la monnaie. */

@@ -95,7 +95,8 @@ function pos_index(): void
         'peutDepasserPlafond' => is_admin(),
         // Frais de livraison proposés par défaut (modifiables à chaque vente).
         'fraisLivraison' => (float) qv('SELECT FraisLivraisonDefaut FROM Tenants WHERE Id = ?', [$tenant]),
-        'peutRemiseGlobale' => pos_peut_remise_globale(),
+        // Remises (article et globale) : droit donné par l'administrateur sur la fiche de l'utilisateur.
+        'remise' => ['peut' => ($droit = pos_droit_remise())[0], 'max' => $droit[1]],
         'urlFermer' => url('journee/details', ['id' => $journee['Id']]),
         'modes' => $modes,
         'urlVendre' => url('pos/vendre'),
@@ -125,7 +126,7 @@ function pos_index(): void
             'urlPret' => url('pos/depotpret'),
             'urlAnnuler' => url('pos/depotannuler'),
             'urlTicket' => url('pos/ticketdepot') . '&id=',
-            'peutAnnuler' => pos_peut_remise_globale(),
+            'peutAnnuler' => pos_peut_annuler(),
         ] : null,
         'restaurant' => caisse_est_restaurant($journee) ? [
             'type' => $journee['TypePointVente'],
@@ -278,10 +279,18 @@ function pos_vendre(): void
     $remiseGlobale = 0.0;
     $tauxRemise = null;
     $rg = $v['remiseGlobale'] ?? null;
+    // Droit de remise de l'utilisateur (hors ligne : la vente est gardée et l'écart noté).
+    $pctGlobal = null;
     if (is_array($rg) && (float) ($rg['valeur'] ?? 0) > 0 && $ttc > 0) {
-        if (!pos_peut_remise_globale()) {
-            pos_json(['erreur' => "La remise globale est réservée aux administrateurs et aux utilisateurs autorisés à valider."], 403);
+        $pctGlobal = ($rg['type'] ?? '') === 'pct' ? (float) $rg['valeur'] : min($ttc, (float) $rg['valeur']) / $ttc * 100;
+    }
+    if ($refus = pos_controle_remises(array_map(fn($l) => [$l['produit']['Nom'], $l['remise']], $lignes), $pctGlobal)) {
+        if (!$hl) {
+            pos_json(['erreur' => $refus], 403);
         }
+        $alertes[] = 'remise au-delà du droit du vendeur (' . $refus . ')';
+    }
+    if (is_array($rg) && (float) ($rg['valeur'] ?? 0) > 0 && $ttc > 0) {
         $valeur = (float) $rg['valeur'];
         if (($rg['type'] ?? '') === 'pct') {
             $tauxRemise = min(100, round($valeur, 2));
@@ -989,7 +998,7 @@ function pos_mettreenattente(): void
         pos_json(['erreur' => $erreur], 400);
     }
     $r = $s['remise'] ?? null;
-    $remise = is_array($r) && (float) ($r['valeur'] ?? 0) > 0 && pos_peut_remise_globale()
+    $remise = is_array($r) && (float) ($r['valeur'] ?? 0) > 0 && pos_droit_remise()[0]
         ? ['type' => ($r['type'] ?? '') === 'pct' ? 'pct' : 'montant', 'valeur' => (float) $r['valeur']] : null;
 
     // Total affiché dans la liste (même calcul que l'écran de vente).

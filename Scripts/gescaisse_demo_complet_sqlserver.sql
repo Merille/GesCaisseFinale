@@ -370,6 +370,8 @@ CREATE TABLE [Utilisateurs] (
     [NomComplet] nvarchar(max) NOT NULL,
     [Profil] nvarchar(max) NOT NULL,
     [PeutValiderOperations] bit NOT NULL,
+    [PeutRemise] bit NOT NULL,
+    [RemiseMax] decimal(5,2) NULL,
     [TenantId] int NULL,
     CONSTRAINT [PK_Utilisateurs] PRIMARY KEY ([Id]),
     CONSTRAINT [FK_Utilisateurs_Tenants_TenantId] FOREIGN KEY ([TenantId]) REFERENCES [Tenants] ([Id])
@@ -1014,7 +1016,8 @@ INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion]) VALUES
     (N'20261112070814_DepotAchats', N'10.0.9'),
     (N'20261112202612_HorsLigne', N'10.0.9'),
     (N'20261112210405_AttenteHorsLigne', N'10.0.9'),
-    (N'20261113052742_PostesHorsLigne', N'10.0.9');
+    (N'20261113052742_PostesHorsLigne', N'10.0.9'),
+    (N'20261113173927_DroitRemise', N'10.0.9');
 GO
 
 -- =====================================================================
@@ -3167,13 +3170,13 @@ GO
 
 -- Utilisateurs (6)
 SET IDENTITY_INSERT [Utilisateurs] ON;
-INSERT INTO [Utilisateurs] ([Id], [NomUtilisateur], [MotPasse], [NomComplet], [Profil], [PeutValiderOperations], [TenantId]) VALUES
-(1, N'superadmin', N'pmWkWSBCL51Bfkhn79xPuKBKHz//H6B+mY6G9/eieuM=', N'Super Administrateur', N'SuperAdmin', 1, NULL),
-(2, N'admin', N'pmWkWSBCL51Bfkhn79xPuKBKHz//H6B+mY6G9/eieuM=', N'Administrateur', N'Admin', 1, 1),
-(3, N'vendeur', N'pmWkWSBCL51Bfkhn79xPuKBKHz//H6B+mY6G9/eieuM=', N'Awa Vendeuse', N'Vendeur', 0, 1),
-(4, N'caissier', N'pmWkWSBCL51Bfkhn79xPuKBKHz//H6B+mY6G9/eieuM=', N'Jean Caissier', N'Caissier', 1, 1),
-(5, N'laverie', N'pmWkWSBCL51Bfkhn79xPuKBKHz//H6B+mY6G9/eieuM=', N'Gérant de la laverie', N'Admin', 1, 2),
-(6, N'laverie.caisse', N'pmWkWSBCL51Bfkhn79xPuKBKHz//H6B+mY6G9/eieuM=', N'Caissière de la laverie', N'Caissier', 1, 2);
+INSERT INTO [Utilisateurs] ([Id], [NomUtilisateur], [MotPasse], [NomComplet], [Profil], [PeutValiderOperations], [TenantId], [PeutRemise], [RemiseMax]) VALUES
+(1, N'superadmin', N'pmWkWSBCL51Bfkhn79xPuKBKHz//H6B+mY6G9/eieuM=', N'Super Administrateur', N'SuperAdmin', 1, NULL, 1, NULL),
+(2, N'admin', N'pmWkWSBCL51Bfkhn79xPuKBKHz//H6B+mY6G9/eieuM=', N'Administrateur', N'Admin', 1, 1, 1, NULL),
+(3, N'vendeur', N'pmWkWSBCL51Bfkhn79xPuKBKHz//H6B+mY6G9/eieuM=', N'Awa Vendeuse', N'Vendeur', 0, 1, 1, NULL),
+(4, N'caissier', N'pmWkWSBCL51Bfkhn79xPuKBKHz//H6B+mY6G9/eieuM=', N'Jean Caissier', N'Caissier', 1, 1, 1, NULL),
+(5, N'laverie', N'pmWkWSBCL51Bfkhn79xPuKBKHz//H6B+mY6G9/eieuM=', N'Gérant de la laverie', N'Admin', 1, 2, 1, NULL),
+(6, N'laverie.caisse', N'pmWkWSBCL51Bfkhn79xPuKBKHz//H6B+mY6G9/eieuM=', N'Caissière de la laverie', N'Caissier', 1, 2, 1, NULL);
 SET IDENTITY_INSERT [Utilisateurs] OFF;
 GO
 

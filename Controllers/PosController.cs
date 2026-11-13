@@ -27,8 +27,44 @@ namespace EasytransitCaisse.Controllers
         private bool EstAdmin => User.FindFirst(AppClaimTypes.Profil)?.Value is "Admin" or "SuperAdmin";
 
         // Remise globale sur un ticket : administrateurs et utilisateurs autorisés à valider.
-        private bool PeutRemiseGlobale => EstAdmin
+        // Annulation d'un dépôt de linge : administrateurs et utilisateurs autorisés à valider.
+        private bool PeutAnnuler => EstAdmin
             || (bool.TryParse(User.FindFirst(AppClaimTypes.PeutValiderOperations)?.Value, out var pv) && pv);
+
+        // Droit d'accorder des remises (sur un article et globale) : (autorisé, pourcentage maximal ou null).
+        // Administrateurs : toujours, sans limite ; autres : fiche de l'utilisateur, relue à chaque appel (un
+        // changement fait par l'administrateur s'applique sans reconnexion). Comme pos_droit_remise() en PHP.
+        private async Task<(bool Peut, decimal? Max)> DroitRemiseAsync()
+        {
+            if (EstAdmin)
+                return (true, null);
+            var id = int.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var u) ? u : 0;
+            var droit = await _context.Utilisateurs.IgnoreQueryFilters().Where(x => x.Id == id)
+                .Select(x => new { x.PeutRemise, x.RemiseMax }).FirstOrDefaultAsync();
+            return (droit?.PeutRemise ?? false, droit?.RemiseMax);
+        }
+
+        // Contrôle des remises d'un ticket : remises des lignes (nom, %), remise globale en % (ou null).
+        // Renvoie le message d'erreur, ou null si l'utilisateur a le droit.
+        private async Task<string?> ControleRemisesAsync(IEnumerable<(string Nom, decimal Pct)> lignes, decimal? globalePct)
+        {
+            var avecRemise = lignes.Where(l => l.Pct > 0).ToList();
+            if (!avecRemise.Any() && !(globalePct > 0))
+                return null;
+            var (peut, max) = await DroitRemiseAsync();
+            if (!peut)
+                return "Vous n'avez pas le droit d'accorder des remises : demandez à un administrateur.";
+            if (max.HasValue)
+            {
+                var fr = System.Globalization.CultureInfo.GetCultureInfo("fr-FR");
+                foreach (var (nom, pct) in avecRemise)
+                    if (pct > max.Value + 0.001m)
+                        return $"Remise de {pct.ToString("0.##", fr)} % sur « {nom} » : votre remise maximale est de {max.Value.ToString("0.##", fr)} %.";
+                if (globalePct.HasValue && globalePct.Value > max.Value + 0.001m)
+                    return $"Remise globale de {Math.Round(globalePct.Value, 2).ToString("0.##", fr)} % : votre remise maximale est de {max.Value.ToString("0.##", fr)} %.";
+            }
+            return null;
+        }
 
         // « Espèces » : le seul mode sur lequel on peut rendre la monnaie.
         public static bool EstEspeces(ModePaiement m) =>
@@ -129,6 +165,7 @@ namespace EasytransitCaisse.Controllers
             var profil = User.FindFirst(AppClaimTypes.Profil)?.Value ?? "";
             var nom = User.FindFirst(AppClaimTypes.NomComplet)?.Value;
             var societeTicket = await _context.Tenants.AsNoTracking().FirstOrDefaultAsync(t => t.Id == tenant);
+            var droitRemise = await DroitRemiseAsync();
             var donnees = new
             {
                 cle = $"gescaisse-pos:{tenant}:{j.Id}",
@@ -153,7 +190,8 @@ namespace EasytransitCaisse.Controllers
                 peutDepasserPlafond = profil is "Admin" or "SuperAdmin",
                 // Frais de livraison proposés par défaut (modifiables à chaque vente).
                 fraisLivraison = await _context.Tenants.Where(t => t.Id == tenant).Select(t => t.FraisLivraisonDefaut).FirstOrDefaultAsync(),
-                peutRemiseGlobale = PeutRemiseGlobale,
+                // Remises (article et globale) : droit donné par l'administrateur sur la fiche de l'utilisateur.
+                remise = new { peut = droitRemise.Peut, max = droitRemise.Max },
                 urlFermer = $"/JourneeCaisse/Details/{j.Id}",
                 modes,
                 urlVendre = "/Pos/Vendre",
@@ -187,7 +225,7 @@ namespace EasytransitCaisse.Controllers
                     urlPret = "/Pos/DepotPret",
                     urlAnnuler = "/Pos/DepotAnnuler",
                     urlTicket = "/Pos/TicketDepot/",
-                    peutAnnuler = PeutRemiseGlobale
+                    peutAnnuler = PeutAnnuler
                 } : null,
                 restaurant = j.Caisse != null && j.Caisse.EstRestaurant ? new
                 {
@@ -387,14 +425,23 @@ namespace EasytransitCaisse.Controllers
                 }));
             }
 
-            // Remise globale (administrateurs et utilisateurs autorisés à valider) : en % ou en montant,
+            // Droit de remise de l'utilisateur (hors ligne : la vente est gardée et l'écart noté).
+            decimal? pctGlobal = v.RemiseGlobale != null && v.RemiseGlobale.Valeur > 0 && ttc > 0
+                ? (v.RemiseGlobale.Type == "pct" ? v.RemiseGlobale.Valeur : Math.Min(ttc, v.RemiseGlobale.Valeur) / ttc * 100) : null;
+            var refus = await ControleRemisesAsync(lignes.Select(x => (x.Produit.Nom, x.Ligne.Remise)), pctGlobal);
+            if (refus != null)
+            {
+                if (hl == null)
+                    return Erreur(403, refus);
+                alertes.Add($"remise au-delà du droit du vendeur ({refus})");
+            }
+
+            // Remise globale (selon le droit de remise de l'utilisateur) : en % ou en montant,
             // répartie sur les lignes au prorata ; les totaux et les taxes portent sur le net.
             decimal remiseGlobale = 0;
             decimal? tauxRemise = null;
             if (v.RemiseGlobale != null && v.RemiseGlobale.Valeur > 0 && ttc > 0)
             {
-                if (!PeutRemiseGlobale)
-                    return Erreur(403, "La remise globale est réservée aux administrateurs et aux utilisateurs autorisés à valider.");
                 if (v.RemiseGlobale.Type == "pct")
                 {
                     tauxRemise = Math.Min(100, Math.Round(v.RemiseGlobale.Valeur, 2));
@@ -992,7 +1039,7 @@ namespace EasytransitCaisse.Controllers
             if (t == null || j == null)
                 return NotFound();
             var lignes = await LignesCatalogueAsync(t.Lignes, j.TenantId);
-            var remise = RemiseAutorisee(t.Remise);
+            var remise = await RemiseAutoriseeAsync(t.Remise);
             var societe = await _context.Tenants.FirstOrDefaultAsync(x => x.Id == j.TenantId);
             ViewBag.Societe = societe?.Nom ?? "GesCaisse";
             ViewBag.Logo = Images.UrlLogo(societe);
