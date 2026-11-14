@@ -34,16 +34,20 @@ namespace EasytransitCaisse.Controllers
 
         public async Task<IActionResult> Index()
         {
+            // Profils de la société (filtre par société) ; le nombre d'utilisateurs est compté à part :
+            // IgnoreQueryFilters dans la même requête retirerait aussi le filtre des profils.
             var profils = await (from p in _context.Profils.AsNoTracking()
                                  join t in _context.Tenants on p.TenantId equals t.Id
                                  orderby t.Nom, p.Nom
-                                 select new LigneProfil
-                                 {
-                                     Profil = p, Societe = t.Nom,
-                                     Utilisateurs = _context.Utilisateurs.IgnoreQueryFilters().Count(u => u.ProfilId == p.Id)
-                                 }).ToListAsync();
+                                 select new LigneProfil { Profil = p, Societe = t.Nom }).ToListAsync();
+            var ids = profils.Select(l => l.Profil.Id).ToList();
+            var nombres = await _context.Utilisateurs.IgnoreQueryFilters().Where(u => u.ProfilId != null && ids.Contains(u.ProfilId.Value))
+                .GroupBy(u => u.ProfilId!.Value).Select(g => new { g.Key, N = g.Count() }).ToDictionaryAsync(x => x.Key, x => x.N);
             foreach (var l in profils)
+            {
                 l.Droits = Droits.Lire(l.Profil.Droits);
+                l.Utilisateurs = nombres.GetValueOrDefault(l.Profil.Id);
+            }
             ViewBag.Admins = await _context.Utilisateurs.CountAsync(u => u.Profil == "Admin");
             ViewBag.TenantId = _tenant.TenantId;
             ViewBag.Toutes = _tenant.IsSuperAdmin && _tenant.TenantId == 0;
