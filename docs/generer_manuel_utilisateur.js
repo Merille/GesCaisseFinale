@@ -19,12 +19,12 @@ const t = (texte, o = {}) => new TextRun({ text: texte, font: POLICE, ...o });
 // Texte avec **gras** : « Cliquez sur **Enregistrer** ».
 const riche = (texte, o = {}) => texte.split(/(\*\*[^*]+\*\*)/).filter(Boolean)
     .map(m => m.startsWith('**') ? t(m.slice(2, -2), { ...o, bold: true }) : t(m, o));
-const p = (texte, o = {}) => new Paragraph({ spacing: { after: 120, line: 300 }, ...o, children: Array.isArray(texte) ? texte : riche(texte) });
+const p = (texte, o = {}) => new Paragraph({ alignment: AlignmentType.JUSTIFIED, spacing: { after: 120, line: 300 }, ...o, children: Array.isArray(texte) ? texte : riche(texte) });
 const h1 = texte => new Paragraph({ heading: HeadingLevel.HEADING_1, pageBreakBefore: true, children: [t(texte)] });
 const h2 = texte => new Paragraph({ heading: HeadingLevel.HEADING_2, children: [t(texte)] });
 const h3 = texte => new Paragraph({ heading: HeadingLevel.HEADING_3, children: [t(texte)] });
 const puce = (texte, niveau = 0) => new Paragraph({
-    numbering: { reference: 'puces', level: niveau }, spacing: { after: 60, line: 280 },
+    numbering: { reference: 'puces', level: niveau }, alignment: AlignmentType.JUSTIFIED, spacing: { after: 60, line: 280 },
     children: Array.isArray(texte) ? texte : riche(texte)
 });
 // « Libellé : texte » avec le libellé en gras.
@@ -34,7 +34,7 @@ let numListe = 0;
 const etapes = liste => {
     const instance = ++numListe;
     return liste.map(e => new Paragraph({
-        numbering: { reference: 'etapes', level: 0, instance }, spacing: { after: 70, line: 280 }, children: riche(e)
+        numbering: { reference: 'etapes', level: 0, instance }, alignment: AlignmentType.JUSTIFIED, spacing: { after: 70, line: 280 }, children: riche(e)
     }));
 };
 
@@ -61,7 +61,7 @@ const espace = () => new Paragraph({ spacing: { after: 60 }, children: [] });
 
 // Encadrés : astuce (bleu) et attention (orange).
 const encadre = (titre, texte, couleur = BLEU, fond = BLEU_CLAIR) => new Paragraph({
-    spacing: { before: 120, after: 160, line: 290 },
+    alignment: AlignmentType.JUSTIFIED, spacing: { before: 120, after: 160, line: 290 },
     shading: { fill: fond, type: ShadingType.CLEAR, color: 'auto' },
     border: { left: { style: BorderStyle.SINGLE, size: 24, color: couleur, space: 8 } },
     indent: { left: 200, right: 200 },

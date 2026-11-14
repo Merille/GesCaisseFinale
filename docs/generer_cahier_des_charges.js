@@ -12,12 +12,12 @@ const LARGEUR = 9638;   // A4 (11906) moins 2 × 1134 de marge
 const POLICE = 'Arial';
 
 const t = (texte, o = {}) => new TextRun({ text: texte, font: POLICE, ...o });
-const p = (texte, o = {}) => new Paragraph({ spacing: { after: 120, line: 300 }, ...o, children: Array.isArray(texte) ? texte : [t(texte)] });
+const p = (texte, o = {}) => new Paragraph({ alignment: AlignmentType.JUSTIFIED, spacing: { after: 120, line: 300 }, ...o, children: Array.isArray(texte) ? texte : [t(texte)] });
 const h1 = texte => new Paragraph({ heading: HeadingLevel.HEADING_1, pageBreakBefore: true, children: [t(texte)] });
 const h2 = texte => new Paragraph({ heading: HeadingLevel.HEADING_2, children: [t(texte)] });
 const h3 = texte => new Paragraph({ heading: HeadingLevel.HEADING_3, children: [t(texte)] });
 const puce = (texte, niveau = 0) => new Paragraph({
-    numbering: { reference: 'puces', level: niveau }, spacing: { after: 60, line: 280 },
+    numbering: { reference: 'puces', level: niveau }, alignment: AlignmentType.JUSTIFIED, spacing: { after: 60, line: 280 },
     children: Array.isArray(texte) ? texte : [t(texte)]
 });
 // « Libellé : texte » avec le libellé en gras.
@@ -46,7 +46,7 @@ const espace = () => new Paragraph({ spacing: { after: 60 }, children: [] });
 
 // Encadré (paragraphe bordé à gauche, fond bleu clair).
 const encadre = (titre, texte) => new Paragraph({
-    spacing: { before: 120, after: 160, line: 290 },
+    alignment: AlignmentType.JUSTIFIED, spacing: { before: 120, after: 160, line: 290 },
     shading: { fill: BLEU_CLAIR, type: ShadingType.CLEAR, color: 'auto' },
     border: { left: { style: BorderStyle.SINGLE, size: 24, color: BLEU, space: 8 } },
     indent: { left: 200, right: 200 },
