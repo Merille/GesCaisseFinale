@@ -192,7 +192,7 @@ def main():
     # Profils et droits : la démonstration MySQL est antérieure aux profils (créés par la migration 028
     # au premier chargement en PHP) ; ici, mêmes profils Caissier et Vendeur et rattachement des comptes.
     a('-- Profils Caissier et Vendeur de chaque société, comptes rattachés (comme la migration ProfilsDroits)')
-    a("INSERT INTO Profils (TenantId, Nom, Description, Droits) SELECT t.Id, n.Nom, N'Caisse, ventes et tiers', N'tableau_bord,caisses,caisses.a,caisses.m,caisses.s,journees,journees.a,journees.m,journees.s,tiers,tiers.a,tiers.m,tiers.s,rapports,vendre,ventes,ventes.a,ventes.m,ventes.s,cuisine,cuisine.m'")
+    a("INSERT INTO Profils (TenantId, Nom, Description, Droits) SELECT t.Id, n.Nom, N'Caisse, ventes et tiers', N'tableau_bord,caisses,caisses.a,caisses.m,caisses.s,journees,journees.a,journees.m,journees.s,tiers,tiers.a,tiers.m,tiers.s,rapports,rapports.a,rapports.m,vendre,vendre.a,vendre.m,vendre.s,ventes,ventes.a,ventes.m,ventes.s,cuisine,cuisine.m'")
     a("FROM Tenants t CROSS JOIN (VALUES (N'Caissier'), (N'Vendeur')) AS n(Nom) WHERE NOT EXISTS (SELECT 1 FROM Profils p WHERE p.TenantId = t.Id AND p.Nom = n.Nom);")
     a("UPDATE u SET u.ProfilId = p.Id FROM Utilisateurs u JOIN Profils p ON p.TenantId = u.TenantId AND p.Nom = u.Profil")
     a("WHERE u.Profil NOT IN (N'Admin', N'SuperAdmin') AND u.ProfilId IS NULL;")

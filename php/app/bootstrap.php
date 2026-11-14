@@ -255,17 +255,17 @@ function droits_catalogue(): array
             'tiers' => ['Tiers', 'Clients et fournisseurs', ['c' => 'Voir et exporter les tiers', 'a' => 'Créer et importer des tiers', 'm' => 'Modifier un tiers', 's' => 'Supprimer un tiers']],
         ],
         'Analyse' => [
-            'rapports' => ['Rapports de caisse', 'Rapport des opérations, export Sage, rapport des tiers', ['c' => 'Consulter et exporter les rapports']],
+            'rapports' => ['Rapports de caisse', 'Rapport des opérations, export Sage, rapport des tiers', ['c' => 'Consulter les rapports à l\'écran', 'a' => 'Exporter (Excel, export Sage)', 'm' => 'Imprimer (aperçu, PDF)', 's' => SANS_ACTION]],
         ],
         'Point de vente' => [
-            'vendre' => ['Vendre', 'Écran de vente, commandes de table, dépôts de linge', ['c' => 'Utiliser l\'écran de vente']],
+            'vendre' => ['Vendre', 'Écran de vente, commandes de table, dépôts de linge', ['c' => 'Ouvrir l\'écran de vente, voir les tables et les commandes', 'a' => 'Encaisser une vente, prendre une commande de table, mettre en attente, déposer du linge', 'm' => 'Transférer une table, imprimer l\'addition, reprendre une commande en attente, linge prêt, marquer livrée', 's' => 'Supprimer une commande en attente, annuler un dépôt de linge']],
             'ventes' => ['Ventes', 'Liste et détail des ventes, factures', ['c' => 'Voir les ventes et les factures', 'a' => 'Faire un retour, créer une facture', 'm' => 'Marquer livrée, vérifier une vente hors ligne, modifier une facture', 's' => 'Annuler une vente']],
-            'cuisine' => ['Écran cuisine / bar', 'Bons de préparation', ['c' => 'Voir les bons', 'm' => 'Marquer un bon prêt']],
-            'stock' => ['Stock', 'Stock par dépôt et mouvements', ['c' => 'Voir le stock et les mouvements', 'a' => 'Entrées et transferts de stock', 'm' => 'Inventaire, options du stock']],
-            'achats' => ['Achats', 'Achats fournisseurs, consommations, produits d\'entretien', ['c' => 'Voir les achats et le stock des achats', 'a' => 'Saisir un achat, un règlement, une consommation', 's' => 'Annuler un achat']],
-            'rapports_pdv' => ['Rapports du point de vente', 'Ventes, livraisons, dépôts de linge, achats', ['c' => 'Consulter et exporter les rapports']],
+            'cuisine' => ['Écran cuisine / bar', 'Bons de préparation', ['c' => 'Voir les bons', 'a' => SANS_ACTION, 'm' => 'Marquer un bon prêt', 's' => SANS_ACTION]],
+            'stock' => ['Stock', 'Stock par dépôt et mouvements', ['c' => 'Voir le stock et les mouvements', 'a' => 'Entrées et transferts de stock', 'm' => 'Inventaire, options du stock', 's' => SANS_ACTION]],
+            'achats' => ['Achats', 'Achats fournisseurs, consommations, produits d\'entretien', ['c' => 'Voir les achats et le stock des achats', 'a' => 'Saisir un achat, une consommation', 'm' => 'Enregistrer un règlement au fournisseur', 's' => 'Annuler un achat']],
+            'rapports_pdv' => ['Rapports du point de vente', 'Ventes, livraisons, dépôts de linge, achats', ['c' => 'Consulter les rapports à l\'écran', 'a' => 'Exporter (Excel)', 'm' => 'Imprimer (aperçu, PDF)', 's' => SANS_ACTION]],
             'catalogue' => ['Catalogue', 'Catégories, produits, combos, taxes, unités de vente', ['c' => 'Voir et exporter', 'a' => 'Créer, importer, générer des variantes', 'm' => 'Modifier, activer ou désactiver', 's' => 'Supprimer']],
-            'synchro' => ['Synchronisation', 'Ventes faites hors ligne et postes', ['c' => 'Voir la synchronisation', 'm' => 'Marquer vérifié, oublier un poste']],
+            'synchro' => ['Synchronisation', 'Ventes faites hors ligne et postes', ['c' => 'Voir la synchronisation', 'a' => SANS_ACTION, 'm' => 'Marquer vérifié, oublier un poste', 's' => SANS_ACTION]],
         ],
         'Paramètres' => [
             'parametres' => ['Motifs et modes de paiement', 'Motifs des opérations, modes de paiement', ['c' => 'Voir', 'a' => 'Créer', 'm' => 'Modifier', 's' => 'Supprimer']],
@@ -277,6 +277,9 @@ function droits_catalogue(): array
         ],
     ];
 }
+
+/** Case sans action pour l'instant dans ce module (cochable, sans effet tant qu'aucune action de ce type n'existe). */
+const SANS_ACTION = 'Aucune action de ce type dans ce module pour l\'instant';
 
 /** Droits à plat : code => [libellé, détail, opérations]. */
 function droits_catalogue_plat(): array
@@ -305,7 +308,8 @@ function droits_lire(string $droits): array
 
 /** Droits des utilisateurs sans profil (anciens comptes Caissier / Vendeur) et des profils d'une nouvelle société. */
 const DROITS_PAR_DEFAUT = ['tableau_bord', 'caisses', 'caisses.a', 'caisses.m', 'caisses.s', 'journees', 'journees.a', 'journees.m', 'journees.s',
-    'tiers', 'tiers.a', 'tiers.m', 'tiers.s', 'rapports', 'vendre', 'ventes', 'ventes.a', 'ventes.m', 'ventes.s', 'cuisine', 'cuisine.m'];
+    'tiers', 'tiers.a', 'tiers.m', 'tiers.s', 'rapports', 'rapports.a', 'rapports.m', 'vendre', 'vendre.a', 'vendre.m', 'vendre.s',
+    'ventes', 'ventes.a', 'ventes.m', 'ventes.s', 'cuisine', 'cuisine.m'];
 
 /** L'utilisateur connecté a-t-il ce droit (et cette opération : a, m ou s) ? */
 function peut(string $droit, string $op = 'c'): bool
@@ -316,10 +320,18 @@ function peut(string $droit, string $op = 'c'): bool
     return in_array($op === 'c' ? $droit : "$droit.$op", $GLOBALS['__droits'] ?? [], true);
 }
 
-/** Opération d'une action : c consulter, a ajouter, m modifier, s supprimer (« save » / « edit » : selon l'identifiant). */
-function droit_operation(string $action, int $id = 0): string
+/**
+ * Opération d'une action : c consulter, a ajouter, m modifier, s supprimer (« save » / « edit » : selon
+ * l'identifiant). Mots propres à un droit (écran de vente, rapports, achats) d'abord, puis mots communs.
+ */
+function droit_operation(string $action, int $id = 0, string $droit = ''): string
 {
     $a = strtolower($action);
+    foreach (DROITS_MOTS_DROIT[$droit] ?? [] as $op => $mots) {
+        if (in_array($a, $mots, true)) {
+            return $op;
+        }
+    }
     if (in_array($a, ['save', 'edit'], true)) {
         return $id > 0 ? 'm' : 'a';
     }
@@ -338,6 +350,25 @@ const DROITS_MOTS = [
             'retour', 'ouvrirjournee', 'ligne', 'ajouterligne'],
     'm' => ['toggle', 'basculer', 'defaut', 'pardefaut', 'achats', 'frais', 'majvariantes', 'combo', 'validation', 'modifiervalidation', 'cloturer',
             'statut', 'livree', 'verifier', 'oublier', 'option', 'inventaire', 'inventairepost', 'enregistrer', 'valider', 'validerfacture'],
+];
+
+/** Mots propres à un droit (prioritaires sur les mots communs). Identiques en .NET. */
+const DROITS_MOTS_DROIT = [
+    'vendre' => [
+        'a' => ['vendre', 'mettreenattente', 'deposer', 'enregistrer', 'envoyer'],
+        'm' => ['transferer', 'addition', 'reprendre', 'depotpret', 'livree'],
+        's' => ['supprimerattente', 'depotannuler'],
+        'c' => ['index', 'ticket', 'plan', 'commande', 'additionticket', 'bon', 'attentes', 'depots', 'ticketdepot', 'jeton'],
+    ],
+    'rapports' => [
+        'a' => ['sage', 'excel', 'exportsage', 'exportsagecsv', 'exportsagetxt'],
+        'm' => ['preview', 'previewoperations', 'imprimer', 'pdf'],
+    ],
+    'rapports_pdv' => [
+        'a' => ['excel'],
+        'm' => ['preview', 'imprimer', 'pdf'],
+    ],
+    'achats' => ['m' => ['reglement']],
 ];
 
 /**
@@ -370,7 +401,7 @@ function droit_operation_requete(string $droit, string $action): string
     foreach (['Id', 'ID', 'id'] as $cle) {
         $id = max($id, (int) ($_POST[$cle] ?? $_GET[$cle] ?? 0));
     }
-    $op = droit_operation($action, $id);
+    $op = droit_operation($action, $id, $droit);
     $ops = droits_catalogue_plat()[$droit][2] ?? ['c' => ''];
     return isset($ops[$op]) ? $op : 'c';
 }
@@ -386,6 +417,11 @@ function require_droit(string $module, string $action): void
         return;
     }
     http_response_code(403);
+    // Écran de vente et écran cuisine (appels en arrière-plan) : réponse JSON lisible par l'écran.
+    if (in_array($module, ['pos', 'cuisine'], true) && (is_post() || str_contains((string) ($_SERVER['HTTP_ACCEPT'] ?? ''), 'json'))) {
+        header('Content-Type: application/json; charset=utf-8');
+        exit(json_encode(['erreur' => 'Votre profil ne permet pas cette opération.'], JSON_UNESCAPED_UNICODE));
+    }
     render('acces_refuse', [], user() !== null);
     exit;
 }
@@ -403,7 +439,7 @@ function droits_page_js(): array
     foreach (droits_catalogue_plat() as $code => [, , $o]) {
         $ops[$code] = array_keys($o);
     }
-    return ['admin' => is_admin(), 'carte' => $carte, 'mots' => DROITS_MOTS, 'ops' => $ops, 'accordes' => is_admin() ? droits_codes() : array_values($GLOBALS['__droits'] ?? [])];
+    return ['admin' => is_admin(), 'carte' => $carte, 'mots' => DROITS_MOTS, 'motsDroit' => DROITS_MOTS_DROIT, 'ops' => $ops, 'accordes' => is_admin() ? droits_codes() : array_values($GLOBALS['__droits'] ?? [])];
 }
 
 /** Profils proposés à une nouvelle société : Caissier et Vendeur (droits modifiables ensuite). */

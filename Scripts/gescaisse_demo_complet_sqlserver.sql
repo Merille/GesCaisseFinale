@@ -1058,7 +1058,8 @@ INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion]) VALUES
     (N'20261113173927_DroitRemise', N'10.0.9'),
     (N'20261114091147_TentativesConnexion', N'10.0.9'),
     (N'20261114114523_ProfilsDroits', N'10.0.9'),
-    (N'20261114121140_DroitsDetail', N'10.0.9');
+    (N'20261114121140_DroitsDetail', N'10.0.9'),
+    (N'20261114130325_DroitsToutesOperations', N'10.0.9');
 GO
 
 -- =====================================================================
@@ -3224,7 +3225,7 @@ SET IDENTITY_INSERT [Utilisateurs] OFF;
 GO
 
 -- Profils Caissier et Vendeur de chaque société, comptes rattachés (comme la migration ProfilsDroits)
-INSERT INTO Profils (TenantId, Nom, Description, Droits) SELECT t.Id, n.Nom, N'Caisse, ventes et tiers', N'tableau_bord,caisses,caisses.a,caisses.m,caisses.s,journees,journees.a,journees.m,journees.s,tiers,tiers.a,tiers.m,tiers.s,rapports,vendre,ventes,ventes.a,ventes.m,ventes.s,cuisine,cuisine.m'
+INSERT INTO Profils (TenantId, Nom, Description, Droits) SELECT t.Id, n.Nom, N'Caisse, ventes et tiers', N'tableau_bord,caisses,caisses.a,caisses.m,caisses.s,journees,journees.a,journees.m,journees.s,tiers,tiers.a,tiers.m,tiers.s,rapports,rapports.a,rapports.m,vendre,vendre.a,vendre.m,vendre.s,ventes,ventes.a,ventes.m,ventes.s,cuisine,cuisine.m'
 FROM Tenants t CROSS JOIN (VALUES (N'Caissier'), (N'Vendeur')) AS n(Nom) WHERE NOT EXISTS (SELECT 1 FROM Profils p WHERE p.TenantId = t.Id AND p.Nom = n.Nom);
 UPDATE u SET u.ProfilId = p.Id FROM Utilisateurs u JOIN Profils p ON p.TenantId = u.TenantId AND p.Nom = u.Profil
 WHERE u.Profil NOT IN (N'Admin', N'SuperAdmin') AND u.ProfilId IS NULL;

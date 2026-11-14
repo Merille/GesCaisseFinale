@@ -19,7 +19,9 @@
         return morceaux.length ? [morceaux[0], morceaux[1] || 'index', u.searchParams.get('id') || morceaux[2] || ''] : null;
     }
 
-    function operation(action, id) {
+    function operation(action, id, droit) {
+        const propres = (D.motsDroit || {})[droit] || {};
+        for (const op of Object.keys(propres)) if (propres[op].includes(action)) return op;
         if (action === 'save' || action === 'edit') return Number(id) > 0 ? 'm' : 'a';
         for (const op of ['s', 'a', 'm']) if (D.mots[op].includes(action)) return op;
         return 'c';
@@ -32,7 +34,7 @@
         if (droit === undefined) return null;
         if (droit === '') return true;
         if (droit === 'admin') return false;
-        let op = operation(action, id);
+        let op = operation(action, id, droit);
         if (!D.ops[droit] || !D.ops[droit].includes(op)) op = 'c';
         if (module === 'caisse' && op === 'c' && accordes.has('journees')) return true;
         if (module === 'synchro' && action === 'rapport') return true;
