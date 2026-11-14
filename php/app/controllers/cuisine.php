@@ -23,6 +23,8 @@ function cuisine_index(): void
         'poste' => $poste,
         'urlBons' => url('cuisine/bons', ['caisse' => $caisse['ID']]),
         'urlStatut' => url('cuisine/statut'),
+        // Impression des bons sur l'imprimante de ce poste (impression automatique ou « Imprimer »).
+        'urlImpression' => url('cuisine/bon') . '&ids=',
         'urlRetour' => url('accueil'),
         'jeton' => ['nom' => '_csrf', 'valeur' => csrf_token()],
     ]], false);
@@ -74,4 +76,17 @@ function pos_json_cuisine(array $r, int $code = 200): never
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode($r, JSON_UNESCAPED_UNICODE);
     exit;
+}
+
+/** Bons de préparation à imprimer depuis l'écran cuisine / bar (page qui s'imprime d'elle-même). */
+function cuisine_bon(): void
+{
+    $ids = array_values(array_filter(array_map('intval', explode(',', (string) get('ids'))))) ?: [0];
+    $marques = implode(',', array_fill(0, count($ids), '?'));
+    $bons = q("SELECT * FROM BonsPreparation WHERE Id IN ($marques) AND " . tf() . ' ORDER BY Id', $ids);
+    foreach ($bons as &$b) {
+        $b['lignes'] = q('SELECT * FROM LignesBonPreparation WHERE BonPreparationId = ? ORDER BY Id', [$b['Id']]);
+    }
+    unset($b);
+    render('pos/bon', ['bons' => $bons], false);
 }

@@ -98,7 +98,7 @@ const fiche = [
         ['Application', 'GesCaisse — gestion de caisse et point de vente (POS)'],
         ['Éditeur', 'M-ITECH AFRICA'],
         ['Public', 'Administrateurs, caissiers, vendeurs et serveurs des sociétés clientes'],
-        ['Version du document', '4.4'],
+        ['Version du document', '4.5'],
         ['Date', 'Novembre 2026']
     ], [3000, 6638])
 ];
@@ -667,6 +667,10 @@ const contenu = [
     puce('Les filtres **Tous**, **Cuisine** et **Bar** limitent l’affichage à un poste.'),
     puce('La couleur du bon change après 10 puis 20 minutes d’attente.'),
     puce('Touchez **Prêt** lorsque la préparation est terminée ; les derniers bons prêts restent rappelés en bas de l’écran.'),
+    puce('**Imprimer** (sur chaque bon) imprime ou réimprime ce bon sur l’imprimante du poste.'),
+    p('**Impression automatique.** Le bouton **Impression auto : non / oui** de l’en-tête active l’option sur ce poste : chaque nouveau bon (du poste choisi par le filtre : Cuisine, Bar, ou les deux avec Tous) s’imprime alors une seule fois sur l’imprimante de l’ordinateur, sans rien toucher. Les bons déjà affichés au moment de l’activation ne sont pas imprimés. Le choix est gardé par le navigateur de ce poste : activez-le sur le PC de la cuisine (filtre Cuisine) et sur celui du bar (filtre Bar).'),
+    puce('Pour imprimer sans la fenêtre d’impression, lancez le navigateur du poste avec l’option **--kiosk-printing** (Chrome ou Edge : ajoutez-la à la cible du raccourci, par exemple « chrome.exe --kiosk-printing https://votre-adresse/… ») et choisissez l’imprimante du poste comme imprimante par défaut de Windows.'),
+    attention('Si les bons sont imprimés par l’écran cuisine / bar, décochez l’option « Imprimer un bon de préparation à chaque envoi en cuisine / au bar » de la caisse (Caisses › Modifier) : sinon chaque bon sort aussi à la caisse.'),
     h2('10.8 Dessiner le plan de salle (administrateur)'),
     p('Depuis **Caisses**, cliquez sur l’icône **Plan de salle** (chaise) d’une caisse Restaurant ou Bar.'),
     ...figure('38_editeur_plan', 'Éditeur du plan de salle'),

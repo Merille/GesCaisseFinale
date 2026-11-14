@@ -30,6 +30,8 @@ body.cui-body { background: #1d2a33; color: #1d2a33; font-family: "Segoe UI", sy
 .cui-bon .note { font-size: 14px; font-style: italic; color: #8a5a00; padding-left: 18px; }
 .cui-bon > button { border: 0; background: #198754; color: #fff; font-size: 18px; font-weight: 600; padding: 14px; cursor: pointer; }
 .cui-bon > button:disabled { opacity: .6; }
+.cui-bon > button.cui-reimprimer { background: #eef2f6; color: #195d84; font-size: 14px; padding: 8px; border-top: 1px solid #dde5ec; }
+.cui-auto { margin: 14px 18px 0; padding: 8px 14px; border-radius: 8px; background: #e7f1fb; color: #195d84; font-size: 14px; }
 .cui-prets { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 18px 16px; color: #c8d3db; }
 .cui-prets button { border: 1px solid #5a6b78; background: #2a3a45; color: #e6edf2; border-radius: 16px; padding: 4px 12px; cursor: pointer; }
 .cui-choix { max-width: 640px; margin: 60px auto; background: #fff; border-radius: 12px; padding: 24px; }

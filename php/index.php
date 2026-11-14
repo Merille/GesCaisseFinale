@@ -26,7 +26,7 @@ $routes = [
     'facture'     => ['index', 'create', 'edit', 'ligne', 'supprimerligne', 'valider', 'print'],
     'pos'         => ['index', 'vendre', 'ticket', 'plan', 'commande', 'enregistrer', 'envoyer', 'transferer', 'addition', 'additionticket', 'deposer', 'depots', 'depotpret', 'depotannuler', 'ticketdepot', 'bon',
                       'attentes', 'mettreenattente', 'reprendre', 'supprimerattente', 'livree', 'jeton'],
-    'cuisine'     => ['index', 'bons', 'statut'],
+    'cuisine'     => ['index', 'bons', 'statut', 'bon'],
     'vente'       => ['index', 'details', 'facture', 'retour', 'annuler', 'livree', 'verifier'],
     'synchro'     => ['index', 'verifier', 'oublier', 'rapport'],
     'stock'       => ['index', 'depots', 'entree', 'transfert', 'inventaire', 'option'],

@@ -32,6 +32,8 @@ namespace EasytransitCaisse.Controllers
                 poste = poste is "Cuisine" or "Bar" ? poste : "",
                 urlBons = $"/Cuisine/Bons?caisse={choisie.ID}",
                 urlStatut = "/Cuisine/Statut",
+                // Impression des bons sur l'imprimante de ce poste (impression automatique ou « Imprimer »).
+                urlImpression = "/Cuisine/Bon?ids=",
                 urlRetour = "/Auth/Accueil",
                 jeton = new { nom = jetons.FormFieldName, valeur = jetons.RequestToken }
             };
@@ -72,5 +74,13 @@ namespace EasytransitCaisse.Controllers
             }
             return base.Json(new { ok = true });
         }
-    }
+    
+        // Bons de préparation à imprimer depuis l'écran cuisine / bar (même page que l'écran de vente).
+        public async Task<IActionResult> Bon(string? ids)
+        {
+            var liste = (ids ?? "").Split(',').Select(x => int.TryParse(x, out var i) ? i : 0).Where(i => i > 0).ToList();
+            var bons = await _context.BonsPreparation.Include(b => b.Lignes).Where(b => liste.Contains(b.Id)).OrderBy(b => b.Id).ToListAsync();
+            return View("~/Views/Pos/Bon.cshtml", bons);
+        }
+}
 }

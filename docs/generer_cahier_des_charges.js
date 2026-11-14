@@ -63,7 +63,7 @@ const fiche = [
         ['Projet', 'GesCaisse — gestion de caisse et point de vente (POS)'],
         ['Éditeur', 'M-ITECH AFRICA'],
         ['Versions', 'ASP.NET Core (.NET 10) / SQL Server — PHP 8 / MySQL'],
-        ['Version du document', '4.6'],
+        ['Version du document', '4.7'],
         ['Date', 'Novembre 2026'],
         ['Statut', 'Document de référence (fonctionnalités réalisées)']
     ], [3000, 6638])
@@ -299,6 +299,7 @@ const contenu = [
     puce('Article retiré après l\'envoi : ligne « ANNULÉ » envoyée au poste.'),
     puce('Impression automatique du bon (option de la caisse) et affichage sur l\'écran cuisine / bar.'),
     puce('Écran cuisine / bar : actualisation toutes les 5 secondes, signal sonore, filtre par poste, couleur selon l\'attente (10 et 20 minutes), bouton « Prêt », rappel des bons prêts.'),
+    puce('Écran cuisine / bar : bouton « Imprimer » sur chaque bon (impression ou réimpression sur l’imprimante du poste) ; option « Impression auto » propre au poste (gardée par son navigateur) : chaque nouveau bon du poste affiché s’imprime une seule fois (bons déjà imprimés mémorisés sur le poste, ceux affichés à l’activation tenus pour imprimés), par un cadre caché qui charge la page du bon ; impression sans fenêtre avec l’option --kiosk-printing du navigateur. Page d’impression soumise au droit « Écran cuisine / bar » (consulter).'),
     h2('5.4 Addition et encaissement'),
     puce('Addition (note provisoire) imprimée avec la mention « NON PAYÉ » en tête et en pied ; la table passe en « addition demandée ».'),
     puce('Partage de l\'addition : choix des articles payés maintenant, le reste demeure sur la table.'),
