@@ -723,7 +723,9 @@ const contenu = [
     ...figure('41_utilisateurs', 'Utilisateurs'),
     h2('12.3 Profils et droits'),
     p('Menu **Paramètres › Profils et droits** (ou bouton **Profils et droits** de la page Utilisateurs), réservé aux administrateurs. Chaque carte présente un profil, ses droits (avec les lettres C consulter, A ajouter, M modifier, S supprimer : par exemple « Tiers C A M S ») et le nombre d’utilisateurs qui l’ont. Le profil **Administrateur** est fixe : il a toujours tous les droits.'),
-    ...figure('41b_profils', 'Profils et droits'),
+    ...figure('41b_profils', 'Profils et droits : affichage en cartes'),
+    p('Les boutons **Cartes** et **Liste**, en haut de la page, changent l’affichage. La liste présente sur une ligne par profil : son nom et son nombre de droits, sa description, ses droits avec leurs lettres, le nombre d’utilisateurs et les boutons **Modifier** / **Supprimer**. Le choix est gardé sur le poste pour les visites suivantes.'),
+    ...figure('41d_profils_liste', 'Profils et droits : affichage en liste'),
     ...etapes([
         'Cliquez sur **Nouveau profil** (ou **Modifier** sur la carte d’un profil).',
         'Donnez un **Nom** (par exemple « Serveur ») et, si vous le souhaitez, une **Description**.',
