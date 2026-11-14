@@ -19,6 +19,10 @@
         <div class="text-muted small">Créez des profils, cochez leurs droits, puis attribuez un profil à chaque utilisateur.</div>
     </div>
     <div class="d-flex gap-2">
+        <div class="btn-group" role="group" aria-label="Affichage">
+            <button type="button" class="btn btn-outline-primary" data-vue="cartes" title="Affichage en cartes"><i class="fas fa-grip"></i> Cartes</button>
+            <button type="button" class="btn btn-outline-primary" data-vue="liste" title="Affichage en liste"><i class="fas fa-list"></i> Liste</button>
+        </div>
         <a href="/Utilisateur/Index" class="btn btn-outline-primary"><i class="fas fa-users"></i> Utilisateurs</a>
         @if (tenantId > 0)
         {
@@ -100,6 +104,72 @@
     }
 </div>
 
+<div class="card shadow-sm border-0 d-none" id="vueListeProfils">
+    <div class="card-body table-responsive">
+        <table class="table table-hover align-middle mb-0" id="tableProfils">
+            <thead class="table-dark"><tr><th>Profil</th>@if (toutes)
+                {
+                    <th>Société</th>
+                }<th>Description</th><th>Droits</th><th class="text-center">Utilisateurs</th><th class="text-center">Actions</th></tr></thead>
+            <tbody>
+                <tr data-nom="Administrateur">
+                    <td><i class="fas fa-user-shield text-primary"></i> <b>Administrateur</b></td>
+                    @if (toutes)
+                    {
+                        <td></td>
+                    }
+                    <td class="text-muted small">Profil fixe : toutes les pages</td>
+                    <td><span class="badge bg-dark">Tous les droits</span></td>
+                    <td class="text-center">@admins</td>
+                    <td></td>
+                </tr>
+                @foreach (var l in Model)
+                {
+                    var p = l.Profil;
+                    var json = System.Text.Json.JsonSerializer.Serialize(new { Id = p.Id, Nom = p.Nom, Description = p.Description ?? "", Droits = l.Droits });
+                    <tr data-nom="@p.Nom">
+                        <td><i class="fas fa-id-badge text-primary"></i> <b>@p.Nom</b>
+                            <span class="badge bg-info text-dark ms-1">@l.Droits.Count / @total</span></td>
+                        @if (toutes)
+                        {
+                            <td>@l.Societe</td>
+                        }
+                        <td class="text-muted small">@p.Description</td>
+                        <td>
+                            @foreach (var d in Droits.Tous.Keys.Where(c => l.Droits.Contains(c)))
+                            {
+                                var r = Resume(l.Droits, d);
+                                <span class="badge text-bg-light border me-1 mb-1">@Droits.Tous[d].Libelle@if (r != "")
+                                    { <span class="opacity-75"> @r</span> }</span>
+                            }
+                            @if (l.Droits.Count == 0)
+                            {
+                                <span class="text-danger small">Aucun droit</span>
+                            }
+                        </td>
+                        <td class="text-center">@l.Utilisateurs</td>
+                        <td class="text-center table-actions text-nowrap">
+                            <button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#modalProfil" data-profil="@json">Modifier</button>
+                            <form method="post" action="/Profil/Delete/@p.Id" class="d-inline" onsubmit="return confirm('Supprimer ce profil ?');">
+                                @Html.AntiForgeryToken()
+                                @if (l.Utilisateurs > 0)
+                                {
+                                    <button class="btn btn-outline-danger btn-sm" disabled title="Attribué à des utilisateurs">Supprimer</button>
+                                }
+                                else
+                                {
+                                    <button class="btn btn-outline-danger btn-sm">Supprimer</button>
+                                }
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        <div class="small text-muted mt-2">C consulter · A ajouter · M modifier · S supprimer</div>
+    </div>
+</div>
+
 <div class="modal fade" id="modalProfil" tabindex="-1">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">
@@ -179,6 +249,17 @@
             document.getElementById('profilDescription').value = p.Description || '';
             document.querySelectorAll('#formProfil input[name="Droits"]').forEach(c => { c.checked = p.Droits.includes(c.value); });
         });
+        // Affichage en cartes ou en liste (choix gardé sur ce poste).
+        function vueProfils(vue) {
+            document.getElementById('listeProfils').classList.toggle('d-none', vue === 'liste');
+            document.getElementById('vueListeProfils').classList.toggle('d-none', vue !== 'liste');
+            document.querySelectorAll('[data-vue]').forEach(b => { const actif = b.dataset.vue === vue; b.classList.toggle('btn-primary', actif); b.classList.toggle('btn-outline-primary', !actif); b.setAttribute('aria-pressed', actif); });
+            try { localStorage.setItem('gc-vue-profils', vue); } catch (e) { }
+        }
+        document.querySelectorAll('[data-vue]').forEach(b => b.addEventListener('click', () => vueProfils(b.dataset.vue)));
+        let vueGardee = 'cartes';
+        try { vueGardee = localStorage.getItem('gc-vue-profils') || 'cartes'; } catch (e) { }
+        vueProfils(vueGardee);
         document.getElementById('modalProfil').addEventListener('shown.bs.modal', () => document.getElementById('profilNom').focus());
         document.querySelectorAll('[data-tout]').forEach(b => b.addEventListener('click', () => {
             document.querySelectorAll('#formProfil input[name="Droits"]').forEach(c => { c.checked = b.dataset.tout === '1'; });

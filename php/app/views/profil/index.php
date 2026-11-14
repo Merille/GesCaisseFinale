@@ -20,6 +20,10 @@ $resume = function (array $droits, string $code) use ($plat): string {
         <div class="text-muted small">Créez des profils, cochez leurs droits, puis attribuez un profil à chaque utilisateur.</div>
     </div>
     <div class="d-flex gap-2">
+        <div class="btn-group" role="group" aria-label="Affichage">
+            <button type="button" class="btn btn-outline-primary" data-vue="cartes" title="Affichage en cartes"><i class="fa fa-grip"></i> Cartes</button>
+            <button type="button" class="btn btn-outline-primary" data-vue="liste" title="Affichage en liste"><i class="fa fa-list"></i> Liste</button>
+        </div>
         <a href="<?= h(url('utilisateur/index')) ?>" class="btn btn-outline-primary"><i class="fa fa-users"></i> Utilisateurs</a>
         <?php if (tenant_id() > 0): ?>
             <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalProfil" data-profil=""><i class="fa fa-plus"></i> Nouveau profil</button>
@@ -73,6 +77,48 @@ $resume = function (array $droits, string $code) use ($plat): string {
             </div>
         </div>
     <?php endforeach; ?>
+</div>
+
+<div class="card shadow-sm border-0 d-none" id="vueListeProfils">
+    <div class="card-body table-responsive">
+        <table class="table table-hover align-middle mb-0" id="tableProfils">
+            <thead class="table-dark"><tr><th>Profil</th><?php if (is_super_admin() && tenant_id() === 0): ?><th>Société</th><?php endif; ?><th>Description</th><th>Droits</th><th class="text-center">Utilisateurs</th><th class="text-center">Actions</th></tr></thead>
+            <tbody>
+                <tr data-nom="Administrateur">
+                    <td><i class="fa fa-user-shield text-primary"></i> <b>Administrateur</b></td>
+                    <?php if (is_super_admin() && tenant_id() === 0): ?><td></td><?php endif; ?>
+                    <td class="text-muted small">Profil fixe : toutes les pages</td>
+                    <td><span class="badge bg-dark">Tous les droits</span></td>
+                    <td class="text-center"><?= $admins ?></td>
+                    <td></td>
+                </tr>
+                <?php foreach ($profils as $p):
+                    $droits = droits_lire((string) $p['Droits']);
+                    $modules = array_values(array_filter(array_keys($plat), fn($c) => in_array($c, $droits, true))); ?>
+                    <tr data-nom="<?= h($p['Nom']) ?>">
+                        <td><i class="fa fa-id-badge text-primary"></i> <b><?= h($p['Nom']) ?></b>
+                            <span class="badge bg-info text-dark ms-1"><?= count($droits) ?> / <?= $total ?></span></td>
+                        <?php if (is_super_admin() && tenant_id() === 0): ?><td><?= h($p['Societe']) ?></td><?php endif; ?>
+                        <td class="text-muted small"><?= h($p['Description'] ?? '') ?></td>
+                        <td>
+                            <?php foreach ($modules as $d): ?><span class="badge text-bg-light border me-1 mb-1"><?= h($plat[$d][0]) ?><?= $resume($droits, $d) ?></span><?php endforeach; ?>
+                            <?php if (!$modules): ?><span class="text-danger small">Aucun droit</span><?php endif; ?>
+                        </td>
+                        <td class="text-center"><?= (int) $p['Utilisateurs'] ?></td>
+                        <td class="text-center table-actions text-nowrap">
+                            <button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#modalProfil"
+                                    data-profil="<?= h(json_encode(['Id' => (int) $p['Id'], 'Nom' => $p['Nom'], 'Description' => $p['Description'] ?? '', 'Droits' => $droits])) ?>">Modifier</button>
+                            <form method="post" action="<?= h(url('profil/delete')) ?>" class="d-inline" onsubmit="return confirm('Supprimer ce profil ?');">
+                                <?= csrf_field() ?><input type="hidden" name="id" value="<?= (int) $p['Id'] ?>">
+                                <button class="btn btn-outline-danger btn-sm" <?= $p['Utilisateurs'] ? 'disabled title="Attribué à des utilisateurs"' : '' ?>>Supprimer</button>
+                            </form>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+        <div class="small text-muted mt-2">C consulter · A ajouter · M modifier · S supprimer</div>
+    </div>
 </div>
 
 <div class="modal fade" id="modalProfil" tabindex="-1">
@@ -141,6 +187,17 @@ $resume = function (array $droits, string $code) use ($plat): string {
         document.getElementById('profilDescription').value = p.Description || '';
         document.querySelectorAll('#formProfil input[name="Droits[]"]').forEach(c => { c.checked = p.Droits.includes(c.value); });
     });
+    // Affichage en cartes ou en liste (choix gardé sur ce poste).
+    function vueProfils(vue) {
+        document.getElementById('listeProfils').classList.toggle('d-none', vue === 'liste');
+        document.getElementById('vueListeProfils').classList.toggle('d-none', vue !== 'liste');
+        document.querySelectorAll('[data-vue]').forEach(b => { const actif = b.dataset.vue === vue; b.classList.toggle('btn-primary', actif); b.classList.toggle('btn-outline-primary', !actif); b.setAttribute('aria-pressed', actif); });
+        try { localStorage.setItem('gc-vue-profils', vue); } catch (e) { }
+    }
+    document.querySelectorAll('[data-vue]').forEach(b => b.addEventListener('click', () => vueProfils(b.dataset.vue)));
+    let vueGardee = 'cartes';
+    try { vueGardee = localStorage.getItem('gc-vue-profils') || 'cartes'; } catch (e) { }
+    vueProfils(vueGardee);
     document.getElementById('modalProfil').addEventListener('shown.bs.modal', () => document.getElementById('profilNom').focus());
     document.querySelectorAll('[data-tout]').forEach(b => b.addEventListener('click', () => {
         document.querySelectorAll('#formProfil input[name="Droits[]"]').forEach(c => { c.checked = b.dataset.tout === '1'; });
