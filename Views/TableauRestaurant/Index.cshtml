@@ -52,7 +52,7 @@
         ("lav-rose", "fa-cash-register", "Caisse", Html.Raw($"<div class=\"lav-grand\">{Fcfa(Model.Encaissements)} <small>FCFA encaissés</small></div>"
             + $"<div class=\"lav-ligne\">Pourboires : <b>{Fcfa(Model.Pourboires)}</b> FCFA</div>"
             + "<div class=\"lav-ligne\">" + (Model.Journees.Count > 0 ? $"Journée ouverte : <b>{E(string.Join(", ", Model.Journees.Select(j => j.Code)))}</b>" : "Aucune journée ouverte") + "</div>"),
-            !Peut("caisses") ? null : Model.Journees.Count > 0 ? $"/JourneeCaisse/Details/{Model.Journees[0].Id}" : "/Caisse/Index"),
+            !Peut("journees") ? null : Model.Journees.Count > 0 ? $"/JourneeCaisse/Details/{Model.Journees[0].Id}" : "/Caisse/Index"),
     };
 }
 <link rel="stylesheet" href="~/css/laverie.css" asp-append-version="true" />

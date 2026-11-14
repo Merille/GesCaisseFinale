@@ -64,7 +64,7 @@ $tuile = function (string $couleur, string $icone, string $titreTuile, string $c
         '<div class="lav-grand">' . fcfa($encaissements) . ' <small>FCFA encaissés</small></div>'
         . '<div class="lav-ligne">aujourd\'hui (ventes, retraits, acomptes)</div>'
         . '<div class="lav-ligne">' . ($journees ? 'Journée ouverte : <b>' . h(implode(', ', array_column($journees, 'ChkCode'))) . '</b>' : 'Aucune journée ouverte') . '</div>',
-        !peut('caisses') ? null : ($journees ? $lien('journee/details', ['id' => $journees[0]['Id']]) : $lien('caisse/index'))) ?>
+        !peut('journees') ? null : ($journees ? $lien('journee/details', ['id' => $journees[0]['Id']]) : $lien('caisse/index'))) ?>
 </div>
 
 <div class="row g-3">

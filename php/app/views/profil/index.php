@@ -1,7 +1,18 @@
 <?php
 $titre = 'Profils et droits';
 $plat = droits_catalogue_plat();
-$total = count($plat);
+$total = count(droits_codes());
+$noms = ['c' => 'Consulter', 'a' => 'Ajouter', 'm' => 'Modifier', 's' => 'Supprimer'];
+// Résumé d'un droit sur la carte : « Tiers : C A M S » (lettres des opérations accordées).
+$resume = function (array $droits, string $code) use ($plat): string {
+    $lettres = '';
+    foreach (array_keys($plat[$code][2]) as $op) {
+        if (in_array($op === 'c' ? $code : "$code.$op", $droits, true)) {
+            $lettres .= strtoupper($op === 'c' ? 'c' : $op);
+        }
+    }
+    return count($plat[$code][2]) > 1 ? ' <span class="opacity-75">' . implode(' ', str_split($lettres)) . '</span>' : '';
+};
 ?>
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
     <div>
@@ -33,7 +44,8 @@ $total = count($plat);
         </div>
     </div>
     <?php foreach ($profils as $p):
-        $droits = array_values(array_intersect(array_keys($plat), array_filter(explode(',', (string) $p['Droits'])))); ?>
+        $droits = droits_lire((string) $p['Droits']);
+        $modules = array_values(array_filter(array_keys($plat), fn($c) => in_array($c, $droits, true))); ?>
         <div class="col-md-6 col-xl-4">
             <div class="card h-100 border-0 shadow-sm carte-profil" data-nom="<?= h($p['Nom']) ?>">
                 <div class="card-body d-flex flex-column">
@@ -44,9 +56,10 @@ $total = count($plat);
                     <?php if (is_super_admin() && tenant_id() === 0): ?><div class="small text-muted"><?= h($p['Societe']) ?></div><?php endif; ?>
                     <?php if ($p['Description']): ?><div class="text-muted small mb-2"><?= h($p['Description']) ?></div><?php endif; ?>
                     <div class="mb-2">
-                        <?php foreach ($droits as $d): ?><span class="badge text-bg-light border me-1 mb-1"><?= h($plat[$d][0]) ?></span><?php endforeach; ?>
+                        <?php foreach ($modules as $d): ?><span class="badge text-bg-light border me-1 mb-1"><?= h($plat[$d][0]) ?><?= $resume($droits, $d) ?></span><?php endforeach; ?>
                         <?php if (!$droits): ?><span class="text-danger small">Aucun droit : ses utilisateurs ne peuvent ouvrir aucune page.</span><?php endif; ?>
                     </div>
+                    <?php if ($modules): ?><div class="small text-muted mb-2">C consulter · A ajouter · M modifier · S supprimer</div><?php endif; ?>
                     <div class="small mt-auto mb-2"><b><?= (int) $p['Utilisateurs'] ?></b> utilisateur<?= $p['Utilisateurs'] > 1 ? 's' : '' ?></div>
                     <div class="d-flex gap-2">
                         <button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#modalProfil"
@@ -86,22 +99,30 @@ $total = count($plat);
                             <button type="button" class="btn btn-outline-secondary" data-tout="0">Tout décocher</button>
                         </div>
                     </div>
-                    <?php foreach ($catalogue as $rubrique => $droits): ?>
-                        <fieldset class="border rounded p-2 px-3 mb-2 rubrique-droits">
-                            <legend class="float-none w-auto px-1 fs-6 fw-semibold mb-0"><?= h($rubrique) ?></legend>
-                            <div class="row">
-                                <?php foreach ($droits as $code => [$libelle, $detail]): ?>
-                                    <div class="col-md-6">
-                                        <div class="form-check my-1">
-                                            <input class="form-check-input" type="checkbox" name="Droits[]" value="<?= h($code) ?>" id="droit_<?= h($code) ?>">
-                                            <label class="form-check-label" for="droit_<?= h($code) ?>"><?= h($libelle) ?>
-                                                <span class="d-block small text-muted"><?= h($detail) ?></span></label>
-                                        </div>
-                                    </div>
-                                <?php endforeach; ?>
-                            </div>
-                        </fieldset>
-                    <?php endforeach; ?>
+                    <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-2" id="grilleDroits">
+                        <thead class="table-light"><tr><th>Droit</th><?php foreach ($noms as $op => $nom): ?><th class="text-center" style="width:92px"><?= $nom ?></th><?php endforeach; ?></tr></thead>
+                        <tbody>
+                        <?php foreach ($catalogue as $rubrique => $droits): ?>
+                            <tr class="table-secondary"><th colspan="5" class="small text-uppercase"><?= h($rubrique) ?></th></tr>
+                            <?php foreach ($droits as $code => [$libelle, $detail, $ops]): ?>
+                                <tr data-droit="<?= h($code) ?>">
+                                    <td><?= h($libelle) ?><span class="d-block small text-muted"><?= h($detail) ?></span></td>
+                                    <?php foreach (array_keys($noms) as $op): $val = $op === 'c' ? $code : "$code.$op"; ?>
+                                        <td class="text-center">
+                                            <?php if (isset($ops[$op])): ?>
+                                                <input class="form-check-input" type="checkbox" name="Droits[]" value="<?= h($val) ?>" id="droit_<?= h(str_replace('.', '_', $val)) ?>"
+                                                       data-op="<?= $op ?>" title="<?= h($ops[$op]) ?>" aria-label="<?= h($libelle . ' : ' . $ops[$op]) ?>">
+                                            <?php else: ?><span class="text-muted">–</span><?php endif; ?>
+                                        </td>
+                                    <?php endforeach; ?>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                    </div>
+                    <div class="form-text mb-1">Passez la souris sur une case pour voir ce qu'elle permet. Ajouter, modifier ou supprimer exigent de pouvoir consulter : la case Consulter se coche toute seule.</div>
                     <div class="form-text">Les utilisateurs, les profils et « Ma société » restent réservés aux administrateurs. Le droit de valider les opérations et le droit de remise se règlent sur la fiche de chaque utilisateur.</div>
                 </div>
                 <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button><button class="btn btn-primary">Enregistrer</button></div>
@@ -124,5 +145,13 @@ $total = count($plat);
     document.querySelectorAll('[data-tout]').forEach(b => b.addEventListener('click', () => {
         document.querySelectorAll('#formProfil input[name="Droits[]"]').forEach(c => { c.checked = b.dataset.tout === '1'; });
     }));
+    // Ajouter / modifier / supprimer cochés : « Consulter » coché ; « Consulter » décoché : le reste aussi.
+    document.getElementById('grilleDroits').addEventListener('change', function (e) {
+        const c = e.target, ligne = c.closest('tr[data-droit]');
+        if (!ligne) return;
+        const consulter = ligne.querySelector('[data-op="c"]');
+        if (c.dataset.op !== 'c' && c.checked) consulter.checked = true;
+        if (c.dataset.op === 'c' && !c.checked) ligne.querySelectorAll('input').forEach(x => { x.checked = false; });
+    });
 </script>
 <?php $scripts = ($scripts ?? '') . ob_get_clean(); ?>

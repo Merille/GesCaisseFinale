@@ -195,7 +195,7 @@ namespace EasytransitCaisse.Controllers
                 fraisLivraison = await _context.Tenants.Where(t => t.Id == tenant).Select(t => t.FraisLivraisonDefaut).FirstOrDefaultAsync(),
                 // Remises (article et globale) : droit donné par l'administrateur sur la fiche de l'utilisateur.
                 remise = new { peut = droitRemise.Peut, max = droitRemise.Max },
-                urlFermer = Peut("caisses") ? $"/JourneeCaisse/Details/{j.Id}" : "/Auth/Accueil",
+                urlFermer = Peut("journees") ? $"/JourneeCaisse/Details/{j.Id}" : "/Auth/Accueil",
                 modes,
                 urlVendre = "/Pos/Vendre",
                 urlAdditionTicket = "/Pos/AdditionTicket",

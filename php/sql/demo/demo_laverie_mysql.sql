@@ -33,9 +33,9 @@ INSERT INTO Utilisateurs (NomUtilisateur, MotPasse, NomComplet, Profil, PeutVali
 SET @admin = (SELECT MIN(Id) FROM Utilisateurs WHERE TenantId = @t AND Profil = 'Admin');
 SET @caissier = (SELECT MIN(Id) FROM Utilisateurs WHERE TenantId = @t AND Profil = 'Caissier');
 -- Profils de la société (droits d'accès) : Caissier et Vendeur ; la caissière reçoit le profil Caissier.
-INSERT INTO Profils (TenantId, Nom, Description, Droits) SELECT @t, 'Caissier', 'Caisse, ventes et tiers', 'tableau_bord,caisses,caisses_gerer,tiers,rapports,vendre,ventes,cuisine'
+INSERT INTO Profils (TenantId, Nom, Description, Droits) SELECT @t, 'Caissier', 'Caisse, ventes et tiers', 'tableau_bord,caisses,caisses.a,caisses.m,caisses.s,journees,journees.a,journees.m,journees.s,tiers,tiers.a,tiers.m,tiers.s,rapports,vendre,ventes,ventes.a,ventes.m,ventes.s,cuisine,cuisine.m'
     FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM Profils WHERE TenantId = @t AND Nom = 'Caissier');
-INSERT INTO Profils (TenantId, Nom, Description, Droits) SELECT @t, 'Vendeur', 'Caisse, ventes et tiers', 'tableau_bord,caisses,caisses_gerer,tiers,rapports,vendre,ventes,cuisine'
+INSERT INTO Profils (TenantId, Nom, Description, Droits) SELECT @t, 'Vendeur', 'Caisse, ventes et tiers', 'tableau_bord,caisses,caisses.a,caisses.m,caisses.s,journees,journees.a,journees.m,journees.s,tiers,tiers.a,tiers.m,tiers.s,rapports,vendre,ventes,ventes.a,ventes.m,ventes.s,cuisine,cuisine.m'
     FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM Profils WHERE TenantId = @t AND Nom = 'Vendeur');
 UPDATE Utilisateurs u JOIN Profils p ON p.TenantId = u.TenantId AND p.Nom = u.Profil SET u.ProfilId = p.Id WHERE u.TenantId = @t AND u.ProfilId IS NULL;
 

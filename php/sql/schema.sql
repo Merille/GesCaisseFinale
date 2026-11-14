@@ -498,6 +498,7 @@ INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('025_poste
 INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('026_droit_remise.sql','2026-11-13 00:00:00');
 INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('027_tentatives_connexion.sql','2026-11-14 00:00:00');
 INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('028_profils.sql','2026-11-14 00:00:00');
+INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('029_droits_detail.sql','2026-11-14 00:00:00');
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `ModesPaiement` (
@@ -684,8 +685,8 @@ CREATE TABLE `Profils` (
   UNIQUE KEY `UX_Profils_Nom` (`TenantId`,`Nom`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO `Profils` (`Id`, `TenantId`, `Nom`, `Description`, `Droits`) VALUES (1,1,'Caissier','Caisse, ventes et tiers','tableau_bord,caisses,caisses_gerer,tiers,rapports,vendre,ventes,cuisine');
-INSERT INTO `Profils` (`Id`, `TenantId`, `Nom`, `Description`, `Droits`) VALUES (2,1,'Vendeur','Caisse, ventes et tiers','tableau_bord,caisses,caisses_gerer,tiers,rapports,vendre,ventes,cuisine');
+INSERT INTO `Profils` (`Id`, `TenantId`, `Nom`, `Description`, `Droits`) VALUES (1,1,'Caissier','Caisse, ventes et tiers','tableau_bord,caisses,caisses.a,caisses.m,caisses.s,journees,journees.a,journees.m,journees.s,tiers,tiers.a,tiers.m,tiers.s,rapports,vendre,ventes,ventes.a,ventes.m,ventes.s,cuisine,cuisine.m');
+INSERT INTO `Profils` (`Id`, `TenantId`, `Nom`, `Description`, `Droits`) VALUES (2,1,'Vendeur','Caisse, ventes et tiers','tableau_bord,caisses,caisses.a,caisses.m,caisses.s,journees,journees.a,journees.m,journees.s,tiers,tiers.a,tiers.m,tiers.s,rapports,vendre,ventes,ventes.a,ventes.m,ventes.s,cuisine,cuisine.m');
 
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;

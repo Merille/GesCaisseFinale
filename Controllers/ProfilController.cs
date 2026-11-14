@@ -43,7 +43,7 @@ namespace EasytransitCaisse.Controllers
                                      Utilisateurs = _context.Utilisateurs.IgnoreQueryFilters().Count(u => u.ProfilId == p.Id)
                                  }).ToListAsync();
             foreach (var l in profils)
-                l.Droits = Droits.Catalogue.SelectMany(r => r.Droits).Select(d => d.Code).Intersect(Droits.Lire(l.Profil.Droits)).ToList();
+                l.Droits = Droits.Lire(l.Profil.Droits);
             ViewBag.Admins = await _context.Utilisateurs.CountAsync(u => u.Profil == "Admin");
             ViewBag.TenantId = _tenant.TenantId;
             ViewBag.Toutes = _tenant.IsSuperAdmin && _tenant.TenantId == 0;
@@ -58,7 +58,8 @@ namespace EasytransitCaisse.Controllers
             if (nom.Length > 50) nom = nom[..50];
             description = (description ?? "").Trim();
             if (description.Length > 200) description = description[..200];
-            var codes = Droits.Catalogue.SelectMany(r => r.Droits).Select(d => d.Code).Where(c => (droits ?? new()).Contains(c)).ToList();
+            // Codes cochés (« tiers », « tiers.a »…) ; une opération sans « consulter » est ignorée.
+            var codes = Droits.Lire(string.Join(",", droits ?? new()));
             var existant = id > 0 ? await _context.Profils.FirstOrDefaultAsync(p => p.Id == id) : null;
             if (id > 0 && existant == null)
                 return NotFound();

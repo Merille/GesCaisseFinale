@@ -105,7 +105,7 @@ $badge = $nbJourneesOuvertes > 0
             <?php if (peut('tableau_bord') && restaurant_actif() && module_pos_actif()): ?>
                 <?= $lien('tableaurestaurant/index', 'tableaurestaurant', 'fa-utensils', 'Tableau resto-bar') ?>
             <?php endif; ?>
-            <?php if (peut('caisses')): ?><?= $lien('caisse/index', 'caisse|journee', 'fa-cash-register', 'Caisses', $badge) ?><?php endif; ?>
+            <?php if (peut('caisses') || peut('journees')): ?><?= $lien('caisse/index', 'caisse|journee', 'fa-cash-register', 'Caisses', $badge) ?><?php endif; ?>
             <?php if (peut('tiers')): ?><?= $lien('client/index', 'client', 'fa-address-book', 'Tiers') ?><?php endif; ?>
             <?php // Factures : module masqué, comme dans la version .NET (pages toujours accessibles). ?>
         </div>
@@ -313,6 +313,8 @@ $badge = $nbJourneesOuvertes > 0
 </script>
 <script src="<?= asset('assets/js/vues.js') ?>"></script>
 <script src="<?= asset('assets/js/listes.js') ?>"></script>
+<script>window.GC_DROITS = <?= json_encode(droits_page_js(), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) ?>;</script>
+<script src="<?= asset('assets/js/droits.js') ?>"></script>
 <script src="<?= asset('assets/js/hors-ligne.js') ?>" data-sw="sw.js"<?= module_pos_actif() ? ' data-rapport="' . h(url('synchro/rapport')) . '" data-jeton="' . h(url('pos/jeton')) . '"' : '' ?>></script>
 <?= $scripts ?? '' ?>
 </body>

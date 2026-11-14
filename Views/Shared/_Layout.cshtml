@@ -204,7 +204,7 @@
                         <span class="sb-label">Tableau resto-bar</span>
                     </a>
                 }
-                @if (Peut("caisses"))
+                @if (Peut("caisses") || Peut("journees"))
                 {
                 <a class="sb-link @(controller == "Caisse" || controller == "JourneeCaisse" ? "active" : "")" href="/Caisse/Index" title="Caisses">
                     <i class="fas fa-cash-register"></i>
@@ -459,7 +459,7 @@
                 <div class="topbar-societe">Consultation : <strong>@societeConsultee</strong></div>
             }
             @{
-                var notifications = EasytransitCaisse.Data.Notifications.Lister(DbContext, droitsU.Peut, modulePointVente);
+                var notifications = EasytransitCaisse.Data.Notifications.Lister(DbContext, d => droitsU.Peut(d), modulePointVente);
                 var nbNotifications = notifications.Sum(n => n.N);
             }
             <span class="gc-connexion"></span>
@@ -547,6 +547,19 @@
 
     <script src="~/js/modale-creation.js" asp-append-version="true"></script>
     <script src="~/js/vues.js" asp-append-version="true"></script>
+    @{
+        // Données du script qui masque les boutons non permis (droits du profil).
+        var droitsJs = System.Text.Json.JsonSerializer.Serialize(new
+        {
+            admin = droitsU.EstAdmin,
+            carte = EasytransitCaisse.Services.Droits.CarteJs(),
+            mots = EasytransitCaisse.Services.Droits.Mots,
+            ops = EasytransitCaisse.Services.Droits.Tous.ToDictionary(d => d.Key, d => d.Value.Ops.Keys.ToList()),
+            accordes = droitsU.Accordes
+        });
+    }
+    <script>window.GC_DROITS = @Html.Raw(droitsJs);</script>
+    <script src="~/js/droits.js" asp-append-version="true"></script>
     <script src="~/js/hors-ligne.js" asp-append-version="true" data-sw="/sw.js" data-rapport="@(modulePointVente ? "/Synchro/Rapport" : null)" data-jeton="@(modulePointVente ? "/Pos/Jeton" : null)"></script>
 
     @await RenderSectionAsync("Scripts", required: false)

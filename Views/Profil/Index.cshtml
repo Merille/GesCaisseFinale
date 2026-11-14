@@ -2,7 +2,12 @@
 @using EasytransitCaisse.Services
 @{
     ViewData["Title"] = "Profils et droits";
-    var total = Droits.Tous.Count;
+    var total = Droits.Codes.Count;
+    var noms = new Dictionary<string, string> { ["c"] = "Consulter", ["a"] = "Ajouter", ["m"] = "Modifier", ["s"] = "Supprimer" };
+    // Résumé d'un droit sur la carte : « Tiers : C A M S » (lettres des opérations accordées).
+    string Resume(List<string> droits, string code) => Droits.Tous[code].Ops.Count > 1
+        ? string.Join(" ", Droits.Tous[code].Ops.Keys.Where(op => droits.Contains(op == "c" ? code : code + "." + op)).Select(op => op.ToUpperInvariant()))
+        : "";
     var admins = (int)ViewBag.Admins;
     var tenantId = (int)ViewBag.TenantId;
     var toutes = (bool)ViewBag.Toutes;
@@ -59,15 +64,21 @@
                         <div class="text-muted small mb-2">@p.Description</div>
                     }
                     <div class="mb-2">
-                        @foreach (var d in l.Droits)
+                        @foreach (var d in Droits.Tous.Keys.Where(c => l.Droits.Contains(c)))
                         {
-                            <span class="badge text-bg-light border me-1 mb-1">@Droits.Tous[d].Libelle</span>
+                            var r = Resume(l.Droits, d);
+                            <span class="badge text-bg-light border me-1 mb-1">@Droits.Tous[d].Libelle@if (r != "")
+                                { <span class="opacity-75"> @r</span> }</span>
                         }
                         @if (l.Droits.Count == 0)
                         {
                             <span class="text-danger small">Aucun droit : ses utilisateurs ne peuvent ouvrir aucune page.</span>
                         }
                     </div>
+                    @if (l.Droits.Count > 0)
+                    {
+                        <div class="small text-muted mb-2">C consulter · A ajouter · M modifier · S supprimer</div>
+                    }
                     <div class="small mt-auto mb-2"><b>@l.Utilisateurs</b> utilisateur@(S(l.Utilisateurs))</div>
                     <div class="d-flex gap-2">
                         <button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#modalProfil" data-profil="@json">Modifier</button>
@@ -113,24 +124,42 @@
                             <button type="button" class="btn btn-outline-secondary" data-tout="0">Tout décocher</button>
                         </div>
                     </div>
-                    @foreach (var (rubrique, droits) in Droits.Catalogue)
-                    {
-                        <fieldset class="border rounded p-2 px-3 mb-2 rubrique-droits">
-                            <legend class="float-none w-auto px-1 fs-6 fw-semibold mb-0">@rubrique</legend>
-                            <div class="row">
-                                @foreach (var d in droits)
-                                {
-                                    <div class="col-md-6">
-                                        <div class="form-check my-1">
-                                            <input class="form-check-input" type="checkbox" name="Droits" value="@d.Code" id="droit_@d.Code">
-                                            <label class="form-check-label" for="droit_@d.Code">@d.Libelle
-                                                <span class="d-block small text-muted">@d.Detail</span></label>
-                                        </div>
-                                    </div>
-                                }
-                            </div>
-                        </fieldset>
-                    }
+                    <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-2" id="grilleDroits">
+                        <thead class="table-light"><tr><th>Droit</th>@foreach (var n in noms.Values)
+                            {
+                                <th class="text-center" style="width:92px">@n</th>
+                            }</tr></thead>
+                        <tbody>
+                        @foreach (var (rubrique, droits) in Droits.Catalogue)
+                        {
+                            <tr class="table-secondary"><th colspan="5" class="small text-uppercase">@rubrique</th></tr>
+                            @foreach (var d in droits)
+                            {
+                                <tr data-droit="@d.Code">
+                                    <td>@d.Libelle<span class="d-block small text-muted">@d.Detail</span></td>
+                                    @foreach (var op in noms.Keys)
+                                    {
+                                        var val = op == "c" ? d.Code : d.Code + "." + op;
+                                        <td class="text-center">
+                                            @if (d.Ops.TryGetValue(op, out var texte))
+                                            {
+                                                <input class="form-check-input" type="checkbox" name="Droits" value="@val" id="droit_@val.Replace('.', '_')"
+                                                       data-op="@op" title="@texte" aria-label="@(d.Libelle + " : " + texte)">
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">–</span>
+                                            }
+                                        </td>
+                                    }
+                                </tr>
+                            }
+                        }
+                        </tbody>
+                    </table>
+                    </div>
+                    <div class="form-text mb-1">Passez la souris sur une case pour voir ce qu'elle permet. Ajouter, modifier ou supprimer exigent de pouvoir consulter : la case Consulter se coche toute seule.</div>
                     <div class="form-text">Les utilisateurs, les profils et « Ma société » restent réservés aux administrateurs. Le droit de valider les opérations et le droit de remise se règlent sur la fiche de chaque utilisateur.</div>
                 </div>
                 <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button><button class="btn btn-primary">Enregistrer</button></div>
@@ -154,5 +183,13 @@
         document.querySelectorAll('[data-tout]').forEach(b => b.addEventListener('click', () => {
             document.querySelectorAll('#formProfil input[name="Droits"]').forEach(c => { c.checked = b.dataset.tout === '1'; });
         }));
+        // Ajouter / modifier / supprimer cochés : « Consulter » coché ; « Consulter » décoché : le reste aussi.
+        document.getElementById('grilleDroits').addEventListener('change', function (e) {
+            const c = e.target, ligne = c.closest('tr[data-droit]');
+            if (!ligne) return;
+            const consulter = ligne.querySelector('[data-op="c"]');
+            if (c.dataset.op !== 'c' && c.checked) consulter.checked = true;
+            if (c.dataset.op === 'c' && !c.checked) ligne.querySelectorAll('input').forEach(x => { x.checked = false; });
+        });
     </script>
 }

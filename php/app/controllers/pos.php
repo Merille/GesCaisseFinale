@@ -97,7 +97,7 @@ function pos_index(): void
         'fraisLivraison' => (float) qv('SELECT FraisLivraisonDefaut FROM Tenants WHERE Id = ?', [$tenant]),
         // Remises (article et globale) : droit donné par l'administrateur sur la fiche de l'utilisateur.
         'remise' => ['peut' => ($droit = pos_droit_remise())[0], 'max' => $droit[1]],
-        'urlFermer' => peut('caisses') ? url('journee/details', ['id' => $journee['Id']]) : url('accueil'),
+        'urlFermer' => peut('journees') ? url('journee/details', ['id' => $journee['Id']]) : url('accueil'),
         'modes' => $modes,
         'urlVendre' => url('pos/vendre'),
         'urlAdditionTicket' => url('pos/additionticket'),

@@ -208,8 +208,8 @@ function require_login(): void
     }
     $_SESSION['user']['profil'] = $ligne['Profil'];
     $_SESSION['user']['peutValider'] = (bool) $ligne['PeutValiderOperations'];
-    $GLOBALS['__droits'] = in_array($ligne['Profil'], ['Admin', 'SuperAdmin'], true) ? array_keys(droits_catalogue_plat())
-        : ($ligne['ProfilId'] === null ? DROITS_PAR_DEFAUT : array_values(array_filter(explode(',', (string) $ligne['Droits']))));
+    $GLOBALS['__droits'] = in_array($ligne['Profil'], ['Admin', 'SuperAdmin'], true) ? droits_codes()
+        : ($ligne['ProfilId'] === null ? DROITS_PAR_DEFAUT : droits_lire((string) $ligne['Droits']));
     // Société inactive ou licence expirée : accès bloqué (sauf SuperAdmin).
     if (!is_super_admin()) {
         $t = q1('SELECT Actif, DateExpiration FROM Tenants WHERE Id = ?', [(int) user()['tenantId']]);
@@ -240,56 +240,105 @@ function require_admin(): void
 // Utilisateurs, profils et « Ma société » restent réservés aux administrateurs.
 // ---------------------------------------------------------------------------
 
-/** Catalogue des droits, par rubrique : code => [libellé, détail]. */
+/**
+ * Catalogue des droits, par rubrique : code => [libellé, détail, opérations possibles].
+ * Opérations : c consulter, a ajouter / créer, m modifier, s supprimer (description de chacune).
+ * Codes enregistrés dans le profil : « tiers » (consulter), « tiers.a », « tiers.m », « tiers.s ».
+ */
 function droits_catalogue(): array
 {
     return [
         'Activité' => [
-            'tableau_bord' => ['Tableaux de bord', 'Tableau de bord général, laverie et restaurant-bar'],
-            'caisses' => ['Caisses et journées', 'Ouvrir une journée, encaisser, décaisser, clôturer'],
-            'caisses_gerer' => ['Gérer les caisses', 'Créer, modifier et supprimer les caisses'],
-            'tiers' => ['Tiers', 'Clients et fournisseurs, import et export'],
+            'tableau_bord' => ['Tableaux de bord', 'Tableau de bord général, laverie et restaurant-bar', ['c' => 'Consulter les tableaux de bord']],
+            'caisses' => ['Caisses', 'Liste et paramétrage des caisses', ['c' => 'Voir les caisses', 'a' => 'Créer une caisse', 'm' => 'Modifier une caisse', 's' => 'Supprimer une caisse']],
+            'journees' => ['Journées et opérations', 'Journées de caisse, encaissements et décaissements', ['c' => 'Voir les journées et leurs opérations', 'a' => 'Ouvrir une journée, encaisser, décaisser, régler un client', 'm' => 'Valider ou rejeter les opérations, clôturer', 's' => 'Supprimer une opération']],
+            'tiers' => ['Tiers', 'Clients et fournisseurs', ['c' => 'Voir et exporter les tiers', 'a' => 'Créer et importer des tiers', 'm' => 'Modifier un tiers', 's' => 'Supprimer un tiers']],
         ],
         'Analyse' => [
-            'rapports' => ['Rapports de caisse', 'Rapport des opérations, export Sage, rapport des tiers'],
+            'rapports' => ['Rapports de caisse', 'Rapport des opérations, export Sage, rapport des tiers', ['c' => 'Consulter et exporter les rapports']],
         ],
         'Point de vente' => [
-            'vendre' => ['Vendre', 'Écran de vente, commandes de table, dépôts de linge'],
-            'ventes' => ['Ventes', 'Liste et détail des ventes, factures'],
-            'cuisine' => ['Écran cuisine / bar', 'Bons de préparation'],
-            'stock' => ['Stock', 'Entrées, transferts, inventaire'],
-            'achats' => ['Achats', 'Achats fournisseurs, consommations, produits d\'entretien'],
-            'rapports_pdv' => ['Rapports du point de vente', 'Ventes, livraisons, dépôts de linge, achats'],
-            'catalogue' => ['Catalogue', 'Catégories, produits, combos, taxes, unités de vente'],
-            'synchro' => ['Synchronisation', 'Ventes faites hors ligne et postes'],
+            'vendre' => ['Vendre', 'Écran de vente, commandes de table, dépôts de linge', ['c' => 'Utiliser l\'écran de vente']],
+            'ventes' => ['Ventes', 'Liste et détail des ventes, factures', ['c' => 'Voir les ventes et les factures', 'a' => 'Faire un retour, créer une facture', 'm' => 'Marquer livrée, vérifier une vente hors ligne, modifier une facture', 's' => 'Annuler une vente']],
+            'cuisine' => ['Écran cuisine / bar', 'Bons de préparation', ['c' => 'Voir les bons', 'm' => 'Marquer un bon prêt']],
+            'stock' => ['Stock', 'Stock par dépôt et mouvements', ['c' => 'Voir le stock et les mouvements', 'a' => 'Entrées et transferts de stock', 'm' => 'Inventaire, options du stock']],
+            'achats' => ['Achats', 'Achats fournisseurs, consommations, produits d\'entretien', ['c' => 'Voir les achats et le stock des achats', 'a' => 'Saisir un achat, un règlement, une consommation', 's' => 'Annuler un achat']],
+            'rapports_pdv' => ['Rapports du point de vente', 'Ventes, livraisons, dépôts de linge, achats', ['c' => 'Consulter et exporter les rapports']],
+            'catalogue' => ['Catalogue', 'Catégories, produits, combos, taxes, unités de vente', ['c' => 'Voir et exporter', 'a' => 'Créer, importer, générer des variantes', 'm' => 'Modifier, activer ou désactiver', 's' => 'Supprimer']],
+            'synchro' => ['Synchronisation', 'Ventes faites hors ligne et postes', ['c' => 'Voir la synchronisation', 'm' => 'Marquer vérifié, oublier un poste']],
         ],
         'Paramètres' => [
-            'parametres' => ['Motifs et modes de paiement', 'Motifs des opérations, modes de paiement'],
-            'config_pdv' => ['Configuration du point de vente', 'Dépôts, livreurs, plans de salle'],
+            'parametres' => ['Motifs et modes de paiement', 'Motifs des opérations, modes de paiement', ['c' => 'Voir', 'a' => 'Créer', 'm' => 'Modifier', 's' => 'Supprimer']],
+            'config_pdv' => ['Configuration du point de vente', 'Dépôts, livreurs, plans de salle', ['c' => 'Voir', 'a' => 'Créer', 'm' => 'Modifier, activer, plans de salle, frais de livraison', 's' => 'Supprimer']],
         ],
         'Droits particuliers' => [
-            'prix' => ['Modifier les prix', 'Changer le prix d\'un article à l\'écran de vente'],
-            'plafond' => ['Dépasser le plafond de crédit', 'Vente par compte au-delà du plafond d\'un client'],
+            'prix' => ['Modifier les prix', 'Changer le prix d\'un article à l\'écran de vente', ['c' => 'Autorisé']],
+            'plafond' => ['Dépasser le plafond de crédit', 'Vente par compte au-delà du plafond d\'un client', ['c' => 'Autorisé']],
         ],
     ];
 }
 
+/** Droits à plat : code => [libellé, détail, opérations]. */
 function droits_catalogue_plat(): array
 {
     return array_merge(...array_values(droits_catalogue()));
 }
 
-/** Droits des utilisateurs sans profil (anciens comptes Caissier / Vendeur). */
-const DROITS_PAR_DEFAUT = ['tableau_bord', 'caisses', 'caisses_gerer', 'tiers', 'rapports', 'vendre', 'ventes', 'cuisine'];
+/** Tous les codes valides : « tiers », « tiers.a »… */
+function droits_codes(): array
+{
+    $codes = [];
+    foreach (droits_catalogue_plat() as $code => [, , $ops]) {
+        foreach (array_keys($ops) as $op) {
+            $codes[] = $op === 'c' ? $code : "$code.$op";
+        }
+    }
+    return $codes;
+}
 
-/** L'utilisateur connecté a-t-il ce droit ? */
-function peut(string $droit): bool
+/** Droits lus d'un profil : codes valides, sans doublon ; une opération sans « consulter » est ignorée. */
+function droits_lire(string $droits): array
+{
+    $liste = array_values(array_unique(array_intersect(droits_codes(), array_map('trim', explode(',', $droits)))));
+    return array_values(array_filter($liste, fn($c) => !str_contains($c, '.') || in_array(strtok($c, '.'), $liste, true)));
+}
+
+/** Droits des utilisateurs sans profil (anciens comptes Caissier / Vendeur) et des profils d'une nouvelle société. */
+const DROITS_PAR_DEFAUT = ['tableau_bord', 'caisses', 'caisses.a', 'caisses.m', 'caisses.s', 'journees', 'journees.a', 'journees.m', 'journees.s',
+    'tiers', 'tiers.a', 'tiers.m', 'tiers.s', 'rapports', 'vendre', 'ventes', 'ventes.a', 'ventes.m', 'ventes.s', 'cuisine', 'cuisine.m'];
+
+/** L'utilisateur connecté a-t-il ce droit (et cette opération : a, m ou s) ? */
+function peut(string $droit, string $op = 'c'): bool
 {
     if (is_admin()) {
         return true;
     }
-    return in_array($droit, $GLOBALS['__droits'] ?? [], true);
+    return in_array($op === 'c' ? $droit : "$droit.$op", $GLOBALS['__droits'] ?? [], true);
 }
+
+/** Opération d'une action : c consulter, a ajouter, m modifier, s supprimer (« save » / « edit » : selon l'identifiant). */
+function droit_operation(string $action, int $id = 0): string
+{
+    $a = strtolower($action);
+    if (in_array($a, ['save', 'edit'], true)) {
+        return $id > 0 ? 'm' : 'a';
+    }
+    foreach (DROITS_MOTS as $op => $mots) {
+        if (in_array($a, $mots, true)) {
+            return $op;
+        }
+    }
+    return 'c';
+}
+
+/** Mots des actions par opération (les autres actions : consulter). Identiques en .NET (Services/Droits.cs). */
+const DROITS_MOTS = [
+    's' => ['delete', 'supprimer', 'annuler', 'supprimerligne'],
+    'a' => ['create', 'nouveau', 'import', 'entree', 'transfert', 'genvariantes', 'operation', 'ajouteroperation', 'reglement', 'consommation',
+            'retour', 'ouvrirjournee', 'ligne', 'ajouterligne'],
+    'm' => ['toggle', 'basculer', 'defaut', 'pardefaut', 'achats', 'frais', 'majvariantes', 'combo', 'validation', 'modifiervalidation', 'cloturer',
+            'statut', 'livree', 'verifier', 'oublier', 'option', 'inventaire', 'inventairepost', 'enregistrer', 'valider', 'validerfacture'],
+];
 
 /**
  * Droit exigé par une page : code du droit, '' (toute personne connectée) ou 'admin'
@@ -299,7 +348,7 @@ function droit_page(string $module, string $action): string
 {
     static $carte = [
         'dashboard' => 'tableau_bord', 'tableaulaverie' => 'tableau_bord', 'tableaurestaurant' => 'tableau_bord',
-        'journee' => 'caisses', 'client' => 'tiers', 'rapport' => 'rapports', 'rapporttiers' => 'rapports',
+        'caisse' => 'caisses', 'journee' => 'journees', 'client' => 'tiers', 'rapport' => 'rapports', 'rapporttiers' => 'rapports',
         'pos' => 'vendre', 'vente' => 'ventes', 'facture' => 'ventes', 'cuisine' => 'cuisine',
         'stock' => 'stock', 'achat' => 'achats',
         'posrapport' => 'rapports_pdv', 'rapportlivraison' => 'rapports_pdv', 'rapportlinge' => 'rapports_pdv', 'rapportachat' => 'rapports_pdv',
@@ -308,24 +357,53 @@ function droit_page(string $module, string $action): string
         'depot' => 'config_pdv', 'livreur' => 'config_pdv', 'salle' => 'config_pdv',
         'utilisateur' => 'admin', 'profil' => 'admin', 'societe' => 'admin',
     ];
-    if ($module === 'caisse') {
-        return in_array($action, ['create', 'edit', 'delete'], true) ? 'caisses_gerer' : 'caisses';
-    }
     if ($module === 'synchro' && $action === 'rapport') {
         return '';   // état du poste envoyé par tous les écrans de vente
     }
     return $carte[$module] ?? '';
 }
 
+/** Opération demandée par la requête (identifiant posté ou dans l'adresse pour « save » / « edit »). */
+function droit_operation_requete(string $droit, string $action): string
+{
+    $id = 0;
+    foreach (['Id', 'ID', 'id'] as $cle) {
+        $id = max($id, (int) ($_POST[$cle] ?? $_GET[$cle] ?? 0));
+    }
+    $op = droit_operation($action, $id);
+    $ops = droits_catalogue_plat()[$droit][2] ?? ['c' => ''];
+    return isset($ops[$op]) ? $op : 'c';
+}
+
 function require_droit(string $module, string $action): void
 {
     $droit = droit_page($module, $action);
-    if ($droit === '' || ($droit === 'admin' ? is_admin() : peut($droit))) {
+    if ($droit === '' || ($droit === 'admin' ? is_admin() : (peut($droit) && peut($droit, droit_operation_requete($droit, $action))))) {
+        return;
+    }
+    // Liste et fiche des caisses : aussi pour ouvrir une journée (droit « Journées et opérations »).
+    if ($droit === 'caisses' && droit_operation_requete($droit, $action) === 'c' && peut('journees')) {
         return;
     }
     http_response_code(403);
     render('acces_refuse', [], user() !== null);
     exit;
+}
+
+/** Données pour masquer les boutons non permis (assets/js/droits.js) : correspondance des pages et droits accordés. */
+function droits_page_js(): array
+{
+    $carte = [];
+    foreach (['dashboard', 'tableaulaverie', 'tableaurestaurant', 'caisse', 'journee', 'client', 'rapport', 'rapporttiers', 'pos', 'vente', 'facture', 'cuisine',
+              'stock', 'achat', 'posrapport', 'rapportlivraison', 'rapportlinge', 'rapportachat', 'produit', 'categorie', 'combo', 'taxe', 'unite',
+              'synchro', 'motif', 'modepaiement', 'depot', 'livreur', 'salle', 'utilisateur', 'profil', 'societe'] as $m) {
+        $carte[$m] = droit_page($m, 'index');
+    }
+    $ops = [];
+    foreach (droits_catalogue_plat() as $code => [, , $o]) {
+        $ops[$code] = array_keys($o);
+    }
+    return ['admin' => is_admin(), 'carte' => $carte, 'mots' => DROITS_MOTS, 'ops' => $ops, 'accordes' => is_admin() ? droits_codes() : array_values($GLOBALS['__droits'] ?? [])];
 }
 
 /** Profils proposés à une nouvelle société : Caissier et Vendeur (droits modifiables ensuite). */
@@ -339,7 +417,7 @@ function profils_initiaux(int $tenant): void
 /** Première page permise après la connexion. */
 function page_accueil(): string
 {
-    foreach (['tableau_bord' => 'dashboard/index', 'vendre' => 'pos/index', 'caisses' => 'caisse/index', 'ventes' => 'vente/index',
+    foreach (['tableau_bord' => 'dashboard/index', 'vendre' => 'pos/index', 'journees' => 'caisse/index', 'caisses' => 'caisse/index', 'ventes' => 'vente/index',
               'cuisine' => 'cuisine/index', 'tiers' => 'client/index', 'rapports' => 'rapport/operations', 'stock' => 'stock/index',
               'achats' => 'achat/index', 'rapports_pdv' => 'posrapport/index', 'catalogue' => 'produit/index', 'synchro' => 'synchro/index',
               'parametres' => 'motif/index', 'config_pdv' => 'depot/index'] as $droit => $route) {

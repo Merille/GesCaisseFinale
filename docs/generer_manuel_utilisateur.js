@@ -98,7 +98,7 @@ const fiche = [
         ['Application', 'GesCaisse — gestion de caisse et point de vente (POS)'],
         ['Éditeur', 'M-ITECH AFRICA'],
         ['Public', 'Administrateurs, caissiers, vendeurs et serveurs des sociétés clientes'],
-        ['Version du document', '4.2'],
+        ['Version du document', '4.3'],
         ['Date', 'Novembre 2026']
     ], [3000, 6638])
 ];
@@ -148,7 +148,7 @@ const contenu = [
     p('Chaque utilisateur reçoit un profil qui détermine les pages auxquelles il a accès. L’administrateur crée les profils dont il a besoin (Caissier, Serveur, Gérant…) et coche leurs droits (voir 12.3) :'),
     tableau(['Profil', 'Pour qui', 'Ce qu’il peut faire'], [
         ['Administrateur', 'Responsable de la société', 'Tout ce qui concerne sa société, y compris les utilisateurs, les profils et droits, et « Ma société »'],
-        ['Caissier, Vendeur…', 'Profils de la société', 'Les pages cochées dans le profil. Livrés par défaut : Caissier et Vendeur (tableaux de bord, caisses et journées, tiers, rapports de caisse, vente, ventes, écran cuisine / bar)'],
+        ['Caissier, Vendeur…', 'Profils de la société', 'Les pages cochées dans le profil. Livrés par défaut : Caissier et Vendeur (tableaux de bord, caisses, journées, tiers, rapports de caisse, vente, ventes, écran cuisine / bar, avec toutes leurs opérations)'],
         ['Super-administrateur', 'Fournisseur de la solution', 'Création des sociétés, licences et modules ; peut consulter toutes les sociétés']
     ], [2000, 2600, 5038]),
     espace(),
@@ -722,23 +722,36 @@ const contenu = [
     pt('Droit de remise', 'cochez **Peut accorder des remises au point de vente** pour autoriser la remise sur un article et la remise globale. **Remise maximale (%)** : laissez vide pour ne pas limiter, ou indiquez un plafond (par exemple 10). Le serveur vérifie aussi ce droit : une remise non autorisée est refusée à l’encaissement et au dépôt de linge. Le changement s’applique tout de suite, sans reconnexion. Un nouvel utilisateur n’a pas ce droit ; les utilisateurs existants l’ont gardé lors de la mise à jour, sans limite.'),
     ...figure('41_utilisateurs', 'Utilisateurs'),
     h2('12.3 Profils et droits'),
-    p('Menu **Paramètres › Profils et droits** (ou bouton **Profils et droits** de la page Utilisateurs), réservé aux administrateurs. Chaque carte présente un profil, ses droits et le nombre d’utilisateurs qui l’ont. Le profil **Administrateur** est fixe : il a toujours tous les droits.'),
+    p('Menu **Paramètres › Profils et droits** (ou bouton **Profils et droits** de la page Utilisateurs), réservé aux administrateurs. Chaque carte présente un profil, ses droits (avec les lettres C consulter, A ajouter, M modifier, S supprimer : par exemple « Tiers C A M S ») et le nombre d’utilisateurs qui l’ont. Le profil **Administrateur** est fixe : il a toujours tous les droits.'),
     ...figure('41b_profils', 'Profils et droits'),
     ...etapes([
         'Cliquez sur **Nouveau profil** (ou **Modifier** sur la carte d’un profil).',
         'Donnez un **Nom** (par exemple « Serveur ») et, si vous le souhaitez, une **Description**.',
-        'Cochez les droits du profil, rubrique par rubrique (**Tout cocher** / **Tout décocher** pour aller plus vite), puis **Enregistrer**.',
+        'Dans la grille, cochez pour chaque droit les opérations permises : **Consulter**, **Ajouter**, **Modifier**, **Supprimer** (**Tout cocher** / **Tout décocher** pour aller plus vite), puis **Enregistrer**.',
         'Dans **Paramètres › Utilisateurs**, modifiez chaque utilisateur concerné et choisissez ce profil.'
     ]),
     ...figure('41c_profil_modale', 'Droits d’un profil'),
-    tableau(['Rubrique', 'Droits'], [
-        ['Activité', 'Tableaux de bord ; Caisses et journées (ouvrir, encaisser, décaisser, clôturer) ; Gérer les caisses (créer, modifier, supprimer) ; Tiers'],
-        ['Analyse', 'Rapports de caisse (rapport des opérations, export Sage, rapport des tiers)'],
-        ['Point de vente', 'Vendre ; Ventes ; Écran cuisine / bar ; Stock ; Achats ; Rapports du point de vente ; Catalogue (catégories, produits, combos, taxes, unités) ; Synchronisation'],
-        ['Paramètres', 'Motifs et modes de paiement ; Configuration du point de vente (dépôts, livreurs, plans de salle)'],
-        ['Droits particuliers', 'Modifier les prix à l’écran de vente ; Dépasser le plafond de crédit d’un client']
-    ], [2200, 7438]),
+    p('Pour chaque droit, la grille propose jusqu’à quatre cases : **Consulter**, **Ajouter** (créer), **Modifier** et **Supprimer**. Un tiret signale une opération qui n’existe pas pour ce droit. Passez la souris sur une case pour voir ce qu’elle permet. Cocher Ajouter, Modifier ou Supprimer coche aussi Consulter ; décocher Consulter décoche toute la ligne.'),
+    tableau(['Droit', 'Consulter', 'Ajouter', 'Modifier', 'Supprimer'], [
+        ['Tableaux de bord', 'Voir les tableaux de bord', '–', '–', '–'],
+        ['Caisses', 'Voir les caisses', 'Créer une caisse', 'Modifier une caisse', 'Supprimer une caisse'],
+        ['Journées et opérations', 'Voir les journées et leurs opérations', 'Ouvrir une journée, encaisser, décaisser, régler un client', 'Valider ou rejeter, clôturer', 'Supprimer une opération'],
+        ['Tiers', 'Voir et exporter', 'Créer, importer', 'Modifier', 'Supprimer'],
+        ['Rapports de caisse', 'Consulter, exporter', '–', '–', '–'],
+        ['Vendre', 'Utiliser l’écran de vente', '–', '–', '–'],
+        ['Ventes', 'Voir les ventes et factures', 'Retour, nouvelle facture', 'Marquer livrée, vérifier, modifier une facture', 'Annuler une vente'],
+        ['Écran cuisine / bar', 'Voir les bons', '–', 'Marquer un bon prêt', '–'],
+        ['Stock', 'Voir le stock et les mouvements', 'Entrées et transferts', 'Inventaire, options', '–'],
+        ['Achats', 'Voir les achats', 'Achat, règlement, consommation', '–', 'Annuler un achat'],
+        ['Rapports du point de vente', 'Consulter, exporter', '–', '–', '–'],
+        ['Catalogue', 'Voir, exporter', 'Créer, importer, variantes', 'Modifier, activer', 'Supprimer'],
+        ['Synchronisation', 'Voir', '–', 'Marquer vérifié, oublier un poste', '–'],
+        ['Motifs et modes de paiement', 'Voir', 'Créer', 'Modifier', 'Supprimer'],
+        ['Configuration du point de vente', 'Voir les dépôts, livreurs, plans', 'Créer', 'Modifier, activer, plans de salle, frais', 'Supprimer'],
+        ['Modifier les prix ; Dépasser le plafond de crédit', 'Autorisé (droits particuliers)', '–', '–', '–']
+    ], [2300, 1900, 1900, 1900, 1638]),
     espace(),
+    pt('Boutons', 'les boutons non permis (**Nouveau**, **Modifier**, **Supprimer**, **Importer**…) n’apparaissent pas ; un utilisateur en consultation seule voit les listes et les fiches, sans pouvoir les changer. Le serveur refuse de toute façon une opération non permise (« Accès refusé »).'),
     pt('Menu et pages', 'un utilisateur ne voit dans le menu que les pages permises par son profil ; s’il ouvre une autre page par son adresse, il obtient « Accès refusé ». Après la connexion, il arrive sur la première page permise (tableau de bord, sinon écran de vente…). Un profil sans aucun droit affiche la page « Aucun accès ».'),
     pt('Effet immédiat', 'un droit ajouté ou retiré s’applique dès la page suivante, sans que l’utilisateur ait à se reconnecter.'),
     pt('Réservé aux administrateurs', 'les utilisateurs, les profils et « Ma société » ne s’attribuent pas : seuls les administrateurs y ont accès. Un administrateur ne peut pas se retirer à lui-même le profil Administrateur.'),

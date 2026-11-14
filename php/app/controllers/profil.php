@@ -21,8 +21,8 @@ function profil_save(): void
     $id = (int) post('Id', 0);
     $nom = mb_substr((string) post('Nom', ''), 0, 50);
     $description = mb_substr((string) post('Description', ''), 0, 200);
-    $codes = array_keys(droits_catalogue_plat());
-    $droits = array_values(array_intersect($codes, (array) ($_POST['Droits'] ?? [])));
+    // Codes cochés (« tiers », « tiers.a »…) ; une opération sans « consulter » est ignorée.
+    $droits = droits_lire(implode(',', array_map('strval', (array) ($_POST['Droits'] ?? []))));
     $existant = $id ? q1('SELECT * FROM Profils WHERE Id = ? AND ' . tf(), [$id]) : null;
     if ($id && !$existant) {
         not_found('Profil introuvable.');
