@@ -1,0 +1,149 @@
+@model EasytransitCaisse.Models.ViewModels.TableauRestaurantVM
+@using EasytransitCaisse.Services
+@{
+    ViewData["Title"] = "Tableau de bord restaurant-bar";
+    var fr = System.Globalization.CultureInfo.GetCultureInfo("fr-FR");
+    string Fcfa(decimal n) => n.ToString("N0", fr);
+    string Qte(decimal n) => n.ToString("0.##", fr);
+    string S(decimal n) => n > 1 ? "s" : "";
+    string E(string? s) => System.Net.WebUtility.HtmlEncode(s ?? "");
+    var admin = User.HasClaim(AppClaimTypes.Profil, "Admin") || User.HasClaim(AppClaimTypes.Profil, "SuperAdmin");
+    var aujourdhui = DateTime.Today;
+    var jour = aujourdhui.ToString("yyyy-MM-dd");
+    var lundi = aujourdhui.AddDays(-(((int)aujourdhui.DayOfWeek + 6) % 7));
+    string? rapportJour = admin ? $"/PosRapport/Index?dateDebut={jour}&dateFin={jour}" : null;
+    var parCouvert = Model.CouvertsJour > 0 ? Model.VentesCouverts / Model.CouvertsJour : 0;
+    var panier = Model.Tickets > 0 ? Model.VentesJour / Model.Tickets : 0;
+    int Depuis(DateTime d) => Math.Max(0, (int)Math.Floor((DateTime.Now - d).TotalMinutes));
+    string Duree(int min) => min >= 60 ? $"{min / 60} h {min % 60:00}" : $"{min} min";
+    var tuiles = new (string Couleur, string Icone, string Titre, Microsoft.AspNetCore.Html.IHtmlContent Corps, string? Href)[]
+    {
+        ("lav-bleu", "fa-sack-dollar", "Ventes", Html.Raw($"<div class=\"lav-grand\">{Fcfa(Model.CAJour)} <small>FCFA</small></div>"
+            + $"<div class=\"lav-ligne\">Aujourd'hui : <b>{Model.Tickets}</b> ticket{S(Model.Tickets)}</div>"
+            + $"<div class=\"lav-ligne\">Panier moyen : <b>{Fcfa(panier)}</b> FCFA</div>"
+            + $"<div class=\"lav-ligne\">Cette semaine : <b>{Fcfa(Model.CASemaine)}</b> FCFA</div>"),
+            rapportJour ?? "/Pos/Index"),
+        ("lav-indigo", "fa-chair", "Tables", Html.Raw($"<div class=\"lav-grand\">{Model.Occupees} <small>/ {Model.Tables} occupée{S(Model.Occupees)}</small></div>"
+            + $"<div class=\"lav-ligne\">Couverts en salle : <b>{Model.CouvertsSalle}</b></div>"
+            + $"<div class=\"lav-ligne\">En cours : <b>{Fcfa(Model.EnCours)}</b> FCFA ({Model.NbOuvertes} commande{S(Model.NbOuvertes)})</div>"),
+            "/Pos/Index"),
+        ("lav-ciel", "fa-users", "Couverts", Html.Raw($"<div class=\"lav-grand\">{Model.CouvertsJour} <small>servi{S(Model.CouvertsJour)} aujourd'hui</small></div>"
+            + $"<div class=\"lav-ligne\">Par couvert : <b>{Fcfa(parCouvert)}</b> FCFA</div>"
+            + $"<div class=\"lav-ligne\">Cette semaine : <b>{Model.CouvertsSemaine}</b></div>"),
+            rapportJour),
+        (Model.Attente >= 20 ? "lav-rouge" : "lav-ambre", "fa-fire-burner", "Cuisine et bar", Html.Raw($"<div class=\"lav-grand\">{Model.NbBons} <small>bon{S(Model.NbBons)} à préparer</small></div>"
+            + $"<div class=\"lav-ligne\">Cuisine : <b>{Model.BonsCuisine}</b> · Bar : <b>{Model.BonsBar}</b></div>"
+            + "<div class=\"lav-ligne\">" + (Model.NbBons > 0 ? $"Le plus ancien : <b>{Duree(Model.Attente)}</b> d'attente" : "Rien en attente.") + "</div>"),
+            "/Cuisine/Index"),
+        ("lav-violet", "fa-motorcycle", "Livraisons", Html.Raw($"<div class=\"lav-grand\">{Model.ALivrer} <small>à livrer</small></div>"
+            + $"<div class=\"lav-ligne\">À encaisser : <b>{Model.AEncaisser}</b> · <b>{Fcfa(Model.MontantAEncaisser)}</b> FCFA</div>"
+            + $"<div class=\"lav-ligne\">Livrée{S(Model.Livrees)} aujourd'hui : <b>{Model.Livrees}</b></div>"),
+            admin ? "/RapportLivraison/Index" : "/Pos/Index"),
+        ("lav-vert", "fa-utensils", "Meilleures ventes", Html.Raw($"<div class=\"lav-grand\">{Qte(Model.ArticlesVendus)} <small>article{S(Model.ArticlesVendus)} vendu{S(Model.ArticlesVendus)}</small></div>"
+            + "<div class=\"lav-ligne\">" + (Model.Top is { } top ? $"Le plus vendu : <b>{E(top.Nom)}</b> ({Qte(top.Qte)})" : "Aucune vente aujourd'hui.") + "</div>"
+            + (Model.TopCategorie is { } cat ? $"<div class=\"lav-ligne\">Catégorie : <b>{E(cat.Nom)}</b> ({Fcfa(cat.CA)} FCFA)</div>" : "")),
+            rapportJour),
+        (Model.StockBas > 0 ? "lav-rouge" : "lav-ardoise", "fa-boxes-stacked", "Stock", Html.Raw($"<div class=\"lav-grand\">{Model.StockBas} <small>sous le seuil</small></div>"
+            + $"<div class=\"lav-ligne\">En rupture : <b>{Model.Ruptures}</b></div>"
+            + $"<div class=\"lav-ligne\">Produits suivis : <b>{Model.Suivis}</b></div>"),
+            admin ? "/Stock/Index" : null),
+        ("lav-rose", "fa-cash-register", "Caisse", Html.Raw($"<div class=\"lav-grand\">{Fcfa(Model.Encaissements)} <small>FCFA encaissés</small></div>"
+            + $"<div class=\"lav-ligne\">Pourboires : <b>{Fcfa(Model.Pourboires)}</b> FCFA</div>"
+            + "<div class=\"lav-ligne\">" + (Model.Journees.Count > 0 ? $"Journée ouverte : <b>{E(string.Join(", ", Model.Journees.Select(j => j.Code)))}</b>" : "Aucune journée ouverte") + "</div>"),
+            Model.Journees.Count > 0 ? $"/JourneeCaisse/Details/{Model.Journees[0].Id}" : "/Caisse/Index"),
+    };
+}
+<link rel="stylesheet" href="~/css/laverie.css" asp-append-version="true" />
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div class="text-muted small">Restaurant · Bar · @aujourdhui.ToString("dd/MM/yyyy") · semaine du @lundi.ToString("dd/MM/yyyy")</div>
+    <div class="d-flex gap-2">
+        <a class="btn btn-primary" href="/Pos/Index"><i class="fas fa-store"></i> Vendre</a>
+        <a class="btn btn-outline-primary" href="/Cuisine/Index"><i class="fas fa-fire-burner"></i> Écran cuisine / bar</a>
+        @if (admin)
+        {
+            <a class="btn btn-outline-primary" href="/PosRapport/Index"><i class="fas fa-chart-line"></i> Rapports des ventes</a>
+        }
+    </div>
+</div>
+
+<div class="lav-tuiles mb-4" id="restoTuiles">
+    @foreach (var t in tuiles)
+    {
+        var contenu = Html.Raw($"<span class=\"lav-icone\"><i class=\"fas {t.Icone}\"></i></span>");
+        if (t.Href != null)
+        {
+            <a href="@t.Href" class="lav-tuile @t.Couleur">@contenu<div><h3>@t.Titre</h3>@t.Corps</div></a>
+        }
+        else
+        {
+            <div class="lav-tuile @t.Couleur">@contenu<div><h3>@t.Titre</h3>@t.Corps</div></div>
+        }
+    }
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-6">
+        <div class="lav-carte">
+            <h4>Chiffre d'affaires des 14 derniers jours</h4>
+            <div style="height:260px"><canvas id="restoGraphique" aria-label="Chiffre d'affaires par jour" role="img"></canvas></div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6">
+        <div class="lav-carte" id="restoTables">
+            <h4><i class="fas fa-chair text-primary"></i> Tables occupées</h4>
+            @if (Model.TablesOccupees.Count == 0)
+            {
+                <div class="lav-vide">Aucune table occupée.</div>
+            }
+            else
+            {
+                <ul class="lav-liste">
+                    @foreach (var o in Model.TablesOccupees)
+                    {
+                        <li><span><b>@o.Table</b> · @o.Couverts couvert@(S(o.Couverts))<small>@o.Serveur@(string.IsNullOrEmpty(o.Serveur) ? "" : " · ")depuis @Duree(Depuis(o.Depuis))</small></span>
+                            <span class="lav-montant">@Fcfa(o.Total)</span></li>
+                    }
+                </ul>
+            }
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6">
+        <div class="lav-carte" id="restoBons">
+            <h4><i class="fas fa-fire-burner text-warning"></i> Bons en attente</h4>
+            @if (Model.Bons.Count == 0)
+            {
+                <div class="lav-vide">Aucun bon en attente.</div>
+            }
+            else
+            {
+                <ul class="lav-liste">
+                    @foreach (var b in Model.Bons)
+                    {
+                        <li><span><b>Bon @b.Numero</b> · @b.Poste<small>@(string.IsNullOrEmpty(b.Table) ? "" : b.Table + " · ")@b.Lignes ligne@(S(b.Lignes))</small></span>
+                            <span class="lav-montant">@Duree(Depuis(b.DateEnvoi))</span></li>
+                    }
+                </ul>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            const jours = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Jours.Select(j => j.Jour.ToString("dd/MM"))));
+            const valeurs = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Jours.Select(j => j.CA)));
+            if (!window.Chart) return;
+            const fcfa = n => Math.round(n).toLocaleString('fr-FR') + ' FCFA';
+            new Chart(document.getElementById('restoGraphique'), {
+                type: 'bar',
+                data: { labels: jours, datasets: [
+                    { label: "Chiffre d'affaires", data: valeurs, backgroundColor: '#1d74c9', borderRadius: 4, borderSkipped: 'bottom', maxBarThickness: 22 }
+                ] },
+                options: { maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => fcfa(c.parsed.y) } } },
+                    scales: { y: { beginAtZero: true, ticks: { callback: v => Math.round(v).toLocaleString('fr-FR') }, grid: { color: '#eef2f6' } }, x: { grid: { display: false } } } }
+            });
+        })();
+    </script>
+}

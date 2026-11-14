@@ -34,7 +34,7 @@
     // Rubrique du fil d'Ariane de la barre du haut.
     var rubrique = controller switch
     {
-        "Dashboard" or "TableauLaverie" or "Caisse" or "JourneeCaisse" or "Client" => "Activité",
+        "Dashboard" or "TableauLaverie" or "TableauRestaurant" or "Caisse" or "JourneeCaisse" or "Client" => "Activité",
         "Rapport" or "RapportTiers" => "Analyse",
         "Pos" or "Vente" or "Stock" or "PosRapport" or "RapportLivraison" or "RapportLinge" or "RapportAchat" or "Achat" or "Cuisine" or "Synchro" => "Point de vente",
         "Salle" => "Activité",
@@ -187,6 +187,13 @@
                     <a class="sb-link @(controller == "TableauLaverie" ? "active" : "")" href="/TableauLaverie/Index" title="Tableau de bord laverie">
                         <i class="fas fa-shirt"></i>
                         <span class="sb-label">Tableau de bord laverie</span>
+                    </a>
+                }
+                @if (modulePointVente && EasytransitCaisse.Data.Restaurant.Actif(DbContext))
+                {
+                    <a class="sb-link @(controller == "TableauRestaurant" ? "active" : "")" href="/TableauRestaurant/Index" title="Tableau resto-bar">
+                        <i class="fas fa-utensils"></i>
+                        <span class="sb-label">Tableau resto-bar</span>
                     </a>
                 }
                 <a class="sb-link @(controller == "Caisse" || controller == "JourneeCaisse" ? "active" : "")" href="/Caisse/Index" title="Caisses">

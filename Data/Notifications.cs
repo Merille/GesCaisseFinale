@@ -17,7 +17,7 @@ namespace EasytransitCaisse.Data
         private static string Pluriel(int n, string mot) => $"{n} " + System.Text.RegularExpressions.Regex.Replace(mot, @"(\w+)%s", n > 1 ? "$1s" : "$1");
 
         // Frais de livraison lus dans le contenu d'une commande en attente (« livraison.frais »).
-        private static decimal FraisLivraison(string? contenu)
+        internal static decimal FraisLivraison(string? contenu)
         {
             try
             {

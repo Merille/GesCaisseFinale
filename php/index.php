@@ -8,6 +8,7 @@ $routes = [
     'auth'        => ['login', 'logout', 'suspendue'],
     'dashboard'   => ['index'],
     'tableaulaverie' => ['index'],
+    'tableaurestaurant' => ['index'],
     'caisse'      => ['index', 'create', 'edit', 'delete', 'details', 'print'],
     'journee'     => ['create', 'details', 'operation', 'reglement', 'validation', 'cloturer', 'supprimer', 'printoperations', 'printjournees'],
     'client'      => ['index', 'create', 'edit', 'delete', 'export', 'import'],

@@ -19,7 +19,7 @@ if (is_super_admin()) {
 $nbJourneesOuvertes = (int) qv("SELECT COUNT(*) FROM JourneesCaisses WHERE Statut = 'Ouverte' AND " . tf());
 
 $rubrique = match ($module) {
-    'dashboard', 'tableaulaverie', 'caisse', 'journee', 'client', 'facture' => 'Activité',
+    'dashboard', 'tableaulaverie', 'tableaurestaurant', 'caisse', 'journee', 'client', 'facture' => 'Activité',
     'rapport', 'rapporttiers' => 'Analyse',
     'pos', 'vente', 'stock', 'posrapport', 'rapportlivraison', 'rapportlinge', 'rapportachat', 'achat', 'cuisine', 'synchro' => 'Point de vente',
     'salle' => 'Activité',
@@ -100,6 +100,10 @@ $badge = $nbJourneesOuvertes > 0
             <?php // Laverie : tableau de bord en tuiles (page à part ; le tableau de bord général ne change pas). ?>
             <?php if (laverie_actif() && module_pos_actif()): ?>
                 <?= $lien('tableaulaverie/index', 'tableaulaverie', 'fa-shirt', 'Tableau de bord laverie') ?>
+            <?php endif; ?>
+            <?php // Restaurant-bar : tableau de bord en tuiles (page à part, comme la laverie). ?>
+            <?php if (restaurant_actif() && module_pos_actif()): ?>
+                <?= $lien('tableaurestaurant/index', 'tableaurestaurant', 'fa-utensils', 'Tableau resto-bar') ?>
             <?php endif; ?>
             <?= $lien('caisse/index', 'caisse|journee', 'fa-cash-register', 'Caisses', $badge) ?>
             <?= $lien('client/index', 'client', 'fa-address-book', 'Tiers') ?>

@@ -98,7 +98,7 @@ const fiche = [
         ['Application', 'GesCaisse — gestion de caisse et point de vente (POS)'],
         ['Éditeur', 'M-ITECH AFRICA'],
         ['Public', 'Administrateurs, caissiers, vendeurs et serveurs des sociétés clientes'],
-        ['Version du document', '3.9'],
+        ['Version du document', '4.0'],
         ['Date', 'Novembre 2026']
     ], [3000, 6638])
 ];
@@ -199,6 +199,14 @@ const contenu = [
     pt('Clients et Articles', 'clients servis ce mois, fiches clients, montant dû par les clients en compte ; articles en vente, catégories et article le plus déposé du mois.'),
     pt('Produits d’entretien et Caisse', 'produits à racheter, valeur du stock et achats du mois ; montant encaissé aujourd’hui sur les caisses Laverie et journée ouverte.'),
     p('Sous les tuiles : le graphique des dépôts et retraits des 14 derniers jours, la liste du linge **prêt à remettre** et celle du linge **en retard** (avec le nombre de jours de retard et le reste à payer). Le bouton **Vendre / déposer** ouvre l’écran de vente.'),
+    p('**Restaurant et bar.** Si votre société a une caisse de type **Restaurant** ou **Bar**, le menu **Activité** propose aussi **Tableau resto-bar** (page « Tableau de bord restaurant-bar »). Le tableau de bord général ne change pas. Les chiffres portent sur les caisses Restaurant et Bar uniquement ; un clic sur une tuile ouvre la page détaillée (rapport des ventes du jour, écran de vente, écran cuisine / bar, rapport des livraisons, stock, journée de caisse ouverte).'),
+    ...figure('02j_tableau_restaurant', 'Tableau de bord restaurant-bar'),
+    pt('Ventes', 'chiffre d’affaires net du jour (ventes moins retours, hors ventes annulées), nombre de tickets, panier moyen et chiffre d’affaires de la semaine.'),
+    pt('Tables et Couverts', 'tables occupées sur le nombre de tables actives, couverts en salle et montant des commandes en cours ; couverts servis aujourd’hui, montant moyen par couvert et couverts de la semaine.'),
+    pt('Cuisine et bar', 'bons à préparer (cuisine et bar) et attente du plus ancien ; la tuile devient rouge au-delà de 20 minutes d’attente.'),
+    pt('Livraisons', 'ventes à livrer, commandes à encaisser auprès des livreurs (frais compris) et livraisons faites aujourd’hui.'),
+    pt('Meilleures ventes, Stock et Caisse', 'articles vendus aujourd’hui, article le plus vendu et catégorie la plus vendue ; produits sous le seuil d’alerte, en rupture et suivis ; montant encaissé aujourd’hui, pourboires et journée ouverte.'),
+    p('Sous les tuiles : le chiffre d’affaires des 14 derniers jours, les **tables occupées** (couverts, serveur, depuis combien de temps, montant en cours) et les **bons en attente** (poste, table, nombre de lignes, attente).'),
     h2('2.4 Les notifications (cloche)'),
     p('La **cloche**, en haut à droite de chaque page, rassemble ce qui attend une action. Quand il y a quelque chose à traiter, elle s’allume et une pastille rouge indique le nombre total d’éléments ; cliquez dessus pour ouvrir la liste, puis sur une ligne pour aller directement à la bonne page.'),
     ...figure('02b_cloche', 'Notifications de la cloche'),
