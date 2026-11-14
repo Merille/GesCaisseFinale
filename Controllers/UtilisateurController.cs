@@ -43,10 +43,30 @@ namespace EasytransitCaisse.Controllers
             }
         }
 
-        // Profils qu'on peut attribuer : SuperAdmin seulement par un SuperAdmin.
-        private bool ProfilAutorise(string? profil) =>
-            profil is "Admin" or "Caissier" or "Vendeur"
-            || (profil == "SuperAdmin" && _tenantProvider.IsSuperAdmin);
+        // Profils proposés : Administrateur (tous les droits), les profils de la société (Paramètres › Profils
+        // et droits) et, pour le SuperAdmin, SuperAdmin et les profils de toutes les sociétés. Comme utilisateur_profils() en PHP.
+        private void ChargerProfils()
+        {
+            var liste = new List<(string Valeur, string Libelle, int? Societe)> { ("Admin", "Administrateur (tous les droits)", null) };
+            var profils = (from p in _context.Profils
+                           join t in _context.Tenants on p.TenantId equals t.Id
+                           orderby t.Nom, p.Nom
+                           select new { p.Id, p.Nom, p.TenantId, Societe = t.Nom }).ToList();
+            liste.AddRange(profils.Select(p => ("p" + p.Id, p.Nom + (_tenantProvider.IsSuperAdmin ? " (" + p.Societe + ")" : ""), (int?)p.TenantId)));
+            if (_tenantProvider.IsSuperAdmin)
+                liste.Add(("SuperAdmin", "SuperAdmin", null));
+            ViewBag.Profils = liste;
+        }
+
+        // Valeur du champ Profil pour un utilisateur : « Admin », « SuperAdmin » ou « p<Id du profil> » ;
+        // ancien compte sans profil rattaché : profil de même nom de la société.
+        public static string ValeurProfil(AppDbContext context, Utilisateur u)
+        {
+            if (u.ProfilId.HasValue) return "p" + u.ProfilId;
+            if (string.IsNullOrEmpty(u.Profil) || u.Profil is "Admin" or "SuperAdmin" || u.TenantId == null) return u.Profil ?? "";
+            var id = context.Profils.IgnoreQueryFilters().Where(p => p.TenantId == u.TenantId && p.Nom == u.Profil).Select(p => (int?)p.Id).FirstOrDefault();
+            return id.HasValue ? "p" + id : "";
+        }
 
         // LISTE
 
@@ -76,6 +96,8 @@ namespace EasytransitCaisse.Controllers
                 return "Le mot de passe doit contenir au moins 3 caractères.";
             if (remiseMaxInvalide || u.RemiseMax.HasValue && (u.RemiseMax <= 0 || u.RemiseMax > 100))
                 return "La remise maximale doit être comprise entre 0 et 100 % (laissez vide pour ne pas limiter).";
+            if (string.IsNullOrEmpty(u.Profil))
+                return "Choisissez un profil (de la société de cet utilisateur).";
             if (u.Profil != "SuperAdmin" && (u.TenantId ?? 0) == 0)
                 return "Choisissez la société de cet utilisateur.";
             var nom = u.NomUtilisateur.Trim();
@@ -87,12 +109,28 @@ namespace EasytransitCaisse.Controllers
         // Profil et société retenus : la société est choisie par le SuperAdmin, sinon celle de l'utilisateur.
         private void Normaliser(Utilisateur saisie, int? tenantExistant)
         {
-            if (!ProfilAutorise(saisie.Profil))
-                saisie.Profil = "Caissier";
+            var choix = saisie.Profil ?? "";
+            saisie.ProfilId = null;
+            Models.Profil? profil = null;
+            if (choix == "Admin" || (choix == "SuperAdmin" && _tenantProvider.IsSuperAdmin))
+                saisie.Profil = choix;
+            else if (choix.StartsWith('p') && int.TryParse(choix[1..], out var pid) && (profil = _context.Profils.FirstOrDefault(p => p.Id == pid)) != null)
+            {
+                saisie.ProfilId = profil.Id;
+                saisie.Profil = profil.Nom;
+            }
+            else
+                saisie.Profil = "";
             if (_tenantProvider.IsSuperAdmin)
-                saisie.TenantId = saisie.Profil == "SuperAdmin" ? null : (saisie.TenantId > 0 ? saisie.TenantId : null);
+                saisie.TenantId = saisie.Profil == "SuperAdmin" ? null : (saisie.TenantId > 0 ? saisie.TenantId : profil?.TenantId);
             else
                 saisie.TenantId = tenantExistant ?? _tenantProvider.TenantId;
+            // Profil d'une autre société que celle de l'utilisateur : refusé.
+            if (profil != null && profil.TenantId != saisie.TenantId)
+            {
+                saisie.ProfilId = null;
+                saisie.Profil = "";
+            }
             saisie.NomUtilisateur = (saisie.NomUtilisateur ?? "").Trim();
             saisie.NomComplet = (saisie.NomComplet ?? "").Trim();
             // Remise maximale : « 10 » ou « 12,5 » ; vide = sans limite (et sans objet sans le droit).
@@ -106,7 +144,8 @@ namespace EasytransitCaisse.Controllers
         public IActionResult Create()
         {
             ChargerTenantsSiSuperAdmin();
-            return View(new Utilisateur { Profil = "Caissier" });
+            ChargerProfils();
+            return View(new Utilisateur { Profil = "" });
         }
 
         // CREATE POST
@@ -122,6 +161,7 @@ namespace EasytransitCaisse.Controllers
                 TempData["Error"] = erreur;
                 user.MotPasse = "";
                 ChargerTenantsSiSuperAdmin();
+                ChargerProfils();
                 return View(user);
             }
 
@@ -144,6 +184,7 @@ namespace EasytransitCaisse.Controllers
             user.MotPasse = ""; // ne pas afficher le hash
 
             ChargerTenantsSiSuperAdmin();
+            ChargerProfils();
 
             return View(user);
         }
@@ -162,17 +203,23 @@ namespace EasytransitCaisse.Controllers
             user.Id = existing.Id;
             Normaliser(user, existing.TenantId);
             var erreur = Erreur(user, existing.Id, false);
+            // L'administrateur ne peut pas retirer son propre profil d'administrateur (il perdrait l'accès à cette page).
+            var moi = int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var mid) ? mid : 0;
+            if (erreur == null && existing.Id == moi && user.Profil is not ("Admin" or "SuperAdmin"))
+                erreur = "Vous ne pouvez pas retirer votre propre profil d'administrateur.";
             if (erreur != null)
             {
                 TempData["Error"] = erreur;
                 user.MotPasse = "";
                 ChargerTenantsSiSuperAdmin();
+                ChargerProfils();
                 return View(user);
             }
 
             existing.NomUtilisateur = user.NomUtilisateur;
             existing.NomComplet = user.NomComplet;
             existing.Profil = user.Profil;
+            existing.ProfilId = user.ProfilId;
             existing.PeutValiderOperations = user.PeutValiderOperations;
             existing.PeutRemise = user.PeutRemise;
             existing.RemiseMax = user.RemiseMax;

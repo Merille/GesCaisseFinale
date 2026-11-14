@@ -8,7 +8,6 @@ using Microsoft.AspNetCore.Mvc;
 namespace EasytransitCaisse.Controllers
 {
     // Catégories de produits du point de vente. Réservé aux profils Admin et SuperAdmin.
-    [Authorize(Policy = "Admin")]
     public class CategorieController : Controller
     {
         private readonly AppDbContext _context;

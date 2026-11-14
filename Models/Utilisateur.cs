@@ -13,7 +13,11 @@ namespace EasytransitCaisse.Models
 
         public string NomComplet { get; set; }
 
+        [System.ComponentModel.DataAnnotations.StringLength(50)]
         public string Profil { get; set; }
+
+        // Profil de la société (droits d'accès) ; null pour Admin et SuperAdmin (tous les droits).
+        public int? ProfilId { get; set; }
 
         // Droit : autorise cet utilisateur à passer une opération de caisse à
         // "Validé"/"Rejeté" (sinon elle reste forcée à "En attente", y compris

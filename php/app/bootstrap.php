@@ -199,6 +199,17 @@ function require_login(): void
     if (!user()) {
         redirect('auth/login');
     }
+    // Profil et droits relus à chaque page : un changement fait par l'administrateur s'applique sans
+    // reconnexion ; compte supprimé : déconnexion.
+    $ligne = q1('SELECT u.Profil, u.ProfilId, u.PeutValiderOperations, p.Droits FROM Utilisateurs u LEFT JOIN Profils p ON p.Id = u.ProfilId WHERE u.Id = ?', [(int) user()['id']]);
+    if (!$ligne) {
+        $_SESSION = [];
+        redirect('auth/login');
+    }
+    $_SESSION['user']['profil'] = $ligne['Profil'];
+    $_SESSION['user']['peutValider'] = (bool) $ligne['PeutValiderOperations'];
+    $GLOBALS['__droits'] = in_array($ligne['Profil'], ['Admin', 'SuperAdmin'], true) ? array_keys(droits_catalogue_plat())
+        : ($ligne['ProfilId'] === null ? DROITS_PAR_DEFAUT : array_values(array_filter(explode(',', (string) $ligne['Droits']))));
     // Société inactive ou licence expirée : accès bloqué (sauf SuperAdmin).
     if (!is_super_admin()) {
         $t = q1('SELECT Actif, DateExpiration FROM Tenants WHERE Id = ?', [(int) user()['tenantId']]);
@@ -221,6 +232,122 @@ function require_admin(): void
         render('acces_refuse', [], user() !== null);
         exit;
     }
+}
+
+// ---------------------------------------------------------------------------
+// Profils et droits d'accès. Les profils Admin et SuperAdmin ont tous les droits ; les autres
+// utilisateurs ont les droits de leur profil (créé par l'administrateur : Paramètres › Profils).
+// Utilisateurs, profils et « Ma société » restent réservés aux administrateurs.
+// ---------------------------------------------------------------------------
+
+/** Catalogue des droits, par rubrique : code => [libellé, détail]. */
+function droits_catalogue(): array
+{
+    return [
+        'Activité' => [
+            'tableau_bord' => ['Tableaux de bord', 'Tableau de bord général, laverie et restaurant-bar'],
+            'caisses' => ['Caisses et journées', 'Ouvrir une journée, encaisser, décaisser, clôturer'],
+            'caisses_gerer' => ['Gérer les caisses', 'Créer, modifier et supprimer les caisses'],
+            'tiers' => ['Tiers', 'Clients et fournisseurs, import et export'],
+        ],
+        'Analyse' => [
+            'rapports' => ['Rapports de caisse', 'Rapport des opérations, export Sage, rapport des tiers'],
+        ],
+        'Point de vente' => [
+            'vendre' => ['Vendre', 'Écran de vente, commandes de table, dépôts de linge'],
+            'ventes' => ['Ventes', 'Liste et détail des ventes, factures'],
+            'cuisine' => ['Écran cuisine / bar', 'Bons de préparation'],
+            'stock' => ['Stock', 'Entrées, transferts, inventaire'],
+            'achats' => ['Achats', 'Achats fournisseurs, consommations, produits d\'entretien'],
+            'rapports_pdv' => ['Rapports du point de vente', 'Ventes, livraisons, dépôts de linge, achats'],
+            'catalogue' => ['Catalogue', 'Catégories, produits, combos, taxes, unités de vente'],
+            'synchro' => ['Synchronisation', 'Ventes faites hors ligne et postes'],
+        ],
+        'Paramètres' => [
+            'parametres' => ['Motifs et modes de paiement', 'Motifs des opérations, modes de paiement'],
+            'config_pdv' => ['Configuration du point de vente', 'Dépôts, livreurs, plans de salle'],
+        ],
+        'Droits particuliers' => [
+            'prix' => ['Modifier les prix', 'Changer le prix d\'un article à l\'écran de vente'],
+            'plafond' => ['Dépasser le plafond de crédit', 'Vente par compte au-delà du plafond d\'un client'],
+        ],
+    ];
+}
+
+function droits_catalogue_plat(): array
+{
+    return array_merge(...array_values(droits_catalogue()));
+}
+
+/** Droits des utilisateurs sans profil (anciens comptes Caissier / Vendeur). */
+const DROITS_PAR_DEFAUT = ['tableau_bord', 'caisses', 'caisses_gerer', 'tiers', 'rapports', 'vendre', 'ventes', 'cuisine'];
+
+/** L'utilisateur connecté a-t-il ce droit ? */
+function peut(string $droit): bool
+{
+    if (is_admin()) {
+        return true;
+    }
+    return in_array($droit, $GLOBALS['__droits'] ?? [], true);
+}
+
+/**
+ * Droit exigé par une page : code du droit, '' (toute personne connectée) ou 'admin'
+ * (administrateurs seulement).
+ */
+function droit_page(string $module, string $action): string
+{
+    static $carte = [
+        'dashboard' => 'tableau_bord', 'tableaulaverie' => 'tableau_bord', 'tableaurestaurant' => 'tableau_bord',
+        'journee' => 'caisses', 'client' => 'tiers', 'rapport' => 'rapports', 'rapporttiers' => 'rapports',
+        'pos' => 'vendre', 'vente' => 'ventes', 'facture' => 'ventes', 'cuisine' => 'cuisine',
+        'stock' => 'stock', 'achat' => 'achats',
+        'posrapport' => 'rapports_pdv', 'rapportlivraison' => 'rapports_pdv', 'rapportlinge' => 'rapports_pdv', 'rapportachat' => 'rapports_pdv',
+        'produit' => 'catalogue', 'categorie' => 'catalogue', 'combo' => 'catalogue', 'taxe' => 'catalogue', 'unite' => 'catalogue',
+        'synchro' => 'synchro', 'motif' => 'parametres', 'modepaiement' => 'parametres',
+        'depot' => 'config_pdv', 'livreur' => 'config_pdv', 'salle' => 'config_pdv',
+        'utilisateur' => 'admin', 'profil' => 'admin', 'societe' => 'admin',
+    ];
+    if ($module === 'caisse') {
+        return in_array($action, ['create', 'edit', 'delete'], true) ? 'caisses_gerer' : 'caisses';
+    }
+    if ($module === 'synchro' && $action === 'rapport') {
+        return '';   // état du poste envoyé par tous les écrans de vente
+    }
+    return $carte[$module] ?? '';
+}
+
+function require_droit(string $module, string $action): void
+{
+    $droit = droit_page($module, $action);
+    if ($droit === '' || ($droit === 'admin' ? is_admin() : peut($droit))) {
+        return;
+    }
+    http_response_code(403);
+    render('acces_refuse', [], user() !== null);
+    exit;
+}
+
+/** Profils proposés à une nouvelle société : Caissier et Vendeur (droits modifiables ensuite). */
+function profils_initiaux(int $tenant): void
+{
+    foreach (['Caissier', 'Vendeur'] as $nom) {
+        run('INSERT INTO Profils (TenantId, Nom, Description, Droits) VALUES (?, ?, ?, ?)', [$tenant, $nom, 'Caisse, ventes et tiers', implode(',', DROITS_PAR_DEFAUT)]);
+    }
+}
+
+/** Première page permise après la connexion. */
+function page_accueil(): string
+{
+    foreach (['tableau_bord' => 'dashboard/index', 'vendre' => 'pos/index', 'caisses' => 'caisse/index', 'ventes' => 'vente/index',
+              'cuisine' => 'cuisine/index', 'tiers' => 'client/index', 'rapports' => 'rapport/operations', 'stock' => 'stock/index',
+              'achats' => 'achat/index', 'rapports_pdv' => 'posrapport/index', 'catalogue' => 'produit/index', 'synchro' => 'synchro/index',
+              'parametres' => 'motif/index', 'config_pdv' => 'depot/index'] as $droit => $route) {
+        if (peut($droit)) {
+            return $route;
+        }
+    }
+    return 'auth/aucunacces';
 }
 
 function require_super_admin(): void
@@ -1024,7 +1151,7 @@ function notifications(): array
                       WHERE c.StatutLivraison = 'À livrer' AND c.Statut <> 'Annulée' AND " . tf('c') . ' ORDER BY c.DateCommande, c.Id');
         if ($aLivrer) {
             $p = $aLivrer[0];
-            $url = is_admin()
+            $url = peut('rapports_pdv')
                 ? url('rapportlivraison/index', ['statut' => 'À livrer', 'du' => substr($p['DateCommande'], 0, 10), 'au' => date('Y-m-d')])
                 : ($p['Statut'] === 'Ouverte' ? url('pos/index', ['journee' => $p['JourneeCaisseId']]) : url('vente/details', ['id' => $p['Id']]));
             $ajouter(count($aLivrer), 'livraison%s à livrer (' . fcfa(array_sum(array_column($aLivrer, 'Montant'))) . ' FCFA)', $url, 'fa-route', '#0f766e');
@@ -1037,13 +1164,13 @@ function notifications(): array
                        JOIN JourneesCaisses j ON j.Id = a.JourneeCaisseId WHERE a.LivreurId IS NOT NULL AND ' . tf('a') . ' ORDER BY a.DateCreation');
         if ($attentes) {
             $montant = array_sum(array_map(fn($a) => (float) $a['Total'] + (float) (json_decode((string) $a['Contenu'], true)['livraison']['frais'] ?? 0), $attentes));
-            $url = is_admin()
+            $url = peut('rapports_pdv')
                 ? url('rapportlivraison/index', ['statut' => 'À encaisser', 'du' => substr($attentes[0]['DateCreation'], 0, 10), 'au' => date('Y-m-d')])
                 : url('pos/index', $attentes[0]['Statut'] === 'Ouverte' ? ['journee' => $attentes[0]['JourneeCaisseId']] : []);
             $ajouter(count($attentes), 'livraison%s à encaisser (' . fcfa($montant) . ' FCFA)', $url, 'fa-truck-fast', '#0369a1');
         }
     }
-    if (is_admin() && module_pos_actif()) {
+    if (module_pos_actif() && peut('synchro')) {
         // Ventes faites hors ligne avec des écarts (après clôture, prix, stock, plafond) à vérifier.
         $n = (int) qv('SELECT COUNT(*) FROM CommandesPos WHERE AlerteHorsLigne IS NOT NULL AND AlerteHorsLigneVue IS NULL AND ' . tf());
         if ($n) {
@@ -1051,14 +1178,18 @@ function notifications(): array
         }
         // Postes qui ont des opérations faites hors ligne pas encore envoyées (page Synchronisation).
         $ajouter((int) qv('SELECT COUNT(*) FROM PostesHorsLigne WHERE EnAttente > 0 AND ' . tf()), 'poste%s avec des opérations hors ligne à envoyer', url('synchro/index'), 'fa-cloud-arrow-up', '#c2410c');
+    }
+    if (module_pos_actif() && peut('stock')) {
         $ajouter((int) qv('SELECT COUNT(*) FROM Produits WHERE SuiviStock = 1 AND Actif = 1 AND EstModele = 0 AND Consommable = 0
                            AND SeuilAlerte IS NOT NULL AND StockActuel <= SeuilAlerte AND ' . tf()),
             'produit%s sous le seuil d\'alerte', url('stock/index'), 'fa-boxes-stacked', '#dc2626');
+    }
+    if (module_pos_actif() && peut('achats')) {
         $ajouter(count(entretien_en_alerte()), 'produit%s d\'entretien à racheter', url('achat/stock'), 'fa-bottle-droplet', '#dc2626');
-        if (laverie_actif()) {
-            $ajouter((int) qv("SELECT COUNT(*) FROM DepotsLinge WHERE Statut IN ('En cours', 'Prêt') AND DateRetraitPrevue < CURDATE() AND " . tf()),
-                'dépôt%s de linge en retard', url('rapportlinge/index', ['statut' => 'En retard']), 'fa-shirt', '#7c3aed');
-        }
+    }
+    if (module_pos_actif() && peut('rapports_pdv') && laverie_actif()) {
+        $ajouter((int) qv("SELECT COUNT(*) FROM DepotsLinge WHERE Statut IN ('En cours', 'Prêt') AND DateRetraitPrevue < CURDATE() AND " . tf()),
+            'dépôt%s de linge en retard', url('rapportlinge/index', ['statut' => 'En retard']), 'fa-shirt', '#7c3aed');
     }
     return $liste;
 }

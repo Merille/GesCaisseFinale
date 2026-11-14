@@ -92,7 +92,7 @@ namespace EasytransitCaisse.Controllers
             ViewBag.Modes = await _context.ModesPaiement.Where(m => m.Actif && m.TenantId == vente.TenantId && (!m.EstCompte || clientEnCompte))
                 .OrderBy(m => m.Libelle).ToListAsync();
             ViewBag.PeutRembourser = PeutRembourser;
-            ViewBag.EstAdmin = EstAdmin;
+            ViewBag.EstAdmin = HttpContext.RequestServices.GetRequiredService<DroitsUtilisateur>().Peut("synchro");
             return View(vente);
         }
 
@@ -295,7 +295,7 @@ namespace EasytransitCaisse.Controllers
             var vente = await _context.CommandesPos.FirstOrDefaultAsync(c => c.Id == id);
             if (vente == null)
                 return NotFound();
-            if (EstAdmin && vente.AlerteHorsLigne != null && vente.AlerteHorsLigneVue == null)
+            if (HttpContext.RequestServices.GetRequiredService<DroitsUtilisateur>().Peut("synchro") && vente.AlerteHorsLigne != null && vente.AlerteHorsLigneVue == null)
             {
                 vente.AlerteHorsLigneVue = DateTime.Now;
                 await _context.SaveChangesAsync();

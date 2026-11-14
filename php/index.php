@@ -5,7 +5,7 @@
 require __DIR__ . '/app/bootstrap.php';
 
 $routes = [
-    'auth'        => ['login', 'logout', 'suspendue'],
+    'auth'        => ['login', 'logout', 'suspendue', 'aucunacces'],
     'dashboard'   => ['index'],
     'tableaulaverie' => ['index'],
     'tableaurestaurant' => ['index'],
@@ -19,6 +19,7 @@ $routes = [
     'depot'       => ['index', 'save', 'toggle', 'defaut', 'achats', 'delete'],
     'livreur'     => ['index', 'save', 'frais', 'toggle', 'delete'],
     'utilisateur' => ['index', 'create', 'edit', 'delete'],
+    'profil'      => ['index', 'save', 'delete'],
     'tenant'      => ['index', 'create', 'edit', 'prolonger', 'consulter'],
     'rapport'     => ['operations', 'preview', 'sage'],
     'rapporttiers' => ['index', 'imprimer', 'excel', 'releve'],
@@ -42,7 +43,11 @@ $routes = [
     'societe'     => ['index'],
 ];
 
-$route = (string) ($_GET['r'] ?? (user() ? 'dashboard/index' : 'auth/login'));
+$route = (string) ($_GET['r'] ?? (user() ? 'accueil' : 'auth/login'));
+if ($route === 'accueil') {
+    require_login();
+    redirect(page_accueil());
+}
 [$module, $action] = array_pad(explode('/', strtolower($route), 2), 2, 'index');
 
 if (!isset($routes[$module]) || !in_array($action, $routes[$module], true)) {
@@ -57,9 +62,10 @@ if ($module !== 'auth') {
 
 csrf_check();
 
-// Modules d'administration (et catalogue du point de vente) réservés aux profils Admin et SuperAdmin.
-if (in_array($module, ['utilisateur', 'motif', 'modepaiement', 'taxe', 'unite', 'depot', 'livreur', 'produit', 'categorie', 'stock', 'posrapport', 'rapportlivraison', 'rapportlinge', 'rapportachat', 'achat', 'salle', 'combo', 'societe'], true)) {
-    require_admin();
+// Droits d'accès : chaque page exige un droit du profil de l'utilisateur (tous pour Admin et SuperAdmin) ;
+// utilisateurs, profils et « Ma société » : administrateurs seulement.
+if ($module !== 'auth') {
+    require_droit($module, $action);
 }
 
 require __DIR__ . '/app/controllers/' . $module . '.php';

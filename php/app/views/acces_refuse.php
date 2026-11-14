@@ -1,7 +1,7 @@
 <?php $titre = 'Accès refusé'; ?>
 <div class="alert alert-warning">
     <strong>Accès refusé.</strong>
-    Cette page est réservée <?= h($reserveA ?? 'aux administrateurs (profils Admin et SuperAdmin)') ?>.
+    <?php if (isset($reserveA)): ?>Cette page est réservée <?= h($reserveA) ?>.<?php else: ?>Votre profil ne donne pas accès à cette page.<?php endif; ?>
     Si vous pensez devoir y accéder, contactez votre administrateur.
 </div>
-<a class="btn btn-outline-primary" href="<?= h(url('dashboard/index')) ?>">Retour au tableau de bord</a>
+<a class="btn btn-outline-primary" href="<?= h(url('accueil')) ?>">Retour à l'accueil</a>

@@ -54,7 +54,7 @@ namespace EasytransitCaisse.Controllers
                 l.Nom = p.Nom;
                 l.Tva = p.TauxTVA;
                 l.Unite = p.Unite ?? "";
-                if (!EstAdmin)
+                if (!Peut("prix"))
                     l.Prix = prix;
                 lignes.Add(l);
             }

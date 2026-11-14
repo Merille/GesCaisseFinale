@@ -10,7 +10,6 @@ namespace EasytransitCaisse.Controllers
 {
     // Plan de salle d'une caisse restaurant / bar : salles et tables placées sur un plan.
     // Réservé aux profils Admin et SuperAdmin.
-    [Authorize(Policy = "Admin")]
     public class SalleController : Controller
     {
         private readonly AppDbContext _context;

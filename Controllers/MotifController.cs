@@ -7,7 +7,6 @@ namespace EasytransitCaisse.Controllers
 {
     // Motifs d'opération (avec compte général pour l'export Sage), comme la version PHP :
     // création et modification dans la même fenêtre (Save). Réservé aux profils Admin et SuperAdmin.
-    [Authorize(Policy = "Admin")]
     public class MotifController : Controller
     {
         private readonly AppDbContext _context;

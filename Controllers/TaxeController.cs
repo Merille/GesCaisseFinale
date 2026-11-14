@@ -10,7 +10,6 @@ namespace EasytransitCaisse.Controllers
     // Taxes appliquées aux produits du point de vente (TVA, CSS…). Un produit peut en porter
     // plusieurs : elles s'additionnent sur le HT et sont comprises dans le prix TTC.
     // Réservé aux profils Admin et SuperAdmin.
-    [Authorize(Policy = "Admin")]
     public class TaxeController : Controller
     {
         private readonly AppDbContext _context;

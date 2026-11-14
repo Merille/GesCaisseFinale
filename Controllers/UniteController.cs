@@ -11,7 +11,6 @@ namespace EasytransitCaisse.Controllers
     // renommer une unité met à jour ses produits ; une unité désactivée n'est plus proposée
     // sur la fiche produit mais reste sur les produits qui l'utilisent.
     // Réservé aux profils Admin et SuperAdmin.
-    [Authorize(Policy = "Admin")]
     public class UniteController : Controller
     {
         private readonly AppDbContext _context;

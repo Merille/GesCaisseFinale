@@ -90,19 +90,19 @@ function pos_index(): void
         'clients' => $clients,
         'livreurs' => $livreurs,
         'utilisateur' => ['nom' => $u['nomComplet'] ?: $u['nom'], 'profil' => $u['profil']],
-        'peutModifierPrix' => is_admin(),
-        // Vente par compte au-delà du plafond de crédit : administrateurs seulement.
-        'peutDepasserPlafond' => is_admin(),
+        'peutModifierPrix' => peut('prix'),
+        // Vente par compte au-delà du plafond de crédit : droit « Dépasser le plafond de crédit » du profil.
+        'peutDepasserPlafond' => peut('plafond'),
         // Frais de livraison proposés par défaut (modifiables à chaque vente).
         'fraisLivraison' => (float) qv('SELECT FraisLivraisonDefaut FROM Tenants WHERE Id = ?', [$tenant]),
         // Remises (article et globale) : droit donné par l'administrateur sur la fiche de l'utilisateur.
         'remise' => ['peut' => ($droit = pos_droit_remise())[0], 'max' => $droit[1]],
-        'urlFermer' => url('journee/details', ['id' => $journee['Id']]),
+        'urlFermer' => peut('caisses') ? url('journee/details', ['id' => $journee['Id']]) : url('accueil'),
         'modes' => $modes,
         'urlVendre' => url('pos/vendre'),
         'urlAdditionTicket' => url('pos/additionticket'),
         'urlTicket' => url('pos/ticket') . '&id=',
-        'urlVentes' => url('vente/index', ['journee' => $journee['Id']]),
+        'urlVentes' => peut('ventes') ? url('vente/index', ['journee' => $journee['Id']]) : null,
         // Commandes en attente (partagées entre postes) et livraisons.
         'urlAttentes' => url('pos/attentes', ['journee' => $journee['Id']]),
         'urlMettreEnAttente' => url('pos/mettreenattente'),
@@ -139,7 +139,7 @@ function pos_index(): void
             'urlTransferer' => url('pos/transferer'),
             'urlAddition' => url('pos/addition') . '&id=',
             'urlBons' => url('pos/bon') . '&ids=',
-            'urlCuisine' => url('cuisine/index', ['caisse' => $journee['CaisseId']]),
+            'urlCuisine' => peut('cuisine') ? url('cuisine/index', ['caisse' => $journee['CaisseId']]) : null,
         ] : null,
     ];
     render('pos/ecran', ['donnees' => $donnees], false);
@@ -260,8 +260,8 @@ function pos_vendre(): void
             [$composants, $supplements] = $r;
             $prixCatalogue += $supplements;
         }
-        $prix = (is_admin() || $hl) && isset($l['prix']) ? max(0, round((float) $l['prix'], 2)) : $prixCatalogue;
-        if ($hl && !is_admin() && abs($prix - $prixCatalogue) > 0.001) {
+        $prix = (peut('prix') || $hl) && isset($l['prix']) ? max(0, round((float) $l['prix'], 2)) : $prixCatalogue;
+        if ($hl && !peut('prix') && abs($prix - $prixCatalogue) > 0.001) {
             $alertes[] = 'prix de « ' . $p['Nom'] . ' » : ' . fcfa($prix) . ' encaissé, ' . fcfa($prixCatalogue) . ' au catalogue';
         }
         $remise = min(100, max(0, round((float) ($l['remise'] ?? 0), 2)));
@@ -420,13 +420,13 @@ function pos_vendre(): void
                 }
             }
         }
-        // Vente par compte : plafond de crédit (sauf administrateur), sous verrou du client.
+        // Vente par compte : plafond de crédit (sauf droit « Dépasser le plafond de crédit »), sous verrou du client.
         if ($parCompte > 0) {
             $fiche = q1('SELECT NomSociete, PlafondCredit FROM Clients WHERE Id = ? FOR UPDATE', [$client]);
             $du = compte_solde($tenant, $client);
-            if ($fiche['PlafondCredit'] !== null && !is_admin() && $du + $parCompte > (float) $fiche['PlafondCredit'] + 0.001 && $hl) {
+            if ($fiche['PlafondCredit'] !== null && !peut('plafond') && $du + $parCompte > (float) $fiche['PlafondCredit'] + 0.001 && $hl) {
                 $alertes[] = 'plafond de crédit de « ' . $fiche['NomSociete'] . ' » dépassé (solde dû ' . fcfa($du + $parCompte) . ', plafond ' . fcfa($fiche['PlafondCredit']) . ')';
-            } elseif ($fiche['PlafondCredit'] !== null && !is_admin() && $du + $parCompte > (float) $fiche['PlafondCredit'] + 0.001) {
+            } elseif ($fiche['PlafondCredit'] !== null && !peut('plafond') && $du + $parCompte > (float) $fiche['PlafondCredit'] + 0.001) {
                 db()->rollBack();
                 pos_json(['erreur' => 'Plafond de crédit dépassé pour « ' . $fiche['NomSociete'] . ' » : solde dû ' . fcfa($du) . ' FCFA, plafond '
                     . fcfa($fiche['PlafondCredit']) . ' FCFA (encore ' . fcfa(max(0, (float) $fiche['PlafondCredit'] - $du)) . ' FCFA possibles).'], 409);

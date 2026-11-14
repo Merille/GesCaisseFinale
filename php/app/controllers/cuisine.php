@@ -23,7 +23,7 @@ function cuisine_index(): void
         'poste' => $poste,
         'urlBons' => url('cuisine/bons', ['caisse' => $caisse['ID']]),
         'urlStatut' => url('cuisine/statut'),
-        'urlRetour' => url('dashboard/index'),
+        'urlRetour' => url('accueil'),
         'jeton' => ['nom' => '_csrf', 'valeur' => csrf_token()],
     ]], false);
 }

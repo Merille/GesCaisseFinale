@@ -63,7 +63,7 @@ const fiche = [
         ['Projet', 'GesCaisse — gestion de caisse et point de vente (POS)'],
         ['Éditeur', 'M-ITECH AFRICA'],
         ['Versions', 'ASP.NET Core (.NET 10) / SQL Server — PHP 8 / MySQL'],
-        ['Version du document', '4.3'],
+        ['Version du document', '4.4'],
         ['Date', 'Novembre 2026'],
         ['Statut', 'Document de référence (fonctionnalités réalisées)']
     ], [3000, 6638])
@@ -132,13 +132,18 @@ const contenu = [
     p('Chaque utilisateur appartient à une société (sauf le super-administrateur) et possède un profil :'),
     tableau(['Profil', 'Rôle', 'Accès principaux'], [
         ['SuperAdmin', 'Administrateur de la plateforme', 'Toutes les sociétés (choix de la « société consultée »), création des sociétés, prolongation des licences, toutes les fonctions'],
-        ['Admin', 'Responsable de la société', 'Coordonnées et logo de sa société, catalogue, stock, paramètres, utilisateurs, plan de salle, rapports de ventes, retours et annulations, modification des prix au point de vente'],
-        ['Caissier', 'Tenue de caisse', 'Journées de caisse, opérations, point de vente, ventes ; validation des opérations si le droit lui est accordé'],
-        ['Vendeur', 'Vente au comptoir ou en salle', 'Point de vente, écran cuisine / bar, consultation des ventes']
-    ], [1700, 2500, 5438]),
+        ['Admin (Administrateur)', 'Responsable de la société', 'Tous les droits de sa société, dont les utilisateurs, les profils et droits, et « Ma société »'],
+        ['Profils de la société', 'Caissier, Vendeur, Serveur, Gérant…', 'Pages cochées par l\'administrateur dans le profil ; Caissier et Vendeur créés par défaut avec les droits historiques']
+    ], [1900, 2500, 5238]),
     espace(),
+    h3('Profils et droits d\'accès'),
+    puce('Page « Profils et droits » (Paramètres, administrateurs) : une carte par profil (nom, description, droits, nombre d\'utilisateurs) et la carte fixe « Administrateur — tous les droits ». Création et modification en fenêtre : nom (50 caractères, unique dans la société ; « Admin », « Administrateur » et « SuperAdmin » réservés), description, droits cochés par rubrique (Tout cocher / Tout décocher). Suppression seulement si le profil n\'est attribué à personne ; renommage reporté sur les comptes.'),
+    puce('17 droits en 5 rubriques. Activité : Tableaux de bord (général, laverie, restaurant-bar), Caisses et journées, Gérer les caisses (créer, modifier, supprimer), Tiers. Analyse : Rapports de caisse (opérations, export Sage, rapport des tiers). Point de vente : Vendre, Ventes (et factures), Écran cuisine / bar, Stock, Achats, Rapports du point de vente, Catalogue (catégories, produits, combos, taxes, unités), Synchronisation. Paramètres : Motifs et modes de paiement, Configuration du point de vente (dépôts, livreurs, plans de salle). Droits particuliers : Modifier les prix à l\'écran de vente, Dépasser le plafond de crédit d\'un client.'),
+    puce('Fiche utilisateur : liste « Profil » = Administrateur (tous les droits), profils de la société (et, pour le SuperAdmin, SuperAdmin et profils de toutes les sociétés, la société de l\'utilisateur étant celle du profil) ; profil d\'une autre société refusé ; un administrateur ne peut pas se retirer son propre profil Administrateur. Comptes existants sans profil rattaché : droits par défaut (Caissier / Vendeur), profil de même nom présélectionné.'),
+    puce('Contrôle côté serveur sur chaque page (pages non permises : « Accès refusé », même par leur adresse) ; menu limité aux pages permises ; après la connexion, première page permise (tableau de bord, sinon écran de vente, caisses…) ; profil sans droit : page « Aucun accès ». Profil et droits relus à chaque page : un changement s\'applique sans reconnexion (cookie de connexion mis à jour en .NET) ; compte supprimé : déconnexion. Utilisateurs, profils et « Ma société » restent réservés aux administrateurs. Liens des tableaux de bord, notifications de la cloche et boutons de l\'écran de vente (Ventes, Écran cuisine, Fermer) affichés selon les droits.'),
+    puce('Données : table Profils (société, nom, description, droits en codes séparés par des virgules), colonne ProfilId des utilisateurs ; migration PHP 028 et migration EF : profils Caissier et Vendeur créés pour chaque société et utilisateurs rattachés ; une nouvelle société reçoit ces deux profils.'),
     h3('Droit complémentaire « Peut valider les opérations »'),
-    p('Attribuable à un caissier ou un vendeur, il autorise la validation des opérations de caisse, les retours et les annulations de ventes.'),
+    p('Attribuable sur la fiche de tout utilisateur non administrateur, il autorise la validation des opérations de caisse, les retours et les annulations de ventes.'),
     p('Droit « Peut accorder des remises au point de vente », donné par l\'administrateur sur la fiche de l\'utilisateur, avec une remise maximale facultative (en %) : remise sur un article et remise globale du ticket (une remise en montant est comparée en % du sous-total). Administrateurs : toujours, sans limite. Contrôlé à l\'écran (touche Remise % et bouton de remise globale grisés, saisie au-delà du maximum refusée) et par le serveur (vente et dépôt de linge refusés ; vente faite hors ligne gardée et signalée à vérifier). Relu à chaque appel : effet immédiat sans reconnexion. Nouveaux utilisateurs : sans ce droit ; utilisateurs existants : droit conservé, sans limite (migration 026).'),
     h3('Licence de la société'),
     p("Chaque société a une date d'expiration de licence, prolongée par le super-administrateur (de 1 à 120 mois). À l'expiration, les utilisateurs de la société sont redirigés vers une page « compte suspendu »."),
@@ -300,7 +305,8 @@ const contenu = [
     // 6
     h1('6. Exigences fonctionnelles — paramétrage'),
     tableau(['Paramètre', 'Contenu', 'Règles'], [
-        ['Utilisateurs', 'Nom, identifiant, mot de passe, profil, droit de validation, droit de remise et remise maximale, société', 'Mot de passe haché ; un administrateur ne voit que sa société'],
+        ['Utilisateurs', 'Nom, identifiant, mot de passe, profil (Admin, SuperAdmin ou profil de la société), droit de validation, droit de remise et remise maximale, société', 'Mot de passe haché ; un administrateur ne voit que sa société'],
+        ['Profils', 'Société, nom, description, droits (codes séparés par des virgules)', 'Un nom par société ; les profils Admin et SuperAdmin ne sont pas des lignes de cette table (tous les droits)'],
         ['Motifs', "Motifs d'encaissement et de décaissement", 'Motif « Vente POS » créé automatiquement'],
         ['Modes de paiement', 'Code, libellé, actif, paiement par compte client', 'Suppression refusée s\'il est utilisé (opérations ou ventes) ; « Espèces » reconnu pour la monnaie ; mode « Compte client » créé pour chaque société (migration 017 / ClientsEnCompte, création d\'une société), exclu des opérations de caisse'],
         ['Taxes', 'Code, libellé, taux, cochée par défaut', 'TVA 18 % et CSS 1 % créées pour chaque société ; modifier un taux met à jour les produits'],

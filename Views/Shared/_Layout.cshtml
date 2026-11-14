@@ -11,6 +11,10 @@
     var isAdmin = isSuperAdmin || User.HasClaim(AppClaimTypes.Profil, "Admin");
     // Module Point de vente de la société consultée (toujours oui pour « toutes les sociétés »).
     var modulePointVente = await EasytransitCaisse.Services.ModulePointVenteFilter.ActifAsync(DbContext, TenantProvider.TenantId);
+    // Droits du profil de l'utilisateur : le menu ne montre que les pages permises.
+    var droitsU = Context.RequestServices.GetRequiredService<EasytransitCaisse.Services.DroitsUtilisateur>();
+    await droitsU.ChargerAsync();
+    bool Peut(string d) => droitsU.Peut(d);
     var nomUtilisateur = User.Identity?.Name;
     var nomSociete = User.FindFirst(AppClaimTypes.TenantName)?.Value;
 
@@ -39,7 +43,7 @@
         "Pos" or "Vente" or "Stock" or "PosRapport" or "RapportLivraison" or "RapportLinge" or "RapportAchat" or "Achat" or "Cuisine" or "Synchro" => "Point de vente",
         "Salle" => "Activité",
         "Produit" or "Categorie" or "Combo" => "Configuration",
-        "Utilisateur" or "Motif" or "ModePaiement" or "Taxe" or "Unite" or "Depot" or "Livreur" or "Societe" => "Paramètres",
+        "Utilisateur" or "Profil" or "Motif" or "ModePaiement" or "Taxe" or "Unite" or "Depot" or "Livreur" or "Societe" => "Paramètres",
         "Tenant" => "Administration",
         _ => null
     };
@@ -60,6 +64,7 @@
             "Salle" => "Plan de salle",
             "Cuisine" => "Écran cuisine / bar",
             "Utilisateur" => "Utilisateurs",
+            "Profil" => "Profils et droits",
             "Tenant" => "Sociétés",
             "Caisse" => "Caisses",
             "Rapport" => "Rapports",
@@ -178,24 +183,29 @@
 
             <div class="sb-section">
                 <div class="sb-section-title">Activité</div>
+                @if (Peut("tableau_bord"))
+                {
                 <a class="sb-link @(controller == "Dashboard" ? "active" : "")" href="/Dashboard/Index" title="Tableau de bord">
                     <i class="fas fa-house"></i>
                     <span class="sb-label">Tableau de bord</span>
                 </a>
-                @if (modulePointVente && DbContext.Caisses.Any(c => c.TypePointVente == "Laverie"))
+                }
+                @if (Peut("tableau_bord") && modulePointVente && DbContext.Caisses.Any(c => c.TypePointVente == "Laverie"))
                 {
                     <a class="sb-link @(controller == "TableauLaverie" ? "active" : "")" href="/TableauLaverie/Index" title="Tableau de bord laverie">
                         <i class="fas fa-shirt"></i>
                         <span class="sb-label">Tableau de bord laverie</span>
                     </a>
                 }
-                @if (modulePointVente && EasytransitCaisse.Data.Restaurant.Actif(DbContext))
+                @if (Peut("tableau_bord") && modulePointVente && EasytransitCaisse.Data.Restaurant.Actif(DbContext))
                 {
                     <a class="sb-link @(controller == "TableauRestaurant" ? "active" : "")" href="/TableauRestaurant/Index" title="Tableau resto-bar">
                         <i class="fas fa-utensils"></i>
                         <span class="sb-label">Tableau resto-bar</span>
                     </a>
                 }
+                @if (Peut("caisses"))
+                {
                 <a class="sb-link @(controller == "Caisse" || controller == "JourneeCaisse" ? "active" : "")" href="/Caisse/Index" title="Caisses">
                     <i class="fas fa-cash-register"></i>
                     <span class="sb-label">Caisses</span>
@@ -204,12 +214,18 @@
                         <span class="sb-badge">@nbJourneesOuvertes ouverte@(nbJourneesOuvertes > 1 ? "s" : "")</span>
                     }
                 </a>
+                }
+                @if (Peut("tiers"))
+                {
                 <a class="sb-link @(controller == "Client" ? "active" : "")" href="/Client/Index" title="Tiers">
                     <i class="fas fa-address-book"></i>
                     <span class="sb-label">Tiers</span>
                 </a>
+                }
             </div>
 
+            @if (Peut("rapports"))
+            {
             <div class="sb-section">
                 <div class="sb-section-title">Analyse</div>
                 <a class="sb-link @(controller == "Rapport" ? "active" : "")" href="/Rapport/Operations" title="Rapports">
@@ -221,40 +237,51 @@
                     <span class="sb-label">Rapport des tiers</span>
                 </a>
             </div>
+            }
 
-            @if (modulePointVente)
+            @if (modulePointVente && new[] { "vendre", "ventes", "cuisine", "achats", "stock", "rapports_pdv", "catalogue", "synchro" }.Any(Peut))
             {
             <div class="sb-section">
                 <div class="sb-section-title">Point de vente</div>
+                @if (Peut("vendre"))
+                {
                 <a class="sb-link @(controller == "Pos" ? "active" : "")" href="/Pos/Index" title="Vendre">
                     <i class="fas fa-store"></i>
                     <span class="sb-label">Vendre</span>
                 </a>
+                }
+                @if (Peut("ventes"))
+                {
                 <a class="sb-link @(controller == "Vente" ? "active" : "")" href="/Vente/Index" title="Ventes">
                     <i class="fas fa-receipt"></i>
                     <span class="sb-label">Ventes</span>
                 </a>
-                @if (EasytransitCaisse.Data.Restaurant.Actif(DbContext))
+                }
+                @if (Peut("cuisine") && EasytransitCaisse.Data.Restaurant.Actif(DbContext))
                 {
                     <a class="sb-link @(controller == "Cuisine" ? "active" : "")" href="/Cuisine/Index" title="Écran cuisine / bar">
                         <i class="fas fa-fire-burner"></i>
                         <span class="sb-label">Écran cuisine / bar</span>
                     </a>
                 }
-                @if (isAdmin)
-                {
-                    @if (DbContext.Caisses.Any(c => c.TypePointVente == "Laverie"))
+                @{
+                    @if (Peut("achats") && DbContext.Caisses.Any(c => c.TypePointVente == "Laverie"))
                     {
                         <a class="sb-link @(controller == "Achat" ? "active" : "")" href="/Achat/Index" title="Achats">
                             <i class="fas fa-cart-flatbed"></i>
                             <span class="sb-label">Achats</span>
                         </a>
                     }
+                    @if (Peut("stock"))
+                    {
                     <a class="sb-link @(controller == "Stock" ? "active" : "")" href="/Stock/Index" title="Stock">
                         <i class="fas fa-warehouse"></i>
                         <span class="sb-label">Stock</span>
                     </a>
+                    }
                     @* Rapports du point de vente, regroupés (titre complet en infobulle). *@
+                    @if (Peut("rapports_pdv"))
+                    {
                     var rapportsActif = controller is "PosRapport" or "RapportLivraison" or "RapportLinge" or "RapportAchat";
                     <button type="button" class="sb-link sb-parent @(rapportsActif ? "parent-actif" : "")" title="Rapports"
                             aria-expanded="@(rapportsActif ? "true" : "false")" aria-controls="sbRapportsPos" onclick="basculerSousMenu(this)">
@@ -283,6 +310,9 @@
                             </a>
                         }
                     </div>
+                    }
+                    @if (Peut("catalogue"))
+                    {
                     var configurationActif = controller is "Categorie" or "Produit" or "Combo";
                     <button type="button" class="sb-link sb-parent @(configurationActif ? "parent-actif" : "")" title="Configuration"
                             aria-expanded="@(configurationActif ? "true" : "false")" aria-controls="sbConfiguration" onclick="basculerSousMenu(this)">
@@ -304,7 +334,10 @@
                             <span class="sb-label">Combos</span>
                         </a>
                     </div>
+                    }
                     @* Synchronisation du mode hors ligne : pastille = postes qui ont des opérations à envoyer. *@
+                    @if (Peut("synchro"))
+                    {
                     var postesEnAttente = DbContext.PostesHorsLigne.Count(p => p.EnAttente > 0);
                     <a class="sb-link @(controller == "Synchro" ? "active" : "")" href="/Synchro/Index" title="Synchronisation">
                         <i class="fas fa-arrows-rotate"></i>
@@ -314,17 +347,22 @@
                             <span class="sb-badge" title="Postes avec des opérations à envoyer">@postesEnAttente</span>
                         }
                     </a>
+                    }
                 }
             </div>
             }
 
-            @if (isAdmin)
+            @{
+                var configPdv = Peut("config_pdv") && modulePointVente;
+                var catalogueParam = Peut("catalogue") && modulePointVente;
+            }
+            @if (isAdmin || Peut("parametres") || configPdv || catalogueParam)
             {
 
             <div class="sb-section">
                 <div class="sb-section-title">Administration</div>
                 @{
-                    var parametresActif = controller is "Utilisateur" or "Motif" or "ModePaiement" or "Taxe" or "Unite" or "Depot" or "Livreur" or "Societe";
+                    var parametresActif = controller is "Utilisateur" or "Profil" or "Motif" or "ModePaiement" or "Taxe" or "Unite" or "Depot" or "Livreur" or "Societe";
                 }
                 <button type="button" class="sb-link sb-parent @(parametresActif ? "parent-actif" : "")" title="Paramètres"
                         aria-expanded="@(parametresActif ? "true" : "false")" aria-controls="sbParametres" onclick="basculerSousMenu(this)">
@@ -333,17 +371,26 @@
                     <i class="fas fa-chevron-down sb-chevron"></i>
                 </button>
                 <div class="sb-sub @(parametresActif ? "open" : "")" id="sbParametres">
-                    @if (TenantProvider.TenantId > 0)
+                    @if (isAdmin && TenantProvider.TenantId > 0)
                     {
                     <a class="sb-link @(controller == "Societe" ? "active" : "")" href="/Societe/Index" title="Ma société">
                         <i class="fas fa-building-circle-check"></i>
                         <span class="sb-label">Ma société</span>
                     </a>
                     }
+                    @if (isAdmin)
+                    {
                     <a class="sb-link @(controller == "Utilisateur" ? "active" : "")" href="/Utilisateur/Index" title="Utilisateurs">
                         <i class="fas fa-user-shield"></i>
                         <span class="sb-label">Utilisateurs</span>
                     </a>
+                    <a class="sb-link @(controller == "Profil" ? "active" : "")" href="/Profil/Index" title="Profils et droits">
+                        <i class="fas fa-user-lock"></i>
+                        <span class="sb-label">Profils et droits</span>
+                    </a>
+                    }
+                    @if (Peut("parametres"))
+                    {
                     <a class="sb-link @(controller == "Motif" ? "active" : "")" href="/Motif/Index" title="Motifs">
                         <i class="fas fa-list-ul"></i>
                         <span class="sb-label">Motifs</span>
@@ -352,7 +399,8 @@
                         <i class="fas fa-money-check-dollar"></i>
                         <span class="sb-label">Modes de paiement</span>
                     </a>
-                    @if (modulePointVente)
+                    }
+                    @if (catalogueParam)
                     {
                     <a class="sb-link @(controller == "Taxe" ? "active" : "")" href="/Taxe/Index" title="Taxes">
                         <i class="fas fa-percent"></i>
@@ -362,6 +410,9 @@
                         <i class="fas fa-scale-balanced"></i>
                         <span class="sb-label">Unités de vente</span>
                     </a>
+                    }
+                    @if (configPdv)
+                    {
                     <a class="sb-link @(controller == "Depot" ? "active" : "")" href="/Depot/Index" title="Dépôts">
                         <i class="fas fa-warehouse"></i>
                         <span class="sb-label">Dépôts</span>
@@ -408,7 +459,7 @@
                 <div class="topbar-societe">Consultation : <strong>@societeConsultee</strong></div>
             }
             @{
-                var notifications = EasytransitCaisse.Data.Notifications.Lister(DbContext, isAdmin, modulePointVente);
+                var notifications = EasytransitCaisse.Data.Notifications.Lister(DbContext, droitsU.Peut, modulePointVente);
                 var nbNotifications = notifications.Sum(n => n.N);
             }
             <span class="gc-connexion"></span>

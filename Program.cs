@@ -34,6 +34,7 @@ var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ITenantProvider, TenantProvider>();
+builder.Services.AddScoped<DroitsUtilisateur>();
 
 builder.Services
     .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -64,6 +65,7 @@ builder.Services.AddControllersWithViews(options =>
     options.Filters.Add(new AuthorizeFilter());
     options.Filters.Add<TenantStatusFilter>();
     options.Filters.Add<ModulePointVenteFilter>();
+    options.Filters.Add<DroitsFilter>();
 });
 
 // Connexion SQL Server

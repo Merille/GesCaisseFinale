@@ -5,7 +5,10 @@
 }
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h4 class="mb-0">Utilisateurs</h4>
-    <a href="/Utilisateur/Create" class="btn btn-primary" data-modale><i class="fas fa-plus"></i> Nouvel utilisateur</a>
+    <div class="d-flex gap-2">
+        <a href="/Profil/Index" class="btn btn-outline-primary"><i class="fas fa-user-lock"></i> Profils et droits</a>
+        <a href="/Utilisateur/Create" class="btn btn-primary" data-modale><i class="fas fa-plus"></i> Nouvel utilisateur</a>
+    </div>
 </div>
 <div class="card shadow-sm border-0">
     <div class="card-body table-responsive">
@@ -20,7 +23,7 @@
                     <tr>
                         <td>@u.NomUtilisateur</td>
                         <td>@u.NomComplet</td>
-                        <td><span class="badge bg-info text-dark">@u.Profil</span></td>
+                        <td><span class="badge @(u.Profil is "Admin" or "SuperAdmin" ? "bg-dark" : "bg-info text-dark")">@(u.Profil == "Admin" ? "Administrateur" : u.Profil)</span></td>
                         @if (superAdmin)
                         {
                             <td>@if (u.Tenant != null)

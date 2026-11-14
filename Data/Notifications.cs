@@ -28,7 +28,7 @@ namespace EasytransitCaisse.Data
             catch (System.Text.Json.JsonException) { return 0; }
         }
 
-        public static List<Notification> Lister(AppDbContext context, bool admin, bool modulePointVente)
+        public static List<Notification> Lister(AppDbContext context, Func<string, bool> peut, bool modulePointVente)
         {
             var liste = new List<Notification>();
             void Ajouter(int n, string texte, string url, string icone, string couleur)
@@ -66,7 +66,7 @@ namespace EasytransitCaisse.Data
                 if (aLivrer.Count > 0)
                 {
                     var p = aLivrer[0];
-                    var url = admin
+                    var url = peut("rapports_pdv")
                         ? $"/RapportLivraison/Index?statut={Uri.EscapeDataString("À livrer")}&du={p.DateCommande:yyyy-MM-dd}&au={DateTime.Today:yyyy-MM-dd}"
                         : p.Ouverte ? $"/Pos/Index?journee={p.JourneeCaisseId}" : $"/Vente/Details/{p.Id}";
                     Ajouter(aLivrer.Count, $"livraison%s à livrer ({aLivrer.Sum(x => x.Montant).ToString("N0", System.Globalization.CultureInfo.GetCultureInfo("fr-FR"))} FCFA)", url, "fa-route", "#0f766e");
@@ -83,13 +83,13 @@ namespace EasytransitCaisse.Data
                 {
                     var montant = attentes.Sum(a => a.Total + FraisLivraison(a.Contenu));
                     var premiere = attentes[0];
-                    var url = admin
+                    var url = peut("rapports_pdv")
                         ? $"/RapportLivraison/Index?statut={Uri.EscapeDataString("À encaisser")}&du={premiere.DateCreation:yyyy-MM-dd}&au={DateTime.Today:yyyy-MM-dd}"
                         : premiere.Ouverte ? $"/Pos/Index?journee={premiere.JourneeCaisseId}" : "/Pos/Index";
                     Ajouter(attentes.Count, $"livraison%s à encaisser ({montant.ToString("N0", System.Globalization.CultureInfo.GetCultureInfo("fr-FR"))} FCFA)", url, "fa-truck-fast", "#0369a1");
                 }
             }
-            if (admin && modulePointVente)
+            if (modulePointVente && peut("synchro"))
             {
                 // Ventes faites hors ligne avec des écarts (après clôture, prix, stock, plafond) à vérifier.
                 var aVerifier = context.CommandesPos.Where(c => c.AlerteHorsLigne != null && c.AlerteHorsLigneVue == null);
@@ -98,15 +98,17 @@ namespace EasytransitCaisse.Data
                     Ajouter(nbAVerifier, "vente%s hors ligne à vérifier", "/Synchro/Index", "fa-wifi", "#b45309");
                 // Postes qui ont des opérations faites hors ligne pas encore envoyées (page Synchronisation).
                 Ajouter(context.PostesHorsLigne.Count(p => p.EnAttente > 0), "poste%s avec des opérations hors ligne à envoyer", "/Synchro/Index", "fa-cloud-arrow-up", "#c2410c");
+            }
+            if (modulePointVente && peut("stock"))
                 Ajouter(context.Produits.Count(p => p.SuiviStock && p.Actif && !p.EstModele && !p.Consommable && p.SeuilAlerte != null && p.StockActuel <= p.SeuilAlerte),
                     "produit%s sous le seuil d'alerte", "/Stock/Index", "fa-boxes-stacked", "#dc2626");
+            if (modulePointVente && peut("achats"))
                 Ajouter(context.EntretienEnAlerte().Count, "produit%s d'entretien à racheter", "/Achat/Stock", "fa-bottle-droplet", "#dc2626");
-                if (context.Caisses.Any(c => c.TypePointVente == "Laverie"))
-                {
-                    var aujourdHui = DateTime.Today;
-                    Ajouter(context.DepotsLinge.Count(d => (d.Statut == DepotLinge.EnCours || d.Statut == DepotLinge.Pret) && d.DateRetraitPrevue < aujourdHui),
-                        "dépôt%s de linge en retard", "/RapportLinge/Index?statut=En%20retard", "fa-shirt", "#7c3aed");
-                }
+            if (modulePointVente && peut("rapports_pdv") && context.Caisses.Any(c => c.TypePointVente == "Laverie"))
+            {
+                var aujourdHui = DateTime.Today;
+                Ajouter(context.DepotsLinge.Count(d => (d.Statut == DepotLinge.EnCours || d.Statut == DepotLinge.Pret) && d.DateRetraitPrevue < aujourdHui),
+                    "dépôt%s de linge en retard", "/RapportLinge/Index?statut=En%20retard", "fa-shirt", "#7c3aed");
             }
             return liste;
         }

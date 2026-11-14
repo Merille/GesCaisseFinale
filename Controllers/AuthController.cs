@@ -85,7 +85,7 @@ namespace EasytransitCaisse.Controllers
                 CookieAuthenticationDefaults.AuthenticationScheme,
                 new ClaimsPrincipal(identity));
 
-            return RedirectToAction("Index", "Dashboard");
+            return Redirect("/Auth/Accueil");
         }
 
         public async Task<IActionResult> Logout()
@@ -101,6 +101,23 @@ namespace EasytransitCaisse.Controllers
             if (User.Identity?.IsAuthenticated != true)
                 return RedirectToAction("Login");
 
+            return View();
+        }
+
+        // Première page permise par les droits de l'utilisateur, après la connexion.
+        public async Task<IActionResult> Accueil([FromServices] DroitsUtilisateur droits)
+        {
+            if (User.Identity?.IsAuthenticated != true)
+                return RedirectToAction("Login");
+            await droits.ChargerAsync();
+            return Redirect(droits.Accueil());
+        }
+
+        // Profil sans aucun droit : page d'information (avec lien de déconnexion).
+        public IActionResult AucunAcces()
+        {
+            if (User.Identity?.IsAuthenticated != true)
+                return RedirectToAction("Login");
             return View();
         }
 

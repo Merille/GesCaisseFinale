@@ -13,7 +13,6 @@ namespace EasytransitCaisse.Controllers
     // d'être supprimé. Le dépôt des achats (laverie : produits d'entretien) reçoit les achats et fournit
     // les consommations ; il ne sert à aucune caisse et ne peut être ni désactivé ni supprimé.
     // Réservé aux profils Admin et SuperAdmin.
-    [Authorize(Policy = "Admin")]
     public class DepotController : Controller
     {
         private readonly AppDbContext _context;

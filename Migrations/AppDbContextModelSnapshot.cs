@@ -1633,6 +1633,39 @@ namespace EasytransitCaisse.Migrations
                     b.ToTable("ProduitTaxes");
                 });
 
+            modelBuilder.Entity("EasytransitCaisse.Models.Profil", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Droits")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("Nom")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "Nom")
+                        .IsUnique();
+
+                    b.ToTable("Profils", (string)null);
+                });
+
             modelBuilder.Entity("EasytransitCaisse.Models.ReglementAchat", b =>
                 {
                     b.Property<int>("Id")
@@ -1980,7 +2013,11 @@ namespace EasytransitCaisse.Migrations
 
                     b.Property<string>("Profil")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int?>("ProfilId")
+                        .HasColumnType("int");
 
                     b.Property<decimal?>("RemiseMax")
                         .HasPrecision(5, 2)
@@ -1990,6 +2027,8 @@ namespace EasytransitCaisse.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ProfilId");
 
                     b.HasIndex("TenantId");
 

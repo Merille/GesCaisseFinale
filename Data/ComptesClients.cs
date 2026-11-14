@@ -32,6 +32,14 @@ namespace EasytransitCaisse.Data
             return soldes;
         }
 
+        // Profils proposés à une nouvelle société : Caissier et Vendeur (droits modifiables ensuite). Comme profils_initiaux() en PHP.
+        public static void AjouterProfilsInitiaux(this AppDbContext context, int tenantId)
+        {
+            foreach (var nom in new[] { "Caissier", "Vendeur" })
+                if (!context.Profils.IgnoreQueryFilters().Any(p => p.TenantId == tenantId && p.Nom == nom))
+                    context.Profils.Add(new Models.Profil { TenantId = tenantId, Nom = nom, Description = "Caisse, ventes et tiers", Droits = string.Join(",", EasytransitCaisse.Services.Droits.ParDefaut) });
+        }
+
         // Mode « Compte client » d'une nouvelle société (vente par compte des clients en compte).
         public static void AjouterModeCompte(this AppDbContext context, int tenantId) =>
             context.ModesPaiement.Add(new Models.ModePaiement { Code = "CPT", Libelle = "Compte client", Actif = true, EstCompte = true, TenantId = tenantId });

@@ -202,6 +202,17 @@ CREATE TABLE [PostesHorsLigne] (
 GO
 
 
+CREATE TABLE [Profils] (
+    [Id] int NOT NULL IDENTITY,
+    [TenantId] int NOT NULL,
+    [Nom] nvarchar(50) NOT NULL,
+    [Description] nvarchar(200) NULL,
+    [Droits] nvarchar(1000) NOT NULL,
+    CONSTRAINT [PK_Profils] PRIMARY KEY ([Id])
+);
+GO
+
+
 CREATE TABLE [Taxes] (
     [Id] int NOT NULL IDENTITY,
     [TenantId] int NOT NULL,
@@ -378,7 +389,8 @@ CREATE TABLE [Utilisateurs] (
     [NomUtilisateur] nvarchar(max) NOT NULL,
     [MotPasse] nvarchar(max) NOT NULL,
     [NomComplet] nvarchar(max) NOT NULL,
-    [Profil] nvarchar(max) NOT NULL,
+    [Profil] nvarchar(50) NOT NULL,
+    [ProfilId] int NULL,
     [PeutValiderOperations] bit NOT NULL,
     [PeutRemise] bit NOT NULL,
     [RemiseMax] decimal(5,2) NULL,
@@ -954,6 +966,10 @@ CREATE INDEX [IX_ProduitTaxes_TaxeId] ON [ProduitTaxes] ([TaxeId]);
 GO
 
 
+CREATE UNIQUE INDEX [IX_Profils_TenantId_Nom] ON [Profils] ([TenantId], [Nom]);
+GO
+
+
 CREATE INDEX [IX_ReglementsAchats_AchatId] ON [ReglementsAchats] ([AchatId]);
 GO
 
@@ -979,6 +995,10 @@ GO
 
 
 CREATE UNIQUE INDEX [IX_Unites_TenantId_Nom] ON [Unites] ([TenantId], [Nom]);
+GO
+
+
+CREATE INDEX [IX_Utilisateurs_ProfilId] ON [Utilisateurs] ([ProfilId]);
 GO
 
 
@@ -1036,7 +1056,8 @@ INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion]) VALUES
     (N'20261112210405_AttenteHorsLigne', N'10.0.9'),
     (N'20261113052742_PostesHorsLigne', N'10.0.9'),
     (N'20261113173927_DroitRemise', N'10.0.9'),
-    (N'20261114091147_TentativesConnexion', N'10.0.9');
+    (N'20261114091147_TentativesConnexion', N'10.0.9'),
+    (N'20261114114523_ProfilsDroits', N'10.0.9');
 GO
 
 -- =====================================================================
@@ -1076,6 +1097,7 @@ ALTER TABLE [ProduitCombos] NOCHECK CONSTRAINT ALL;
 ALTER TABLE [ProduitImages] NOCHECK CONSTRAINT ALL;
 ALTER TABLE [ProduitTaxes] NOCHECK CONSTRAINT ALL;
 ALTER TABLE [Produits] NOCHECK CONSTRAINT ALL;
+ALTER TABLE [Profils] NOCHECK CONSTRAINT ALL;
 ALTER TABLE [ReglementsAchats] NOCHECK CONSTRAINT ALL;
 ALTER TABLE [Salles] NOCHECK CONSTRAINT ALL;
 ALTER TABLE [StocksDepots] NOCHECK CONSTRAINT ALL;
@@ -3200,6 +3222,12 @@ INSERT INTO [Utilisateurs] ([Id], [NomUtilisateur], [MotPasse], [NomComplet], [P
 SET IDENTITY_INSERT [Utilisateurs] OFF;
 GO
 
+-- Profils Caissier et Vendeur de chaque société, comptes rattachés (comme la migration ProfilsDroits)
+INSERT INTO Profils (TenantId, Nom, Description, Droits) SELECT t.Id, n.Nom, N'Caisse, ventes et tiers', N'tableau_bord,caisses,caisses_gerer,tiers,rapports,vendre,ventes,cuisine'
+FROM Tenants t CROSS JOIN (VALUES (N'Caissier'), (N'Vendeur')) AS n(Nom) WHERE NOT EXISTS (SELECT 1 FROM Profils p WHERE p.TenantId = t.Id AND p.Nom = n.Nom);
+UPDATE u SET u.ProfilId = p.Id FROM Utilisateurs u JOIN Profils p ON p.TenantId = u.TenantId AND p.Nom = u.Profil
+WHERE u.Profil NOT IN (N'Admin', N'SuperAdmin') AND u.ProfilId IS NULL;
+GO
 ALTER TABLE [Achats] WITH CHECK CHECK CONSTRAINT ALL;
 ALTER TABLE [BonsPreparation] WITH CHECK CHECK CONSTRAINT ALL;
 ALTER TABLE [Caisses] WITH CHECK CHECK CONSTRAINT ALL;
@@ -3234,6 +3262,7 @@ ALTER TABLE [ProduitCombos] WITH CHECK CHECK CONSTRAINT ALL;
 ALTER TABLE [ProduitImages] WITH CHECK CHECK CONSTRAINT ALL;
 ALTER TABLE [ProduitTaxes] WITH CHECK CHECK CONSTRAINT ALL;
 ALTER TABLE [Produits] WITH CHECK CHECK CONSTRAINT ALL;
+ALTER TABLE [Profils] WITH CHECK CHECK CONSTRAINT ALL;
 ALTER TABLE [ReglementsAchats] WITH CHECK CHECK CONSTRAINT ALL;
 ALTER TABLE [Salles] WITH CHECK CHECK CONSTRAINT ALL;
 ALTER TABLE [StocksDepots] WITH CHECK CHECK CONSTRAINT ALL;

@@ -37,6 +37,12 @@ INSERT INTO Utilisateurs (NomUtilisateur, MotPasse, NomComplet, Profil, PeutVali
     SELECT N'laverie.caisse', N'pmWkWSBCL51Bfkhn79xPuKBKHz//H6B+mY6G9/eieuM=', N'Caissière de la laverie', N'Caissier', 1, 1, @t WHERE NOT EXISTS (SELECT 1 FROM Utilisateurs WHERE NomUtilisateur = N'laverie.caisse');
 SET @admin = (SELECT MIN(Id) FROM Utilisateurs WHERE TenantId = @t AND Profil = 'Admin');
 SET @caissier = (SELECT MIN(Id) FROM Utilisateurs WHERE TenantId = @t AND Profil = 'Caissier');
+-- Profils de la société (droits d'accès) : Caissier et Vendeur ; la caissière reçoit le profil Caissier.
+INSERT INTO Profils (TenantId, Nom, Description, Droits) SELECT @t, N'Caissier', N'Caisse, ventes et tiers', N'tableau_bord,caisses,caisses_gerer,tiers,rapports,vendre,ventes,cuisine'
+    WHERE NOT EXISTS (SELECT 1 FROM Profils WHERE TenantId = @t AND Nom = N'Caissier');
+INSERT INTO Profils (TenantId, Nom, Description, Droits) SELECT @t, N'Vendeur', N'Caisse, ventes et tiers', N'tableau_bord,caisses,caisses_gerer,tiers,rapports,vendre,ventes,cuisine'
+    WHERE NOT EXISTS (SELECT 1 FROM Profils WHERE TenantId = @t AND Nom = N'Vendeur');
+UPDATE u SET u.ProfilId = p.Id FROM Utilisateurs u JOIN Profils p ON p.TenantId = u.TenantId AND p.Nom = u.Profil WHERE u.TenantId = @t AND u.ProfilId IS NULL;
 
 -- Unités de vente, taxes (TVA 18 % par défaut, CSS 1 %), modes de paiement et motif des ventes
 INSERT INTO Unites (TenantId, Nom, Libelle, Actif) SELECT @t, N'Unité', N'Article vendu à l''unité', 1 WHERE NOT EXISTS (SELECT 1 FROM Unites WHERE TenantId = @t AND Nom = N'Unité');

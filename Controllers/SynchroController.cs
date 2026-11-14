@@ -48,7 +48,6 @@ namespace EasytransitCaisse.Controllers
             return s < 60 ? "à l'instant" : s < 3600 ? $"il y a {s / 60} min" : s < 86400 ? $"il y a {s / 3600} h" : $"il y a {s / 86400} j";
         }
 
-        [Authorize(Policy = "Admin")]
         public async Task<IActionResult> Index(DateTime? du, DateTime? au, string? etat)
         {
             var f = new FiltresSynchro
@@ -115,7 +114,6 @@ namespace EasytransitCaisse.Controllers
         // Ventes cochées marquées vérifiées.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Policy = "Admin")]
         public async Task<IActionResult> Verifier(int[]? ids, DateTime? du, DateTime? au, string? etat)
         {
             var liste = (ids ?? Array.Empty<int>()).ToList();
@@ -134,7 +132,6 @@ namespace EasytransitCaisse.Controllers
         // Poste qui ne sert plus : retiré de la liste (il réapparaît s'il envoie un nouveau rapport).
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Policy = "Admin")]
         public async Task<IActionResult> Oublier(int id)
         {
             var p = await _context.PostesHorsLigne.FirstOrDefaultAsync(x => x.Id == id);

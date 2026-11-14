@@ -234,6 +234,12 @@ namespace EasytransitCaisse.Data
             modelBuilder.Entity<CommandeOuverte>()
                 .HasIndex(c => c.TableId).IsUnique().HasFilter("[TableId] IS NOT NULL");
 
+            // Profils et droits d'accès d'une société.
+            modelBuilder.Entity<Profil>().ToTable("Profils")
+                .HasQueryFilter(e => _currentTenantId == 0 || e.TenantId == _currentTenantId);
+            modelBuilder.Entity<Profil>().HasIndex(p => new { p.TenantId, p.Nom }).IsUnique();
+            modelBuilder.Entity<Utilisateur>().HasIndex(u => u.ProfilId);
+
             // Limite des tentatives de connexion (pas de société : avant la connexion).
             modelBuilder.Entity<TentativeConnexion>().ToTable("TentativesConnexion");
             modelBuilder.Entity<TentativeConnexion>().HasIndex(t => new { t.AdresseIp, t.DateTentative });
@@ -437,6 +443,8 @@ namespace EasytransitCaisse.Data
         public DbSet<LigneBonPreparation> LignesBonPreparation { get; set; }
 
         public DbSet<TentativeConnexion> TentativesConnexion { get; set; }
+
+        public DbSet<Profil> Profils { get; set; }
 
         public DbSet<ProduitTaxe> ProduitTaxes { get; set; }
 

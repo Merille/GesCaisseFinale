@@ -497,6 +497,7 @@ INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('024_atten
 INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('025_postes_hors_ligne.sql','2026-11-13 00:00:00');
 INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('026_droit_remise.sql','2026-11-13 00:00:00');
 INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('027_tentatives_connexion.sql','2026-11-14 00:00:00');
+INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('028_profils.sql','2026-11-14 00:00:00');
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `ModesPaiement` (
@@ -673,6 +674,19 @@ CREATE TABLE `PostesHorsLigne` (
   UNIQUE KEY `IX_PostesHorsLigne_TenantId_Code` (`TenantId`,`Code`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+CREATE TABLE `Profils` (
+  `Id` int NOT NULL AUTO_INCREMENT,
+  `TenantId` int NOT NULL,
+  `Nom` varchar(50) NOT NULL,
+  `Description` varchar(200) DEFAULT NULL,
+  `Droits` varchar(1000) NOT NULL DEFAULT '',
+  PRIMARY KEY (`Id`),
+  UNIQUE KEY `UX_Profils_Nom` (`TenantId`,`Nom`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO `Profils` (`Id`, `TenantId`, `Nom`, `Description`, `Droits`) VALUES (1,1,'Caissier','Caisse, ventes et tiers','tableau_bord,caisses,caisses_gerer,tiers,rapports,vendre,ventes,cuisine');
+INSERT INTO `Profils` (`Id`, `TenantId`, `Nom`, `Description`, `Droits`) VALUES (2,1,'Vendeur','Caisse, ventes et tiers','tableau_bord,caisses,caisses_gerer,tiers,rapports,vendre,ventes,cuisine');
+
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `Produits` (
@@ -864,13 +878,15 @@ CREATE TABLE `Utilisateurs` (
   `NomUtilisateur` varchar(100) NOT NULL,
   `MotPasse` varchar(255) NOT NULL,
   `NomComplet` varchar(200) NOT NULL,
-  `Profil` varchar(30) NOT NULL,
+  `Profil` varchar(50) NOT NULL,
   `PeutValiderOperations` tinyint(1) NOT NULL DEFAULT '0',
   `TenantId` int DEFAULT NULL,
   `PeutRemise` tinyint(1) NOT NULL DEFAULT '0',
   `RemiseMax` decimal(5,2) DEFAULT NULL,
+  `ProfilId` int DEFAULT NULL,
   PRIMARY KEY (`Id`),
   UNIQUE KEY `UX_Utilisateurs_Nom` (`NomUtilisateur`),
+  KEY `IX_Utilisateurs_ProfilId` (`ProfilId`),
   KEY `FK_Utilisateurs_Tenants` (`TenantId`),
   CONSTRAINT `FK_Utilisateurs_Tenants` FOREIGN KEY (`TenantId`) REFERENCES `Tenants` (`Id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

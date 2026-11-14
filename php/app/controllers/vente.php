@@ -329,7 +329,7 @@ function vente_annuler(): void
 function vente_verifier(): void
 {
     $vente = vente_charger((int) post('id'));
-    if (is_admin() && $vente['AlerteHorsLigne'] && !$vente['AlerteHorsLigneVue']) {
+    if (peut('synchro') && $vente['AlerteHorsLigne'] && !$vente['AlerteHorsLigneVue']) {
         run('UPDATE CommandesPos SET AlerteHorsLigneVue = ? WHERE Id = ?', [date('Y-m-d H:i:s'), $vente['Id']]);
         flash('success', 'Vente ' . $vente['Numero'] . ' marquée vérifiée.');
     }

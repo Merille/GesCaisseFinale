@@ -13,7 +13,6 @@ namespace EasytransitCaisse.Controllers
     // produits proposés au choix (ex. « Plats » : Poulet, Poisson + 500) et le nombre d'articles à
     // choisir. Un produit combo (fiche produit) se compose d'une liste de combos.
     // Réservé aux profils Admin et SuperAdmin.
-    [Authorize(Policy = "Admin")]
     public class ComboController : Controller
     {
         private readonly AppDbContext _context;

@@ -12,7 +12,6 @@ namespace EasytransitCaisse.Controllers
     // Stock du point de vente, suivi par dépôt : historique des mouvements, stock par dépôt, entrées
     // de marchandises, transferts entre dépôts, inventaire et option « vente sans stock ».
     // Réservé aux profils Admin et SuperAdmin.
-    [Authorize(Policy = "Admin")]
     public class StockController : Controller
     {
         private const string MessageSociete = "Choisissez d'abord la société concernée dans le menu « Société consultée », puis recommencez.";

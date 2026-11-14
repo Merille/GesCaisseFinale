@@ -10,7 +10,6 @@ namespace EasytransitCaisse.Controllers
     // Livreurs (sans compte de connexion) : choisis au point de vente sur une commande à livrer.
     // Un livreur qui a déjà des livraisons se désactive au lieu d'être supprimé.
     // Réservé aux profils Admin et SuperAdmin.
-    [Authorize(Policy = "Admin")]
     public class LivreurController : Controller
     {
         private readonly AppDbContext _context;

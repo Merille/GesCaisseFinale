@@ -27,7 +27,7 @@
                     <?php endif; ?>
                     <td class="text-center table-actions">
                         <a href="<?= h(url('caisse/details', ['id' => $c['ID']])) ?>" class="btn btn-primary btn-sm">Journées</a>
-                        <?php if (in_array($type, ['Restaurant', 'Bar'], true) && is_admin() && module_pos_actif()): ?>
+                        <?php if (in_array($type, ['Restaurant', 'Bar'], true) && peut('config_pdv') && module_pos_actif()): ?>
                             <a href="<?= h(url('salle/index', ['caisse' => $c['ID']])) ?>" class="btn btn-info btn-sm" title="Plan de salle" aria-label="Plan de salle"><i class="fa fa-chair"></i></a>
                         <?php endif; ?>
                         <a href="<?= h(url('caisse/edit', ['id' => $c['ID']])) ?>" class="btn btn-warning btn-sm"

@@ -1,6 +1,6 @@
 <?php
 $titre = 'Tableau de bord laverie';
-$admin = is_admin();
+$admin = peut('rapports_pdv');   // liens vers le rapport des dépôts
 $s = fn(float $n) => $n > 1 ? 's' : '';
 $lien = fn(string $route, array $p = []) => h(url($route, $p));
 $aujourdhui = date('Y-m-d');
@@ -18,7 +18,7 @@ $tuile = function (string $couleur, string $icone, string $titreTuile, string $c
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
     <div class="text-muted small">Laverie · <?= h(date_fr($aujourdhui, 'd/m/Y')) ?> · semaine du <?= h(date_fr(date('Y-m-d', strtotime('monday this week')))) ?></div>
     <div class="d-flex gap-2">
-        <a class="btn btn-primary" href="<?= $lien('pos/index') ?>"><i class="fas fa-store"></i> Vendre / déposer</a>
+        <?php if (peut('vendre')): ?><a class="btn btn-primary" href="<?= $lien('pos/index') ?>"><i class="fas fa-store"></i> Vendre / déposer</a><?php endif; ?>
         <?php if ($admin): ?><a class="btn btn-outline-primary" href="<?= $lien('rapportlinge/index') ?>"><i class="fas fa-chart-line"></i> Rapport des dépôts</a><?php endif; ?>
     </div>
 </div>
@@ -28,7 +28,7 @@ $tuile = function (string $couleur, string $icone, string $titreTuile, string $c
         '<div class="lav-grand">' . (int) $depotsJour['Nombre'] . ' <small>aujourd\'hui</small></div>'
         . '<div class="lav-ligne"><b>' . quantite_fr((float) $depotsJour['Articles']) . '</b> article' . $s((float) $depotsJour['Articles']) . ' · <b>' . fcfa($depotsJour['Montant']) . '</b> FCFA</div>'
         . '<div class="lav-ligne">Cette semaine : <b>' . $depotsSemaine . '</b></div>',
-        $admin ? $lien('rapportlinge/index', ['du' => $aujourdhui, 'au' => $aujourdhui]) : $lien('pos/index')) ?>
+        $admin ? $lien('rapportlinge/index', ['du' => $aujourdhui, 'au' => $aujourdhui]) : (peut('vendre') ? $lien('pos/index') : null)) ?>
     <?= $tuile('lav-ciel', 'fa-hand-holding', 'Retraits',
         '<div class="lav-grand">' . (int) $retraits['Jour'] . ' <small>aujourd\'hui</small></div>'
         . '<div class="lav-ligne">Encaissé : <b>' . fcfa($retraits['MontantJour']) . '</b> FCFA</div>'
@@ -38,7 +38,7 @@ $tuile = function (string $couleur, string $icone, string $titreTuile, string $c
         '<div class="lav-grand">' . (int) $aRetirer['Nombre'] . ' <small>dépôt' . $s((float) $aRetirer['Nombre']) . '</small></div>'
         . '<div class="lav-ligne">dont <b>' . (int) $aRetirer['Prets'] . '</b> prêt' . $s((float) $aRetirer['Prets']) . ' à remettre</div>'
         . '<div class="lav-ligne">Reste à encaisser : <b>' . fcfa($aRetirer['Reste']) . '</b> FCFA</div>',
-        $admin ? $lien('rapportlinge/index', ['statut' => 'À retirer']) : $lien('pos/index')) ?>
+        $admin ? $lien('rapportlinge/index', ['statut' => 'À retirer']) : (peut('vendre') ? $lien('pos/index') : null)) ?>
     <?= $tuile((int) $aRetirer['Retard'] ? 'lav-rouge' : 'lav-ardoise', 'fa-triangle-exclamation', 'En retard',
         '<div class="lav-grand">' . (int) $aRetirer['Retard'] . ' <small>dépôt' . $s((float) $aRetirer['Retard']) . '</small></div>'
         . ((int) $aRetirer['Retard'] ? '<div class="lav-ligne">Le plus ancien : <b>' . $joursRetard . ' jour' . $s($joursRetard) . '</b> de retard</div>'
@@ -49,22 +49,22 @@ $tuile = function (string $couleur, string $icone, string $titreTuile, string $c
         '<div class="lav-grand">' . $clientsMois . ' <small>servi' . $s($clientsMois) . ' ce mois</small></div>'
         . '<div class="lav-ligne">Fiches clients : <b>' . $clientsTotal . '</b></div>'
         . '<div class="lav-ligne">Dû (clients en compte) : <b>' . fcfa($du) . '</b> FCFA</div>',
-        $lien('client/index')) ?>
+        peut('tiers') ? $lien('client/index') : null) ?>
     <?= $tuile('lav-vert', 'fa-tags', 'Articles',
         '<div class="lav-grand">' . $articles . ' <small>en vente</small></div>'
         . '<div class="lav-ligne"><b>' . $categories . '</b> catégorie' . $s($categories) . '</div>'
         . '<div class="lav-ligne">' . ($top !== null ? 'Le plus déposé ce mois : <b>' . h($top) . '</b> (' . quantite_fr($topArticles[$top]) . ')' : 'Aucun dépôt ce mois.') . '</div>',
-        $admin ? $lien('produit/index') : null) ?>
+        peut('catalogue') ? $lien('produit/index') : null) ?>
     <?= $tuile('lav-ambre', 'fa-bottle-droplet', 'Produits d\'entretien',
         '<div class="lav-grand">' . $aRacheter . ' <small>à racheter</small></div>'
         . '<div class="lav-ligne">Valeur du stock : <b>' . fcfa($entretien['Valeur']) . '</b> FCFA</div>'
         . '<div class="lav-ligne">Achats du mois : <b>' . fcfa($achatsMois) . '</b> FCFA</div>',
-        $admin ? $lien('achat/stock') : null) ?>
+        peut('achats') ? $lien('achat/stock') : null) ?>
     <?= $tuile('lav-rose', 'fa-cash-register', 'Caisse',
         '<div class="lav-grand">' . fcfa($encaissements) . ' <small>FCFA encaissés</small></div>'
         . '<div class="lav-ligne">aujourd\'hui (ventes, retraits, acomptes)</div>'
         . '<div class="lav-ligne">' . ($journees ? 'Journée ouverte : <b>' . h(implode(', ', array_column($journees, 'ChkCode'))) . '</b>' : 'Aucune journée ouverte') . '</div>',
-        $journees ? $lien('journee/details', ['id' => $journees[0]['Id']]) : $lien('caisse/index')) ?>
+        !peut('caisses') ? null : ($journees ? $lien('journee/details', ['id' => $journees[0]['Id']]) : $lien('caisse/index'))) ?>
 </div>
 
 <div class="row g-3">

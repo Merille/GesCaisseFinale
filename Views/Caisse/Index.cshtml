@@ -5,7 +5,7 @@
 @{
     ViewData["Title"] = "Caisses";
     var modulePointVente = await EasytransitCaisse.Services.ModulePointVenteFilter.ActifAsync(DbContext, TenantProvider.TenantId);
-    var admin = User.HasClaim(EasytransitCaisse.Services.AppClaimTypes.Profil, "Admin") || User.HasClaim(EasytransitCaisse.Services.AppClaimTypes.Profil, "SuperAdmin");
+    var admin = Context.RequestServices.GetRequiredService<EasytransitCaisse.Services.DroitsUtilisateur>().Peut("config_pdv");   // éditeur du plan de salle
 }
 <div class="d-flex justify-content-end gap-2 mb-3">
     <a href="/Caisse/PrintCaisses" class="btn btn-outline-primary"><i class="fas fa-print"></i> Imprimer</a>

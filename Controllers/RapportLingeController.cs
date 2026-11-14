@@ -12,7 +12,6 @@ namespace EasytransitCaisse.Controllers
     // (nombre, articles, montant, acomptes, reste à encaisser) et détail des dépôts. Les filtres
     // « À retirer » et « En retard » prennent tous les dépôts non retirés, quelle que soit leur date.
     // Impression / PDF et export Excel. Même fonctionnement que la version PHP (rapportlinge.php).
-    [Authorize(Policy = "Admin")]
     public class RapportLingeController : Controller
     {
         private readonly AppDbContext _context;

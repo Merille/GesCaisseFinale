@@ -49,7 +49,7 @@ require __DIR__ . '/../partials/form_debut.php';
                         <?php endif; ?>
                         <?php foreach ($unitesListe as $u): ?><option value="<?= h($u) ?>" <?= $u === $uniteProduit ? 'selected' : '' ?>><?= h($u) ?></option><?php endforeach; ?>
                     </select>
-                    <div class="form-text">Le prix TTC s'entend pour une unité.<?php if (is_admin()): ?> <a href="<?= h(url('unite/index')) ?>">Gérer les unités</a><?php endif; ?></div>
+                    <div class="form-text">Le prix TTC s'entend pour une unité.<?php if (peut('catalogue')): ?> <a href="<?= h(url('unite/index')) ?>">Gérer les unités</a><?php endif; ?></div>
                 </div>
                 <div class="col-md-4">
                     <label class="form-label" for="Cout<?= $suffixe ?>">Coût d'achat HT (FCFA)</label>

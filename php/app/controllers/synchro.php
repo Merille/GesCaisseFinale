@@ -55,7 +55,7 @@ function synchro_json(array $reponse): never
 
 function synchro_index(): void
 {
-    require_admin();
+    // Droit « synchro » vérifié par index.php.
     $f = synchro_filtres();
     // Postes vus depuis 30 jours, ceux qui ont des envois en attente d'abord.
     $postes = q('SELECT p.*, u.NomComplet AS Utilisateur FROM PostesHorsLigne p LEFT JOIN Utilisateurs u ON u.Id = p.UtilisateurId
@@ -113,7 +113,7 @@ function synchro_index(): void
 /** Ventes cochées marquées vérifiées. */
 function synchro_verifier(): void
 {
-    require_admin();
+    // Droit « synchro » vérifié par index.php.
     $ids = array_values(array_filter(array_map('intval', (array) ($_POST['ids'] ?? []))));
     $n = 0;
     if ($ids) {
@@ -129,7 +129,7 @@ function synchro_verifier(): void
 /** Poste qui ne sert plus : retiré de la liste (il réapparaît s'il envoie un nouveau rapport). */
 function synchro_oublier(): void
 {
-    require_admin();
+    // Droit « synchro » vérifié par index.php.
     run('DELETE FROM PostesHorsLigne WHERE Id = ? AND ' . tf(), [(int) post('id')]);
     flash('success', 'Poste retiré de la liste.');
     redirect('synchro/index');

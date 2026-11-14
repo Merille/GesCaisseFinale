@@ -19,7 +19,7 @@
                 <?= h($c['ChkCode']) ?> · <?= h($c['ChkDescription']) ?></a>
         <?php endforeach; ?>
     <?php endif; ?>
-    <a href="<?= h(url('dashboard/index')) ?>"><i class="fas fa-arrow-left"></i> Retour</a>
+    <a href="<?= h(url('accueil')) ?>"><i class="fas fa-arrow-left"></i> Retour</a>
 </div>
 </body>
 </html>

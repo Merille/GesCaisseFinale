@@ -31,7 +31,7 @@ function pos_lignes_catalogue(array $saisies, int $tenant): array
         $l['nom'] = $p['Nom'];
         $l['tva'] = (float) $p['TauxTVA'];
         $l['unite'] = (string) ($p['Unite'] ?? '');
-        $l['prix'] = is_admin() ? $l['prix'] : $prix;
+        $l['prix'] = peut('prix') ? $l['prix'] : $prix;
         $lignes[] = $l;
     }
     return $lignes;

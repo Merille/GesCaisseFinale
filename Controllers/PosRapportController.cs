@@ -13,7 +13,6 @@ namespace EasytransitCaisse.Controllers
     // Rapports du point de vente : tableau de bord, ventes par produit, catégorie, vendeur,
     // heure et mode de paiement, meilleures ventes et panier moyen ; export Excel et PDF.
     // Chiffre d'affaires net TTC = ventes - retours ; les ventes annulées sont exclues.
-    [Authorize(Policy = "Admin")]
     public class PosRapportController : Controller
     {
         private const string Annulee = "Annulée";

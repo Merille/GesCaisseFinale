@@ -1,6 +1,6 @@
 <?php
 $titre = 'Tableau de bord restaurant-bar';
-$admin = is_admin();
+$admin = peut('rapports_pdv');   // liens vers les rapports du point de vente
 $s = fn(float $n) => $n > 1 ? 's' : '';
 $lien = fn(string $route, array $p = []) => h(url($route, $p));
 $aujourdhui = date('Y-m-d');
@@ -22,8 +22,8 @@ $tuile = function (string $couleur, string $icone, string $titreTuile, string $c
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
     <div class="text-muted small">Restaurant · Bar · <?= h(date_fr($aujourdhui, 'd/m/Y')) ?> · semaine du <?= h(date_fr($lundi)) ?></div>
     <div class="d-flex gap-2">
-        <a class="btn btn-primary" href="<?= $lien('pos/index') ?>"><i class="fas fa-store"></i> Vendre</a>
-        <a class="btn btn-outline-primary" href="<?= $lien('cuisine/index') ?>"><i class="fas fa-fire-burner"></i> Écran cuisine / bar</a>
+        <?php if (peut('vendre')): ?><a class="btn btn-primary" href="<?= $lien('pos/index') ?>"><i class="fas fa-store"></i> Vendre</a><?php endif; ?>
+        <?php if (peut('cuisine')): ?><a class="btn btn-outline-primary" href="<?= $lien('cuisine/index') ?>"><i class="fas fa-fire-burner"></i> Écran cuisine / bar</a><?php endif; ?>
         <?php if ($admin): ?><a class="btn btn-outline-primary" href="<?= $lien('posrapport/index') ?>"><i class="fas fa-chart-line"></i> Rapports des ventes</a><?php endif; ?>
     </div>
 </div>
@@ -34,12 +34,12 @@ $tuile = function (string $couleur, string $icone, string $titreTuile, string $c
         . '<div class="lav-ligne">Aujourd\'hui : <b>' . (int) $jour['Tickets'] . '</b> ticket' . $s((float) $jour['Tickets']) . '</div>'
         . '<div class="lav-ligne">Panier moyen : <b>' . fcfa($panier) . '</b> FCFA</div>'
         . '<div class="lav-ligne">Cette semaine : <b>' . fcfa($semaine['CA']) . '</b> FCFA</div>',
-        $rapportJour ?? $lien('pos/index')) ?>
+        $rapportJour ?? (peut('vendre') ? $lien('pos/index') : null)) ?>
     <?= $tuile('lav-indigo', 'fa-chair', 'Tables',
         '<div class="lav-grand">' . $occupees . ' <small>/ ' . $tables . ' occupée' . $s($occupees) . '</small></div>'
         . '<div class="lav-ligne">Couverts en salle : <b>' . $couvertsSalle . '</b></div>'
         . '<div class="lav-ligne">En cours : <b>' . fcfa($enCours) . '</b> FCFA (' . $nbOuvertes . ' commande' . $s($nbOuvertes) . ')</div>',
-        $lien('pos/index')) ?>
+        peut('vendre') ? $lien('pos/index') : null) ?>
     <?= $tuile('lav-ciel', 'fa-users', 'Couverts',
         '<div class="lav-grand">' . (int) $jour['Couverts'] . ' <small>servi' . $s((float) $jour['Couverts']) . ' aujourd\'hui</small></div>'
         . '<div class="lav-ligne">Par couvert : <b>' . fcfa($parCouvert) . '</b> FCFA</div>'
@@ -49,12 +49,12 @@ $tuile = function (string $couleur, string $icone, string $titreTuile, string $c
         '<div class="lav-grand">' . $nbBons . ' <small>bon' . $s($nbBons) . ' à préparer</small></div>'
         . '<div class="lav-ligne">Cuisine : <b>' . $parPoste['Cuisine'] . '</b> · Bar : <b>' . $parPoste['Bar'] . '</b></div>'
         . '<div class="lav-ligne">' . ($nbBons ? 'Le plus ancien : <b>' . $duree($attente) . '</b> d\'attente' : 'Rien en attente.') . '</div>',
-        $lien('cuisine/index')) ?>
+        peut('cuisine') ? $lien('cuisine/index') : null) ?>
     <?= $tuile('lav-violet', 'fa-motorcycle', 'Livraisons',
         '<div class="lav-grand">' . (int) $aLivrer['Nombre'] . ' <small>à livrer</small></div>'
         . '<div class="lav-ligne">À encaisser : <b>' . $aEncaisser['Nombre'] . '</b> · <b>' . fcfa($aEncaisser['Montant']) . '</b> FCFA</div>'
         . '<div class="lav-ligne">Livrée' . $s($livrees) . ' aujourd\'hui : <b>' . $livrees . '</b></div>',
-        $admin ? $lien('rapportlivraison/index') : $lien('pos/index')) ?>
+        $admin ? $lien('rapportlivraison/index') : (peut('vendre') ? $lien('pos/index') : null)) ?>
     <?= $tuile('lav-vert', 'fa-utensils', 'Meilleures ventes',
         '<div class="lav-grand">' . quantite_fr($articlesVendus) . ' <small>article' . $s($articlesVendus) . ' vendu' . $s($articlesVendus) . '</small></div>'
         . '<div class="lav-ligne">' . ($top ? 'Le plus vendu : <b>' . h($top['Nom']) . '</b> (' . quantite_fr($top['Qte']) . ')' : 'Aucune vente aujourd\'hui.') . '</div>'
@@ -64,12 +64,12 @@ $tuile = function (string $couleur, string $icone, string $titreTuile, string $c
         '<div class="lav-grand">' . $stockBas . ' <small>sous le seuil</small></div>'
         . '<div class="lav-ligne">En rupture : <b>' . $ruptures . '</b></div>'
         . '<div class="lav-ligne">Produits suivis : <b>' . $suivis . '</b></div>',
-        $admin ? $lien('stock/index') : null) ?>
+        peut('stock') ? $lien('stock/index') : null) ?>
     <?= $tuile('lav-rose', 'fa-cash-register', 'Caisse',
         '<div class="lav-grand">' . fcfa($encaissements) . ' <small>FCFA encaissés</small></div>'
         . '<div class="lav-ligne">Pourboires : <b>' . fcfa($jour['Pourboires']) . '</b> FCFA</div>'
         . '<div class="lav-ligne">' . ($journees ? 'Journée ouverte : <b>' . h(implode(', ', array_column($journees, 'ChkCode'))) . '</b>' : 'Aucune journée ouverte') . '</div>',
-        $journees ? $lien('journee/details', ['id' => $journees[0]['Id']]) : $lien('caisse/index')) ?>
+        !peut('caisses') ? null : ($journees ? $lien('journee/details', ['id' => $journees[0]['Id']]) : $lien('caisse/index'))) ?>
 </div>
 
 <div class="row g-3">

@@ -230,7 +230,7 @@
 
     function choisirMode(m) {
         if (m === 'prix' && !D.peutModifierPrix) {
-            message('Seul un administrateur peut modifier le prix.', true);
+            message('Votre profil ne permet pas de modifier le prix.', true);
             return;
         }
         if (m === 'remise' && !droitRemise.peut) {
@@ -806,7 +806,7 @@
             + '<div class="pos-droite">' + connexion()
             + '<button type="button" class="pos-btn-top" data-action="directe"><i class="fas fa-bag-shopping"></i> Vente directe</button>'
             + boutonAttentes()
-            + '<a class="pos-btn-top" href="' + echap(R.urlCuisine) + '" target="_blank" rel="noopener"><i class="fas fa-fire-burner"></i> Écran cuisine</a>'
+            + (R.urlCuisine ? '<a class="pos-btn-top" href="' + echap(R.urlCuisine) + '" target="_blank" rel="noopener"><i class="fas fa-fire-burner"></i> Écran cuisine</a>' : '')
             + (D.urlVentes ? '<a class="pos-btn-top" href="' + echap(D.urlVentes) + '"><i class="fas fa-receipt"></i> Ventes</a>' : '')
             + '<a class="pos-btn-top rouge" href="' + echap(D.urlFermer) + '"><i class="fas fa-power-off"></i> Fermer</a>'
             + '</div></div>'
@@ -1289,7 +1289,7 @@
         const client = clients.get(t.clientId);
         const k = (val, html, cls) => '<button type="button" class="pos-k ' + (cls || '') + '" data-touche="' + val + '">' + (html || val) + '</button>';
         const m = (val, txt) => '<button type="button" class="pos-k mode' + (mode === val ? ' on' : '') + '" data-mode="' + val + '"'
-            + (val === 'prix' && !D.peutModifierPrix ? ' disabled title="Réservé aux administrateurs"' : '')
+            + (val === 'prix' && !D.peutModifierPrix ? ' disabled title="Votre profil ne permet pas de modifier le prix"' : '')
             + (val === 'remise' && !droitRemise.peut ? ' disabled title="Remises non autorisées : demandez à un administrateur"' : '') + '>' + txt + '</button>';
 
         racine.innerHTML =

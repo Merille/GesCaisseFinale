@@ -4,7 +4,8 @@
     var edition = Model.Id > 0;
     var titre = edition ? "Modifier l'utilisateur" : "Nouvel utilisateur";
     var superAdmin = ViewBag.IsSuperAdmin == true;
-    var profils = superAdmin ? new[] { "Admin", "Caissier", "Vendeur", "SuperAdmin" } : new[] { "Admin", "Caissier", "Vendeur" };
+    var profils = (List<(string Valeur, string Libelle, int? Societe)>)ViewBag.Profils;
+    var valeurProfil = Model.Profil == "" || Model.Profil == null ? "" : EasytransitCaisse.Controllers.UtilisateurController.ValeurProfil(Context.RequestServices.GetRequiredService<EasytransitCaisse.Data.AppDbContext>(), Model);
 }
 <div class="card shadow-sm border-0">
     <div class="card-header bg-brand text-white"><h5 class="mb-0">@titre</h5></div>
@@ -30,12 +31,14 @@
                 </div>
                 <div class="col-md-6">
                     <label class="form-label" for="Profil">Profil</label>
-                    <select class="form-select" id="Profil" name="Profil">
-                        @foreach (var p in profils)
+                    <select class="form-select" id="Profil" name="Profil" required>
+                        <option value="">-- Choisir --</option>
+                        @foreach (var (valeur, libelle, societe) in profils)
                         {
-                            <option selected="@(Model.Profil == p)">@p</option>
+                            <option value="@valeur" data-societe="@societe" selected="@(valeurProfil == valeur)">@libelle</option>
                         }
                     </select>
+                    <div class="form-text">Les droits de chaque profil se règlent dans <a href="/Profil/Index">Paramètres › Profils et droits</a>.</div>
                 </div>
                 @if (superAdmin)
                 {

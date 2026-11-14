@@ -6,7 +6,9 @@
     string Fcfa(decimal n) => n.ToString("N0", fr);
     string Qte(decimal n) => n.ToString("0.##", fr);
     string S(decimal n) => n > 1 ? "s" : "";
-    var admin = User.HasClaim(AppClaimTypes.Profil, "Admin") || User.HasClaim(AppClaimTypes.Profil, "SuperAdmin");
+    var droitsU = Context.RequestServices.GetRequiredService<EasytransitCaisse.Services.DroitsUtilisateur>();
+    bool Peut(string d) => droitsU.Peut(d);
+    var admin = Peut("rapports_pdv");   // liens vers le rapport des dépôts
     var aujourdhui = DateTime.Today;
     var jour = aujourdhui.ToString("yyyy-MM-dd");
     var lundi = aujourdhui.AddDays(-(((int)aujourdhui.DayOfWeek + 6) % 7));
@@ -18,7 +20,7 @@
         ("lav-bleu", "fa-shirt", "Dépôts", Html.Raw($"<div class=\"lav-grand\">{Model.DepotsJour} <small>aujourd'hui</small></div>"
             + $"<div class=\"lav-ligne\"><b>{Qte(Model.ArticlesJour)}</b> article{S(Model.ArticlesJour)} · <b>{Fcfa(Model.MontantJour)}</b> FCFA</div>"
             + $"<div class=\"lav-ligne\">Cette semaine : <b>{Model.DepotsSemaine}</b></div>"),
-            admin ? Rapport($"?du={jour}&au={jour}") : "/Pos/Index"),
+            admin ? Rapport($"?du={jour}&au={jour}") : (Peut("vendre") ? "/Pos/Index" : null)),
         ("lav-ciel", "fa-hand-holding", "Retraits", Html.Raw($"<div class=\"lav-grand\">{Model.RetraitsJour} <small>aujourd'hui</small></div>"
             + $"<div class=\"lav-ligne\">Encaissé : <b>{Fcfa(Model.MontantRetraitsJour)}</b> FCFA</div>"
             + $"<div class=\"lav-ligne\">Cette semaine : <b>{Model.RetraitsSemaine}</b></div>"),
@@ -26,7 +28,7 @@
         ("lav-indigo", "fa-box-open", "À retirer", Html.Raw($"<div class=\"lav-grand\">{Model.ARetirer} <small>dépôt{S(Model.ARetirer)}</small></div>"
             + $"<div class=\"lav-ligne\">dont <b>{Model.Prets}</b> prêt{S(Model.Prets)} à remettre</div>"
             + $"<div class=\"lav-ligne\">Reste à encaisser : <b>{Fcfa(Model.Reste)}</b> FCFA</div>"),
-            admin ? Rapport($"?statut={Uri.EscapeDataString("À retirer")}") : "/Pos/Index"),
+            admin ? Rapport($"?statut={Uri.EscapeDataString("À retirer")}") : (Peut("vendre") ? "/Pos/Index" : null)),
         (Model.Retard > 0 ? "lav-rouge" : "lav-ardoise", "fa-triangle-exclamation", "En retard", Html.Raw($"<div class=\"lav-grand\">{Model.Retard} <small>dépôt{S(Model.Retard)}</small></div>"
             + (Model.Retard > 0
                 ? $"<div class=\"lav-ligne\">Le plus ancien : <b>{joursRetard} jour{S(joursRetard)}</b> de retard</div><div class=\"lav-ligne\">Reste à encaisser : <b>{Fcfa(Model.ResteRetard)}</b> FCFA</div>"
@@ -35,19 +37,19 @@
         ("lav-violet", "fa-users", "Clients", Html.Raw($"<div class=\"lav-grand\">{Model.ClientsMois} <small>servi{S(Model.ClientsMois)} ce mois</small></div>"
             + $"<div class=\"lav-ligne\">Fiches clients : <b>{Model.ClientsTotal}</b></div>"
             + $"<div class=\"lav-ligne\">Dû (clients en compte) : <b>{Fcfa(Model.Du)}</b> FCFA</div>"),
-            "/Client/Index"),
+            Peut("tiers") ? "/Client/Index" : null),
         ("lav-vert", "fa-tags", "Articles", Html.Raw($"<div class=\"lav-grand\">{Model.Articles} <small>en vente</small></div>"
             + $"<div class=\"lav-ligne\"><b>{Model.Categories}</b> catégorie{S(Model.Categories)}</div>"
             + "<div class=\"lav-ligne\">" + (Model.TopArticles.Count > 0 ? $"Le plus déposé ce mois : <b>{System.Net.WebUtility.HtmlEncode(top.Nom)}</b> ({Qte(top.Qte)})" : "Aucun dépôt ce mois.") + "</div>"),
-            admin ? "/Produit/Index" : null),
+            Peut("catalogue") ? "/Produit/Index" : null),
         ("lav-ambre", "fa-bottle-droplet", "Produits d'entretien", Html.Raw($"<div class=\"lav-grand\">{Model.ARacheter} <small>à racheter</small></div>"
             + $"<div class=\"lav-ligne\">Valeur du stock : <b>{Fcfa(Model.ValeurEntretien)}</b> FCFA</div>"
             + $"<div class=\"lav-ligne\">Achats du mois : <b>{Fcfa(Model.AchatsMois)}</b> FCFA</div>"),
-            admin ? "/Achat/Stock" : null),
+            Peut("achats") ? "/Achat/Stock" : null),
         ("lav-rose", "fa-cash-register", "Caisse", Html.Raw($"<div class=\"lav-grand\">{Fcfa(Model.Encaissements)} <small>FCFA encaissés</small></div>"
             + "<div class=\"lav-ligne\">aujourd'hui (ventes, retraits, acomptes)</div>"
             + "<div class=\"lav-ligne\">" + (Model.Journees.Count > 0 ? $"Journée ouverte : <b>{System.Net.WebUtility.HtmlEncode(string.Join(", ", Model.Journees.Select(j => j.Code)))}</b>" : "Aucune journée ouverte") + "</div>"),
-            Model.Journees.Count > 0 ? $"/JourneeCaisse/Details/{Model.Journees[0].Id}" : "/Caisse/Index"),
+            !Peut("caisses") ? null : Model.Journees.Count > 0 ? $"/JourneeCaisse/Details/{Model.Journees[0].Id}" : "/Caisse/Index"),
     };
 }
 <link rel="stylesheet" href="~/css/laverie.css" asp-append-version="true" />
@@ -55,7 +57,10 @@
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
     <div class="text-muted small">Laverie · @aujourdhui.ToString("dd/MM/yyyy") · semaine du @lundi.ToString("dd/MM/yyyy")</div>
     <div class="d-flex gap-2">
-        <a class="btn btn-primary" href="/Pos/Index"><i class="fas fa-store"></i> Vendre / déposer</a>
+        @if (Peut("vendre"))
+        {
+            <a class="btn btn-primary" href="/Pos/Index"><i class="fas fa-store"></i> Vendre / déposer</a>
+        }
         @if (admin)
         {
             <a class="btn btn-outline-primary" href="/RapportLinge/Index"><i class="fas fa-chart-line"></i> Rapport des dépôts</a>

@@ -24,7 +24,7 @@ $rubrique = match ($module) {
     'pos', 'vente', 'stock', 'posrapport', 'rapportlivraison', 'rapportlinge', 'rapportachat', 'achat', 'cuisine', 'synchro' => 'Point de vente',
     'salle' => 'Activité',
     'produit', 'categorie', 'combo' => 'Configuration',
-    'utilisateur', 'motif', 'modepaiement', 'taxe', 'unite', 'depot', 'livreur', 'societe' => 'Paramètres',
+    'utilisateur', 'profil', 'motif', 'modepaiement', 'taxe', 'unite', 'depot', 'livreur', 'societe' => 'Paramètres',
     'tenant' => 'Administration',
     default => null,
 };
@@ -96,37 +96,39 @@ $badge = $nbJourneesOuvertes > 0
     <nav class="sb-nav" aria-label="Menu principal">
         <div class="sb-section">
             <div class="sb-section-title">Activité</div>
-            <?= $lien('dashboard/index', 'dashboard', 'fa-house', 'Tableau de bord') ?>
+            <?php if (peut('tableau_bord')): ?><?= $lien('dashboard/index', 'dashboard', 'fa-house', 'Tableau de bord') ?><?php endif; ?>
             <?php // Laverie : tableau de bord en tuiles (page à part ; le tableau de bord général ne change pas). ?>
-            <?php if (laverie_actif() && module_pos_actif()): ?>
+            <?php if (peut('tableau_bord') && laverie_actif() && module_pos_actif()): ?>
                 <?= $lien('tableaulaverie/index', 'tableaulaverie', 'fa-shirt', 'Tableau de bord laverie') ?>
             <?php endif; ?>
             <?php // Restaurant-bar : tableau de bord en tuiles (page à part, comme la laverie). ?>
-            <?php if (restaurant_actif() && module_pos_actif()): ?>
+            <?php if (peut('tableau_bord') && restaurant_actif() && module_pos_actif()): ?>
                 <?= $lien('tableaurestaurant/index', 'tableaurestaurant', 'fa-utensils', 'Tableau resto-bar') ?>
             <?php endif; ?>
-            <?= $lien('caisse/index', 'caisse|journee', 'fa-cash-register', 'Caisses', $badge) ?>
-            <?= $lien('client/index', 'client', 'fa-address-book', 'Tiers') ?>
+            <?php if (peut('caisses')): ?><?= $lien('caisse/index', 'caisse|journee', 'fa-cash-register', 'Caisses', $badge) ?><?php endif; ?>
+            <?php if (peut('tiers')): ?><?= $lien('client/index', 'client', 'fa-address-book', 'Tiers') ?><?php endif; ?>
             <?php // Factures : module masqué, comme dans la version .NET (pages toujours accessibles). ?>
         </div>
+        <?php if (peut('rapports')): ?>
         <div class="sb-section">
             <div class="sb-section-title">Analyse</div>
             <?= $lien('rapport/operations', 'rapport', 'fa-chart-column', 'Rapports') ?>
             <?= $lien('rapporttiers/index', 'rapporttiers', 'fa-users-viewfinder', 'Rapport des tiers') ?>
         </div>
-        <?php if (module_pos_actif()): ?>
+        <?php endif; ?>
+        <?php if (module_pos_actif() && array_filter(['vendre', 'ventes', 'cuisine', 'achats', 'stock', 'rapports_pdv', 'catalogue', 'synchro'], 'peut')): ?>
         <div class="sb-section">
             <div class="sb-section-title">Point de vente</div>
-            <?= $lien('pos/index', 'pos', 'fa-store', 'Vendre') ?>
-            <?= $lien('vente/index', 'vente', 'fa-receipt', 'Ventes') ?>
-            <?php if (restaurant_actif()): ?>
+            <?php if (peut('vendre')): ?><?= $lien('pos/index', 'pos', 'fa-store', 'Vendre') ?><?php endif; ?>
+            <?php if (peut('ventes')): ?><?= $lien('vente/index', 'vente', 'fa-receipt', 'Ventes') ?><?php endif; ?>
+            <?php if (peut('cuisine') && restaurant_actif()): ?>
                 <?= $lien('cuisine/index', 'cuisine', 'fa-fire-burner', 'Écran cuisine / bar') ?>
             <?php endif; ?>
-            <?php if (is_admin()): ?>
-                <?php if (laverie_actif()): ?>
+                <?php if (peut('achats') && laverie_actif()): ?>
                     <?= $lien('achat/index', 'achat', 'fa-cart-flatbed', 'Achats') ?>
                 <?php endif; ?>
-                <?= $lien('stock/index', 'stock', 'fa-warehouse', 'Stock') ?>
+                <?php if (peut('stock')): ?><?= $lien('stock/index', 'stock', 'fa-warehouse', 'Stock') ?><?php endif; ?>
+                <?php if (peut('rapports_pdv')): ?>
                 <?php // Rapports du point de vente, regroupés (titre complet en infobulle). ?>
                 <?php $lienRapport = fn(string $route, string $mod, string $icone, string $libelle, string $titre)
                     => str_replace('title="' . h($libelle) . '"', 'title="' . h($titre) . '"', $lien($route, $mod, $icone, $libelle)); ?>
@@ -143,6 +145,8 @@ $badge = $nbJourneesOuvertes > 0
                         <?= $lienRapport('rapportachat/index', 'rapportachat', 'fa-chart-bar', 'Achats', 'Rapport des achats et consommations') ?>
                     <?php endif; ?>
                 </div>
+                <?php endif; ?>
+                <?php if (peut('catalogue')): ?>
                 <?php $configurationActif = in_array($module, ['categorie', 'produit', 'combo'], true); ?>
                 <button type="button" class="sb-link sb-parent <?= $configurationActif ? 'parent-actif' : '' ?>" title="Configuration"
                         aria-expanded="<?= $configurationActif ? 'true' : 'false' ?>" aria-controls="sbConfiguration" onclick="basculerSousMenu(this)">
@@ -153,31 +157,41 @@ $badge = $nbJourneesOuvertes > 0
                     <?= $lien('produit/index', 'produit', 'fa-box-open', 'Produits') ?>
                     <?= $lien('combo/index', 'combo', 'fa-layer-group', 'Combos') ?>
                 </div>
+                <?php endif; ?>
+                <?php if (peut('synchro')): ?>
                 <?php // Synchronisation du mode hors ligne : pastille = postes qui ont des opérations à envoyer. ?>
                 <?php $postesEnAttente = (int) qv('SELECT COUNT(*) FROM PostesHorsLigne WHERE EnAttente > 0 AND ' . tf()); ?>
                 <?= $lien('synchro/index', 'synchro', 'fa-arrows-rotate', 'Synchronisation',
                     $postesEnAttente ? '<span class="sb-badge" title="Postes avec des opérations à envoyer">' . $postesEnAttente . '</span>' : '') ?>
-            <?php endif; ?>
+                <?php endif; ?>
         </div>
         <?php endif; ?>
-        <?php if (is_admin()): ?>
+        <?php $configPdv = peut('config_pdv') && module_pos_actif(); $catalogueParam = peut('catalogue') && module_pos_actif(); ?>
+        <?php if (is_admin() || peut('parametres') || $configPdv || $catalogueParam): ?>
         <div class="sb-section">
             <div class="sb-section-title">Administration</div>
-            <?php $parametresActif = in_array($module, ['utilisateur', 'motif', 'modepaiement', 'taxe', 'unite', 'depot', 'livreur', 'societe'], true); ?>
+            <?php $parametresActif = in_array($module, ['utilisateur', 'profil', 'motif', 'modepaiement', 'taxe', 'unite', 'depot', 'livreur', 'societe'], true); ?>
             <button type="button" class="sb-link sb-parent <?= $parametresActif ? 'parent-actif' : '' ?>" title="Paramètres"
                     aria-expanded="<?= $parametresActif ? 'true' : 'false' ?>" aria-controls="sbParametres" onclick="basculerSousMenu(this)">
                 <i class="fas fa-gear"></i><span class="sb-label">Paramètres</span><i class="fas fa-chevron-down sb-chevron"></i>
             </button>
             <div class="sb-sub <?= $parametresActif ? 'open' : '' ?>" id="sbParametres">
-                <?php if (tenant_id() > 0): ?>
+                <?php if (is_admin() && tenant_id() > 0): ?>
                     <?= $lien('societe/index', 'societe', 'fa-building-circle-check', 'Ma société') ?>
                 <?php endif; ?>
-                <?= $lien('utilisateur/index', 'utilisateur', 'fa-user-shield', 'Utilisateurs') ?>
-                <?= $lien('motif/index', 'motif', 'fa-list-ul', 'Motifs') ?>
-                <?= $lien('modepaiement/index', 'modepaiement', 'fa-money-check-dollar', 'Modes de paiement') ?>
-                <?php if (module_pos_actif()): ?>
+                <?php if (is_admin()): ?>
+                    <?= $lien('utilisateur/index', 'utilisateur', 'fa-user-shield', 'Utilisateurs') ?>
+                    <?= $lien('profil/index', 'profil', 'fa-user-lock', 'Profils et droits') ?>
+                <?php endif; ?>
+                <?php if (peut('parametres')): ?>
+                    <?= $lien('motif/index', 'motif', 'fa-list-ul', 'Motifs') ?>
+                    <?= $lien('modepaiement/index', 'modepaiement', 'fa-money-check-dollar', 'Modes de paiement') ?>
+                <?php endif; ?>
+                <?php if ($catalogueParam): ?>
                     <?= $lien('taxe/index', 'taxe', 'fa-percent', 'Taxes') ?>
                     <?= $lien('unite/index', 'unite', 'fa-scale-balanced', 'Unités de vente') ?>
+                <?php endif; ?>
+                <?php if ($configPdv): ?>
                     <?= $lien('depot/index', 'depot', 'fa-warehouse', 'Dépôts') ?>
                     <?= $lien('livreur/index', 'livreur', 'fa-motorcycle', 'Livreurs') ?>
                 <?php endif; ?>

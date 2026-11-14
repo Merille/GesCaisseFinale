@@ -43,7 +43,7 @@ function auth_login(): void
                 'peutValider' => (bool) $u['PeutValiderOperations'],
             ];
             unset($_SESSION['consultation']);
-            redirect('dashboard/index');
+            redirect('accueil');
         }
         connexion_echec($nom, $ip);
         $erreur = 'Utilisateur ou mot de passe incorrect';
@@ -62,4 +62,11 @@ function auth_logout(): void
 function auth_suspendue(): void
 {
     render('auth/suspendue', [], false);
+}
+
+/** Profil sans aucun droit : page d'information (avec lien de déconnexion). */
+function auth_aucunacces(): void
+{
+    require_login();
+    render('auth/aucunacces', [], false);
 }

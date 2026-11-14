@@ -26,6 +26,9 @@ namespace EasytransitCaisse.Controllers
 
         private bool EstAdmin => User.FindFirst(AppClaimTypes.Profil)?.Value is "Admin" or "SuperAdmin";
 
+        // Droit du profil de l'utilisateur (Services/Droits.cs).
+        private bool Peut(string droit) => HttpContext.RequestServices.GetRequiredService<DroitsUtilisateur>().Peut(droit);
+
         // Remise globale sur un ticket : administrateurs et utilisateurs autorisés à valider.
         // Annulation d'un dépôt de linge : administrateurs et utilisateurs autorisés à valider.
         private bool PeutAnnuler => EstAdmin
@@ -185,19 +188,19 @@ namespace EasytransitCaisse.Controllers
                     nom = string.IsNullOrWhiteSpace(nom) ? User.FindFirst(ClaimTypes.Name)?.Value : nom,
                     profil
                 },
-                peutModifierPrix = profil is "Admin" or "SuperAdmin",
-                // Vente par compte au-delà du plafond de crédit : administrateurs seulement.
-                peutDepasserPlafond = profil is "Admin" or "SuperAdmin",
+                peutModifierPrix = Peut("prix"),
+                // Vente par compte au-delà du plafond de crédit : droit « Dépasser le plafond de crédit » du profil.
+                peutDepasserPlafond = Peut("plafond"),
                 // Frais de livraison proposés par défaut (modifiables à chaque vente).
                 fraisLivraison = await _context.Tenants.Where(t => t.Id == tenant).Select(t => t.FraisLivraisonDefaut).FirstOrDefaultAsync(),
                 // Remises (article et globale) : droit donné par l'administrateur sur la fiche de l'utilisateur.
                 remise = new { peut = droitRemise.Peut, max = droitRemise.Max },
-                urlFermer = $"/JourneeCaisse/Details/{j.Id}",
+                urlFermer = Peut("caisses") ? $"/JourneeCaisse/Details/{j.Id}" : "/Auth/Accueil",
                 modes,
                 urlVendre = "/Pos/Vendre",
                 urlAdditionTicket = "/Pos/AdditionTicket",
                 urlTicket = "/Pos/Ticket/",
-                urlVentes = $"/Vente/Index?journee={j.Id}",
+                urlVentes = Peut("ventes") ? $"/Vente/Index?journee={j.Id}" : null,
                 // Commandes en attente (partagées entre postes) et livraisons.
                 urlAttentes = $"/Pos/Attentes?journee={j.Id}",
                 urlMettreEnAttente = "/Pos/MettreEnAttente",
@@ -239,7 +242,7 @@ namespace EasytransitCaisse.Controllers
                     urlTransferer = "/Pos/Transferer",
                     urlAddition = "/Pos/Addition/",
                     urlBons = "/Pos/Bon?ids=",
-                    urlCuisine = $"/Cuisine/Index?caisse={j.CaisseId}"
+                    urlCuisine = Peut("cuisine") ? $"/Cuisine/Index?caisse={j.CaisseId}" : null
                 } : null
             };
 
@@ -408,8 +411,8 @@ namespace EasytransitCaisse.Controllers
                     composants = liste;
                     prixCatalogue += supplements;
                 }
-                var prix = (EstAdmin || hl != null) && l.Prix.HasValue ? Math.Max(0, Math.Round(l.Prix.Value, 2)) : prixCatalogue;
-                if (hl != null && !EstAdmin && Math.Abs(prix - prixCatalogue) > 0.001m)
+                var prix = (Peut("prix") || hl != null) && l.Prix.HasValue ? Math.Max(0, Math.Round(l.Prix.Value, 2)) : prixCatalogue;
+                if (hl != null && !Peut("prix") && Math.Abs(prix - prixCatalogue) > 0.001m)
                     alertes.Add($"prix de « {p.Nom} » : {Fcfa(prix)} encaissé, {Fcfa(prixCatalogue)} au catalogue");
                 var remise = Math.Min(100, Math.Max(0, Math.Round(l.Remise, 2)));
                 var total = Math.Round(qte * prix * (1 - remise / 100), 0, MidpointRounding.AwayFromZero);
@@ -562,15 +565,15 @@ namespace EasytransitCaisse.Controllers
                         return Erreur(409, $"Stock insuffisant pour « {stock.Nom} » : {dispo:0.##} disponible(s).");
                 }
             }
-            // Vente par compte : plafond de crédit (sauf administrateur), sous verrou du client.
+            // Vente par compte : plafond de crédit (sauf droit « Dépasser le plafond de crédit »), sous verrou du client.
             if (parCompte > 0)
             {
                 await _context.Database.ExecuteSqlInterpolatedAsync($"SELECT Id FROM Clients WITH (UPDLOCK, HOLDLOCK) WHERE Id = {clientId}");
                 var fiche = await _context.Clients.AsNoTracking().FirstAsync(c => c.Id == clientId);
                 var du = await _context.SoldeCompteAsync(tenant, clientId!.Value);
-                if (fiche.PlafondCredit.HasValue && !EstAdmin && du + parCompte > fiche.PlafondCredit.Value + 0.001m && hl != null)
+                if (fiche.PlafondCredit.HasValue && !Peut("plafond") && du + parCompte > fiche.PlafondCredit.Value + 0.001m && hl != null)
                     alertes.Add($"plafond de crédit de « {fiche.NomSociete} » dépassé (solde dû {Fcfa(du + parCompte)}, plafond {Fcfa(fiche.PlafondCredit.Value)})");
-                else if (fiche.PlafondCredit.HasValue && !EstAdmin && du + parCompte > fiche.PlafondCredit.Value + 0.001m)
+                else if (fiche.PlafondCredit.HasValue && !Peut("plafond") && du + parCompte > fiche.PlafondCredit.Value + 0.001m)
                 {
                     var fr = System.Globalization.CultureInfo.GetCultureInfo("fr-FR");
                     return Erreur(409, $"Plafond de crédit dépassé pour « {fiche.NomSociete} » : solde dû {du.ToString("N0", fr)} FCFA, plafond "

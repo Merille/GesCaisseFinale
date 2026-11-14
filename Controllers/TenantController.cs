@@ -47,6 +47,7 @@ namespace EasytransitCaisse.Controllers
             _context.AjouterTaxesInitiales(tenant.Id);
             _context.AjouterUnitesInitiales(tenant.Id);
             _context.AjouterModeCompte(tenant.Id);
+            _context.AjouterProfilsInitiaux(tenant.Id);
             _context.EnregistrerLogo(tenant, image, false);
             _context.SaveChanges();
             TempData["Success"] = "Société créée.";

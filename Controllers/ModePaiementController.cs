@@ -7,7 +7,6 @@ namespace EasytransitCaisse.Controllers
 {
     // Modes de paiement (espèces, chèque, mobile money...), comme la version PHP :
     // création et modification dans la même fenêtre (Save). Réservé aux profils Admin et SuperAdmin.
-    [Authorize(Policy = "Admin")]
     public class ModePaiementController : Controller
     {
         private readonly AppDbContext _context;

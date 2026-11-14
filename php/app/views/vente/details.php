@@ -27,7 +27,7 @@ $peutAnnuler = $peutRembourser && !$estRetour && $vente['Statut'] === 'Payée' &
             <?php if ($vente['AlerteHorsLigne']): ?><br>À vérifier : <?= h($vente['AlerteHorsLigne']) ?>.
                 <?php if ($vente['AlerteHorsLigneVue']): ?><span class="text-muted">Vérifiée le <?= date_fr($vente['AlerteHorsLigneVue'], 'd/m/Y H:i') ?>.</span><?php endif; ?>
             <?php endif; ?></span>
-        <?php if ($vente['AlerteHorsLigne'] && !$vente['AlerteHorsLigneVue'] && is_admin()): ?>
+        <?php if ($vente['AlerteHorsLigne'] && !$vente['AlerteHorsLigneVue'] && peut('synchro')): ?>
             <form method="post" action="<?= h(url('vente/verifier')) ?>" class="ms-auto">
                 <?= csrf_field() ?><input type="hidden" name="id" value="<?= (int) $vente['Id'] ?>">
                 <button class="btn btn-sm btn-warning"><i class="fa fa-check"></i> Marquer vérifiée</button>

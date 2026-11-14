@@ -14,7 +14,6 @@ namespace EasytransitCaisse.Controllers
     // fournisseur, synthèse par produit (acheté : quantité, montant, prix moyen ; consommé : quantité et
     // valeur au coût ; stock du dépôt des achats) et détail des achats. Les totaux ne comptent pas les
     // achats annulés. Impression / PDF et export Excel. Même fonctionnement que rapportachat.php.
-    [Authorize(Policy = "Admin")]
     public class RapportAchatController : Controller
     {
         private readonly AppDbContext _context;

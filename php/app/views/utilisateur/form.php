@@ -31,9 +31,14 @@ require __DIR__ . '/../partials/form_debut.php';
                 </div>
                 <div class="col-md-6">
                     <label class="form-label" for="Profil<?= $sfx ?>">Profil</label>
-                    <select class="form-select" id="Profil<?= $sfx ?>" name="Profil">
-                        <?php foreach ($profils as $p): ?><option <?= ($u['Profil'] ?? '') === $p ? 'selected' : '' ?>><?= $p ?></option><?php endforeach; ?>
+                    <?php $valeurProfil = utilisateur_valeur_profil($u); ?>
+                    <select class="form-select" id="Profil<?= $sfx ?>" name="Profil" required>
+                        <option value="">-- Choisir --</option>
+                        <?php foreach ($profils as [$valeur, $libelle, $societe]): ?>
+                            <option value="<?= h($valeur) ?>"<?= $societe ? ' data-societe="' . $societe . '"' : '' ?> <?= $valeurProfil === $valeur ? 'selected' : '' ?>><?= h($libelle) ?></option>
+                        <?php endforeach; ?>
                     </select>
+                    <div class="form-text">Les droits de chaque profil se règlent dans <a href="<?= h(url('profil/index')) ?>">Paramètres › Profils et droits</a>.</div>
                 </div>
                 <?php if (is_super_admin()): ?>
                     <div class="col-md-6">

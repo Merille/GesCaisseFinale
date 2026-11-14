@@ -296,7 +296,7 @@ namespace EasytransitCaisse.Controllers
                 .Select(j => (int?)j.Id)
                 .FirstOrDefault();
             // Laverie : produits d'entretien sous leur seuil d'alerte (administrateurs).
-            var estAdmin = User.HasClaim(EasytransitCaisse.Services.AppClaimTypes.Profil, "Admin") || User.HasClaim(EasytransitCaisse.Services.AppClaimTypes.Profil, "SuperAdmin");
+            var estAdmin = HttpContext.RequestServices.GetRequiredService<EasytransitCaisse.Services.DroitsUtilisateur>().Peut("achats");
             model.ProduitsEntretienAlerte = estAdmin && EasytransitCaisse.Services.ModulePointVenteFilter.ActifAsync(_context, _tenant.TenantId).GetAwaiter().GetResult()
                 ? _context.EntretienEnAlerte().Count : 0;
 

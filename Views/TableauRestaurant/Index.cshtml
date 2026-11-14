@@ -7,7 +7,9 @@
     string Qte(decimal n) => n.ToString("0.##", fr);
     string S(decimal n) => n > 1 ? "s" : "";
     string E(string? s) => System.Net.WebUtility.HtmlEncode(s ?? "");
-    var admin = User.HasClaim(AppClaimTypes.Profil, "Admin") || User.HasClaim(AppClaimTypes.Profil, "SuperAdmin");
+    var droitsU = Context.RequestServices.GetRequiredService<EasytransitCaisse.Services.DroitsUtilisateur>();
+    bool Peut(string d) => droitsU.Peut(d);
+    var admin = Peut("rapports_pdv");   // liens vers les rapports du point de vente
     var aujourdhui = DateTime.Today;
     var jour = aujourdhui.ToString("yyyy-MM-dd");
     var lundi = aujourdhui.AddDays(-(((int)aujourdhui.DayOfWeek + 6) % 7));
@@ -22,11 +24,11 @@
             + $"<div class=\"lav-ligne\">Aujourd'hui : <b>{Model.Tickets}</b> ticket{S(Model.Tickets)}</div>"
             + $"<div class=\"lav-ligne\">Panier moyen : <b>{Fcfa(panier)}</b> FCFA</div>"
             + $"<div class=\"lav-ligne\">Cette semaine : <b>{Fcfa(Model.CASemaine)}</b> FCFA</div>"),
-            rapportJour ?? "/Pos/Index"),
+            rapportJour ?? (Peut("vendre") ? "/Pos/Index" : null)),
         ("lav-indigo", "fa-chair", "Tables", Html.Raw($"<div class=\"lav-grand\">{Model.Occupees} <small>/ {Model.Tables} occupée{S(Model.Occupees)}</small></div>"
             + $"<div class=\"lav-ligne\">Couverts en salle : <b>{Model.CouvertsSalle}</b></div>"
             + $"<div class=\"lav-ligne\">En cours : <b>{Fcfa(Model.EnCours)}</b> FCFA ({Model.NbOuvertes} commande{S(Model.NbOuvertes)})</div>"),
-            "/Pos/Index"),
+            Peut("vendre") ? "/Pos/Index" : null),
         ("lav-ciel", "fa-users", "Couverts", Html.Raw($"<div class=\"lav-grand\">{Model.CouvertsJour} <small>servi{S(Model.CouvertsJour)} aujourd'hui</small></div>"
             + $"<div class=\"lav-ligne\">Par couvert : <b>{Fcfa(parCouvert)}</b> FCFA</div>"
             + $"<div class=\"lav-ligne\">Cette semaine : <b>{Model.CouvertsSemaine}</b></div>"),
@@ -34,11 +36,11 @@
         (Model.Attente >= 20 ? "lav-rouge" : "lav-ambre", "fa-fire-burner", "Cuisine et bar", Html.Raw($"<div class=\"lav-grand\">{Model.NbBons} <small>bon{S(Model.NbBons)} à préparer</small></div>"
             + $"<div class=\"lav-ligne\">Cuisine : <b>{Model.BonsCuisine}</b> · Bar : <b>{Model.BonsBar}</b></div>"
             + "<div class=\"lav-ligne\">" + (Model.NbBons > 0 ? $"Le plus ancien : <b>{Duree(Model.Attente)}</b> d'attente" : "Rien en attente.") + "</div>"),
-            "/Cuisine/Index"),
+            Peut("cuisine") ? "/Cuisine/Index" : null),
         ("lav-violet", "fa-motorcycle", "Livraisons", Html.Raw($"<div class=\"lav-grand\">{Model.ALivrer} <small>à livrer</small></div>"
             + $"<div class=\"lav-ligne\">À encaisser : <b>{Model.AEncaisser}</b> · <b>{Fcfa(Model.MontantAEncaisser)}</b> FCFA</div>"
             + $"<div class=\"lav-ligne\">Livrée{S(Model.Livrees)} aujourd'hui : <b>{Model.Livrees}</b></div>"),
-            admin ? "/RapportLivraison/Index" : "/Pos/Index"),
+            admin ? "/RapportLivraison/Index" : (Peut("vendre") ? "/Pos/Index" : null)),
         ("lav-vert", "fa-utensils", "Meilleures ventes", Html.Raw($"<div class=\"lav-grand\">{Qte(Model.ArticlesVendus)} <small>article{S(Model.ArticlesVendus)} vendu{S(Model.ArticlesVendus)}</small></div>"
             + "<div class=\"lav-ligne\">" + (Model.Top is { } top ? $"Le plus vendu : <b>{E(top.Nom)}</b> ({Qte(top.Qte)})" : "Aucune vente aujourd'hui.") + "</div>"
             + (Model.TopCategorie is { } cat ? $"<div class=\"lav-ligne\">Catégorie : <b>{E(cat.Nom)}</b> ({Fcfa(cat.CA)} FCFA)</div>" : "")),
@@ -46,11 +48,11 @@
         (Model.StockBas > 0 ? "lav-rouge" : "lav-ardoise", "fa-boxes-stacked", "Stock", Html.Raw($"<div class=\"lav-grand\">{Model.StockBas} <small>sous le seuil</small></div>"
             + $"<div class=\"lav-ligne\">En rupture : <b>{Model.Ruptures}</b></div>"
             + $"<div class=\"lav-ligne\">Produits suivis : <b>{Model.Suivis}</b></div>"),
-            admin ? "/Stock/Index" : null),
+            Peut("stock") ? "/Stock/Index" : null),
         ("lav-rose", "fa-cash-register", "Caisse", Html.Raw($"<div class=\"lav-grand\">{Fcfa(Model.Encaissements)} <small>FCFA encaissés</small></div>"
             + $"<div class=\"lav-ligne\">Pourboires : <b>{Fcfa(Model.Pourboires)}</b> FCFA</div>"
             + "<div class=\"lav-ligne\">" + (Model.Journees.Count > 0 ? $"Journée ouverte : <b>{E(string.Join(", ", Model.Journees.Select(j => j.Code)))}</b>" : "Aucune journée ouverte") + "</div>"),
-            Model.Journees.Count > 0 ? $"/JourneeCaisse/Details/{Model.Journees[0].Id}" : "/Caisse/Index"),
+            !Peut("caisses") ? null : Model.Journees.Count > 0 ? $"/JourneeCaisse/Details/{Model.Journees[0].Id}" : "/Caisse/Index"),
     };
 }
 <link rel="stylesheet" href="~/css/laverie.css" asp-append-version="true" />
@@ -58,8 +60,14 @@
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
     <div class="text-muted small">Restaurant · Bar · @aujourdhui.ToString("dd/MM/yyyy") · semaine du @lundi.ToString("dd/MM/yyyy")</div>
     <div class="d-flex gap-2">
-        <a class="btn btn-primary" href="/Pos/Index"><i class="fas fa-store"></i> Vendre</a>
-        <a class="btn btn-outline-primary" href="/Cuisine/Index"><i class="fas fa-fire-burner"></i> Écran cuisine / bar</a>
+        @if (Peut("vendre"))
+        {
+            <a class="btn btn-primary" href="/Pos/Index"><i class="fas fa-store"></i> Vendre</a>
+        }
+        @if (Peut("cuisine"))
+        {
+            <a class="btn btn-outline-primary" href="/Cuisine/Index"><i class="fas fa-fire-burner"></i> Écran cuisine / bar</a>
+        }
         @if (admin)
         {
             <a class="btn btn-outline-primary" href="/PosRapport/Index"><i class="fas fa-chart-line"></i> Rapports des ventes</a>

@@ -32,7 +32,7 @@ namespace EasytransitCaisse.Controllers
                 poste = poste is "Cuisine" or "Bar" ? poste : "",
                 urlBons = $"/Cuisine/Bons?caisse={choisie.ID}",
                 urlStatut = "/Cuisine/Statut",
-                urlRetour = "/Dashboard/Index",
+                urlRetour = "/Auth/Accueil",
                 jeton = new { nom = jetons.FormFieldName, valeur = jetons.RequestToken }
             };
             return View();

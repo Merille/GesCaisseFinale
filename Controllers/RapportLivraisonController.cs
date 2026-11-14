@@ -12,7 +12,6 @@ namespace EasytransitCaisse.Controllers
     // montant des ventes, frais de livraison) et détail des livraisons — ventes livrées ou à livrer,
     // et commandes confiées au livreur, à encaisser à son retour. Les ventes annulées sont exclues.
     // Impression / PDF et export Excel. Même fonctionnement que la version PHP (rapportlivraison.php).
-    [Authorize(Policy = "Admin")]
     public class RapportLivraisonController : Controller
     {
         private readonly AppDbContext _context;

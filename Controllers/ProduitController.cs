@@ -13,7 +13,6 @@ namespace EasytransitCaisse.Controllers
     // Produits du point de vente : liste, fiche, suppression, export / import Excel.
     // Réservé aux profils Admin et SuperAdmin. Le prix de vente est saisi TTC ; un produit
     // peut porter plusieurs taxes (TVA, CSS…) qui s'additionnent sur le HT.
-    [Authorize(Policy = "Admin")]
     public class ProduitController : Controller
     {
         // Colonnes du fichier Excel (export et import), dans cet ordre.

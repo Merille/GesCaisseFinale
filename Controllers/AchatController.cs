@@ -24,7 +24,6 @@ namespace EasytransitCaisse.Controllers
     // créé au besoin), qui ne sert à aucune caisse ; l'onglet « Dépôt des achats » en suit les entrées,
     // les sorties et le stock.
     // Réservé aux profils Admin et SuperAdmin. Même fonctionnement que la version PHP (achat.php).
-    [Authorize(Policy = "Admin")]
     public class AchatController : Controller
     {
         public static readonly (string Code, string Libelle)[] Paiements =

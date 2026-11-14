@@ -1,7 +1,10 @@
 <?php $titre = 'Utilisateurs'; ?>
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h4 class="mb-0">Utilisateurs</h4>
-    <a href="<?= h(url('utilisateur/create')) ?>" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalCreation"><i class="fa fa-plus"></i> Nouvel utilisateur</a>
+    <div class="d-flex gap-2">
+        <a href="<?= h(url('profil/index')) ?>" class="btn btn-outline-primary"><i class="fa fa-user-lock"></i> Profils et droits</a>
+        <a href="<?= h(url('utilisateur/create')) ?>" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalCreation"><i class="fa fa-plus"></i> Nouvel utilisateur</a>
+    </div>
 </div>
 <div class="card shadow-sm border-0">
     <div class="card-body table-responsive">
@@ -12,7 +15,7 @@
                 <tr>
                     <td><?= h($u['NomUtilisateur']) ?></td>
                     <td><?= h($u['NomComplet']) ?></td>
-                    <td><span class="badge bg-info text-dark"><?= h($u['Profil']) ?></span></td>
+                    <td><span class="badge <?= in_array($u['Profil'], ['Admin', 'SuperAdmin'], true) ? 'bg-dark' : 'bg-info text-dark' ?>"><?= h($u['Profil'] === 'Admin' ? 'Administrateur' : $u['Profil']) ?></span></td>
                     <?php if (is_super_admin()): ?><td><?= $u['Societe'] ? h($u['Societe']) : '<span class="text-muted">Toutes</span>' ?></td><?php endif; ?>
                     <td><?= $u['PeutValiderOperations'] ? '<span class="badge bg-success">Peut valider / rejeter</span>' : '' ?>
                         <?php if (in_array($u['Profil'], ['Admin', 'SuperAdmin'], true)): ?><span class="badge text-bg-light border">Remises sans limite</span>
@@ -21,7 +24,7 @@
                         <a href="<?= h(url('utilisateur/edit', ['id' => $u['Id']])) ?>" class="btn btn-warning btn-sm"
                            data-utilisateur="<?= h(json_encode([
                                'action' => url('utilisateur/edit', ['id' => $u['Id']]),
-                               'NomUtilisateur' => $u['NomUtilisateur'], 'NomComplet' => $u['NomComplet'], 'Profil' => $u['Profil'], 'TenantId' => $u['TenantId'],
+                               'NomUtilisateur' => $u['NomUtilisateur'], 'NomComplet' => $u['NomComplet'], 'Profil' => utilisateur_valeur_profil($u), 'TenantId' => $u['TenantId'],
                                'PeutValiderOperations' => (bool) $u['PeutValiderOperations'], 'PeutRemise' => (bool) ($u['PeutRemise'] ?? false),
                                'RemiseMax' => isset($u['RemiseMax']) && $u['RemiseMax'] !== null ? quantite_fr((float) $u['RemiseMax']) : '',
                            ])) ?>">Modifier</a>
@@ -37,7 +40,7 @@
     </div>
 </div>
 
-<?= partial('utilisateur/form', ['u' => ['Profil' => 'Caissier', 'TenantId' => tenant_id() ?: null], 'edition' => false, 'societes' => $societes, 'profils' => $profils, 'modale' => true]) ?>
+<?= partial('utilisateur/form', ['u' => ['Profil' => '', 'TenantId' => tenant_id() ?: null], 'edition' => false, 'societes' => $societes, 'profils' => $profils, 'modale' => true]) ?>
 <?= partial('utilisateur/form', ['u' => [], 'societes' => $societes, 'profils' => $profils, 'modale' => true, 'modification' => true]) ?>
 <?php ob_start(); ?>
 <script>

@@ -68,6 +68,7 @@ function tenant_create(): void
                 taxes_initiales($id);
                 unites_initiales($id);
                 compte_mode_initial($id);
+                profils_initiaux($id);
                 enregistrer_image('logo', $id, $logo, false);
                 db()->commit();
             } catch (Throwable $e) {
