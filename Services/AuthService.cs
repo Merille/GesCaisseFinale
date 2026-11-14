@@ -15,29 +15,17 @@ namespace EasytransitCaisse.Services
             _context = context;
         }
 
-        // HASH PASSWORD
-        public string HashPassword(string password)
-        {
-            using var sha = SHA256.Create();
-            var bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(password));
-            return Convert.ToBase64String(bytes);
-        }
-
         // LOGIN
         public async Task<Utilisateur?> Login(string username, string password)
         {
-            var hash = HashPassword(password);
-
-            return await _context.Utilisateurs
-                .FirstOrDefaultAsync(u =>
-                    u.NomUtilisateur == username &&
-                    u.MotPasse == hash);
+            var user = await _context.Utilisateurs.FirstOrDefaultAsync(u => u.NomUtilisateur == username);
+            return user != null && MotsDePasse.Verifier(password, user.MotPasse) ? user : null;
         }
 
         // REGISTER
         public async Task<Utilisateur> Register(Utilisateur user)
         {
-            user.MotPasse = HashPassword(user.MotPasse);
+            user.MotPasse = EasytransitCaisse.Services.MotsDePasse.Hacher(user.MotPasse);
 
             _context.Utilisateurs.Add(user);
             await _context.SaveChangesAsync();

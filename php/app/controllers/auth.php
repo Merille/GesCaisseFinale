@@ -9,6 +9,13 @@ function auth_login(): void
         $nom = (string) post('username', '');
         $mdp = (string) post('password', '');
 
+        $ip = adresse_client();
+        $attente = connexion_bloquee($nom, $ip);
+        if ($attente > 0) {
+            render('auth/login', ['erreur' => 'Trop de tentatives de connexion. Réessayez dans ' . $attente . ' minute' . ($attente > 1 ? 's' : '') . '.'], false);
+            return;
+        }
+
         // Le nom d'utilisateur est unique pour toutes les sociétés.
         $u = q1(
             'SELECT u.*, t.Nom AS TenantNom
@@ -16,10 +23,13 @@ function auth_login(): void
              WHERE u.NomUtilisateur = ?',
             [$nom]
         );
+        // Utilisateur inconnu : même calcul, pour ne pas révéler par le temps de réponse si le compte existe.
+        $ok = verifier_mdp($mdp, $u['MotPasse'] ?? 'pbkdf2_sha512$' . MDP_ITERATIONS . '$AAAAAAAAAAAAAAAAAAAAAA==$AAAA');
 
-        if ($u && verifier_mdp($mdp, $u['MotPasse'])) {
-            // Ancien format de mot de passe (.NET) : converti en bcrypt.
-            if (!str_starts_with($u['MotPasse'], '$')) {
+        if ($u && $ok) {
+            connexion_reussie($nom);
+            // Ancien format de mot de passe : remplacé par le format actuel.
+            if (mdp_a_mettre_a_niveau($u['MotPasse'])) {
                 run('UPDATE Utilisateurs SET MotPasse = ? WHERE Id = ?', [hash_mdp($mdp), $u['Id']]);
             }
             session_regenerate_id(true);
@@ -35,6 +45,7 @@ function auth_login(): void
             unset($_SESSION['consultation']);
             redirect('dashboard/index');
         }
+        connexion_echec($nom, $ip);
         $erreur = 'Utilisateur ou mot de passe incorrect';
     }
 

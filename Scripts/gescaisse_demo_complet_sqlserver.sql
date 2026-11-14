@@ -237,6 +237,16 @@ CREATE TABLE [Tenants] (
 GO
 
 
+CREATE TABLE [TentativesConnexion] (
+    [Id] int NOT NULL IDENTITY,
+    [NomUtilisateur] nvarchar(100) NOT NULL,
+    [AdresseIp] nvarchar(45) NOT NULL,
+    [DateTentative] datetime2 NOT NULL,
+    CONSTRAINT [PK_TentativesConnexion] PRIMARY KEY ([Id])
+);
+GO
+
+
 CREATE TABLE [Unites] (
     [Id] int NOT NULL IDENTITY,
     [TenantId] int NOT NULL,
@@ -960,6 +970,14 @@ CREATE INDEX [IX_TablesRestaurant_SalleId] ON [TablesRestaurant] ([SalleId]);
 GO
 
 
+CREATE INDEX [IX_TentativesConnexion_AdresseIp_DateTentative] ON [TentativesConnexion] ([AdresseIp], [DateTentative]);
+GO
+
+
+CREATE INDEX [IX_TentativesConnexion_NomUtilisateur_DateTentative] ON [TentativesConnexion] ([NomUtilisateur], [DateTentative]);
+GO
+
+
 CREATE UNIQUE INDEX [IX_Unites_TenantId_Nom] ON [Unites] ([TenantId], [Nom]);
 GO
 
@@ -1017,7 +1035,8 @@ INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion]) VALUES
     (N'20261112202612_HorsLigne', N'10.0.9'),
     (N'20261112210405_AttenteHorsLigne', N'10.0.9'),
     (N'20261113052742_PostesHorsLigne', N'10.0.9'),
-    (N'20261113173927_DroitRemise', N'10.0.9');
+    (N'20261113173927_DroitRemise', N'10.0.9'),
+    (N'20261114091147_TentativesConnexion', N'10.0.9');
 GO
 
 -- =====================================================================
@@ -1064,6 +1083,7 @@ ALTER TABLE [TablesRestaurant] NOCHECK CONSTRAINT ALL;
 ALTER TABLE [Taxes] NOCHECK CONSTRAINT ALL;
 ALTER TABLE [TenantLogos] NOCHECK CONSTRAINT ALL;
 ALTER TABLE [Tenants] NOCHECK CONSTRAINT ALL;
+ALTER TABLE [TentativesConnexion] NOCHECK CONSTRAINT ALL;
 ALTER TABLE [Unites] NOCHECK CONSTRAINT ALL;
 ALTER TABLE [Utilisateurs] NOCHECK CONSTRAINT ALL;
 ALTER TABLE [VarianteValeurs] NOCHECK CONSTRAINT ALL;
@@ -3221,6 +3241,7 @@ ALTER TABLE [TablesRestaurant] WITH CHECK CHECK CONSTRAINT ALL;
 ALTER TABLE [Taxes] WITH CHECK CHECK CONSTRAINT ALL;
 ALTER TABLE [TenantLogos] WITH CHECK CHECK CONSTRAINT ALL;
 ALTER TABLE [Tenants] WITH CHECK CHECK CONSTRAINT ALL;
+ALTER TABLE [TentativesConnexion] WITH CHECK CHECK CONSTRAINT ALL;
 ALTER TABLE [Unites] WITH CHECK CHECK CONSTRAINT ALL;
 ALTER TABLE [Utilisateurs] WITH CHECK CHECK CONSTRAINT ALL;
 ALTER TABLE [VarianteValeurs] WITH CHECK CHECK CONSTRAINT ALL;

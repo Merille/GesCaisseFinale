@@ -18,7 +18,7 @@ namespace EasytransitCaisse.Data
                     NomComplet = "Super Administrateur",
                     Profil = "SuperAdmin",
                     TenantId = null,
-                    MotPasse = HashPassword("123")
+                    MotPasse = EasytransitCaisse.Services.MotsDePasse.Hacher("123")
                 });
 
                 context.SaveChanges();
@@ -45,7 +45,7 @@ namespace EasytransitCaisse.Data
                     NomComplet = "Administrateur",
                     Profil = "Admin",
                     TenantId = tenant.Id,
-                    MotPasse = HashPassword("123")
+                    MotPasse = EasytransitCaisse.Services.MotsDePasse.Hacher("123")
                 });
 
                 context.Caisses.Add(new Caisse
@@ -62,13 +62,6 @@ namespace EasytransitCaisse.Data
 
                 context.SaveChanges();
             }
-        }
-
-        private static string HashPassword(string password)
-        {
-            using var sha = SHA256.Create();
-            var bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(password));
-            return Convert.ToBase64String(bytes);
         }
     }
 }

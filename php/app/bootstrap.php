@@ -241,21 +241,88 @@ function societe_bloquee(array $tenant): bool
 }
 
 // ---------------------------------------------------------------------------
-// Mots de passe (bcrypt ; compatibilité avec le format SHA-256 de la version .NET)
+// Mots de passe : PBKDF2-HMAC-SHA512 salé, format commun aux versions PHP et .NET :
+// « pbkdf2_sha512$itérations$sel$empreinte » (sel de 16 octets, empreinte de 64 octets, en Base64).
+// Anciens formats encore acceptés à la connexion puis remplacés : bcrypt (PHP) et
+// Base64(SHA-256) sans sel (anciennes versions .NET et données de démonstration).
 // ---------------------------------------------------------------------------
+
+const MDP_ITERATIONS = 210000;
 
 function hash_mdp(string $mdp): string
 {
-    return password_hash($mdp, PASSWORD_DEFAULT);
+    $sel = random_bytes(16);
+    return 'pbkdf2_sha512$' . MDP_ITERATIONS . '$' . base64_encode($sel) . '$'
+        . base64_encode(hash_pbkdf2('sha512', $mdp, $sel, MDP_ITERATIONS, 64, true));
 }
 
 function verifier_mdp(string $mdp, string $hash): bool
 {
+    if (str_starts_with($hash, 'pbkdf2_sha512$')) {
+        $p = explode('$', $hash);
+        if (count($p) !== 4 || (int) $p[1] < 1000 || (int) $p[1] > 5000000) {
+            return false;
+        }
+        $sel = base64_decode($p[2], true);
+        $attendu = base64_decode($p[3], true);
+        if ($sel === false || $attendu === false || $attendu === '') {
+            return false;
+        }
+        return hash_equals($attendu, hash_pbkdf2('sha512', $mdp, $sel, (int) $p[1], strlen($attendu), true));
+    }
     if (str_starts_with($hash, '$2y$') || str_starts_with($hash, '$argon')) {
         return password_verify($mdp, $hash);
     }
-    // Ancien format .NET : Base64(SHA-256(mot de passe)).
-    return hash_equals($hash, base64_encode(hash('sha256', $mdp, true)));
+    // Ancien format : Base64(SHA-256(mot de passe)), sans sel.
+    return $hash !== '' && hash_equals($hash, base64_encode(hash('sha256', $mdp, true)));
+}
+
+/** Le mot de passe enregistré est-il dans un ancien format (à remplacer à la prochaine connexion) ? */
+function mdp_a_mettre_a_niveau(string $hash): bool
+{
+    return !str_starts_with($hash, 'pbkdf2_sha512$' . MDP_ITERATIONS . '$');
+}
+
+// ---------------------------------------------------------------------------
+// Limite des tentatives de connexion : après 5 échecs en 15 minutes pour un même nom
+// d'utilisateur depuis une même adresse, ou 20 échecs depuis une même adresse, la connexion
+// est refusée jusqu'à 15 minutes après le premier de ces échecs (mot de passe non vérifié).
+// ---------------------------------------------------------------------------
+
+const CONNEXION_FENETRE = 15;      // minutes
+const CONNEXION_MAX_COMPTE = 5;
+const CONNEXION_MAX_ADRESSE = 20;
+
+function adresse_client(): string
+{
+    return substr((string) ($_SERVER['REMOTE_ADDR'] ?? ''), 0, 45);
+}
+
+/** Minutes d'attente avant de pouvoir réessayer (0 : connexion permise). */
+function connexion_bloquee(string $nom, string $ip): int
+{
+    $depuis = date('Y-m-d H:i:s', time() - CONNEXION_FENETRE * 60);
+    $fin = 0;
+    foreach ([['NomUtilisateur = ? AND AdresseIp = ?', [$nom, $ip], CONNEXION_MAX_COMPTE],
+              ['AdresseIp = ?', [$ip], CONNEXION_MAX_ADRESSE]] as [$cond, $params, $max]) {
+        $dates = array_column(q("SELECT DateTentative FROM TentativesConnexion WHERE $cond AND DateTentative >= ?
+                                 ORDER BY DateTentative DESC LIMIT $max", array_merge($params, [$depuis])), 'DateTentative');
+        if (count($dates) >= $max) {
+            $fin = max($fin, strtotime(end($dates)) + CONNEXION_FENETRE * 60);
+        }
+    }
+    return $fin > time() ? (int) ceil(($fin - time()) / 60) : 0;
+}
+
+function connexion_echec(string $nom, string $ip): void
+{
+    run('DELETE FROM TentativesConnexion WHERE DateTentative < ?', [date('Y-m-d H:i:s', time() - 86400)]);
+    run('INSERT INTO TentativesConnexion (NomUtilisateur, AdresseIp, DateTentative) VALUES (?, ?, ?)', [mb_substr($nom, 0, 100), $ip, date('Y-m-d H:i:s')]);
+}
+
+function connexion_reussie(string $nom): void
+{
+    run('DELETE FROM TentativesConnexion WHERE NomUtilisateur = ?', [$nom]);
 }
 
 // ---------------------------------------------------------------------------

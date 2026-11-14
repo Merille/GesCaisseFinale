@@ -125,7 +125,7 @@ namespace EasytransitCaisse.Controllers
                 return View(user);
             }
 
-            user.MotPasse = HashPassword(user.MotPasse);
+            user.MotPasse = EasytransitCaisse.Services.MotsDePasse.Hacher(user.MotPasse);
             _context.Utilisateurs.Add(user);
             _context.SaveChanges();
             TempData["Success"] = "Utilisateur créé.";
@@ -179,7 +179,7 @@ namespace EasytransitCaisse.Controllers
             existing.TenantId = user.TenantId;
             // Mot de passe changé seulement s'il est saisi.
             if (!string.IsNullOrEmpty(user.MotPasse))
-                existing.MotPasse = HashPassword(user.MotPasse);
+                existing.MotPasse = EasytransitCaisse.Services.MotsDePasse.Hacher(user.MotPasse);
 
             _context.SaveChanges();
             TempData["Success"] = "Utilisateur modifié.";
@@ -210,14 +210,6 @@ namespace EasytransitCaisse.Controllers
             }
 
             return RedirectToAction("Index");
-        }
-
-        // HASH PASSWORD
-        private string HashPassword(string password)
-        {
-            using var sha = SHA256.Create();
-            var bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(password));
-            return Convert.ToBase64String(bytes);
         }
     }
 }

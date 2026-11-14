@@ -496,6 +496,7 @@ INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('023_hors_
 INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('024_attente_hors_ligne.sql','2026-11-12 00:00:00');
 INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('025_postes_hors_ligne.sql','2026-11-13 00:00:00');
 INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('026_droit_remise.sql','2026-11-13 00:00:00');
+INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('027_tentatives_connexion.sql','2026-11-14 00:00:00');
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `ModesPaiement` (
@@ -782,6 +783,16 @@ CREATE TABLE `Taxes` (
 
 INSERT INTO `Taxes` (`Id`, `TenantId`, `Code`, `Libelle`, `Taux`, `ParDefaut`) VALUES (1,1,'TVA','Taxe sur la valeur ajoutée',18.00,1);
 INSERT INTO `Taxes` (`Id`, `TenantId`, `Code`, `Libelle`, `Taux`, `ParDefaut`) VALUES (2,1,'CSS','Contribution spéciale de solidarité',1.00,0);
+CREATE TABLE `TentativesConnexion` (
+  `Id` int NOT NULL AUTO_INCREMENT,
+  `NomUtilisateur` varchar(100) NOT NULL,
+  `AdresseIp` varchar(45) NOT NULL,
+  `DateTentative` datetime NOT NULL,
+  PRIMARY KEY (`Id`),
+  KEY `IX_TentativesConnexion_Adresse` (`AdresseIp`,`DateTentative`),
+  KEY `IX_TentativesConnexion_Nom` (`NomUtilisateur`,`DateTentative`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `TenantLogos` (

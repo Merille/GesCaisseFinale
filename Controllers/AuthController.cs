@@ -7,8 +7,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
-using System.Security.Cryptography;
-using System.Text;
 
 namespace EasytransitCaisse.Controllers
 {
@@ -28,36 +26,46 @@ namespace EasytransitCaisse.Controllers
             return View();
         }
 
-        // HASH PASSWORD
-        private string HashPassword(string password)
-        {
-            using var sha = SHA256.Create();
-            var bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(password));
-            return Convert.ToBase64String(bytes);
-        }
-
         [HttpPost]
         public async Task<IActionResult> Login(LoginViewModel model)
         {
             if (!ModelState.IsValid)
                 return View(model);
 
-            var hash = HashPassword(model.Password);
+            var nom = model.Username ?? "";
+            var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "";
+            if (ip.Length > 45) ip = ip[..45];
+            var attente = await LimiteConnexion.BloqueeAsync(_context, nom, ip);
+            if (attente > 0)
+            {
+                ViewBag.Error = $"Trop de tentatives de connexion. Réessayez dans {attente} minute{(attente > 1 ? "s" : "")}.";
+                model.Password = "";
+                return View(model);
+            }
 
             // Le username est global (pas de filtre tenant ici : on ne connaît
             // pas encore le tenant tant que l'utilisateur n'est pas identifié).
-            var user = _context.Utilisateurs
+            var user = await _context.Utilisateurs
                 .IgnoreQueryFilters()
                 .Include(u => u.Tenant)
-                .FirstOrDefault(u =>
-                    u.NomUtilisateur == model.Username &&
-                    u.MotPasse == hash);
+                .FirstOrDefaultAsync(u => u.NomUtilisateur == nom);
+            // Utilisateur inconnu : même calcul, pour ne pas révéler par le temps de réponse si le compte existe.
+            var ok = MotsDePasse.Verifier(model.Password ?? "", user?.MotPasse ?? MotsDePasse.Factice);
 
-            if (user == null)
+            if (user == null || !ok)
             {
+                await LimiteConnexion.EchecAsync(_context, nom, ip);
                 ViewBag.Error = "Utilisateur ou mot de passe incorrect";
                 model.Password = "";
                 return View(model);
+            }
+
+            await LimiteConnexion.ReussieAsync(_context, nom);
+            // Ancien format de mot de passe : remplacé par le format actuel.
+            if (MotsDePasse.AMettreANiveau(user.MotPasse))
+            {
+                user.MotPasse = MotsDePasse.Hacher(model.Password ?? "");
+                await _context.SaveChangesAsync();
             }
 
             var claims = new List<Claim>

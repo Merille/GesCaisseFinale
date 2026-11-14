@@ -63,7 +63,7 @@ const fiche = [
         ['Projet', 'GesCaisse — gestion de caisse et point de vente (POS)'],
         ['Éditeur', 'M-ITECH AFRICA'],
         ['Versions', 'ASP.NET Core (.NET 10) / SQL Server — PHP 8 / MySQL'],
-        ['Version du document', '4.2'],
+        ['Version du document', '4.3'],
         ['Date', 'Novembre 2026'],
         ['Statut', 'Document de référence (fonctionnalités réalisées)']
     ], [3000, 6638])
@@ -337,7 +337,9 @@ const contenu = [
     puce('Saisies courtes (nouvel élément, combo) dans des fenêtres modales, sans quitter la liste.'),
     puce('Écrans du point de vente et de la cuisine conçus pour tablettes et écrans tactiles.'),
     h2('8.2 Sécurité'),
-    puce('Authentification obligatoire ; mots de passe hachés ; profils et droits vérifiés côté serveur.'),
+    puce('Authentification obligatoire ; profils et droits vérifiés côté serveur.'),
+    puce('Mots de passe hachés avec PBKDF2-HMAC-SHA512 salé (sel aléatoire de 16 octets, 210 000 itérations), format commun aux deux versions (« pbkdf2_sha512$itérations$sel$empreinte ») : une base peut passer d\'une version à l\'autre sans changer les mots de passe. Anciens formats (SHA-256 sans sel, bcrypt de la version PHP) encore acceptés à la connexion puis remplacés automatiquement par le nouveau format ; comparaison en temps constant ; même calcul pour un compte inconnu.'),
+    puce('Limite des tentatives de connexion : après 5 échecs en 15 minutes pour un même nom d\'utilisateur depuis une même adresse IP, ou 20 échecs depuis une même adresse, la connexion est refusée (« Trop de tentatives de connexion. Réessayez dans N minutes. ») jusqu\'à 15 minutes après le premier de ces échecs, sans vérifier le mot de passe ; une connexion réussie efface les échecs du compte ; échecs conservés 24 heures (table TentativesConnexion).'),
     puce('Protection CSRF sur tous les formulaires et appels du point de vente.'),
     puce('Cloisonnement des données par société dans toutes les requêtes.'),
     puce('Prix et remises recontrôlés par le serveur à chaque vente (aucune confiance accordée au navigateur).'),

@@ -98,7 +98,7 @@ const fiche = [
         ['Application', 'GesCaisse — gestion de caisse et point de vente (POS)'],
         ['Éditeur', 'M-ITECH AFRICA'],
         ['Public', 'Administrateurs, caissiers, vendeurs et serveurs des sociétés clientes'],
-        ['Version du document', '4.0'],
+        ['Version du document', '4.1'],
         ['Date', 'Novembre 2026']
     ], [3000, 6638])
 ];
@@ -169,6 +169,7 @@ const contenu = [
         'Cliquez sur **Se connecter** (ou appuyez sur Entrée).'
     ]),
     ...figure('01_connexion', 'Page de connexion'),
+    attention('Après **5 essais de mot de passe erronés** en 15 minutes, la connexion à ce compte est bloquée pendant 15 minutes depuis ce poste (message « Trop de tentatives de connexion »), même avec le bon mot de passe. Patientez, ou demandez à votre administrateur de vérifier votre mot de passe.'),
     attention('Si la licence de votre société a expiré, une page « compte suspendu » s’affiche après la connexion. Contactez votre fournisseur pour la renouveler.'),
     h2('2.2 L’écran principal'),
     p('Après la connexion, l’application s’ouvre sur le tableau de bord. L’écran comporte :'),
@@ -717,6 +718,7 @@ const contenu = [
     ...figure('40_ma_societe', 'Ma société'),
     h2('12.2 Utilisateurs'),
     p('Créez un compte pour chaque personne : **Nom d’utilisateur** (identifiant de connexion), **Nom complet**, **Mot de passe**, **Profil** et, si besoin, les droits **Peut valider / rejeter les opérations de caisse** et **Peut accorder des remises au point de vente**. Le bouton **Modifier** d’une ligne ouvre la fiche de l’utilisateur dans une fenêtre, sans quitter la liste. Pour changer le mot de passe d’un utilisateur, modifiez son compte et saisissez le nouveau mot de passe (laissé vide, il ne change pas).'),
+    astuce('À l’installation, changez tout de suite les mots de passe des comptes livrés (**superadmin** et **admin**, mot de passe « 123 »). Choisissez des mots de passe d’au moins 8 caractères, difficiles à deviner.'),
     ...figure('50b_droit_remise', 'Modification d’un utilisateur dans une fenêtre : droit de remise et remise maximale'),
     pt('Droit de remise', 'cochez **Peut accorder des remises au point de vente** pour autoriser la remise sur un article et la remise globale. **Remise maximale (%)** : laissez vide pour ne pas limiter, ou indiquez un plafond (par exemple 10). Le serveur vérifie aussi ce droit : une remise non autorisée est refusée à l’encaissement et au dépôt de linge. Le changement s’applique tout de suite, sans reconnexion. Un nouvel utilisateur n’a pas ce droit ; les utilisateurs existants l’ont gardé lors de la mise à jour, sans limite.'),
     ...figure('41_utilisateurs', 'Utilisateurs'),

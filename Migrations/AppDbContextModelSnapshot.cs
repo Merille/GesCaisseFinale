@@ -1891,6 +1891,36 @@ namespace EasytransitCaisse.Migrations
                     b.ToTable("TenantLogos");
                 });
 
+            modelBuilder.Entity("EasytransitCaisse.Models.TentativeConnexion", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AdresseIp")
+                        .IsRequired()
+                        .HasMaxLength(45)
+                        .HasColumnType("nvarchar(45)");
+
+                    b.Property<DateTime>("DateTentative")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("NomUtilisateur")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AdresseIp", "DateTentative");
+
+                    b.HasIndex("NomUtilisateur", "DateTentative");
+
+                    b.ToTable("TentativesConnexion", (string)null);
+                });
+
             modelBuilder.Entity("EasytransitCaisse.Models.UniteVente", b =>
                 {
                     b.Property<int>("Id")
