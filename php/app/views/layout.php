@@ -19,7 +19,7 @@ if (is_super_admin()) {
 $nbJourneesOuvertes = (int) qv("SELECT COUNT(*) FROM JourneesCaisses WHERE Statut = 'Ouverte' AND " . tf());
 
 $rubrique = match ($module) {
-    'dashboard', 'caisse', 'journee', 'client', 'facture' => 'Activité',
+    'dashboard', 'tableaulaverie', 'caisse', 'journee', 'client', 'facture' => 'Activité',
     'rapport', 'rapporttiers' => 'Analyse',
     'pos', 'vente', 'stock', 'posrapport', 'rapportlivraison', 'rapportlinge', 'rapportachat', 'achat', 'cuisine', 'synchro' => 'Point de vente',
     'salle' => 'Activité',
@@ -97,6 +97,10 @@ $badge = $nbJourneesOuvertes > 0
         <div class="sb-section">
             <div class="sb-section-title">Activité</div>
             <?= $lien('dashboard/index', 'dashboard', 'fa-house', 'Tableau de bord') ?>
+            <?php // Laverie : tableau de bord en tuiles (page à part ; le tableau de bord général ne change pas). ?>
+            <?php if (laverie_actif() && module_pos_actif()): ?>
+                <?= $lien('tableaulaverie/index', 'tableaulaverie', 'fa-shirt', 'Tableau de bord laverie') ?>
+            <?php endif; ?>
             <?= $lien('caisse/index', 'caisse|journee', 'fa-cash-register', 'Caisses', $badge) ?>
             <?= $lien('client/index', 'client', 'fa-address-book', 'Tiers') ?>
             <?php // Factures : module masqué, comme dans la version .NET (pages toujours accessibles). ?>

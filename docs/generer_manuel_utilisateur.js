@@ -98,7 +98,7 @@ const fiche = [
         ['Application', 'GesCaisse — gestion de caisse et point de vente (POS)'],
         ['Éditeur', 'M-ITECH AFRICA'],
         ['Public', 'Administrateurs, caissiers, vendeurs et serveurs des sociétés clientes'],
-        ['Version du document', '3.8'],
+        ['Version du document', '3.9'],
         ['Date', 'Novembre 2026']
     ], [3000, 6638])
 ];
@@ -192,6 +192,13 @@ const contenu = [
     pt('À traiter', 'opérations en attente de validation, décaissements sans justificatif, journées ouvertes depuis plus de 24 heures. Cliquez sur une alerte pour ouvrir la liste correspondante.'),
     pt('Flux des 7 derniers jours et État des caisses', 'graphique des entrées et sorties, et situation de chaque caisse (ouverte ou clôturée, solde).'),
     p('Le bouton **Nouvelle opération** permet de saisir directement un encaissement ou un décaissement dans une journée ouverte.'),
+    p('**Laverie.** Si votre société a une caisse de type **Laverie**, le menu **Activité** propose en plus **Tableau de bord laverie**, juste sous le tableau de bord général (qui reste inchangé). Cette page résume l’activité de la laverie en tuiles de couleur ; un clic sur une tuile ouvre la page détaillée (le rapport des dépôts déjà filtré, la liste des tiers, les produits, le stock des produits d’entretien ou la journée de caisse ouverte ; pour un caissier, l’écran de vente).'),
+    ...figure('02i_tableau_laverie', 'Tableau de bord laverie'),
+    pt('Dépôts et Retraits', 'nombre du jour, articles et montant déposés, montant encaissé aux retraits, et total de la semaine.'),
+    pt('À retirer et En retard', 'linge pas encore remis (dont prêt à remettre), reste à encaisser ; la tuile **En retard** devient rouge dès qu’un dépôt a dépassé sa date de retrait prévue et indique le plus ancien retard.'),
+    pt('Clients et Articles', 'clients servis ce mois, fiches clients, montant dû par les clients en compte ; articles en vente, catégories et article le plus déposé du mois.'),
+    pt('Produits d’entretien et Caisse', 'produits à racheter, valeur du stock et achats du mois ; montant encaissé aujourd’hui sur les caisses Laverie et journée ouverte.'),
+    p('Sous les tuiles : le graphique des dépôts et retraits des 14 derniers jours, la liste du linge **prêt à remettre** et celle du linge **en retard** (avec le nombre de jours de retard et le reste à payer). Le bouton **Vendre / déposer** ouvre l’écran de vente.'),
     h2('2.4 Les notifications (cloche)'),
     p('La **cloche**, en haut à droite de chaque page, rassemble ce qui attend une action. Quand il y a quelque chose à traiter, elle s’allume et une pastille rouge indique le nombre total d’éléments ; cliquez dessus pour ouvrir la liste, puis sur une ligne pour aller directement à la bonne page.'),
     ...figure('02b_cloche', 'Notifications de la cloche'),

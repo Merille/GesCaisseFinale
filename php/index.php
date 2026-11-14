@@ -7,6 +7,7 @@ require __DIR__ . '/app/bootstrap.php';
 $routes = [
     'auth'        => ['login', 'logout', 'suspendue'],
     'dashboard'   => ['index'],
+    'tableaulaverie' => ['index'],
     'caisse'      => ['index', 'create', 'edit', 'delete', 'details', 'print'],
     'journee'     => ['create', 'details', 'operation', 'reglement', 'validation', 'cloturer', 'supprimer', 'printoperations', 'printjournees'],
     'client'      => ['index', 'create', 'edit', 'delete', 'export', 'import'],
