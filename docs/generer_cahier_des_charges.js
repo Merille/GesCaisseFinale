@@ -63,7 +63,7 @@ const fiche = [
         ['Projet', 'GesCaisse — gestion de caisse et point de vente (POS)'],
         ['Éditeur', 'M-ITECH AFRICA'],
         ['Versions', 'ASP.NET Core (.NET 10) / SQL Server — PHP 8 / MySQL'],
-        ['Version du document', '4.8'],
+        ['Version du document', '4.9'],
         ['Date', 'Novembre 2026'],
         ['Statut', 'Document de référence (fonctionnalités réalisées)']
     ], [3000, 6638])
@@ -183,6 +183,7 @@ const contenu = [
     puce('Création, modification, suppression (refusée si la caisse a des journées), impression de la liste.'),
     puce('Informations : code, description, caissier par défaut, compte comptable (contrepartie Sage).'),
     puce('Type de point de vente : Vente en détail, Restaurant, Bar ou Laverie ; option d\'impression des bons de préparation (proposée seulement pour une caisse Restaurant ou Bar). Une laverie vend au comptoir comme la vente en détail (prestations sans suivi de stock et produits en stock) ; seuls le titre de l\'écran de vente et l\'icône du type changent.'),
+    puce('Grille tarifaire de pressing : un article à plusieurs prix selon la prestation est un produit à variantes (attribut « Prestation » : Lavage, Express, Repassage, Enfants), une variante par prix présent dans la grille ; à la caisse, la tuile de l\'article ouvre le choix de la prestation avec son prix, et la ligne du ticket porte le nom de l\'article suivi de la prestation (ex. « Chemise cintrée Express »). Un article à prix unique (ex. Teinture) est un produit simple, ajouté directement. Les catégories reprennent les familles d\'articles du pressing (en majuscules).'),
     puce('Dépôt de la caisse (principal) : dépôt d\'où sortent d\'abord les ventes de la caisse et où reviennent ses retours. Facultatif : sans dépôt choisi, la caisse utilise le dépôt par défaut de la société (et suit tout changement de dépôt par défaut). La liste des caisses affiche les dépôts de chaque caisse.'),
     puce('Dépôts secondaires : autres dépôts actifs, avec un ordre d\'utilisation, où la caisse complète une vente quand le stock du principal ne suffit pas (un mouvement de stock par dépôt utilisé ; le manque éventuel, si la vente sans stock est autorisée, sort du principal). Un même dépôt peut être secondaire de plusieurs caisses. Le stock affiché et contrôlé à la caisse est le total du principal et des secondaires ; une vente annulée remet chaque quantité dans son dépôt d\'origine.'),
     h2('3.3 Journées de caisse'),
@@ -380,7 +381,7 @@ const contenu = [
     h1('9. Architecture technique et données'),
     h2('9.1 Architecture'),
     tableau(['Élément', 'Version .NET', 'Version PHP'], [
-        ['Langage / cadre', 'C#, ASP.NET Core MVC (.NET 10)', 'PHP 8, contrôleur frontal index.php?r=module/action'],
+        ['Langage / cadre', 'C#, ASP.NET Core MVC (.NET 10) ; projet GesCaisse.csproj, solution GesCaisse.slnx, espace de noms GesCaisse, programme GesCaisse.dll', 'PHP 8, contrôleur frontal index.php?r=module/action'],
         ['Base de données', 'SQL Server, Entity Framework Core', 'MySQL 8 / MariaDB, PDO'],
         ['Migrations', 'Migrations EF Core appliquées au démarrage', 'Fichiers sql/migrations/*.sql appliqués une fois (table MigrationsAppliquees)'],
         ['PDF / Excel', 'Rotativa (wkhtmltopdf), ClosedXML', 'Pages imprimables, génération XLSX intégrée'],
@@ -408,16 +409,18 @@ const contenu = [
     puce('Code source des deux versions (dépôt Git), scripts de base de données et migrations.'),
     puce('Scripts de démonstration (catalogue, ventes, mouvements de stock) — à ne pas déployer en production. Le script demo_laverie crée une seconde société « Laverie Éclat Blanc » : caisse LAV1 de type Laverie, 6 catégories, 24 articles illustrés (prestations et produits en stock), 4 tiers, 20 ventes à ces tiers sur 5 journées clôturées , 3 dépôts de linge (un prêt et en retard, deux en cours dont un avec acompte ; ajoutés une seule fois, aussi en relançant le script sur une base existante), 5 produits d\'entretien consommables, 2 achats au fournisseur (un réglé, un à crédit) et une consommation dans le dépôt des achats ACH01 ; il est intégré à la base de démonstration complète.'),
     puce('Bases de démonstration complètes, prêtes à importer dans une base vide, avec les mêmes données dans les deux versions : gescaisse_demo_complet_mysql.sql (PHP / MySQL) et gescaisse_demo_complet_sqlserver.sql (.NET / SQL Server, généré par Scripts/generer_demo_complet_sqlserver.py). Elles contiennent aussi la société Hob\'s-Marie Pressing (code HOBSMARIE, compte hobsmarie) : coordonnées et logo, caisse PRESS1 de type Laverie et grille tarifaire complète (83 articles en variantes Lavage / Express / Repassage / Enfants, 26 familles d\'articles).'),
+    puce('Catalogue du pressing Hob\'s-Marie (grille tarifaire complète : 83 articles, prix Lavage / Express / Repassage / Enfants en variantes, 26 familles d\'articles en majuscules) : php/sql/catalogues/catalogue_hobs_marie_mysql.sql et Scripts/catalogue_hobs_marie_sqlserver.sql, générés par Scripts/catalogues/generer_catalogue_hobs_marie.py ; code de la société à indiquer en haut du script ; relançable (met à jour les prix et le rangement d\'un catalogue déjà importé).'),
     puce('Agent d’impression pour les postes de caisse Windows (AgentImpression : sources, installer.cmd, desinstaller.cmd, LISEZMOI.md ; exécutable produit par publier.sh).'),
     puce('Le présent cahier des charges.'),
     h2('10.2 Procédure de mise à jour (version PHP sur Hostinger)'),
     puce('Sauvegarder la base MySQL (export phpMyAdmin).'),
     puce('Envoyer les fichiers modifiés en conservant le fichier config.php du serveur.'),
-    puce('Ne pas envoyer le dossier sql/demo.'),
+    puce('Ne pas envoyer le dossier sql/demo, ni l\'importer dans la base en service (données d\'essai).'),
     puce('Ouvrir l\'application : les migrations en attente s\'appliquent automatiquement au premier chargement.'),
     h2('10.3 Maintenance'),
     puce('Corrections et évolutions développées sur une branche, testées sur les deux versions, puis fusionnées.'),
-    puce('Tests automatisés de non-régression par module (point de vente, variantes, unités, restaurant, combos).'),
+    puce('Tests automatisés de non-régression par module (point de vente, variantes, unités, restaurant, combos, laverie, imprimantes de préparation, profils et droits).'),
+    puce('Version .NET : après une mise à jour du code, supprimer les dossiers bin et obj si la génération signale des fichiers verrouillés ou d\'anciens noms (projet renommé de EasytransitCaisse en GesCaisse) ; sur IIS, republier le site (le web.config pointe sur GesCaisse.dll).'),
 
     // 11
     h1('11. Glossaire'),
