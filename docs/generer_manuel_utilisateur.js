@@ -98,7 +98,7 @@ const fiche = [
         ['Application', 'GesCaisse — gestion de caisse et point de vente (POS)'],
         ['Éditeur', 'M-ITECH AFRICA'],
         ['Public', 'Administrateurs, caissiers, vendeurs et serveurs des sociétés clientes'],
-        ['Version du document', '4.6'],
+        ['Version du document', '4.7'],
         ['Date', 'Novembre 2026']
     ], [3000, 6638])
 ];
@@ -120,7 +120,8 @@ const chapitres = [
     ['11', 'Catalogue : catégories, produits et combos'],
     ['12', 'Paramètres'],
     ['13', 'Questions fréquentes'],
-    ['14', 'Glossaire']
+    ['14', 'Bases de démonstration'],
+    ['15', 'Glossaire']
 ];
 const sommaire = [
     new Paragraph({ heading: HeadingLevel.HEADING_1, children: [t('Sommaire')] }),
@@ -453,6 +454,16 @@ const contenu = [
     p('Pour le lavage au kilo, choisissez l’unité **Kg** sur le produit ; à la caisse, touchez la tuile puis tapez le poids sur le pavé en mode **Qté** (par exemple 2,5).'),
     ...figure('20b_pos_laverie', 'Écran de vente d’une laverie'),
     astuce('Associez le ticket au client (**Choisir un client**) : ses tickets et ses règlements apparaissent dans le rapport des tiers et son relevé (5.3).'),
+    h3('Une grille tarifaire de pressing : un article, plusieurs prestations'),
+    p('Quand un même article a plusieurs prix selon la prestation (par exemple **Lavage**, **Express**, **Repassage** et **Enfants** pour une chemise), créez-le comme un produit à **variantes** (11.2) : l’attribut « Prestation » et une variante par prix de la grille. Les catégories reprennent les familles d’articles du pressing (CHEMISES, ROBES, COSTUMES, DRAPS…). C’est ainsi qu’est installée la grille de la société **Hob’s-Marie Pressing** (83 articles, 26 familles), fournie dans les bases de démonstration (chapitre 14).'),
+    ...figure('20c_pos_pressing', 'Écran de vente d’un pressing : familles d’articles en onglets'),
+    ...etapes([
+        'Touchez l’onglet de la famille (ou tapez le nom de l’article dans la recherche).',
+        'Touchez la tuile de l’article : la fenêtre des prestations s’ouvre, avec le prix de chacune.',
+        'Touchez la prestation voulue : la ligne s’ajoute au ticket, par exemple « Chemise cintrée Express ».'
+    ]),
+    ...figure('20d_pos_prestation', 'Choix de la prestation d’un article'),
+    p('Une prestation absente de la grille n’est pas proposée (par exemple pas de prix Enfants pour les foulards). Un article qui n’a qu’un seul prix, comme la **Teinture**, s’ajoute directement au ticket, sans fenêtre. Pour changer un prix, modifiez la variante dans la fiche de l’article (Configuration › Produits, bloc Variantes).'),
     h2('6.11 Dépôt de linge payé au retrait'),
     p('En laverie, le client dépose son linge et le paie quand il vient le chercher, souvent deux ou trois jours plus tard. Le **dépôt de linge** enregistre la commande sans l’encaisser : il ne bloque pas la clôture de la journée et se retrouve depuis n’importe quel poste, les jours suivants.'),
     h3('Enregistrer le dépôt'),
@@ -828,7 +839,18 @@ const contenu = [
     ], [3600, 6038]),
 
     // 14 -----------------------------------------------------------------
-    h1('14. Glossaire'),
+    h1('14. Bases de démonstration'),
+    p('Deux fichiers permettent d’essayer GesCaisse avec des données déjà saisies, dans une base **vide** créée pour l’occasion : **gescaisse_demo_complet_mysql.sql** pour la version en ligne (phpMyAdmin › Importer) et **gescaisse_demo_complet_sqlserver.sql** pour la version installée (SQL Server Management Studio › ouvrir le fichier › Exécuter). Les deux contiennent les mêmes données.'),
+    tableau(['Société', 'Contenu', 'Comptes'], [
+        ['Société de démonstration', 'Boutique (caisse principale) et restaurant « Le Jardin » avec plan de salle, 39 produits avec images, combos, 151 ventes sur 14 journées, stock, livreurs', 'superadmin, admin, caissier, vendeur'],
+        ['Laverie Éclat Blanc', 'Caisse Laverie LAV1, 24 articles avec images, tiers et clients en compte, ventes, dépôts de linge, produits d’entretien et achats', 'laverie, laverie.caisse'],
+        ['Hob’s-Marie Pressing', 'Coordonnées et logo du pressing, caisse PRESS1 de type Laverie, grille tarifaire complète : 83 articles avec leurs prestations Lavage, Express, Repassage et Enfants, rangés dans 26 familles d’articles', 'hobsmarie']
+    ], [2300, 5238, 2100]),
+    p('Tous les comptes de démonstration ont le mot de passe **123**. Pour vendre : connectez-vous, ouvrez une journée sur la caisse (3.2), puis **Vendre**.'),
+    attention('Les bases de démonstration servent aux essais et à la formation : ne les importez jamais dans la base en service : leurs données d’essai s’y mélangeraient aux vraies. Pour mettre en service une vraie société, utilisez ses propres scripts de création (ou Paramètres › Sociétés, 12.10), avec un mot de passe personnel.'),
+
+    // 15 -----------------------------------------------------------------
+    h1('15. Glossaire'),
     tableau(['Terme', 'Définition'], [
         ['Caisse', 'Point d’encaissement (tiroir-caisse) de la société.'],
         ['Journée de caisse', 'Période de travail sur une caisse, de l’ouverture (fond initial) à la clôture (comptage).'],
