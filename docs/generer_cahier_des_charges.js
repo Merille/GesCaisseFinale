@@ -63,7 +63,7 @@ const fiche = [
         ['Projet', 'GesCaisse — gestion de caisse et point de vente (POS)'],
         ['Éditeur', 'M-ITECH AFRICA'],
         ['Versions', 'ASP.NET Core (.NET 10) / SQL Server — PHP 8 / MySQL'],
-        ['Version du document', '4.9'],
+        ['Version du document', '5.0'],
         ['Date', 'Novembre 2026'],
         ['Statut', 'Document de référence (fonctionnalités réalisées)']
     ], [3000, 6638])
@@ -229,6 +229,7 @@ const contenu = [
     puce('Pavé numérique : quantité, remise par ligne (%), prix (administrateurs seulement), suppression.'),
     puce('Remise sur un article et remise globale sur le ticket (en % ou en montant), selon le droit de remise de l\'utilisateur et sa remise maximale.'),
     puce('Choix du client ; affichage du stock restant dans le dépôt de la caisse et alerte de stock bas.'),
+    puce('Fenêtre « Choisir un client » : recherche par nom, code ou téléphone ; « Nouveau client » (ou « Créer le client « … » » quand la recherche ne trouve rien, touche Entrée) : nom (obligatoire, prérempli avec la recherche, ou téléphone prérempli si un numéro a été tapé), téléphone, genre (Particulier par défaut, ou Entreprise), adresse ; le client est enregistré dans les tiers (type Client, code C0001, C0002… attribué automatiquement, pas en compte) et choisi pour le ticket. Même nom et même téléphone déjà enregistrés : le client existant est repris, sans doublon. Réservé au droit « Tiers » (ajouter), contrôlé à l\'écran et par le serveur (pos/clientcreer, /Pos/ClientCreer) ; impossible sans connexion (message).'),
     h2('4.2 Paiement et ticket'),
     puce('Plusieurs règlements par ticket (espèces, mobile money, carte…), billets rapides, montant exact.'),
     puce('Monnaie rendue uniquement sur les espèces.'),

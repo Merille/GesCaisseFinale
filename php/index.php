@@ -25,7 +25,7 @@ $routes = [
     'rapport'     => ['operations', 'preview', 'sage'],
     'rapporttiers' => ['index', 'imprimer', 'excel', 'releve'],
     'facture'     => ['index', 'create', 'edit', 'ligne', 'supprimerligne', 'valider', 'print'],
-    'pos'         => ['index', 'vendre', 'ticket', 'plan', 'commande', 'enregistrer', 'envoyer', 'transferer', 'addition', 'additionticket', 'deposer', 'depots', 'depotpret', 'depotannuler', 'ticketdepot', 'bon', 'bonsjson',
+    'pos'         => ['index', 'vendre', 'ticket', 'plan', 'commande', 'enregistrer', 'envoyer', 'transferer', 'addition', 'additionticket', 'deposer', 'depots', 'depotpret', 'depotannuler', 'ticketdepot', 'bon', 'bonsjson', 'clientcreer',
                       'attentes', 'mettreenattente', 'reprendre', 'supprimerattente', 'livree', 'jeton'],
     'cuisine'     => ['index', 'bons', 'statut', 'bon'],
     'vente'       => ['index', 'details', 'facture', 'retour', 'annuler', 'livree', 'verifier'],

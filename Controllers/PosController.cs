@@ -189,6 +189,8 @@ namespace GesCaisse.Controllers
                     profil
                 },
                 peutModifierPrix = Peut("prix"),
+                // Création d'un client depuis la fenêtre « Choisir un client » (droit Tiers : ajouter).
+                urlClientCreer = HttpContext.RequestServices.GetRequiredService<DroitsUtilisateur>().Peut("tiers", "a") ? "/Pos/ClientCreer" : null,
                 // Vente par compte au-delà du plafond de crédit : droit « Dépasser le plafond de crédit » du profil.
                 peutDepasserPlafond = Peut("plafond"),
                 // Frais de livraison proposés par défaut (modifiables à chaque vente).
@@ -1057,6 +1059,65 @@ namespace GesCaisse.Controllers
             ViewBag.Frais = t.Livraison == null ? 0m : Math.Max(0, Math.Round(t.Livraison.Frais, MidpointRounding.AwayFromZero));
             ViewBag.Contenu = new Restaurant.Contenu { Lignes = lignes, Remise = remise };
             return View("Addition", new CommandeOuverte { Couverts = 0 });
+        }
+
+        // Nouveau client créé depuis l'écran de vente (fenêtre « Choisir un client »).
+        public class ClientSaisi
+        {
+            public int JourneeId { get; set; }
+            public string? Nom { get; set; }
+            public string? Telephone { get; set; }
+            public string? Adresse { get; set; }
+            public string? Genre { get; set; }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ClientCreer([FromForm] string? commande)
+        {
+            if (!HttpContext.RequestServices.GetRequiredService<DroitsUtilisateur>().Peut("tiers", "a"))
+                return StatusCode(403, new { erreur = "Votre profil ne permet pas de créer un client." });
+            ClientSaisi? s;
+            try { s = JsonSerializer.Deserialize<ClientSaisi>(commande ?? "", new JsonSerializerOptions { PropertyNameCaseInsensitive = true }); }
+            catch (JsonException) { s = null; }
+            if (s == null)
+                return BadRequest(new { erreur = "Requête illisible." });
+            var journee = await _context.JourneesCaisses.FirstOrDefaultAsync(j => j.Id == s.JourneeId);
+            if (journee == null)
+                return NotFound(new { erreur = "Journée introuvable." });
+            static string? Texte(string? v, int max) { var t = (v ?? "").Trim(); return t == "" ? null : t[..Math.Min(max, t.Length)]; }
+            var nom = Texte(s.Nom, 200);
+            if (nom == null)
+                return BadRequest(new { erreur = "Le nom du client est obligatoire." });
+            var telephone = Texte(s.Telephone, 50);
+            var tenant = journee.TenantId;
+            // Même nom et même téléphone déjà enregistrés : le client existant est repris (pas de doublon).
+            var client = await _context.Clients.IgnoreQueryFilters()
+                .FirstOrDefaultAsync(c => c.TenantId == tenant && c.NomSociete == nom && (c.Telephone ?? "") == (telephone ?? ""));
+            if (client == null)
+            {
+                // Code du prochain client de la société : C0001, C0002… (premier code libre).
+                var codes = await _context.Clients.IgnoreQueryFilters().Where(c => c.TenantId == tenant && c.CodeClient.StartsWith("C"))
+                    .Select(c => c.CodeClient).ToListAsync();
+                var max = codes.Select(c => c.Length > 1 && c[1..].All(char.IsDigit) && int.TryParse(c[1..], out var n) ? n : 0).DefaultIfEmpty(0).Max();
+                var code = $"C{++max:0000}";
+                while (codes.Contains(code)) code = $"C{++max:0000}";
+                client = new Client
+                {
+                    TenantId = tenant, CodeClient = code, NomSociete = nom, Telephone = telephone, Adresse = Texte(s.Adresse, 300),
+                    Type = "Client", Genre = s.Genre == "Entreprise" ? "Entreprise" : "Particulier", EnCompte = false
+                };
+                _context.Clients.Add(client);
+                await _context.SaveChangesAsync();
+            }
+            return Json(new
+            {
+                client = new
+                {
+                    id = client.Id, nom = client.NomSociete, code = client.CodeClient, telephone = client.Telephone, adresse = client.Adresse,
+                    compte = client.EnCompte, du = 0m, plafond = client.PlafondCredit
+                }
+            });
         }
 
         // Bons de préparation en JSON, pour les imprimantes réseau de la cuisine / du bar.

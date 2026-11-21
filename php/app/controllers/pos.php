@@ -91,6 +91,8 @@ function pos_index(): void
         'livreurs' => $livreurs,
         'utilisateur' => ['nom' => $u['nomComplet'] ?: $u['nom'], 'profil' => $u['profil']],
         'peutModifierPrix' => peut('prix'),
+        // Création d'un client depuis la fenêtre « Choisir un client » (droit Tiers : ajouter).
+        'urlClientCreer' => peut('tiers', 'a') ? url('pos/clientcreer') : null,
         // Vente par compte au-delà du plafond de crédit : droit « Dépasser le plafond de crédit » du profil.
         'peutDepasserPlafond' => peut('plafond'),
         // Frais de livraison proposés par défaut (modifiables à chaque vente).
@@ -970,6 +972,56 @@ function pos_attentes(): void
  * « Mettre en attente » : le ticket est enregistré sur le serveur (avec sa livraison s'il est à
  * encaisser à la livraison) et quitte l'écran ; il se reprend depuis n'importe quel poste.
  */
+/** Code du prochain client de la société : C0001, C0002… (premier code libre). */
+function pos_code_client(int $tenant): string
+{
+    $max = 0;
+    foreach (q("SELECT CodeClient FROM Clients WHERE TenantId = ? AND CodeClient LIKE 'C%'", [$tenant]) as $c) {
+        if (preg_match('/^C(\d+)$/', $c['CodeClient'], $m)) {
+            $max = max($max, (int) $m[1]);
+        }
+    }
+    do {
+        $code = 'C' . str_pad((string) ++$max, 4, '0', STR_PAD_LEFT);
+    } while (qv('SELECT COUNT(*) FROM Clients WHERE TenantId = ? AND CodeClient = ?', [$tenant, $code]));
+    return $code;
+}
+
+/** Nouveau client créé depuis l'écran de vente (fenêtre « Choisir un client »). */
+function pos_clientcreer(): void
+{
+    $s = pos_saisie();
+    if (!peut('tiers', 'a')) {
+        pos_json(['erreur' => 'Votre profil ne permet pas de créer un client.'], 403);
+    }
+    $journee = q1('SELECT * FROM JourneesCaisses WHERE Id = ? AND ' . tf(), [(int) ($s['journeeId'] ?? 0)]);
+    if (!$journee) {
+        pos_json(['erreur' => 'Journée introuvable.'], 404);
+    }
+    $tenant = (int) $journee['TenantId'];
+    $texte = fn(string $k, int $max) => mb_substr(trim((string) ($s[$k] ?? '')), 0, $max);
+    $nom = $texte('nom', 200);
+    if ($nom === '') {
+        pos_json(['erreur' => 'Le nom du client est obligatoire.'], 400);
+    }
+    $telephone = $texte('telephone', 50) ?: null;
+    $adresse = $texte('adresse', 300) ?: null;
+    $genre = ($s['genre'] ?? '') === 'Entreprise' ? 'Entreprise' : 'Particulier';
+    // Même nom et même téléphone déjà enregistrés : le client existant est repris (pas de doublon).
+    $existant = q1('SELECT * FROM Clients WHERE TenantId = ? AND NomSociete = ? AND COALESCE(Telephone, \'\') = ?', [$tenant, $nom, (string) $telephone]);
+    if (!$existant) {
+        $code = pos_code_client($tenant);
+        $id = run("INSERT INTO Clients (TenantId, CodeClient, NomSociete, Telephone, Adresse, Type, Genre, EnCompte) VALUES (?, ?, ?, ?, ?, 'Client', ?, 0)",
+            [$tenant, $code, $nom, $telephone, $adresse, $genre]);
+        $existant = q1('SELECT * FROM Clients WHERE Id = ?', [$id]);
+    }
+    pos_json(['client' => [
+        'id' => (int) $existant['Id'], 'nom' => $existant['NomSociete'], 'code' => $existant['CodeClient'], 'telephone' => $existant['Telephone'],
+        'adresse' => $existant['Adresse'], 'compte' => (bool) $existant['EnCompte'], 'du' => 0.0,
+        'plafond' => $existant['PlafondCredit'] === null ? null : (float) $existant['PlafondCredit'],
+    ]]);
+}
+
 function pos_mettreenattente(): void
 {
     $s = pos_saisie();

@@ -343,3 +343,9 @@ body.pos-body { margin: 0; background: var(--pos-bg); color: #1d2a35; font-famil
 .pos-alerte-ligne > div { flex: 1; }
 .pos-alerte-ligne button { border: 0; border-radius: 8px; padding: 6px 12px; background: #fff; color: #b02a37; font-weight: 600; cursor: pointer; white-space: nowrap; }
 .pos-alerte-ligne button.fermer { background: transparent; color: #fff; font-size: 20px; line-height: 1; padding: 2px 6px; }
+/* Choisir un client : création d'un nouveau client depuis l'écran de vente. */
+.pos-client-choix { display: flex; flex-direction: column; min-height: 0; }
+.pos-client-choix[hidden], .pos-client-nouveau[hidden] { display: none; }
+.pos-client.pos-client-creer { color: var(--pos-brand); font-weight: 600; }
+.pos-client.pos-client-creer i { margin-right: 6px; }
+.pos-client-aucun { padding: 12px; color: #6b6b69; font-size: 14px; }

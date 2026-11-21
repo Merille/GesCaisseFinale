@@ -98,7 +98,7 @@ const fiche = [
         ['Application', 'GesCaisse — gestion de caisse et point de vente (POS)'],
         ['Éditeur', 'M-ITECH AFRICA'],
         ['Public', 'Administrateurs, caissiers, vendeurs et serveurs des sociétés clientes'],
-        ['Version du document', '4.7'],
+        ['Version du document', '4.8'],
         ['Date', 'Novembre 2026']
     ], [3000, 6638])
 ];
@@ -395,7 +395,9 @@ const contenu = [
     pt('Prix', 'tapez un nouveau prix unitaire (réservé aux administrateurs).'),
     pt('Corbeille', 'supprime la ligne ; la touche d’effacement corrige la saisie en cours.'),
     h2('6.4 Client, remise globale, addition et mise en attente'),
-    pt('Choisir un client', 'associe la vente à un tiers (il apparaît sur le ticket et dans les rapports).'),
+    pt('Choisir un client', 'associe la vente à un tiers (il apparaît sur le ticket et dans les rapports). La recherche porte sur le nom, le code ou le téléphone. Si le client n’existe pas, touchez **Nouveau client** (ou **Créer le client « … »** quand la recherche ne trouve rien, ou la touche Entrée) : saisissez son nom, son téléphone, son genre (Particulier ou Entreprise) et son adresse, puis **Créer et choisir**. Le client est ajouté aux tiers avec un code automatique (C0001, C0002…) et choisi pour le ticket.'),
+    ...figure('20e_nouveau_client', 'Créer un client depuis l’écran de vente'),
+    astuce('La création d’un client demande le droit **Tiers : ajouter** (12.3) et la connexion au serveur ; sans connexion, choisissez un client existant ou vendez sans client.'),
     pt('Remise globale', 'remise en % ou en montant sur tout le ticket, pour les utilisateurs qui ont le droit de remise (une remise en FCFA est comparée, en %, à leur remise maximale). Elle est répartie sur les lignes.'),
     pt('Addition', 'imprime une note provisoire du ticket, avec la mention **NON PAYÉ** en tête et en pied : articles, total à payer (frais de livraison compris), client et vendeur. Le ticket reste à l’écran, rien n’est encaissé ; le vrai ticket de caisse est imprimé au paiement.'),
     pt('Mettre en attente', 'met le ticket de côté pour servir un autre client : il est enregistré et quitte l’écran. Il apparaît dans la liste **Commandes en attente**, visible depuis tous les postes de la journée (voir 6.5).'),

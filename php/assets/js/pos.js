@@ -1456,23 +1456,82 @@
         fond.className = 'pos-modal-fond';
         fond.innerHTML = '<div class="pos-modal" role="dialog" aria-modal="true" aria-label="Choisir un client">'
             + '<div class="pos-modal-tete">Choisir un client<button type="button" data-close aria-label="Fermer">×</button></div>'
-            + '<input placeholder="Rechercher un client…" autocomplete="off">'
-            + '<div class="pos-modal-liste"></div></div>';
+            + '<div class="pos-client-choix"><input placeholder="Rechercher un client…" autocomplete="off">'
+            + '<div class="pos-modal-liste"></div></div>'
+            + '<div class="pos-form pos-client-nouveau" hidden>'
+            + '<label>Nom du client<input name="nom" maxlength="200" autocomplete="off"></label>'
+            + '<div class="pos-form-2"><label>Téléphone<input name="telephone" maxlength="50" inputmode="tel" autocomplete="off"></label>'
+            + '<label>Genre<select name="genre"><option value="Particulier">Particulier</option><option value="Entreprise">Entreprise</option></select></label></div>'
+            + '<label>Adresse<input name="adresse" maxlength="300" autocomplete="off"></label>'
+            + '<div class="pos-form-aide">Le client est enregistré dans les tiers (code attribué automatiquement) et choisi pour ce ticket.</div>'
+            + '<div class="pos-remise-boutons"><button type="button" class="pos-sec" data-retour>Retour à la liste</button>'
+            + '<button type="button" class="pos-big" data-creer>Créer et choisir</button></div></div></div>';
         document.body.appendChild(fond);
-        const champ = fond.querySelector('input');
+        const champ = fond.querySelector('.pos-client-choix input');
         const liste = fond.querySelector('.pos-modal-liste');
+        const choix = fond.querySelector('.pos-client-choix'), nouveau = fond.querySelector('.pos-client-nouveau');
+        const nchamp = n => nouveau.querySelector('[name="' + n + '"]');
+        // Création d'un client : droit Tiers (ajouter) et connexion au serveur nécessaires.
+        const peutCreer = !!D.urlClientCreer;
         const remplir = () => {
-            const r = champ.value.trim().toLowerCase();
-            const trouves = D.clients.filter(c => !r || c.nom.toLowerCase().includes(r) || (c.code || '').toLowerCase().includes(r)).slice(0, 100);
-            liste.innerHTML = '<button type="button" class="pos-client" data-client="">Sans client</button>'
+            const brut = champ.value.trim(), r = brut.toLowerCase();
+            const trouves = D.clients.filter(c => !r || c.nom.toLowerCase().includes(r) || (c.code || '').toLowerCase().includes(r)
+                || (c.telephone || '').replace(/\s/g, '').includes(r.replace(/\s/g, ''))).slice(0, 100);
+            liste.innerHTML = (peutCreer ? '<button type="button" class="pos-client pos-client-creer" data-nouveau><i class="fas fa-user-plus"></i> '
+                + (brut && !trouves.length ? 'Créer le client « ' + echap(brut) + ' »' : 'Nouveau client') + '</button>' : '')
+                + '<button type="button" class="pos-client" data-client="">Sans client</button>'
                 + trouves.map(c => '<button type="button" class="pos-client' + (ticket().clientId === c.id ? ' sel' : '') + '" data-client="' + c.id + '">'
-                    + echap(c.nom) + '<small>' + echap(c.code) + (c.compte ? ' · <i class="fas fa-address-book"></i> en compte, dû ' + fcfa(c.du) + ' FCFA' : '') + '</small></button>').join('');
+                    + echap(c.nom) + '<small>' + echap(c.code) + (c.telephone ? ' · ' + echap(c.telephone) : '') + (c.compte ? ' · <i class="fas fa-address-book"></i> en compte, dû ' + fcfa(c.du) + ' FCFA' : '') + '</small></button>').join('')
+                + (r && !trouves.length ? '<div class="pos-client-aucun">Aucun client trouvé' + (peutCreer ? '' : ' (votre profil ne permet pas d\'en créer)') + '.</div>' : '');
         };
         const fermer = () => fond.remove();
+        const ouvrirNouveau = () => {
+            if (horsLigne()) { message('Sans connexion, un nouveau client ne peut pas être créé : choisissez un client existant ou vendez sans client.', true); return; }
+            const brut = champ.value.trim();
+            nchamp('nom').value = /^[+0-9 .-]{6,}$/.test(brut) ? '' : brut;
+            nchamp('telephone').value = /^[+0-9 .-]{6,}$/.test(brut) ? brut : '';
+            choix.hidden = true; nouveau.hidden = false;
+            fond.querySelector('.pos-modal-tete').firstChild.textContent = 'Nouveau client';
+            nchamp(nchamp('nom').value ? 'telephone' : 'nom').focus();
+        };
+        const retour = () => {
+            nouveau.hidden = true; choix.hidden = false;
+            fond.querySelector('.pos-modal-tete').firstChild.textContent = 'Choisir un client';
+            champ.focus();
+        };
+        const creer = async () => {
+            const nom = nchamp('nom').value.trim();
+            if (!nom) { message('Indiquez le nom du client.', true); nchamp('nom').focus(); return; }
+            const bouton = fond.querySelector('[data-creer]');
+            bouton.disabled = true;
+            const res = await appel(D.urlClientCreer, 'commande', {
+                journeeId: D.journee.id, nom: nom, telephone: nchamp('telephone').value.trim(), adresse: nchamp('adresse').value.trim(), genre: nchamp('genre').value
+            });
+            bouton.disabled = false;
+            if (!res.ok || !res.r.client) {
+                message(res.r && res.r.erreur ? res.r.erreur : 'Connexion impossible : le client n\'a pas été créé.', true);
+                return;
+            }
+            const c = res.r.client;
+            if (!clients.has(c.id)) { D.clients.push(c); D.clients.sort((a, b) => a.nom.localeCompare(b.nom, 'fr')); }
+            clients.set(c.id, c);
+            ticket().clientId = c.id;
+            enregistrer();
+            fermer();
+            afficher();
+            message('Client « ' + c.nom + ' » (' + c.code + ') choisi pour ce ticket.');
+        };
         remplir();
         champ.addEventListener('input', remplir);
+        champ.addEventListener('keydown', e => {
+            if (e.key === 'Enter' && peutCreer && champ.value.trim() && !liste.querySelector('[data-client]:not([data-client=""])')) { e.preventDefault(); ouvrirNouveau(); }
+        });
+        nouveau.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.tagName === 'INPUT') { e.preventDefault(); creer(); } });
         fond.addEventListener('click', e => {
             if (e.target === fond || e.target.closest('[data-close]')) { fermer(); return; }
+            if (e.target.closest('[data-nouveau]')) { ouvrirNouveau(); return; }
+            if (e.target.closest('[data-retour]')) { retour(); return; }
+            if (e.target.closest('[data-creer]')) { creer(); return; }
             const b = e.target.closest('[data-client]');
             if (!b) return;
             ticket().clientId = b.dataset.client ? Number(b.dataset.client) : null;
