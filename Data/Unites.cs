@@ -1,7 +1,7 @@
-using EasytransitCaisse.Models;
+using GesCaisse.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace EasytransitCaisse.Data
+namespace GesCaisse.Data
 {
     public static class Unites
     {

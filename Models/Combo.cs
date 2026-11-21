@@ -1,8 +1,8 @@
-using EasytransitCaisse.Data;
+using GesCaisse.Data;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.EntityFrameworkCore;
 
-namespace EasytransitCaisse.Models
+namespace GesCaisse.Models
 {
     // Combos comme dans le point de vente Odoo : un combo regroupe les produits proposés au choix
     // (ex. « Plats » : Poulet, Poisson + 500) et le nombre d'articles à choisir. Géré dans

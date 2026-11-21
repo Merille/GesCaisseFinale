@@ -1,14 +1,14 @@
 ﻿using ClosedXML.Excel;
-using EasytransitCaisse.Data;
-using EasytransitCaisse.Models;
-using EasytransitCaisse.Services;
+using GesCaisse.Data;
+using GesCaisse.Models;
+using GesCaisse.Services;
 using Microsoft.AspNetCore.Mvc;
 
 using Microsoft.EntityFrameworkCore; // ← ICI
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace EasytransitCaisse.Controllers
+namespace GesCaisse.Controllers
 {
     public class ClientController : Controller
     {

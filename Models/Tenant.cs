@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace EasytransitCaisse.Models
+namespace GesCaisse.Models
 {
     public class Tenant
     {

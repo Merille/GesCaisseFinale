@@ -1,12 +1,12 @@
-@model EasytransitCaisse.Models.ViewModels.TableauLaverieVM
-@using EasytransitCaisse.Services
+@model GesCaisse.Models.ViewModels.TableauLaverieVM
+@using GesCaisse.Services
 @{
     ViewData["Title"] = "Tableau de bord laverie";
     var fr = System.Globalization.CultureInfo.GetCultureInfo("fr-FR");
     string Fcfa(decimal n) => n.ToString("N0", fr);
     string Qte(decimal n) => n.ToString("0.##", fr);
     string S(decimal n) => n > 1 ? "s" : "";
-    var droitsU = Context.RequestServices.GetRequiredService<EasytransitCaisse.Services.DroitsUtilisateur>();
+    var droitsU = Context.RequestServices.GetRequiredService<GesCaisse.Services.DroitsUtilisateur>();
     bool Peut(string d) => droitsU.Peut(d);
     var admin = Peut("rapports_pdv");   // liens vers le rapport des dépôts
     var aujourdhui = DateTime.Today;

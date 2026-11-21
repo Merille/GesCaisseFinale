@@ -1,6 +1,6 @@
-using EasytransitCaisse.Models;
+using GesCaisse.Models;
 
-namespace EasytransitCaisse.Models.ViewModels
+namespace GesCaisse.Models.ViewModels
 {
     // Page Synchronisation : filtres des ventes hors ligne, postes, ventes et dépôts de linge hors ligne.
     public class FiltresSynchro

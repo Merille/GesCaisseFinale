@@ -1,4 +1,4 @@
-namespace EasytransitCaisse.Models.ViewModels;
+namespace GesCaisse.Models.ViewModels;
 
 // Ligne de la liste imprimée des caisses : la caisse et le nom de son caissier par défaut.
 public class CaisseImpressionVM

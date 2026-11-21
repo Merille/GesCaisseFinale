@@ -1,4 +1,4 @@
-﻿namespace EasytransitCaisse.ViewModels
+﻿namespace GesCaisse.ViewModels
 {
     public class RapportOperationVM
     {

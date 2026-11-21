@@ -1,7 +1,7 @@
-using EasytransitCaisse.Data;
+using GesCaisse.Data;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace EasytransitCaisse.Models
+namespace GesCaisse.Models
 {
     // Détail du contrôle physique/théorique par mode de paiement, saisi à la
     // clôture d'une journée (comparable à la fermeture de caisse d'un POS).

@@ -1,6 +1,6 @@
-using EasytransitCaisse.Data;
+using GesCaisse.Data;
 
-namespace EasytransitCaisse.Models
+namespace GesCaisse.Models
 {
     // Catégorie de produits du point de vente : regroupe les tuiles de l'écran
     // de vente (couleur) dans l'ordre choisi.

@@ -1,4 +1,4 @@
-@model EasytransitCaisse.Models.ViewModels.RapportTiersVM
+@model GesCaisse.Models.ViewModels.RapportTiersVM
 @{
     ViewData["Title"] = "Rapport des tiers";
     var f = Model.Filtres;
@@ -19,7 +19,7 @@
             <label class="form-label small fw-semibold text-muted mb-1" for="type">Type</label>
             <select class="form-select" id="type" name="type">
                 <option value="">Tous</option>
-                @foreach (var t in EasytransitCaisse.Models.ViewModels.FiltresRapportTiers.Types)
+                @foreach (var t in GesCaisse.Models.ViewModels.FiltresRapportTiers.Types)
                 {
                     <option selected="@(f.Type == t)">@t</option>
                 }
@@ -29,7 +29,7 @@
             <label class="form-label small fw-semibold text-muted mb-1" for="genre">Genre</label>
             <select class="form-select" id="genre" name="genre">
                 <option value="">Tous</option>
-                @foreach (var g in EasytransitCaisse.Models.Client.Genres)
+                @foreach (var g in GesCaisse.Models.Client.Genres)
                 {
                     <option selected="@(f.Genre == g)">@g</option>
                 }

@@ -1,8 +1,8 @@
 ﻿using ClosedXML.Excel;
-using EasytransitCaisse.Controllers;
-using EasytransitCaisse.Data;
-using EasytransitCaisse.Models;
-using EasytransitCaisse.Models.ViewModels;
+using GesCaisse.Controllers;
+using GesCaisse.Data;
+using GesCaisse.Models;
+using GesCaisse.Models.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -12,7 +12,7 @@ using System.Text;
 
 
 
-namespace EasytransitCaisse.Controllers
+namespace GesCaisse.Controllers
 {
     public class RapportController : Controller
     {

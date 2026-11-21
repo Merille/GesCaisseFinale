@@ -1,8 +1,8 @@
-using EasytransitCaisse.Data;
-using EasytransitCaisse.Models;
+using GesCaisse.Data;
+using GesCaisse.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace EasytransitCaisse.Services
+namespace GesCaisse.Services
 {
     // Limite des tentatives de connexion : après 5 échecs en 15 minutes pour un même nom d'utilisateur
     // depuis une même adresse, ou 20 échecs depuis une même adresse, la connexion est refusée jusqu'à

@@ -1,12 +1,12 @@
 using System.Text.Json;
 using ClosedXML.Excel;
-using EasytransitCaisse.Data;
-using EasytransitCaisse.Models.ViewModels;
+using GesCaisse.Data;
+using GesCaisse.Models.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace EasytransitCaisse.Controllers
+namespace GesCaisse.Controllers
 {
     // Rapport des livraisons : sur une période, synthèse par livreur (livraisons, livrées, en cours,
     // montant des ventes, frais de livraison) et détail des livraisons — ventes livrées ou à livrer,

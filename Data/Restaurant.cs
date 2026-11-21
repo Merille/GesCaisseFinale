@@ -1,9 +1,9 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using EasytransitCaisse.Models;
+using GesCaisse.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace EasytransitCaisse.Data
+namespace GesCaisse.Data
 {
     // Restaurant et bar : plan de salle, commandes ouvertes sur les tables, bons de préparation.
     // Commun au point de vente, à l'éditeur de plan et à l'écran cuisine / bar.

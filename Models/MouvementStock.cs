@@ -1,7 +1,7 @@
-using EasytransitCaisse.Data;
+using GesCaisse.Data;
 using Microsoft.EntityFrameworkCore;
 
-namespace EasytransitCaisse.Models
+namespace GesCaisse.Models
 {
     // Mouvement de stock d'un produit suivi : quantité signée (+ entrée, − sortie)
     // et stock obtenu après le mouvement.

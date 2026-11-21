@@ -1,14 +1,14 @@
 using System.Globalization;
 using System.Security.Claims;
-using EasytransitCaisse.Data;
-using EasytransitCaisse.Models;
-using EasytransitCaisse.Models.ViewModels;
-using EasytransitCaisse.Services;
+using GesCaisse.Data;
+using GesCaisse.Models;
+using GesCaisse.Models.ViewModels;
+using GesCaisse.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace EasytransitCaisse.Controllers
+namespace GesCaisse.Controllers
 {
     // Achats (laverie : lessive, javel, assouplissant…) et consommations internes.
     // - Achat : un fournisseur (tiers de type Fournisseur), un dépôt, des lignes produit × quantité ×

@@ -2,7 +2,7 @@
 
 #nullable disable
 
-namespace EasytransitCaisse.Migrations
+namespace GesCaisse.Migrations
 {
     /// <inheritdoc />
     // Genre des tiers : Entreprise ou Particulier ; les tiers existants passent « Entreprise ».

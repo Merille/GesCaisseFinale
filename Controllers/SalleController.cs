@@ -1,12 +1,12 @@
 using System.Text.Json;
-using EasytransitCaisse.Data;
-using EasytransitCaisse.Models;
+using GesCaisse.Data;
+using GesCaisse.Models;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace EasytransitCaisse.Controllers
+namespace GesCaisse.Controllers
 {
     // Plan de salle d'une caisse restaurant / bar : salles et tables placées sur un plan.
     // Réservé aux profils Admin et SuperAdmin.

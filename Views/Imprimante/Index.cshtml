@@ -1,9 +1,9 @@
-@model List<EasytransitCaisse.Models.ImprimantePreparation>
+@model List<GesCaisse.Models.ImprimantePreparation>
 @using System.Text.Json
 @{
     ViewData["Title"] = "Imprimantes de préparation";
-    var categories = (List<EasytransitCaisse.Models.Categorie>)ViewBag.Categories;
-    var caisses = (List<EasytransitCaisse.Models.Caisse>)ViewBag.Caisses;
+    var categories = (List<GesCaisse.Models.Categorie>)ViewBag.Categories;
+    var caisses = (List<GesCaisse.Models.Caisse>)ViewBag.Caisses;
     var noms = categories.ToDictionary(c => c.Id, c => c.Nom);
     var codes = caisses.ToDictionary(c => c.ID, c => c.ChkCode);
     var json = new JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
@@ -22,7 +22,7 @@
             <tbody>
             @foreach (var i in Model)
             {
-                var js = EasytransitCaisse.Controllers.ImprimanteController.Js(i);
+                var js = GesCaisse.Controllers.ImprimanteController.Js(i);
                 var cats = i.Categories.Select(c => c.CategorieId).OrderBy(c => c).Where(noms.ContainsKey).Select(c => noms[c]).ToList();
                 var modif = new Dictionary<string, object?>
                 {
@@ -32,7 +32,7 @@
                 };
                 <tr class="@(i.Actif ? "" : "text-muted")">
                     <td class="fw-semibold"><i class="fas fa-print text-muted me-1"></i>@i.Nom</td>
-                    <td>@(EasytransitCaisse.Controllers.ImprimanteController.Types.GetValueOrDefault(i.Type, i.Type))</td>
+                    <td>@(GesCaisse.Controllers.ImprimanteController.Types.GetValueOrDefault(i.Type, i.Type))</td>
                     <td><code>@(i.AdresseIp + (i.Port != null ? ":" + i.Port : ""))</code><div class="small text-muted">@i.Largeur mm@(i.Encodage == "SansAccents" ? " · sans accents" : "")@(i.Bip ? " · bip" : "")</div></td>
                     <td>@if (i.CaisseId != null) { @codes.GetValueOrDefault(i.CaisseId.Value) } else { <span class="text-muted">Toutes</span> }</td>
                     <td>@if (cats.Any()) { @string.Join(", ", cats) } else { <span class="text-danger">Aucune</span> }</td>

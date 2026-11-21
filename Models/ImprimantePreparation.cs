@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
-using EasytransitCaisse.Data;
+using GesCaisse.Data;
 
-namespace EasytransitCaisse.Models
+namespace GesCaisse.Models
 {
     // Imprimante de préparation (cuisine, bar) en réseau : la caisse lui envoie les bons des catégories
     // choisies. Epson : impression directe (ePOS) ; Réseau : imprimante ESC/POS par l'agent d'impression.

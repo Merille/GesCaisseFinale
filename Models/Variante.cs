@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace EasytransitCaisse.Models
+namespace GesCaisse.Models
 {
     // Attribut d'un produit modèle (ex. Taille) et ses valeurs (S, M, L).
     public class ProduitAttribut

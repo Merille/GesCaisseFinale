@@ -1,14 +1,14 @@
 using System.Security.Claims;
 using System.Globalization;
 using ClosedXML.Excel;
-using EasytransitCaisse.Data;
-using EasytransitCaisse.Models;
-using EasytransitCaisse.Services;
+using GesCaisse.Data;
+using GesCaisse.Models;
+using GesCaisse.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace EasytransitCaisse.Controllers
+namespace GesCaisse.Controllers
 {
     // Produits du point de vente : liste, fiche, suppression, export / import Excel.
     // Réservé aux profils Admin et SuperAdmin. Le prix de vente est saisi TTC ; un produit

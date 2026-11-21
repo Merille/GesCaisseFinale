@@ -2,7 +2,7 @@
 
 #nullable disable
 
-namespace EasytransitCaisse.Migrations
+namespace GesCaisse.Migrations
 {
     /// <inheritdoc />
     // Moyen de livraison des livreurs (Moto, Voiture, Vélo, Autre) ; les livreurs existants passent « Moto ».

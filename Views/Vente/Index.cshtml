@@ -1,9 +1,9 @@
-@model List<EasytransitCaisse.Models.CommandePos>
+@model List<GesCaisse.Models.CommandePos>
 @{
     ViewData["Title"] = "Ventes";
     var clients = (Dictionary<int, string>)ViewBag.Clients;
     var vendeurs = (Dictionary<int, string>)ViewBag.Vendeurs;
-    var journee = (EasytransitCaisse.Models.JourneeCaisse?)ViewBag.Journee;
+    var journee = (GesCaisse.Models.JourneeCaisse?)ViewBag.Journee;
 }
 
 

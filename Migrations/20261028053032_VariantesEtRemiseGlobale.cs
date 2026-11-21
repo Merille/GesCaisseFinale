@@ -2,7 +2,7 @@
 
 #nullable disable
 
-namespace EasytransitCaisse.Migrations
+namespace GesCaisse.Migrations
 {
     /// <inheritdoc />
     public partial class VariantesEtRemiseGlobale : Migration

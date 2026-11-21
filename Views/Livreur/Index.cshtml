@@ -1,4 +1,4 @@
-@model List<EasytransitCaisse.Models.Livreur>
+@model List<GesCaisse.Models.Livreur>
 @{
     ViewData["Title"] = "Livreurs";
     var nbLivraisons = (Dictionary<int, int>)ViewBag.NbLivraisons;
@@ -34,7 +34,7 @@
                     <tr class="@(l.Actif ? "" : "text-muted")">
                         <td class="fw-semibold">@l.Nom</td>
                         <td>@l.Telephone</td>
-                        <td><i class="fas @EasytransitCaisse.Models.Livreur.Icone(l.MoyenLivraison) text-muted me-1"></i>@l.MoyenLivraison</td>
+                        <td><i class="fas @GesCaisse.Models.Livreur.Icone(l.MoyenLivraison) text-muted me-1"></i>@l.MoyenLivraison</td>
                         <td class="text-center">@nbLivraisons.GetValueOrDefault(l.Id)</td>
                         <td class="text-center">
                             @if (l.Actif)
@@ -77,7 +77,7 @@
                     <div class="col-md-5"><label class="form-label" for="livreurTelephone">Téléphone</label><input id="livreurTelephone" name="Telephone" class="form-control" placeholder="Ex : 077 00 00 00" maxlength="30"></div>
                     <div class="col-md-7"><label class="form-label" for="livreurMoyen">Moyen de livraison</label>
                         <select id="livreurMoyen" name="MoyenLivraison" class="form-select">
-                            @foreach (var m in EasytransitCaisse.Models.Livreur.Moyens)
+                            @foreach (var m in GesCaisse.Models.Livreur.Moyens)
                             {
                                 <option>@m</option>
                             }

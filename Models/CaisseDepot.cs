@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 
-namespace EasytransitCaisse.Models
+namespace GesCaisse.Models
 {
     // Dépôt secondaire d'une caisse : en plus de son dépôt principal (Caisse.DepotId), la caisse puise
     // dans ces dépôts, dans l'ordre indiqué, quand le stock du principal ne suffit pas.

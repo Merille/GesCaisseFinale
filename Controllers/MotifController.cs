@@ -1,9 +1,9 @@
-using EasytransitCaisse.Data;
-using EasytransitCaisse.Models;
+using GesCaisse.Data;
+using GesCaisse.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace EasytransitCaisse.Controllers
+namespace GesCaisse.Controllers
 {
     // Motifs d'opération (avec compte général pour l'export Sage), comme la version PHP :
     // création et modification dans la même fenêtre (Save). Réservé aux profils Admin et SuperAdmin.

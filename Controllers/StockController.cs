@@ -1,13 +1,13 @@
 using System.Globalization;
 using System.Security.Claims;
-using EasytransitCaisse.Data;
-using EasytransitCaisse.Models;
-using EasytransitCaisse.Services;
+using GesCaisse.Data;
+using GesCaisse.Models;
+using GesCaisse.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace EasytransitCaisse.Controllers
+namespace GesCaisse.Controllers
 {
     // Stock du point de vente, suivi par dépôt : historique des mouvements, stock par dépôt, entrées
     // de marchandises, transferts entre dépôts, inventaire et option « vente sans stock ».

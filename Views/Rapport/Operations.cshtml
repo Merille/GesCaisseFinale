@@ -1,7 +1,7 @@
-@model EasytransitCaisse.Models.ViewModels.RapportOperationsVM
+@model GesCaisse.Models.ViewModels.RapportOperationsVM
 @{
     ViewData["Title"] = "Rapport des opérations";
-    var caisses = (List<EasytransitCaisse.Models.Caisse>)ViewBag.Caisses;
+    var caisses = (List<GesCaisse.Models.Caisse>)ViewBag.Caisses;
     var p = new Dictionary<string, string?>
     {
         ["dateDebut"] = Model.DateDebut?.ToString("yyyy-MM-dd"),

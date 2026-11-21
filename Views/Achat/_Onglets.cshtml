@@ -1,8 +1,8 @@
 @model string
-@inject EasytransitCaisse.Data.AppDbContext DbContext
+@inject GesCaisse.Data.AppDbContext DbContext
 @{
-    var alertes = EasytransitCaisse.Data.Depots.EntretienEnAlerte(DbContext);
-    string Qte(decimal n) => EasytransitCaisse.Models.ViewModels.RapportLingeVM.Qte(n);
+    var alertes = GesCaisse.Data.Depots.EntretienEnAlerte(DbContext);
+    string Qte(decimal n) => GesCaisse.Models.ViewModels.RapportLingeVM.Qte(n);
 }
 <ul class="nav nav-tabs mb-3">
     <li class="nav-item"><a class="nav-link @(Model == "Index" ? "active" : "")" href="/Achat/Index"><i class="fas fa-list"></i> Achats</a></li>

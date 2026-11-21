@@ -1,4 +1,4 @@
-@model List<EasytransitCaisse.Models.Tenant>
+@model List<GesCaisse.Models.Tenant>
 @{
     ViewData["Title"] = "Sociétés";
 }
@@ -17,7 +17,7 @@
                         <td>@t.Code</td>
                         <td>
                             <div class="d-flex align-items-center gap-2">
-                                @if (EasytransitCaisse.Data.Images.UrlLogo(t) is string logo)
+                                @if (GesCaisse.Data.Images.UrlLogo(t) is string logo)
                                 {
                                     <img src="@logo" alt="" class="vignette-image vignette-petite" />
                                 }

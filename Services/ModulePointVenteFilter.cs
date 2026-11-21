@@ -1,10 +1,10 @@
-using EasytransitCaisse.Data;
+using GesCaisse.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.EntityFrameworkCore;
 
-namespace EasytransitCaisse.Services
+namespace GesCaisse.Services
 {
     // Module Point de vente optionnel par société : sans lui, les pages du point de vente (vente,
     // catalogue, stock, restaurant, taxes, unités) restent inaccessibles, même par leur adresse.

@@ -1,8 +1,8 @@
 using System.ComponentModel.DataAnnotations;
-using EasytransitCaisse.Data;
+using GesCaisse.Data;
 using Microsoft.EntityFrameworkCore;
 
-namespace EasytransitCaisse.Models
+namespace GesCaisse.Models
 {
     // Vente du point de vente (ticket payé).
     public class CommandePos : ITenantScoped

@@ -1,14 +1,14 @@
 using System.Security.Claims;
 using System.Text.Json;
-using EasytransitCaisse.Data;
-using EasytransitCaisse.Models;
-using EasytransitCaisse.Models.ViewModels;
-using EasytransitCaisse.Services;
+using GesCaisse.Data;
+using GesCaisse.Models;
+using GesCaisse.Models.ViewModels;
+using GesCaisse.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace EasytransitCaisse.Controllers
+namespace GesCaisse.Controllers
 {
     // Synchronisation du mode hors ligne (administrateurs) : état de la file de chaque poste (opérations
     // faites sans connexion pas encore envoyées, refusées), ventes et dépôts de linge enregistrés hors

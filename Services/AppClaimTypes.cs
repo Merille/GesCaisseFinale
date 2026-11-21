@@ -1,4 +1,4 @@
-namespace EasytransitCaisse.Services
+namespace GesCaisse.Services
 {
     public static class AppClaimTypes
     {

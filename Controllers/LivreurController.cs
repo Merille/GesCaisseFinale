@@ -1,11 +1,11 @@
-using EasytransitCaisse.Data;
-using EasytransitCaisse.Models;
-using EasytransitCaisse.Services;
+using GesCaisse.Data;
+using GesCaisse.Models;
+using GesCaisse.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace EasytransitCaisse.Controllers
+namespace GesCaisse.Controllers
 {
     // Livreurs (sans compte de connexion) : choisis au point de vente sur une commande à livrer.
     // Un livreur qui a déjà des livraisons se désactive au lieu d'être supprimé.

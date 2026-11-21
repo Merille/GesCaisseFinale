@@ -1,10 +1,10 @@
-﻿using EasytransitCaisse.Data;
+﻿using GesCaisse.Data;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
 using System.Text;
-using EasytransitCaisse.Models;
+using GesCaisse.Models;
 
-namespace EasytransitCaisse.Services
+namespace GesCaisse.Services
 {
     public class AuthService
     {
@@ -25,7 +25,7 @@ namespace EasytransitCaisse.Services
         // REGISTER
         public async Task<Utilisateur> Register(Utilisateur user)
         {
-            user.MotPasse = EasytransitCaisse.Services.MotsDePasse.Hacher(user.MotPasse);
+            user.MotPasse = GesCaisse.Services.MotsDePasse.Hacher(user.MotPasse);
 
             _context.Utilisateurs.Add(user);
             await _context.SaveChangesAsync();

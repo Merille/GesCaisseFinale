@@ -1,14 +1,14 @@
 using ClosedXML.Excel;
-using EasytransitCaisse.Data;
-using EasytransitCaisse.Models.ViewModels;
-using EasytransitCaisse.Services;
+using GesCaisse.Data;
+using GesCaisse.Models.ViewModels;
+using GesCaisse.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using Rotativa.AspNetCore;
 
-namespace EasytransitCaisse.Controllers
+namespace GesCaisse.Controllers
 {
     // Rapports du point de vente : tableau de bord, ventes par produit, catégorie, vendeur,
     // heure et mode de paiement, meilleures ventes et panier moyen ; export Excel et PDF.

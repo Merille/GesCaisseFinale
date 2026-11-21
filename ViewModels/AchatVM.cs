@@ -1,6 +1,6 @@
-using EasytransitCaisse.Models;
+using GesCaisse.Models;
 
-namespace EasytransitCaisse.Models.ViewModels
+namespace GesCaisse.Models.ViewModels
 {
     // Achats (laverie) : filtres, liste avec montant réglé / reste, totaux ; synthèse des consommations.
     public class FiltresAchats

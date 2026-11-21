@@ -1,11 +1,11 @@
 using System.Text.RegularExpressions;
-using EasytransitCaisse.Data;
-using EasytransitCaisse.Models;
-using EasytransitCaisse.Services;
+using GesCaisse.Data;
+using GesCaisse.Models;
+using GesCaisse.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace EasytransitCaisse.Controllers
+namespace GesCaisse.Controllers
 {
     // Imprimantes de préparation (cuisine, bar) en réseau : la caisse leur envoie directement les bons des
     // catégories choisies. Epson : impression directe (ePOS) ; Réseau : imprimante ESC/POS par l'agent d'impression.

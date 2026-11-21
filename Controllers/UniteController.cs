@@ -1,11 +1,11 @@
-using EasytransitCaisse.Data;
-using EasytransitCaisse.Models;
-using EasytransitCaisse.Services;
+using GesCaisse.Data;
+using GesCaisse.Models;
+using GesCaisse.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace EasytransitCaisse.Controllers
+namespace GesCaisse.Controllers
 {
     // Unités de vente des produits (Kg, Litre, Carton…). Produits.Unite garde le nom de l'unité :
     // renommer une unité met à jour ses produits ; une unité désactivée n'est plus proposée

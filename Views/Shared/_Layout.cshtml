@@ -1,6 +1,6 @@
 ﻿@using Microsoft.AspNetCore.Mvc.Rendering
-@using EasytransitCaisse.Data
-@using EasytransitCaisse.Services
+@using GesCaisse.Data
+@using GesCaisse.Services
 @inject AppDbContext DbContext
 @inject ITenantProvider TenantProvider
 
@@ -10,9 +10,9 @@
     var isSuperAdmin = User.HasClaim(AppClaimTypes.Profil, "SuperAdmin");
     var isAdmin = isSuperAdmin || User.HasClaim(AppClaimTypes.Profil, "Admin");
     // Module Point de vente de la société consultée (toujours oui pour « toutes les sociétés »).
-    var modulePointVente = await EasytransitCaisse.Services.ModulePointVenteFilter.ActifAsync(DbContext, TenantProvider.TenantId);
+    var modulePointVente = await GesCaisse.Services.ModulePointVenteFilter.ActifAsync(DbContext, TenantProvider.TenantId);
     // Droits du profil de l'utilisateur : le menu ne montre que les pages permises.
-    var droitsU = Context.RequestServices.GetRequiredService<EasytransitCaisse.Services.DroitsUtilisateur>();
+    var droitsU = Context.RequestServices.GetRequiredService<GesCaisse.Services.DroitsUtilisateur>();
     await droitsU.ChargerAsync();
     bool Peut(string d) => droitsU.Peut(d);
     var nomUtilisateur = User.Identity?.Name;
@@ -198,7 +198,7 @@
                         <span class="sb-label">Tableau de bord laverie</span>
                     </a>
                 }
-                @if (Peut("tableau_bord") && modulePointVente && EasytransitCaisse.Data.Restaurant.Actif(DbContext))
+                @if (Peut("tableau_bord") && modulePointVente && GesCaisse.Data.Restaurant.Actif(DbContext))
                 {
                     <a class="sb-link @(controller == "TableauRestaurant" ? "active" : "")" href="/TableauRestaurant/Index" title="Tableau resto-bar">
                         <i class="fas fa-utensils"></i>
@@ -258,7 +258,7 @@
                     <span class="sb-label">Ventes</span>
                 </a>
                 }
-                @if (Peut("cuisine") && EasytransitCaisse.Data.Restaurant.Actif(DbContext))
+                @if (Peut("cuisine") && GesCaisse.Data.Restaurant.Actif(DbContext))
                 {
                     <a class="sb-link @(controller == "Cuisine" ? "active" : "")" href="/Cuisine/Index" title="Écran cuisine / bar">
                         <i class="fas fa-fire-burner"></i>
@@ -464,7 +464,7 @@
                 <div class="topbar-societe">Consultation : <strong>@societeConsultee</strong></div>
             }
             @{
-                var notifications = EasytransitCaisse.Data.Notifications.Lister(DbContext, d => droitsU.Peut(d), modulePointVente);
+                var notifications = GesCaisse.Data.Notifications.Lister(DbContext, d => droitsU.Peut(d), modulePointVente);
                 var nbNotifications = notifications.Sum(n => n.N);
             }
             <span class="gc-connexion"></span>
@@ -557,10 +557,10 @@
         var droitsJs = System.Text.Json.JsonSerializer.Serialize(new
         {
             admin = droitsU.EstAdmin,
-            carte = EasytransitCaisse.Services.Droits.CarteJs(),
-            mots = EasytransitCaisse.Services.Droits.Mots,
-            motsDroit = EasytransitCaisse.Services.Droits.MotsDroit,
-            ops = EasytransitCaisse.Services.Droits.Tous.ToDictionary(d => d.Key, d => d.Value.Ops.Keys.ToList()),
+            carte = GesCaisse.Services.Droits.CarteJs(),
+            mots = GesCaisse.Services.Droits.Mots,
+            motsDroit = GesCaisse.Services.Droits.MotsDroit,
+            ops = GesCaisse.Services.Droits.Tous.ToDictionary(d => d.Key, d => d.Value.Ops.Keys.ToList()),
             accordes = droitsU.Accordes
         });
     }

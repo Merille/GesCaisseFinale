@@ -1,4 +1,4 @@
-@model EasytransitCaisse.Models.CommandePos
+@model GesCaisse.Models.CommandePos
 @using System.Globalization
 @{
     var taxesVente = (Dictionary<string, decimal>)ViewBag.Taxes;
@@ -6,12 +6,12 @@
     ViewData["Title"] = (v.CommandeOrigineId.HasValue ? "Retour " : "Vente ") + v.Numero;
     var retournees = (Dictionary<int, decimal>)ViewBag.Retournees;
     var restant = (decimal)ViewBag.Restant;
-    var retours = (List<EasytransitCaisse.Models.CommandePos>)ViewBag.Retours;
-    var origine = (EasytransitCaisse.Models.CommandePos?)ViewBag.Origine;
-    var facture = (EasytransitCaisse.Models.Facture?)ViewBag.Facture;
-    var clients = (List<EasytransitCaisse.Models.Client>)ViewBag.Clients;
-    var journees = (List<EasytransitCaisse.Models.JourneeCaisse>)ViewBag.JourneesOuvertes;
-    var modes = (List<EasytransitCaisse.Models.ModePaiement>)ViewBag.Modes;
+    var retours = (List<GesCaisse.Models.CommandePos>)ViewBag.Retours;
+    var origine = (GesCaisse.Models.CommandePos?)ViewBag.Origine;
+    var facture = (GesCaisse.Models.Facture?)ViewBag.Facture;
+    var clients = (List<GesCaisse.Models.Client>)ViewBag.Clients;
+    var journees = (List<GesCaisse.Models.JourneeCaisse>)ViewBag.JourneesOuvertes;
+    var modes = (List<GesCaisse.Models.ModePaiement>)ViewBag.Modes;
     var peutRembourser = (bool)ViewBag.PeutRembourser;
     var estRetour = v.CommandeOrigineId.HasValue;
     var peutFacturer = !estRetour && v.Statut == "Payée" && !v.FactureId.HasValue;
@@ -78,8 +78,8 @@
         @if (v.StatutLivraison != null)
         {
             <div class="small text-muted mt-2">Livraison</div>
-            var livreurVente = (EasytransitCaisse.Models.Livreur?)ViewBag.LivreurVente;
-            <div><i class="fas @EasytransitCaisse.Models.Livreur.Icone(livreurVente?.MoyenLivraison)"></i> @livreurVente?.Nom@(livreurVente == null ? "" : " (" + livreurVente.MoyenLivraison + ")")
+            var livreurVente = (GesCaisse.Models.Livreur?)ViewBag.LivreurVente;
+            <div><i class="fas @GesCaisse.Models.Livreur.Icone(livreurVente?.MoyenLivraison)"></i> @livreurVente?.Nom@(livreurVente == null ? "" : " (" + livreurVente.MoyenLivraison + ")")
                 <span class="badge @(v.StatutLivraison == "Livrée" ? "bg-success" : "bg-warning text-dark")">@v.StatutLivraison</span></div>
             <div class="small">@(v.NomLivraison ?? ViewBag.Client ?? "")@(string.IsNullOrEmpty(v.TelephoneLivraison) ? "" : " · " + v.TelephoneLivraison)</div>
             <div class="small">@v.AdresseLivraison</div>
@@ -153,7 +153,7 @@
                         {
                             var ret = retournees.GetValueOrDefault(l.Id);
                             <tr>
-                                <td>@l.Libelle@foreach (var comp in EasytransitCaisse.Data.Combos.Lire(l.Composants)) {<div class="small text-muted">· @Qte(comp.Qte) x @comp.Nom@(comp.Supplement > 0 ? " (+" + Fcfa(comp.Supplement) + ")" : "")</div>}@if (!string.IsNullOrEmpty(l.Note)) {<div class="small fst-italic text-muted">» @l.Note</div>}</td>
+                                <td>@l.Libelle@foreach (var comp in GesCaisse.Data.Combos.Lire(l.Composants)) {<div class="small text-muted">· @Qte(comp.Qte) x @comp.Nom@(comp.Supplement > 0 ? " (+" + Fcfa(comp.Supplement) + ")" : "")</div>}@if (!string.IsNullOrEmpty(l.Note)) {<div class="small fst-italic text-muted">» @l.Note</div>}</td>
                                 <td class="text-end">@Qte(l.Quantite)</td>
                                 <td class="text-end">@Fcfa(l.PrixUnitaire)</td>
                                 <td class="text-end">@(l.Remise > 0 ? Qte(l.Remise) + " %" : "")</td>
@@ -256,7 +256,7 @@
                             <select class="form-select" id="retourMode" name="modeId" required>
                                 @foreach (var m in modes)
                                 {
-                                    <option value="@m.Id" selected="@EasytransitCaisse.Controllers.PosController.EstEspeces(m)">@m.Libelle</option>
+                                    <option value="@m.Id" selected="@GesCaisse.Controllers.PosController.EstEspeces(m)">@m.Libelle</option>
                                 }
                             </select>
                         </div>

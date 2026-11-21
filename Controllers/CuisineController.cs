@@ -1,9 +1,9 @@
-using EasytransitCaisse.Data;
+using GesCaisse.Data;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace EasytransitCaisse.Controllers
+namespace GesCaisse.Controllers
 {
     // Écran cuisine / bar : bons de préparation des caisses restaurant / bar, actualisés en continu.
     // Ouvert à tous les profils connectés (cuisiniers, barmans, serveurs).

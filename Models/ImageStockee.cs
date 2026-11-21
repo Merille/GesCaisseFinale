@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace EasytransitCaisse.Models
+namespace GesCaisse.Models
 {
     // Images enregistrées dans la base : aucun dossier à copier lors d'une mise à jour du site.
     public class TenantLogo

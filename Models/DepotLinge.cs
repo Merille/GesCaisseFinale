@@ -1,8 +1,8 @@
 using System.ComponentModel.DataAnnotations;
-using EasytransitCaisse.Data;
+using GesCaisse.Data;
 using Microsoft.EntityFrameworkCore;
 
-namespace EasytransitCaisse.Models
+namespace GesCaisse.Models
 {
     // Laverie : dépôt de linge payé au retrait. Au dépôt, la commande est enregistrée avec un numéro
     // (par société), le client, son téléphone, la date de retrait prévue et un acompte facultatif

@@ -1,8 +1,8 @@
 using System.ComponentModel.DataAnnotations;
-using EasytransitCaisse.Data;
+using GesCaisse.Data;
 using Microsoft.EntityFrameworkCore;
 
-namespace EasytransitCaisse.Models
+namespace GesCaisse.Models
 {
     // Page Synchronisation (administrateurs) : état de la file hors ligne d'un poste (navigateur), envoyé
     // par le poste quand il est connecté. Code : identifiant du poste (numéros provisoires H-code-n°).

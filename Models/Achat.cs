@@ -1,8 +1,8 @@
 using System.ComponentModel.DataAnnotations;
-using EasytransitCaisse.Data;
+using GesCaisse.Data;
 using Microsoft.EntityFrameworkCore;
 
-namespace EasytransitCaisse.Models
+namespace GesCaisse.Models
 {
     // Achat chez un fournisseur (laverie : lessive, javel, assouplissant…). Les lignes entrent en stock
     // dans le dépôt (mouvement « Achat ») et mettent à jour le coût des produits (coût moyen pondéré).

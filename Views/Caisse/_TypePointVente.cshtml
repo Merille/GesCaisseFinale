@@ -1,9 +1,9 @@
-@model EasytransitCaisse.Models.Caisse
-@inject EasytransitCaisse.Data.AppDbContext DbContext
-@inject EasytransitCaisse.Services.ITenantProvider TenantProvider
+@model GesCaisse.Models.Caisse
+@inject GesCaisse.Data.AppDbContext DbContext
+@inject GesCaisse.Services.ITenantProvider TenantProvider
 @* Type de point de vente (Vente en détail, Restaurant, Bar, Laverie) et impression des bons de préparation ;
    masqués (valeurs conservées) quand la société n'a pas le module Point de vente. *@
-@if (!await EasytransitCaisse.Services.ModulePointVenteFilter.ActifAsync(DbContext, Model.TenantId != 0 ? Model.TenantId : TenantProvider.TenantId))
+@if (!await GesCaisse.Services.ModulePointVenteFilter.ActifAsync(DbContext, Model.TenantId != 0 ? Model.TenantId : TenantProvider.TenantId))
 {
     <input type="hidden" name="TypePointVente" value="@Model.TypePointVente" />
     <input type="hidden" name="ImprimerBons" value="@(Model.ImprimerBons ? "true" : "false")" />
@@ -13,9 +13,9 @@
 <div class="col-md-4">
     <label class="form-label" for="TypePointVente">Type de point de vente</label>
     <select class="form-select" id="TypePointVente" name="TypePointVente">
-        @foreach (var t in EasytransitCaisse.Controllers.CaisseController.Types)
+        @foreach (var t in GesCaisse.Controllers.CaisseController.Types)
         {
-            <option value="@t" selected="@(Model.TypePointVente == t)">@EasytransitCaisse.Controllers.CaisseController.Libelle(t)</option>
+            <option value="@t" selected="@(Model.TypePointVente == t)">@GesCaisse.Controllers.CaisseController.Libelle(t)</option>
         }
     </select>
     <div class="form-text">Restaurant / Bar : plan de salle, commandes sur les tables, bons cuisine / bar. Laverie : vente au comptoir de prestations.</div>

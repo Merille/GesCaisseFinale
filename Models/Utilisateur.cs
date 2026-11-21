@@ -1,4 +1,4 @@
-namespace EasytransitCaisse.Models
+namespace GesCaisse.Models
 {
     // Profil "SuperAdmin" => TenantId = null (portée globale, gère les sociétés/tenants).
     // Nullable (contrairement aux autres entités) car TenantId = 0 n'a pas de tenant

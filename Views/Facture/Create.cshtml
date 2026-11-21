@@ -1,6 +1,6 @@
 @{
     ViewData["Title"] = "Nouvelle facture";
-    var clients = (List<EasytransitCaisse.Models.Client>)ViewBag.Clients;
+    var clients = (List<GesCaisse.Models.Client>)ViewBag.Clients;
     dynamic? saisie = ViewBag.Saisie;
     string numero = saisie?.Numero ?? (string)ViewBag.NumeroPropose;
     string taux = saisie?.TauxTVA ?? "18";

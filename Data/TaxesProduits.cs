@@ -1,8 +1,8 @@
 using System.Globalization;
-using EasytransitCaisse.Models;
+using GesCaisse.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace EasytransitCaisse.Data
+namespace GesCaisse.Data
 {
     // Taxes des produits : un produit peut en porter plusieurs (ex. TVA 18 % + CSS 1 %),
     // qui s'additionnent sur le HT ; Produits.TauxTVA garde le taux total.

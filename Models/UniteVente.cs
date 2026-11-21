@@ -1,7 +1,7 @@
-using EasytransitCaisse.Data;
+using GesCaisse.Data;
 using System.ComponentModel.DataAnnotations;
 
-namespace EasytransitCaisse.Models
+namespace GesCaisse.Models
 {
     // Unité de vente des produits (Kg, Litre, Carton…). Produits.Unite garde le nom de l'unité :
     // renommer une unité met à jour ses produits ; une unité désactivée n'est plus proposée

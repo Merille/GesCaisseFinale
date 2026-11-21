@@ -1,9 +1,9 @@
-using EasytransitCaisse.Data;
+using GesCaisse.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.EntityFrameworkCore;
 
-namespace EasytransitCaisse.Services
+namespace GesCaisse.Services
 {
     // Bloque toute action (pas seulement le login) dès qu'une société est
     // inactive ou que sa licence/abonnement a expiré — vérifié en base à

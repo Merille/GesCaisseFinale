@@ -1,8 +1,8 @@
-using EasytransitCaisse.Models;
-using EasytransitCaisse.Services;
+using GesCaisse.Models;
+using GesCaisse.Services;
 using Microsoft.EntityFrameworkCore;
 
-namespace EasytransitCaisse.Data
+namespace GesCaisse.Data
 {
     public class AppDbContext : DbContext
     {

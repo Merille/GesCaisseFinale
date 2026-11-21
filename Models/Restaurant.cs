@@ -1,8 +1,8 @@
-using EasytransitCaisse.Data;
+using GesCaisse.Data;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.EntityFrameworkCore;
 
-namespace EasytransitCaisse.Models
+namespace GesCaisse.Models
 {
     // Restaurant et bar (comme le point de vente restaurant d'Odoo) : salles et tables d'une
     // caisse de type Restaurant ou Bar, commande ouverte sur la table jusqu'au paiement,

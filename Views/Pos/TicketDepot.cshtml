@@ -1,4 +1,4 @@
-@model EasytransitCaisse.Models.DepotLinge
+@model GesCaisse.Models.DepotLinge
 @using System.Globalization
 @{
     // Ticket de dépôt de linge 80 mm « NON PAYÉ » : exemplaire client, puis souche à joindre au linge
@@ -6,8 +6,8 @@
     Layout = null;
     string Fcfa(decimal n) => n.ToString("N0", CultureInfo.GetCultureInfo("fr-FR"));
     string Qte(decimal n) => n == Math.Round(n) ? n.ToString("0", CultureInfo.InvariantCulture) : n.ToString("0.##", CultureInfo.GetCultureInfo("fr-FR"));
-    var contenu = (EasytransitCaisse.Data.Restaurant.Contenu)ViewBag.Contenu;
-    var brut = EasytransitCaisse.Data.Restaurant.Total(new EasytransitCaisse.Data.Restaurant.Contenu { Lignes = contenu.Lignes });
+    var contenu = (GesCaisse.Data.Restaurant.Contenu)ViewBag.Contenu;
+    var brut = GesCaisse.Data.Restaurant.Total(new GesCaisse.Data.Restaurant.Contenu { Lignes = contenu.Lignes });
     var reste = Model.Statut == "Retiré" ? 0 : Math.Max(0, Model.Total - Model.Acompte);
     var mode = (string?)ViewBag.ModeAcompte;
     var etat = Model.Statut == "Annulé" ? "ANNULÉ" : Model.Statut == "Retiré" ? "RETIRÉ" : "NON PAYÉ";

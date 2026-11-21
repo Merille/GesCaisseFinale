@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 
-namespace EasytransitCaisse.Data
+namespace GesCaisse.Data
 {
     // Dépôts de stockage : dépôt par défaut d'une société, dépôt d'une caisse, stock d'un produit dans un dépôt.
     // Même fonctionnement que la version PHP (depot_par_defaut, depot_caisse, stock_depot).

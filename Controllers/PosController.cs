@@ -1,14 +1,14 @@
 using System.Security.Claims;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using EasytransitCaisse.Data;
-using EasytransitCaisse.Models;
-using EasytransitCaisse.Services;
+using GesCaisse.Data;
+using GesCaisse.Models;
+using GesCaisse.Services;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace EasytransitCaisse.Controllers
+namespace GesCaisse.Controllers
 {
     // Point de vente : choix de la journée ouverte, puis écran de vente plein écran.
     // Ouvert à tous les profils connectés. Les tickets en cours sont gardés dans le

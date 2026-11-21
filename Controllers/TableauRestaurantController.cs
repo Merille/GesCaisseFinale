@@ -1,11 +1,11 @@
-using EasytransitCaisse.Data;
-using EasytransitCaisse.Models;
-using EasytransitCaisse.Models.ViewModels;
+using GesCaisse.Data;
+using GesCaisse.Models;
+using GesCaisse.Models.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace EasytransitCaisse.Controllers
+namespace GesCaisse.Controllers
 {
     // Tableau de bord du restaurant-bar (société qui a une caisse de type Restaurant ou Bar) : une page à
     // part, en tuiles, à côté du tableau de bord général (inchangé). Ventes, tables et couverts, bons en

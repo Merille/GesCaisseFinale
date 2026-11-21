@@ -1,10 +1,10 @@
-@model List<EasytransitCaisse.Models.Produit>
+@model List<GesCaisse.Models.Produit>
 @using System.Globalization
 @{
     ViewData["Title"] = "Stock par dépôt";
-    var depots = (List<EasytransitCaisse.Models.Depot>)ViewBag.Depots;
+    var depots = (List<GesCaisse.Models.Depot>)ViewBag.Depots;
     var quantites = (Dictionary<(int, int), decimal>)ViewBag.Quantites;
-    var categories = (List<EasytransitCaisse.Models.Categorie>)ViewBag.Categories;
+    var categories = (List<GesCaisse.Models.Categorie>)ViewBag.Categories;
     var categorie = (int)ViewBag.Categorie;
     var fr = CultureInfo.GetCultureInfo("fr-FR");
     string Qte(decimal n) => n.ToString("#,0.##", fr);

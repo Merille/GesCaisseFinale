@@ -1,5 +1,5 @@
-@model EasytransitCaisse.Models.ViewModels.AchatsVM
-@using EasytransitCaisse.Models
+@model GesCaisse.Models.ViewModels.AchatsVM
+@using GesCaisse.Models
 @{
     ViewData["Title"] = "Achats";
     var f = Model.Filtres;
@@ -32,7 +32,7 @@
             <label class="form-label small fw-semibold text-muted mb-1" for="statut">Statut</label>
             <select class="form-select" id="statut" name="statut">
                 <option value="">Tous</option>
-                @foreach (var s in EasytransitCaisse.Models.ViewModels.FiltresAchats.Choix)
+                @foreach (var s in GesCaisse.Models.ViewModels.FiltresAchats.Choix)
                 {
                     <option selected="@(f.Statut == s)">@s</option>
                 }

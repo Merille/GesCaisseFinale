@@ -1,8 +1,8 @@
 using System.ComponentModel.DataAnnotations;
-using EasytransitCaisse.Data;
+using GesCaisse.Data;
 using Microsoft.EntityFrameworkCore;
 
-namespace EasytransitCaisse.Models
+namespace GesCaisse.Models
 {
     // Dépôt de stockage (magasin, entrepôt, réserve…) : le stock de chaque produit est suivi par dépôt.
     // Chaque société a un dépôt par défaut, qui reçoit le stock initial des produits et

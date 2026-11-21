@@ -1,13 +1,13 @@
 using ClosedXML.Excel;
-using EasytransitCaisse.Data;
-using EasytransitCaisse.Models;
-using EasytransitCaisse.Models.ViewModels;
-using EasytransitCaisse.Services;
+using GesCaisse.Data;
+using GesCaisse.Models;
+using GesCaisse.Models.ViewModels;
+using GesCaisse.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace EasytransitCaisse.Controllers
+namespace GesCaisse.Controllers
 {
     // Rapport des achats et consommations (laverie) : sur une période (date d'achat) et, au besoin, un
     // fournisseur : cartes (achats, montant, réglé, reste à payer, valeur consommée), synthèse par

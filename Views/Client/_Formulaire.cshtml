@@ -1,4 +1,4 @@
-﻿@model EasytransitCaisse.Models.Client
+﻿@model GesCaisse.Models.Client
 @* Formulaire d'un tiers (création, aussi en fenêtre modale, et modification), comme la version PHP. *@
 @{
     var edition = Model.Id > 0;
@@ -13,7 +13,7 @@
             <div class="row g-3 mb-4">
                 <div class="col-12">
                     <span class="form-label d-block">Genre</span>
-                    @foreach (var g in EasytransitCaisse.Models.Client.Genres)
+                    @foreach (var g in GesCaisse.Models.Client.Genres)
                     {
                         <div class="form-check form-check-inline">
                             <input class="form-check-input" type="radio" name="Genre" id="Genre@(g)" value="@g" checked="@((Model.Genre ?? "Entreprise") == g)" />

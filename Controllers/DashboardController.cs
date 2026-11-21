@@ -1,12 +1,12 @@
 using System.Globalization;
-using EasytransitCaisse.Data;
-using EasytransitCaisse.Models;
-using EasytransitCaisse.Models.ViewModels;
+using GesCaisse.Data;
+using GesCaisse.Models;
+using GesCaisse.Models.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 
-namespace EasytransitCaisse.Controllers
+namespace GesCaisse.Controllers
 {
     public class DashboardController : Controller
     {
@@ -14,9 +14,9 @@ namespace EasytransitCaisse.Controllers
 
         private static readonly CultureInfo Fr = new CultureInfo("fr-FR");
 
-        private readonly EasytransitCaisse.Services.ITenantProvider _tenant;
+        private readonly GesCaisse.Services.ITenantProvider _tenant;
 
-        public DashboardController(AppDbContext context, EasytransitCaisse.Services.ITenantProvider tenant)
+        public DashboardController(AppDbContext context, GesCaisse.Services.ITenantProvider tenant)
         {
             _context = context;
             _tenant = tenant;
@@ -296,8 +296,8 @@ namespace EasytransitCaisse.Controllers
                 .Select(j => (int?)j.Id)
                 .FirstOrDefault();
             // Laverie : produits d'entretien sous leur seuil d'alerte (administrateurs).
-            var estAdmin = HttpContext.RequestServices.GetRequiredService<EasytransitCaisse.Services.DroitsUtilisateur>().Peut("achats");
-            model.ProduitsEntretienAlerte = estAdmin && EasytransitCaisse.Services.ModulePointVenteFilter.ActifAsync(_context, _tenant.TenantId).GetAwaiter().GetResult()
+            var estAdmin = HttpContext.RequestServices.GetRequiredService<GesCaisse.Services.DroitsUtilisateur>().Peut("achats");
+            model.ProduitsEntretienAlerte = estAdmin && GesCaisse.Services.ModulePointVenteFilter.ActifAsync(_context, _tenant.TenantId).GetAwaiter().GetResult()
                 ? _context.EntretienEnAlerte().Count : 0;
 
             // ==========================

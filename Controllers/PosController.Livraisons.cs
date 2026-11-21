@@ -1,10 +1,10 @@
 using System.Security.Claims;
 using System.Text.Json;
-using EasytransitCaisse.Models;
+using GesCaisse.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace EasytransitCaisse.Controllers
+namespace GesCaisse.Controllers
 {
     // Point de vente : commandes mises en attente (gardées sur le serveur, visibles depuis tous les
     // postes de la journée) et commandes à livrer (livreur, destinataire, payées maintenant ou à la

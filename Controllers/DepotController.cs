@@ -1,11 +1,11 @@
-using EasytransitCaisse.Data;
-using EasytransitCaisse.Models;
-using EasytransitCaisse.Services;
+using GesCaisse.Data;
+using GesCaisse.Models;
+using GesCaisse.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace EasytransitCaisse.Controllers
+namespace GesCaisse.Controllers
 {
     // Dépôts de stockage (magasin, entrepôt, réserve…) : le stock de chaque produit est suivi par dépôt.
     // Le dépôt par défaut reçoit le stock initial des produits et sert aux caisses sans dépôt choisi ;

@@ -1,12 +1,12 @@
 using System.Globalization;
 using System.Security.Claims;
-using EasytransitCaisse.Data;
-using EasytransitCaisse.Models;
-using EasytransitCaisse.Services;
+using GesCaisse.Data;
+using GesCaisse.Models;
+using GesCaisse.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace EasytransitCaisse.Controllers
+namespace GesCaisse.Controllers
 {
     // Ventes du point de vente : liste, détail, facture depuis une vente, retour /
     // remboursement et annulation. Retours et annulations : administrateurs et

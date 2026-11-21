@@ -1,12 +1,12 @@
-@model List<EasytransitCaisse.Models.MouvementStock>
+@model List<GesCaisse.Models.MouvementStock>
 @using System.Globalization
 @{
     ViewData["Title"] = "Stock";
     var utilisateurs = (Dictionary<int, string>)ViewBag.Utilisateurs;
-    var produits = (List<EasytransitCaisse.Models.Produit>)ViewBag.Produits;
-    var alertes = (List<EasytransitCaisse.Models.Produit>)ViewBag.Alertes;
+    var produits = (List<GesCaisse.Models.Produit>)ViewBag.Produits;
+    var alertes = (List<GesCaisse.Models.Produit>)ViewBag.Alertes;
     var venteSansStock = (bool?)ViewBag.VenteSansStock;
-    var depots = (List<EasytransitCaisse.Models.Depot>)ViewBag.Depots;
+    var depots = (List<GesCaisse.Models.Depot>)ViewBag.Depots;
     dynamic f = ViewBag.Filtres;
     var fr = CultureInfo.GetCultureInfo("fr-FR");
     string Qte(decimal n) => n.ToString("#,0.##", fr);
@@ -89,7 +89,7 @@
     <div><label class="form-label small mb-1" for="fType">Type</label>
         <select id="fType" name="type" class="form-select">
             <option value="">Tous les types</option>
-            @foreach (var t in EasytransitCaisse.Models.MouvementStock.Types)
+            @foreach (var t in GesCaisse.Models.MouvementStock.Types)
             {
                 <option selected="@(f.type == t)">@t</option>
             }

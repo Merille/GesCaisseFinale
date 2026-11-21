@@ -1,11 +1,11 @@
 using ClosedXML.Excel;
-using EasytransitCaisse.Data;
-using EasytransitCaisse.Models;
-using EasytransitCaisse.Models.ViewModels;
+using GesCaisse.Data;
+using GesCaisse.Models;
+using GesCaisse.Models.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace EasytransitCaisse.Controllers
+namespace GesCaisse.Controllers
 {
     // Rapport des tiers : synthèse par tiers sur une période (ventes du point de vente, encaissements,
     // décaissements, solde), export Excel et impression ; relevé détaillé d'un tiers (opérations de

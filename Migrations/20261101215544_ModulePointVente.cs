@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace EasytransitCaisse.Migrations
+namespace GesCaisse.Migrations
 {
     /// <inheritdoc />
     public partial class ModulePointVente : Migration

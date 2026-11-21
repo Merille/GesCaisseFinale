@@ -1,13 +1,13 @@
-﻿using EasytransitCaisse.Data;
-using EasytransitCaisse.Models;
-using EasytransitCaisse.Models.ViewModels;
-using EasytransitCaisse.Services;
+﻿using GesCaisse.Data;
+using GesCaisse.Models;
+using GesCaisse.Models.ViewModels;
+using GesCaisse.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using Rotativa.AspNetCore;
 
-namespace EasytransitCaisse.Controllers
+namespace GesCaisse.Controllers
 {
     public class FactureController : Controller
     {

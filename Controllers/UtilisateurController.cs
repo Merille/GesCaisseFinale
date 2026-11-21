@@ -1,7 +1,7 @@
 using System.Security.Claims;
-﻿using EasytransitCaisse.Data;
-using EasytransitCaisse.Models;
-using EasytransitCaisse.Services;
+﻿using GesCaisse.Data;
+using GesCaisse.Models;
+using GesCaisse.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -9,7 +9,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
 
-namespace EasytransitCaisse.Controllers
+namespace GesCaisse.Controllers
 {
     // Réservé aux profils Admin et SuperAdmin.
     [Authorize(Policy = "Admin")]
@@ -165,7 +165,7 @@ namespace EasytransitCaisse.Controllers
                 return View(user);
             }
 
-            user.MotPasse = EasytransitCaisse.Services.MotsDePasse.Hacher(user.MotPasse);
+            user.MotPasse = GesCaisse.Services.MotsDePasse.Hacher(user.MotPasse);
             _context.Utilisateurs.Add(user);
             _context.SaveChanges();
             TempData["Success"] = "Utilisateur créé.";
@@ -226,7 +226,7 @@ namespace EasytransitCaisse.Controllers
             existing.TenantId = user.TenantId;
             // Mot de passe changé seulement s'il est saisi.
             if (!string.IsNullOrEmpty(user.MotPasse))
-                existing.MotPasse = EasytransitCaisse.Services.MotsDePasse.Hacher(user.MotPasse);
+                existing.MotPasse = GesCaisse.Services.MotsDePasse.Hacher(user.MotPasse);
 
             _context.SaveChanges();
             TempData["Success"] = "Utilisateur modifié.";

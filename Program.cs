@@ -1,5 +1,5 @@
-using EasytransitCaisse.Data;
-using EasytransitCaisse.Services;
+using GesCaisse.Data;
+using GesCaisse.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Authorization;

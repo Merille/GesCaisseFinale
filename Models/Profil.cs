@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
-using EasytransitCaisse.Data;
+using GesCaisse.Data;
 
-namespace EasytransitCaisse.Models
+namespace GesCaisse.Models
 {
     // Profil d'utilisateurs d'une société (Caissier, Serveur, Gérant…) et ses droits d'accès :
     // codes séparés par des virgules (voir Services/Droits.cs). Les comptes Admin et SuperAdmin

@@ -1,11 +1,11 @@
-@model EasytransitCaisse.Models.Utilisateur
+@model GesCaisse.Models.Utilisateur
 @* Formulaire d'un utilisateur (création, aussi en fenêtre modale, et modification), comme la version PHP. *@
 @{
     var edition = Model.Id > 0;
     var titre = edition ? "Modifier l'utilisateur" : "Nouvel utilisateur";
     var superAdmin = ViewBag.IsSuperAdmin == true;
     var profils = (List<(string Valeur, string Libelle, int? Societe)>)ViewBag.Profils;
-    var valeurProfil = Model.Profil == "" || Model.Profil == null ? "" : EasytransitCaisse.Controllers.UtilisateurController.ValeurProfil(Context.RequestServices.GetRequiredService<EasytransitCaisse.Data.AppDbContext>(), Model);
+    var valeurProfil = Model.Profil == "" || Model.Profil == null ? "" : GesCaisse.Controllers.UtilisateurController.ValeurProfil(Context.RequestServices.GetRequiredService<GesCaisse.Data.AppDbContext>(), Model);
 }
 <div class="card shadow-sm border-0">
     <div class="card-header bg-brand text-white"><h5 class="mb-0">@titre</h5></div>

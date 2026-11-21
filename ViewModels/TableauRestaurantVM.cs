@@ -1,6 +1,6 @@
-using EasytransitCaisse.Models;
+using GesCaisse.Models;
 
-namespace EasytransitCaisse.Models.ViewModels
+namespace GesCaisse.Models.ViewModels
 {
     // Tableau de bord du restaurant-bar (tuiles), à côté du tableau de bord général.
     public class TableauRestaurantVM

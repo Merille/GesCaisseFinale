@@ -2,7 +2,7 @@
 
 #nullable disable
 
-namespace EasytransitCaisse.Migrations
+namespace GesCaisse.Migrations
 {
     // Clients en compte : vente par compte (à crédit), plafond, mode « Compte client » et règlements.
     /// <inheritdoc />

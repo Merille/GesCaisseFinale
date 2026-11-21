@@ -1,12 +1,12 @@
 using System.Globalization;
 using System.Text.Json;
-using EasytransitCaisse.Data;
-using EasytransitCaisse.Models;
-using EasytransitCaisse.Services;
+using GesCaisse.Data;
+using GesCaisse.Models;
+using GesCaisse.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace EasytransitCaisse.Controllers
+namespace GesCaisse.Controllers
 {
     // Laverie : dépôts de linge payés au retrait (table DepotsLinge). Au dépôt, la commande est
     // enregistrée avec un numéro, le client, son téléphone, la date de retrait prévue et un acompte

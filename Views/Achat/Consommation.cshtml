@@ -1,5 +1,5 @@
-@model List<EasytransitCaisse.Models.MouvementStock>
-@using EasytransitCaisse.Models.ViewModels
+@model List<GesCaisse.Models.MouvementStock>
+@using GesCaisse.Models.ViewModels
 @{
     ViewData["Title"] = "Consommations";
     var fr = System.Globalization.CultureInfo.GetCultureInfo("fr-FR");
@@ -7,8 +7,8 @@
     string Qte(decimal n) => n.ToString(n == Math.Round(n) ? "#,0" : "#,0.00", fr);
     var f = (FiltresAchats)ViewBag.Filtres;
     var synthese = (List<SyntheseConsommation>)ViewBag.Synthese;
-    var produits = (List<EasytransitCaisse.Models.Produit>)ViewBag.Produits;
-    var depot = (EasytransitCaisse.Models.Depot?)ViewBag.Depot;
+    var produits = (List<GesCaisse.Models.Produit>)ViewBag.Produits;
+    var depot = (GesCaisse.Models.Depot?)ViewBag.Depot;
     var stocksDepot = (Dictionary<int, decimal>)ViewBag.StocksDepot;
     var utilisateurs = (Dictionary<int, string>)ViewBag.Utilisateurs;
     var valeur = synthese.Sum(s => s.Valeur);

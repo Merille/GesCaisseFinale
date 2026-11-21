@@ -1,5 +1,5 @@
-@model EasytransitCaisse.Models.ViewModels.TableauRestaurantVM
-@using EasytransitCaisse.Services
+@model GesCaisse.Models.ViewModels.TableauRestaurantVM
+@using GesCaisse.Services
 @{
     ViewData["Title"] = "Tableau de bord restaurant-bar";
     var fr = System.Globalization.CultureInfo.GetCultureInfo("fr-FR");
@@ -7,7 +7,7 @@
     string Qte(decimal n) => n.ToString("0.##", fr);
     string S(decimal n) => n > 1 ? "s" : "";
     string E(string? s) => System.Net.WebUtility.HtmlEncode(s ?? "");
-    var droitsU = Context.RequestServices.GetRequiredService<EasytransitCaisse.Services.DroitsUtilisateur>();
+    var droitsU = Context.RequestServices.GetRequiredService<GesCaisse.Services.DroitsUtilisateur>();
     bool Peut(string d) => droitsU.Peut(d);
     var admin = Peut("rapports_pdv");   // liens vers les rapports du point de vente
     var aujourdhui = DateTime.Today;

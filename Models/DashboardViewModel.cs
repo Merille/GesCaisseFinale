@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc.Rendering;
 
-namespace EasytransitCaisse.Models.ViewModels
+namespace GesCaisse.Models.ViewModels
 {
     public class DashboardViewModel
     {

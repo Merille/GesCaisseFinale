@@ -1,4 +1,4 @@
-@model EasytransitCaisse.Models.ViewModels.RapportLivraisonVM
+@model GesCaisse.Models.ViewModels.RapportLivraisonVM
 @{
     ViewData["Title"] = "Rapport des livraisons";
     var f = Model.Filtres;
@@ -31,7 +31,7 @@
             <label class="form-label small fw-semibold text-muted mb-1" for="statut">Statut</label>
             <select class="form-select" id="statut" name="statut">
                 <option value="">Tous</option>
-                @foreach (var s in EasytransitCaisse.Models.ViewModels.FiltresRapportLivraison.Statuts)
+                @foreach (var s in GesCaisse.Models.ViewModels.FiltresRapportLivraison.Statuts)
                 {
                     <option selected="@(f.Statut == s)">@s</option>
                 }
@@ -73,7 +73,7 @@
                 {
                     <tr>
                         <td class="fw-semibold">@l.Livreur</td>
-                        <td><i class="fas @EasytransitCaisse.Models.Livreur.Icone(l.Moyen) text-muted me-1"></i>@l.Moyen</td>
+                        <td><i class="fas @GesCaisse.Models.Livreur.Icone(l.Moyen) text-muted me-1"></i>@l.Moyen</td>
                         <td class="text-end">@l.Livraisons</td>
                         <td class="text-end">@l.Livrees</td>
                         <td class="text-end">@l.ALivrer</td>
@@ -114,7 +114,7 @@
                             {
                                 @l.Numero
                             }</td>
-                        <td class="text-nowrap"><i class="fas @EasytransitCaisse.Models.Livreur.Icone(l.Moyen) text-muted me-1" title="@l.Moyen"></i>@l.Livreur</td>
+                        <td class="text-nowrap"><i class="fas @GesCaisse.Models.Livreur.Icone(l.Moyen) text-muted me-1" title="@l.Moyen"></i>@l.Livreur</td>
                         <td>@(string.IsNullOrEmpty(l.Destinataire) ? l.Client : l.Destinataire)@if (!string.IsNullOrEmpty(l.Telephone))
                             {
                                 <small class="d-block text-muted">@l.Telephone</small>

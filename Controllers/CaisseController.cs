@@ -1,13 +1,13 @@
-using EasytransitCaisse.Data;
-using EasytransitCaisse.Models;
-using EasytransitCaisse.Services;
+using GesCaisse.Data;
+using GesCaisse.Models;
+using GesCaisse.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Rotativa.AspNetCore;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
-namespace EasytransitCaisse.Controllers
+namespace GesCaisse.Controllers
 {
     public class CaisseController : Controller
     {
@@ -353,7 +353,7 @@ namespace EasytransitCaisse.Controllers
         {
             var caissiers = _context.Utilisateurs.ToDictionary(u => u.Id, u => u.NomComplet);
             var caisses = _context.Caisses.OrderBy(c => c.ChkCode).ToList()
-                .Select(c => new EasytransitCaisse.Models.ViewModels.CaisseImpressionVM
+                .Select(c => new GesCaisse.Models.ViewModels.CaisseImpressionVM
                 {
                     Caisse = c,
                     Caissier = c.CashierDefault.HasValue && caissiers.TryGetValue(c.CashierDefault.Value, out var nom) ? nom : null

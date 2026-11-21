@@ -1,11 +1,11 @@
 using System.Globalization;
-using EasytransitCaisse.Data;
-using EasytransitCaisse.Models;
-using EasytransitCaisse.Services;
+using GesCaisse.Data;
+using GesCaisse.Models;
+using GesCaisse.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace EasytransitCaisse.Controllers
+namespace GesCaisse.Controllers
 {
     // Taxes appliquées aux produits du point de vente (TVA, CSS…). Un produit peut en porter
     // plusieurs : elles s'additionnent sur le HT et sont comprises dans le prix TTC.

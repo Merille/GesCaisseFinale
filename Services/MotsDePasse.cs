@@ -1,7 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 
-namespace EasytransitCaisse.Services
+namespace GesCaisse.Services
 {
     // Mots de passe : PBKDF2-HMAC-SHA512 salé, format commun aux versions .NET et PHP :
     // « pbkdf2_sha512$itérations$sel$empreinte » (sel de 16 octets, empreinte de 64 octets, en Base64).

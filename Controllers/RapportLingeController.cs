@@ -1,12 +1,12 @@
 using ClosedXML.Excel;
-using EasytransitCaisse.Data;
-using EasytransitCaisse.Models;
-using EasytransitCaisse.Models.ViewModels;
+using GesCaisse.Data;
+using GesCaisse.Models;
+using GesCaisse.Models.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace EasytransitCaisse.Controllers
+namespace GesCaisse.Controllers
 {
     // Rapport des dépôts de linge (laverie) : sur une période (date de dépôt), synthèse par statut
     // (nombre, articles, montant, acomptes, reste à encaisser) et détail des dépôts. Les filtres

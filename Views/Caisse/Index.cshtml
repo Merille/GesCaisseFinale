@@ -1,11 +1,11 @@
-@model List<EasytransitCaisse.Models.CaisseViewModel>
-@inject EasytransitCaisse.Data.AppDbContext DbContext
-@inject EasytransitCaisse.Services.ITenantProvider TenantProvider
+@model List<GesCaisse.Models.CaisseViewModel>
+@inject GesCaisse.Data.AppDbContext DbContext
+@inject GesCaisse.Services.ITenantProvider TenantProvider
 
 @{
     ViewData["Title"] = "Caisses";
-    var modulePointVente = await EasytransitCaisse.Services.ModulePointVenteFilter.ActifAsync(DbContext, TenantProvider.TenantId);
-    var admin = Context.RequestServices.GetRequiredService<EasytransitCaisse.Services.DroitsUtilisateur>().Peut("config_pdv");   // éditeur du plan de salle
+    var modulePointVente = await GesCaisse.Services.ModulePointVenteFilter.ActifAsync(DbContext, TenantProvider.TenantId);
+    var admin = Context.RequestServices.GetRequiredService<GesCaisse.Services.DroitsUtilisateur>().Peut("config_pdv");   // éditeur du plan de salle
 }
 <div class="d-flex justify-content-end gap-2 mb-3">
     <a href="/Caisse/PrintCaisses" class="btn btn-outline-primary"><i class="fas fa-print"></i> Imprimer</a>
@@ -31,8 +31,8 @@
                         </td>
                         <td>@item.ChkDescription</td>
                         <td>
-                            <span class="badge @EasytransitCaisse.Controllers.CaisseController.Badge(type)">
-                                <i class="fas @EasytransitCaisse.Controllers.CaisseController.Icone(type)"></i> @EasytransitCaisse.Controllers.CaisseController.Libelle(type)
+                            <span class="badge @GesCaisse.Controllers.CaisseController.Badge(type)">
+                                <i class="fas @GesCaisse.Controllers.CaisseController.Icone(type)"></i> @GesCaisse.Controllers.CaisseController.Libelle(type)
                             </span>
                         </td>
                         <td>

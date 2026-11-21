@@ -1,7 +1,7 @@
-using EasytransitCaisse.Models;
+using GesCaisse.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace EasytransitCaisse.Data
+namespace GesCaisse.Data
 {
     // Variantes de produits : le modèle porte les attributs (Taille : S, M, L ; Couleur : Rouge,
     // Bleu) ; chaque combinaison est un produit (ParentId = modèle). Stock, ventes, retours,

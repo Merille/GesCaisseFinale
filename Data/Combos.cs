@@ -1,8 +1,8 @@
 using System.Text.Json;
-using EasytransitCaisse.Models;
+using GesCaisse.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace EasytransitCaisse.Data
+namespace GesCaisse.Data
 {
     // Combos (menus, formules) : groupes de choix d'un produit combo, contrôle des composants choisis
     // à la vente, stock des composants. Commun au point de vente, à la fiche produit et aux retours.

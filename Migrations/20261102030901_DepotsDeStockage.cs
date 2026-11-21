@@ -2,7 +2,7 @@
 
 #nullable disable
 
-namespace EasytransitCaisse.Migrations
+namespace GesCaisse.Migrations
 {
     /// <inheritdoc />
     // Dépôts de stockage : stock suivi par dépôt, caisse rattachée à un dépôt.

@@ -1,6 +1,6 @@
-using EasytransitCaisse.Services;
+using GesCaisse.Services;
 
-namespace EasytransitCaisse.Models.ViewModels;
+namespace GesCaisse.Models.ViewModels;
 
 public class ComptageInputVM
 {

@@ -1,13 +1,13 @@
-@model EasytransitCaisse.Models.JourneeCaisse
-@using EasytransitCaisse.Services
+@model GesCaisse.Models.JourneeCaisse
+@using GesCaisse.Services
 @{
     ViewData["Title"] = "Journée de caisse";
     var ouverte = Model.Statut == "Ouverte";
-    var caisse = ViewBag.Caisse as EasytransitCaisse.Models.Caisse;
+    var caisse = ViewBag.Caisse as GesCaisse.Models.Caisse;
     var peutValider = (bool)ViewBag.PeutValider;
     var nomValideur = User.FindFirst(AppClaimTypes.NomComplet)?.Value;
-    var totaux = (List<EasytransitCaisse.Models.ViewModels.TotalModePaiementVM>)ViewBag.TotauxParModePaiement;
-    var comptages = (List<EasytransitCaisse.Models.ComptageCloture>)ViewBag.ComptagesCloture;
+    var totaux = (List<GesCaisse.Models.ViewModels.TotalModePaiementVM>)ViewBag.TotauxParModePaiement;
+    var comptages = (List<GesCaisse.Models.ComptageCloture>)ViewBag.ComptagesCloture;
     var inv = System.Globalization.CultureInfo.InvariantCulture;
     var cartes = new (string Libelle, decimal Valeur, string Classe)[] {
         ("Initial", Model.SoldeInitial, "border-primary"), ("Encaissements", (decimal)ViewBag.TotalEncaisse, "border-success"),
@@ -287,7 +287,7 @@
                                 <div class="col-6">
                                     <label class="form-label" for="reglementMode">Mode de paiement</label>
                                     <select class="form-select" id="reglementMode" name="modePaiementId" required>
-                                        @foreach (var m in (List<EasytransitCaisse.Models.ModePaiement>)ViewBag.ModesPaiement)
+                                        @foreach (var m in (List<GesCaisse.Models.ModePaiement>)ViewBag.ModesPaiement)
                                         {
                                             <option value="@m.Id" selected="@((m.Libelle ?? "").StartsWith("Esp", StringComparison.OrdinalIgnoreCase))">@m.Libelle</option>
                                         }

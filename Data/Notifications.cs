@@ -1,7 +1,7 @@
-using EasytransitCaisse.Models;
+using GesCaisse.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace EasytransitCaisse.Data
+namespace GesCaisse.Data
 {
     // Notification de la cloche : nombre, texte, lien, icône et couleur.
     public record Notification(int N, string Texte, string Url, string Icone, string Couleur);

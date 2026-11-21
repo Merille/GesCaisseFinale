@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 
-namespace EasytransitCaisse.Data
+namespace GesCaisse.Data
 {
     // Clients en compte (vente à crédit). Même calcul que compte_soldes() de la version PHP.
     public static class ComptesClients
@@ -37,7 +37,7 @@ namespace EasytransitCaisse.Data
         {
             foreach (var nom in new[] { "Caissier", "Vendeur" })
                 if (!context.Profils.IgnoreQueryFilters().Any(p => p.TenantId == tenantId && p.Nom == nom))
-                    context.Profils.Add(new Models.Profil { TenantId = tenantId, Nom = nom, Description = "Caisse, ventes et tiers", Droits = string.Join(",", EasytransitCaisse.Services.Droits.ParDefaut) });
+                    context.Profils.Add(new Models.Profil { TenantId = tenantId, Nom = nom, Description = "Caisse, ventes et tiers", Droits = string.Join(",", GesCaisse.Services.Droits.ParDefaut) });
         }
 
         // Mode « Compte client » d'une nouvelle société (vente par compte des clients en compte).

@@ -1,10 +1,10 @@
-using EasytransitCaisse.Data;
-using EasytransitCaisse.Services;
+using GesCaisse.Data;
+using GesCaisse.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace EasytransitCaisse.Controllers
+namespace GesCaisse.Controllers
 {
     // Ma société (Paramètres) : l'administrateur modifie les coordonnées et le logo de sa société
     // (en-tête des tickets, factures et impressions). Le nom, le code, la licence et les modules

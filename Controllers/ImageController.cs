@@ -1,9 +1,9 @@
-using EasytransitCaisse.Data;
-using EasytransitCaisse.Services;
+using GesCaisse.Data;
+using GesCaisse.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace EasytransitCaisse.Controllers
+namespace GesCaisse.Controllers
 {
     // Images enregistrées dans la base : photos des produits et logos des sociétés.
     // L'adresse porte la date de mise à jour (?v=…) : le navigateur peut les garder en cache.

@@ -1,17 +1,17 @@
-@model List<EasytransitCaisse.Models.Produit>
+@model List<GesCaisse.Models.Produit>
 @{
     ViewData["Title"] = "Produits";
-    var categories = (List<EasytransitCaisse.Models.Categorie>)ViewBag.Categories;
+    var categories = (List<GesCaisse.Models.Categorie>)ViewBag.Categories;
     var categorieChoisie = (int)ViewBag.Categorie;
     var nbAlertes = (int)ViewBag.NbAlertes;
     string Qte(decimal n) => n == Math.Round(n) ? n.ToString("N0") : n.ToString("N2");
-    var taxesProduits = (Dictionary<int, List<EasytransitCaisse.Models.Taxe>>)ViewBag.TaxesProduits;
-    string Taxes(EasytransitCaisse.Models.Produit p) => EasytransitCaisse.Data.TaxesProduits.Codes(taxesProduits.GetValueOrDefault(p.Id));
+    var taxesProduits = (Dictionary<int, List<GesCaisse.Models.Taxe>>)ViewBag.TaxesProduits;
+    string Taxes(GesCaisse.Models.Produit p) => GesCaisse.Data.TaxesProduits.Codes(taxesProduits.GetValueOrDefault(p.Id));
     // Modèle à variantes : nombre de variantes actives et stock total de celles-ci.
     var variantes = (Dictionary<int, (int Nb, decimal Stock)>)ViewBag.Variantes;
-    decimal Stock(EasytransitCaisse.Models.Produit p) => p.EstModele ? (variantes.TryGetValue(p.Id, out var v) ? v.Stock : 0) : p.StockActuel;
-    bool Alerte(EasytransitCaisse.Models.Produit p) => !p.EstModele && p.EnAlerteStock;
-    int NbVariantes(EasytransitCaisse.Models.Produit p) => variantes.TryGetValue(p.Id, out var v) ? v.Nb : 0;
+    decimal Stock(GesCaisse.Models.Produit p) => p.EstModele ? (variantes.TryGetValue(p.Id, out var v) ? v.Stock : 0) : p.StockActuel;
+    bool Alerte(GesCaisse.Models.Produit p) => !p.EstModele && p.EnAlerteStock;
+    int NbVariantes(GesCaisse.Models.Produit p) => variantes.TryGetValue(p.Id, out var v) ? v.Nb : 0;
 }
 
 
@@ -49,7 +49,7 @@
 
 <p class="small text-muted mb-2">
     Import : un produit dont le code existe déjà est mis à jour, sinon il est créé ; une catégorie inconnue est créée ; la colonne Taxes contient les codes séparés par « + » (ex. TVA + CSS), vide = taxes par défaut ; la colonne Stock ne sert qu'à la création (stock initial).
-    Colonnes dans l'ordre : @string.Join(", ", EasytransitCaisse.Controllers.ProduitController.ColonnesExcel)
+    Colonnes dans l'ordre : @string.Join(", ", GesCaisse.Controllers.ProduitController.ColonnesExcel)
     (le plus simple est de partir d'un export).
 </p>
 
@@ -81,7 +81,7 @@
                         <td class="fw-semibold">@p.Code</td>
                         <td>
                             <div class="d-flex align-items-center gap-2">
-                                @if (EasytransitCaisse.Data.Images.UrlImage(p) is string img)
+                                @if (GesCaisse.Data.Images.UrlImage(p) is string img)
                                 {
                                     <img src="@img" alt="" class="vignette-image vignette-petite" loading="lazy" />
                                 }

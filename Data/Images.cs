@@ -1,8 +1,8 @@
-using EasytransitCaisse.Models;
+using GesCaisse.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 
-namespace EasytransitCaisse.Data
+namespace GesCaisse.Data
 {
     // Logos de société et photos de produit, enregistrés dans la base.
     public static class Images

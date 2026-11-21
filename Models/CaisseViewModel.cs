@@ -1,4 +1,4 @@
-namespace EasytransitCaisse.Models
+namespace GesCaisse.Models
 {
     public class CaisseViewModel
     {

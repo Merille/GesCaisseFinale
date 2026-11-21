@@ -1,9 +1,9 @@
-using EasytransitCaisse.Models;
+using GesCaisse.Models;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace EasytransitCaisse.Data
+namespace GesCaisse.Data
 {
     public static class DbSeeder
     {
@@ -18,7 +18,7 @@ namespace EasytransitCaisse.Data
                     NomComplet = "Super Administrateur",
                     Profil = "SuperAdmin",
                     TenantId = null,
-                    MotPasse = EasytransitCaisse.Services.MotsDePasse.Hacher("123")
+                    MotPasse = GesCaisse.Services.MotsDePasse.Hacher("123")
                 });
 
                 context.SaveChanges();
@@ -46,7 +46,7 @@ namespace EasytransitCaisse.Data
                     NomComplet = "Administrateur",
                     Profil = "Admin",
                     TenantId = tenant.Id,
-                    MotPasse = EasytransitCaisse.Services.MotsDePasse.Hacher("123")
+                    MotPasse = GesCaisse.Services.MotsDePasse.Hacher("123")
                 });
 
                 context.Caisses.Add(new Caisse

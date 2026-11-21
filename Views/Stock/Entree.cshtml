@@ -1,8 +1,8 @@
-@model List<EasytransitCaisse.Models.Produit>
+@model List<GesCaisse.Models.Produit>
 @{
     ViewData["Title"] = "Entrée de marchandises";
     var choisi = (int)ViewBag.Choisi;
-    var depots = (List<EasytransitCaisse.Models.Depot>)ViewBag.Depots;
+    var depots = (List<GesCaisse.Models.Depot>)ViewBag.Depots;
 }
 
 <partial name="_Onglets" model="@("Entree")" />

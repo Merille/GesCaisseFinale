@@ -1,4 +1,4 @@
-namespace EasytransitCaisse.Models.ViewModels;
+namespace GesCaisse.Models.ViewModels;
 
 // Filtres du rapport des livraisons (par défaut : du 1er du mois à aujourd'hui).
 public class FiltresRapportLivraison

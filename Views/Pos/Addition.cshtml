@@ -1,4 +1,4 @@
-@model EasytransitCaisse.Models.CommandeOuverte
+@model GesCaisse.Models.CommandeOuverte
 @using System.Globalization
 @{
     // Addition (note provisoire, NON PAYÉE) d'une table ou d'un ticket, imprimée avant le paiement.
@@ -6,9 +6,9 @@
     Layout = null;
     string Fcfa(decimal n) => n.ToString("N0", CultureInfo.GetCultureInfo("fr-FR"));
     string Qte(decimal n) => n == Math.Round(n) ? n.ToString("0", CultureInfo.InvariantCulture) : n.ToString("0.##", CultureInfo.GetCultureInfo("fr-FR"));
-    var contenu = (EasytransitCaisse.Data.Restaurant.Contenu)ViewBag.Contenu;
-    var total = EasytransitCaisse.Data.Restaurant.Total(contenu);
-    var brut = EasytransitCaisse.Data.Restaurant.Total(new EasytransitCaisse.Data.Restaurant.Contenu { Lignes = contenu.Lignes });
+    var contenu = (GesCaisse.Data.Restaurant.Contenu)ViewBag.Contenu;
+    var total = GesCaisse.Data.Restaurant.Total(contenu);
+    var brut = GesCaisse.Data.Restaurant.Total(new GesCaisse.Data.Restaurant.Contenu { Lignes = contenu.Lignes });
     var frais = (decimal)ViewBag.Frais;
     var client = (string?)ViewBag.Client;
 }

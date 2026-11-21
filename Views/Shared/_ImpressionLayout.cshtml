@@ -1,6 +1,6 @@
-@inject EasytransitCaisse.Data.AppDbContext Db
-@inject EasytransitCaisse.Services.ITenantProvider TenantCourant
-@using EasytransitCaisse.Data
+@inject GesCaisse.Data.AppDbContext Db
+@inject GesCaisse.Services.ITenantProvider TenantCourant
+@using GesCaisse.Data
 @using Microsoft.EntityFrameworkCore
 @* Mise en page des impressions (PDF et aperçus), identique à php/app/views/partials/print_debut.php.
    ViewData : TitreImpression, SocieteId (sinon la société courante), Republique (en-tête officiel),
@@ -11,7 +11,7 @@
     var societe = id > 0 ? Db.Tenants.AsNoTracking().FirstOrDefault(t => t.Id == id) : null;
     var logo = societe?.LogoMaj != null ? Db.LogoIntegre(societe.Id) : null;
     var pdf = ViewData["Pdf"] as bool? ?? false;
-    var nomUtilisateur = User.FindFirst(EasytransitCaisse.Services.AppClaimTypes.NomComplet)?.Value ?? "";
+    var nomUtilisateur = User.FindFirst(GesCaisse.Services.AppClaimTypes.NomComplet)?.Value ?? "";
 }
 <!DOCTYPE html>
 <html lang="fr">

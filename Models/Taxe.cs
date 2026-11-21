@@ -1,8 +1,8 @@
-using EasytransitCaisse.Data;
+using GesCaisse.Data;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.EntityFrameworkCore;
 
-namespace EasytransitCaisse.Models
+namespace GesCaisse.Models
 {
     // Taxe applicable aux produits (TVA, CSS…). Un produit peut en porter plusieurs :
     // elles s'additionnent sur le HT et sont comprises dans le prix de vente TTC.

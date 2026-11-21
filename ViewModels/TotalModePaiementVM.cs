@@ -1,4 +1,4 @@
-namespace EasytransitCaisse.Models.ViewModels;
+namespace GesCaisse.Models.ViewModels;
 
 public class TotalModePaiementVM
 {

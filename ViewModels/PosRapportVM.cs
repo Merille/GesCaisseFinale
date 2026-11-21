@@ -1,4 +1,4 @@
-namespace EasytransitCaisse.Models.ViewModels
+namespace GesCaisse.Models.ViewModels
 {
     // Rapports du point de vente. Chiffre d'affaires net TTC = ventes - retours ;
     // les ventes annulées sont exclues.

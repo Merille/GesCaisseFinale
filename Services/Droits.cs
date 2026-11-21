@@ -1,12 +1,12 @@
 using System.Security.Claims;
-using EasytransitCaisse.Data;
+using GesCaisse.Data;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.EntityFrameworkCore;
 
-namespace EasytransitCaisse.Services
+namespace GesCaisse.Services
 {
     // Profils et droits d'accès. Les profils Admin et SuperAdmin ont tous les droits ; les autres
     // utilisateurs ont les droits de leur profil (créé par l'administrateur : Paramètres › Profils et droits).

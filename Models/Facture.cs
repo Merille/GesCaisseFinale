@@ -1,6 +1,6 @@
-﻿using EasytransitCaisse.Data;
+﻿using GesCaisse.Data;
 
-namespace EasytransitCaisse.Models
+namespace GesCaisse.Models
 {
     public class Facture : ITenantScoped
     {

@@ -1,6 +1,6 @@
-using EasytransitCaisse.Models;
+using GesCaisse.Models;
 
-namespace EasytransitCaisse.Data
+namespace GesCaisse.Data
 {
     public static class OperationCaisseQueries
     {

@@ -1,11 +1,11 @@
-using EasytransitCaisse.Data;
-using EasytransitCaisse.Models;
-using EasytransitCaisse.Services;
+using GesCaisse.Data;
+using GesCaisse.Models;
+using GesCaisse.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace EasytransitCaisse.Controllers
+namespace GesCaisse.Controllers
 {
     // Profils et droits d'accès (administrateurs) : l'administrateur crée des profils (Caissier, Serveur,
     // Gérant…) et coche les droits de chacun ; il attribue ensuite un profil à chaque utilisateur

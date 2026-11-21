@@ -1,7 +1,7 @@
-@model EasytransitCaisse.Models.Facture
+@model GesCaisse.Models.Facture
 @{
     ViewData["Title"] = "Facture " + Model.Numero;
-    var lignes = (ViewBag.Lignes as List<EasytransitCaisse.Models.LigneFacture>) ?? new();
+    var lignes = (ViewBag.Lignes as List<GesCaisse.Models.LigneFacture>) ?? new();
     var brouillon = Model.Statut == "Brouillon";
     var inv = System.Globalization.CultureInfo.InvariantCulture;
 }

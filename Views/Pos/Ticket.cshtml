@@ -1,4 +1,4 @@
-@model EasytransitCaisse.Models.CommandePos
+@model GesCaisse.Models.CommandePos
 @using System.Globalization
 @{
     Layout = null;
@@ -6,9 +6,9 @@
     var caisse = c.JourneeCaisse?.Caisse;
     string Fcfa(decimal n) => n.ToString("N0", CultureInfo.GetCultureInfo("fr-FR"));
     string Qte(decimal n) => n == Math.Round(n) ? n.ToString("0", CultureInfo.InvariantCulture) : n.ToString("0.##", CultureInfo.GetCultureInfo("fr-FR"));
-    var taxes = EasytransitCaisse.Data.TaxesProduits.Regrouper(c.Lignes);
+    var taxes = GesCaisse.Data.TaxesProduits.Regrouper(c.Lignes);
     var unites = (Dictionary<int, string>)ViewBag.Unites;
-    string Unite(EasytransitCaisse.Models.LigneCommandePos l) => l.ProduitId.HasValue && unites.TryGetValue(l.ProduitId.Value, out var u) ? u : "Unité";
+    string Unite(GesCaisse.Models.LigneCommandePos l) => l.ProduitId.HasValue && unites.TryGetValue(l.ProduitId.Value, out var u) ? u : "Unité";
 }
 <!DOCTYPE html>
 <html lang="fr">
@@ -64,7 +64,7 @@
         @foreach (var l in c.Lignes.OrderBy(x => x.Id))
         {
             <div class="b">@l.Libelle</div>
-            @foreach (var comp in EasytransitCaisse.Data.Combos.Lire(l.Composants))
+            @foreach (var comp in GesCaisse.Data.Combos.Lire(l.Composants))
             {
                 <div class="ind petit">· @Qte(comp.Qte) x @comp.Nom@(comp.Supplement > 0 ? " (+" + Fcfa(comp.Supplement) + ")" : "")</div>
             }

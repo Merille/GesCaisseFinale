@@ -1,9 +1,9 @@
 using System.Diagnostics;
-using EasytransitCaisse.Models;
+using GesCaisse.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace EasytransitCaisse.Controllers
+namespace GesCaisse.Controllers
 {
     public class HomeController : Controller
     {

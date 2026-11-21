@@ -1,6 +1,6 @@
-using EasytransitCaisse.Models;
+using GesCaisse.Models;
 
-namespace EasytransitCaisse.Models.ViewModels
+namespace GesCaisse.Models.ViewModels
 {
     // Rapport des dépôts de linge (laverie) : filtres, synthèse par statut et détail.
     public class FiltresRapportLinge

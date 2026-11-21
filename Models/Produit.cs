@@ -1,8 +1,8 @@
-using EasytransitCaisse.Data;
+using GesCaisse.Data;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.EntityFrameworkCore;
 
-namespace EasytransitCaisse.Models
+namespace GesCaisse.Models
 {
     // Produit (ou service) vendu au point de vente. Le prix de vente est saisi
     // TTC ; la TVA est calculée à partir du TTC.

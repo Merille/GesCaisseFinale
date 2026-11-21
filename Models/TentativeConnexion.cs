@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace EasytransitCaisse.Models
+namespace GesCaisse.Models
 {
     // Échec de connexion récent (nom d'utilisateur saisi, adresse IP) : limite des tentatives.
     // Pas rattaché à une société (on ne la connaît pas avant la connexion). Comme TentativesConnexion en PHP.

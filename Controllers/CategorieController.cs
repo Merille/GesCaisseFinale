@@ -1,11 +1,11 @@
 using System.Text.RegularExpressions;
-using EasytransitCaisse.Data;
-using EasytransitCaisse.Models;
-using EasytransitCaisse.Services;
+using GesCaisse.Data;
+using GesCaisse.Models;
+using GesCaisse.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace EasytransitCaisse.Controllers
+namespace GesCaisse.Controllers
 {
     // Catégories de produits du point de vente. Réservé aux profils Admin et SuperAdmin.
     public class CategorieController : Controller

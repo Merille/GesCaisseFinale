@@ -1,11 +1,11 @@
-@model EasytransitCaisse.Models.Produit
-@inject EasytransitCaisse.Data.AppDbContext Db
+@model GesCaisse.Models.Produit
+@inject GesCaisse.Data.AppDbContext Db
 @using System.Globalization
 @* Champs de la fiche produit (création et modification). *@
 @{
-    var categories = (List<EasytransitCaisse.Models.Categorie>)ViewBag.Categories;
+    var categories = (List<GesCaisse.Models.Categorie>)ViewBag.Categories;
     string Nombre(decimal? n) => n.HasValue ? n.Value.ToString("0.##", CultureInfo.InvariantCulture) : "";
-    var taxes = (List<EasytransitCaisse.Models.Taxe>)ViewBag.Taxes;
+    var taxes = (List<GesCaisse.Models.Taxe>)ViewBag.Taxes;
     var cochees = (int[])(ViewBag.TaxesCochees ?? Array.Empty<int>());
     var totalTaxes = taxes.Where(t => cochees.Contains(t.Id)).Sum(t => t.Taux);
 }
@@ -47,7 +47,7 @@
     <div class="col-md-4">
         <label class="form-label" for="Unite">Unité de vente</label>
         @{
-            var unitesListe = EasytransitCaisse.Data.Unites.UnitesActives(Db);
+            var unitesListe = GesCaisse.Data.Unites.UnitesActives(Db);
             var uniteProduit = string.IsNullOrEmpty(Model.Unite) ? "Unité" : Model.Unite;
             // Nouveau produit : l'unité par défaut doit être active.
             if (Model.Id == 0 && unitesListe.Count > 0 && !unitesListe.Contains(uniteProduit))
@@ -82,7 +82,7 @@
     <div class="col-md-4">
         <label class="form-label" for="Image">Image du produit</label>
         <div class="d-flex align-items-center gap-2">
-            @if (EasytransitCaisse.Data.Images.UrlImage(Model) is string image)
+            @if (GesCaisse.Data.Images.UrlImage(Model) is string image)
             {
                 <img src="@image" alt="Image actuelle" class="vignette-image" />
             }
@@ -108,7 +108,7 @@
                 <input type="checkbox" class="btn-check" name="Taxes" value="@t.Id" id="taxe@(t.Id)" data-taux="@t.Taux.ToString(CultureInfo.InvariantCulture)"
                        checked="@cochees.Contains(t.Id)" autocomplete="off"
                        onchange="let t = 0; this.closest('form').querySelectorAll('[name=Taxes]:checked').forEach((c) => t += +c.dataset.taux); this.closest('form').querySelector('.taux-total').textContent = t.toLocaleString('fr-FR');" />
-                <label class="btn btn-outline-primary btn-sm" for="taxe@(t.Id)" title="@t.Libelle">@EasytransitCaisse.Data.TaxesProduits.Libelle(t.Code, t.Taux)</label>
+                <label class="btn btn-outline-primary btn-sm" for="taxe@(t.Id)" title="@t.Libelle">@GesCaisse.Data.TaxesProduits.Libelle(t.Code, t.Taux)</label>
             }
         </div>
         <div class="form-text">
@@ -149,7 +149,7 @@
     }
     else if (Model.EstModele)
     {
-        var variantesModele = (List<EasytransitCaisse.Models.Produit>?)ViewBag.Variantes ?? new List<EasytransitCaisse.Models.Produit>();
+        var variantesModele = (List<GesCaisse.Models.Produit>?)ViewBag.Variantes ?? new List<GesCaisse.Models.Produit>();
         <div class="col-md-4">
             <div class="form-label">Quantité en stock</div>
             <div class="form-control-plaintext fw-bold py-1">@variantesModele.Where(v => v.Actif).Sum(v => v.StockActuel).ToString("0.##")

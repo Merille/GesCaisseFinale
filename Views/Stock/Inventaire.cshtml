@@ -1,10 +1,10 @@
-@model List<EasytransitCaisse.Models.Produit>
+@model List<GesCaisse.Models.Produit>
 @using System.Globalization
 @{
     ViewData["Title"] = "Inventaire";
-    var categories = (List<EasytransitCaisse.Models.Categorie>)ViewBag.Categories;
+    var categories = (List<GesCaisse.Models.Categorie>)ViewBag.Categories;
     var categorie = (int)ViewBag.Categorie;
-    var depots = (List<EasytransitCaisse.Models.Depot>)ViewBag.Depots;
+    var depots = (List<GesCaisse.Models.Depot>)ViewBag.Depots;
     var depot = (int)ViewBag.Depot;
     var quantites = (Dictionary<int, decimal>)ViewBag.Quantites;
 }

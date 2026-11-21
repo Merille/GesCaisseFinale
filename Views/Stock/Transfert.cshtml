@@ -1,8 +1,8 @@
-@model List<EasytransitCaisse.Models.Produit>
+@model List<GesCaisse.Models.Produit>
 @using System.Globalization
 @{
     ViewData["Title"] = "Transfert entre dépôts";
-    var depots = (List<EasytransitCaisse.Models.Depot>)ViewBag.Depots;
+    var depots = (List<GesCaisse.Models.Depot>)ViewBag.Depots;
     var depart = (int)ViewBag.Depart;
     var quantites = (Dictionary<int, decimal>)ViewBag.Quantites;
     var fr = CultureInfo.GetCultureInfo("fr-FR");

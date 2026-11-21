@@ -1,13 +1,13 @@
 using System.Globalization;
 using System.Text.Json;
-using EasytransitCaisse.Data;
-using EasytransitCaisse.Models;
-using EasytransitCaisse.Services;
+using GesCaisse.Data;
+using GesCaisse.Models;
+using GesCaisse.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace EasytransitCaisse.Controllers
+namespace GesCaisse.Controllers
 {
     // Combos (Configuration › Combos), comme dans le point de vente Odoo : un combo regroupe les
     // produits proposés au choix (ex. « Plats » : Poulet, Poisson + 500) et le nombre d'articles à

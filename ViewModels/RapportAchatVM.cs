@@ -1,6 +1,6 @@
-using EasytransitCaisse.Models;
+using GesCaisse.Models;
 
-namespace EasytransitCaisse.Models.ViewModels
+namespace GesCaisse.Models.ViewModels
 {
     // Rapport des achats et consommations (laverie) : filtres, synthèse par fournisseur et par produit,
     // détail des achats. Comme rapportachat.php en PHP.
