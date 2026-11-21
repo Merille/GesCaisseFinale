@@ -47,12 +47,12 @@ h1{position:absolute;left:56px;top:178px;font-size:54px;line-height:1.05;font-we
 ${atout('fa-cash-register', 'Journées de caisse', 'Ouverture, validation, clôture.')}
 ${atout('fa-store', 'Point de vente', 'Tactile, douchette, paiements mixtes.')}
 ${atout('fa-boxes-stacked', 'Stock et achats', 'Plusieurs dépôts, achats fournisseurs, alertes.')}
-${atout('fa-utensils', 'Restaurant & bar', 'Plan de salle, écran cuisine, additions.')}
-${atout('fa-shirt', 'Laverie & pressing', 'Dépôts payés au retrait, linge prêt ou en retard.')}
+${atout('fa-utensils', 'Restaurant & bar', 'Plan de salle, écran ou imprimante en cuisine.')}
+${atout('fa-shirt', 'Laverie & pressing', 'Grille de prestations, dépôts payés au retrait.')}
 ${atout('fa-motorcycle', 'Livraisons et crédit', 'Livreurs, frais de livraison, clients en compte.')}
 ${atout('fa-wifi', 'Sans internet', 'La vente continue, tout se synchronise au retour.')}
 ${atout('fa-chart-line', 'Tableaux de bord', 'Tuiles en temps réel, rapports Excel / PDF, Sage.')}
-${atout('fa-shield-halved', 'Sécurisé', 'Droits par profil, mots de passe chiffrés.')}
+${atout('fa-shield-halved', 'Sécurisé', 'Profils et droits sur mesure, mots de passe chiffrés.')}
 </div>
 <div class="cta"><span>Demandez votre démonstration gratuite</span></div>
 ${contact('#fff', '#1b2b38')}`,
@@ -71,9 +71,9 @@ h1{position:absolute;left:56px;top:140px;color:#fff;font-size:44px;line-height:1
 .leg{position:absolute;font-size:12px;font-weight:700;color:${BF};background:#fff;padding:5px 12px;border-radius:14px;box-shadow:0 4px 12px rgba(0,0,0,.12)}
 h2{position:absolute;left:56px;top:700px;font-size:22px;color:${BF};font-weight:800}
 .etapes{position:absolute;left:56px;right:56px;top:742px;display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
-.e{background:#fff;border-radius:14px;padding:16px 14px;box-shadow:0 6px 18px rgba(15,59,87,.08);border-top:4px solid ${B}}
+.e{background:#fff;border-radius:14px;padding:13px 14px;box-shadow:0 6px 18px rgba(15,59,87,.08);border-top:4px solid ${B}}
 .e .n{font-size:13px;font-weight:800;color:${OR}}.e b{display:block;font-size:15px;margin:4px 0 6px;color:${BF}}.e span{font-size:12.5px;color:#55687a;line-height:1.45}
-.plus{position:absolute;left:56px;right:56px;top:918px;display:flex;flex-wrap:wrap;gap:8px}
+.plus{position:absolute;left:56px;right:56px;top:906px;display:flex;flex-wrap:wrap;gap:7px}
 .plus span{font-size:12.5px;background:#e8f0f6;color:${BF};padding:6px 12px;border-radius:16px;font-weight:600}</style>
 <div class="haut"><svg width="700" height="700">${arcs(350, 350, [300, 255, 210], ['rgba(255,255,255,.09)', 'rgba(255,255,255,.05)', 'rgba(255,255,255,.09)'], [28, 14, 28])}</svg></div>
 <img class="logo" src="${logo}"><div class="tag"><i class="fas fa-utensils"></i> RESTAURANTS & BARS</div>
@@ -84,11 +84,11 @@ h2{position:absolute;left:56px;top:700px;font-size:22px;color:${BF};font-weight:
 <h2>Le service, en 4 étapes</h2>
 <div class="etapes">
 <div class="e"><div class="n">01</div><b>J’ouvre la table</b><span>Couverts, notes « bien cuit », menus et suppléments.</span></div>
-<div class="e"><div class="n">02</div><b>J’envoie</b><span>Un bon par poste : la cuisine et le bar reçoivent leur part.</span></div>
+<div class="e"><div class="n">02</div><b>J’envoie</b><span>Un bon par poste, à l’écran ou à l’imprimante de la cuisine et du bar.</span></div>
 <div class="e"><div class="n">03</div><b>Je sers</b><span>Écran cuisine avec temps d’attente et bouton « Prêt ».</span></div>
 <div class="e"><div class="n">04</div><b>J’encaisse</b><span>Addition, partage, transfert de table et pourboire.</span></div>
 </div>
-<div class="plus"><span><i class="fas fa-check"></i> Écran cuisine / bar</span><span><i class="fas fa-check"></i> Menus et combos</span><span><i class="fas fa-check"></i> Plusieurs salles et serveurs</span><span><i class="fas fa-check"></i> Livraisons et livreurs</span><span><i class="fas fa-check"></i> Clients en compte</span><span><i class="fas fa-check"></i> Fonctionne sans internet</span><span><i class="fas fa-check"></i> Stock des boissons</span></div>
+<div class="plus"><span><i class="fas fa-check"></i> Écran cuisine / bar</span><span><i class="fas fa-check"></i> Imprimantes cuisine / bar</span><span><i class="fas fa-check"></i> Menus et combos</span><span><i class="fas fa-check"></i> Plusieurs salles et serveurs</span><span><i class="fas fa-check"></i> Livraisons et livreurs</span><span><i class="fas fa-check"></i> Clients en compte</span><span><i class="fas fa-check"></i> Fonctionne sans internet</span><span><i class="fas fa-check"></i> Stock des boissons</span></div>
 ${contact(BF, '#fff')}`,
 
 // 3 — Commerces et boutiques : blanc, arcs du logo, « avant / après », ticket + tableau de bord
@@ -124,14 +124,16 @@ h1{position:absolute;left:56px;top:176px;font-size:50px;line-height:1.06;font-we
 <div><i class="fas fa-xmark"></i>Ruptures de stock découvertes trop tard</div>
 <div><i class="fas fa-xmark"></i>Crédits clients notés dans un cahier</div>
 <div><i class="fas fa-xmark"></i>Internet coupé, caisse bloquée</div>
-<div><i class="fas fa-xmark"></i>Saisie comptable en double</div></div>
+<div><i class="fas fa-xmark"></i>Saisie comptable en double</div>
+<div><i class="fas fa-xmark"></i>Chaque employé voit et modifie tout</div></div>
 <div class="col apres"><h3>Avec GesCaisse</h3>
 <div><i class="fas fa-check"></i>Ticket imprimé, monnaie calculée</div>
 <div><i class="fas fa-check"></i>Clôture avec comptage et écart justifié</div>
 <div><i class="fas fa-check"></i>Stock par dépôt, achats et alertes</div>
 <div><i class="fas fa-check"></i>Clients en compte, relevés et règlements</div>
 <div><i class="fas fa-check"></i>La vente continue sans internet</div>
-<div><i class="fas fa-check"></i>Export direct vers Sage</div></div>
+<div><i class="fas fa-check"></i>Export direct vers Sage</div>
+<div><i class="fas fa-check"></i>Profils et droits : chacun ses pages</div></div>
 </div>
 ${contact('#f1f5f8', '#1b2b38')}`,
 
@@ -161,12 +163,12 @@ ${rogne('02i_tableau_laverie', 1440, 270, 140, 1160, 420, 682, 'position:absolut
 <div class="leg" style="left:72px;top:672px">Tableau de bord laverie en temps réel</div>
 <h2>Le dépôt, en 4 étapes</h2>
 <div class="etapes">
-<div class="e"><div class="n">01</div><b>Je dépose</b><span>Articles, client, date de retrait, acompte ; ticket « NON PAYÉ » et souche.</span></div>
+<div class="e"><div class="n">01</div><b>Je dépose</b><span>Articles et prestation, client, date de retrait, acompte ; ticket et souche.</span></div>
 <div class="e"><div class="n">02</div><b>Je traite</b><span>Le linge passe « Prêt » ; les retards sont signalés.</span></div>
 <div class="e"><div class="n">03</div><b>Le client retire</b><span>Encaissement acompte déduit, ticket de retrait.</span></div>
 <div class="e"><div class="n">04</div><b>Je pilote</b><span>Tableau de bord, rapport des dépôts, achats de produits d’entretien.</span></div>
 </div>
-<div class="plus"><span><i class="fas fa-check"></i> Lavage, pressing, linge au kilo</span><span><i class="fas fa-check"></i> Collecte et livraison</span><span><i class="fas fa-check"></i> Clients en compte</span><span><i class="fas fa-check"></i> Alertes produits d’entretien</span><span><i class="fas fa-check"></i> Fonctionne sans internet</span><span><i class="fas fa-check"></i> Rapports Excel / PDF</span></div>
+<div class="plus"><span><i class="fas fa-check"></i> Grille de prestations : lavage, express, repassage, enfants</span><span><i class="fas fa-check"></i> Linge au kilo</span><span><i class="fas fa-check"></i> Collecte et livraison</span><span><i class="fas fa-check"></i> Clients en compte</span><span><i class="fas fa-check"></i> Alertes produits d’entretien</span><span><i class="fas fa-check"></i> Fonctionne sans internet</span><span><i class="fas fa-check"></i> Rapports Excel / PDF</span></div>
 ${contact('#2e1f63', '#fff')}`
 };
 
