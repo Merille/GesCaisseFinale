@@ -41,7 +41,7 @@ namespace EasytransitCaisse.Services
                 new Droit("synchro", "Synchronisation", "Ventes faites hors ligne et postes", O(("c", "Voir la synchronisation"), ("a", SansAction), ("m", "Marquer vérifié, oublier un poste"), ("s", SansAction))) }),
             ("Paramètres", new[] {
                 new Droit("parametres", "Motifs et modes de paiement", "Motifs des opérations, modes de paiement", O(("c", "Voir"), ("a", "Créer"), ("m", "Modifier"), ("s", "Supprimer"))),
-                new Droit("config_pdv", "Configuration du point de vente", "Dépôts, livreurs, plans de salle", O(("c", "Voir"), ("a", "Créer"), ("m", "Modifier, activer, plans de salle, frais de livraison"), ("s", "Supprimer"))) }),
+                new Droit("config_pdv", "Configuration du point de vente", "Dépôts, livreurs, plans de salle, imprimantes", O(("c", "Voir"), ("a", "Créer"), ("m", "Modifier, activer, plans de salle, frais de livraison"), ("s", "Supprimer"))) }),
             ("Droits particuliers", new[] {
                 new Droit("prix", "Modifier les prix", "Changer le prix d'un article à l'écran de vente", O(("c", "Autorisé"))),
                 new Droit("plafond", "Dépasser le plafond de crédit", "Vente par compte au-delà du plafond d'un client", O(("c", "Autorisé"))) }),
@@ -113,7 +113,7 @@ namespace EasytransitCaisse.Services
             ["PosRapport"] = "rapports_pdv", ["RapportLivraison"] = "rapports_pdv", ["RapportLinge"] = "rapports_pdv", ["RapportAchat"] = "rapports_pdv",
             ["Produit"] = "catalogue", ["Categorie"] = "catalogue", ["Combo"] = "catalogue", ["Taxe"] = "catalogue", ["Unite"] = "catalogue",
             ["Synchro"] = "synchro", ["Motif"] = "parametres", ["ModePaiement"] = "parametres",
-            ["Depot"] = "config_pdv", ["Livreur"] = "config_pdv", ["Salle"] = "config_pdv",
+            ["Depot"] = "config_pdv", ["Livreur"] = "config_pdv", ["Imprimante"] = "config_pdv", ["Salle"] = "config_pdv",
             ["Utilisateur"] = "admin", ["Profil"] = "admin", ["Societe"] = "admin",
         };
 

@@ -149,7 +149,7 @@ function tenant_id(): int
 
 // Modules du point de vente (vente, catalogue, stock, restaurant, taxes, unités) : accessibles
 // seulement si la société a le module Point de vente.
-const MODULES_POINT_VENTE = ['pos', 'vente', 'synchro', 'tableaulaverie', 'tableaurestaurant', 'stock', 'posrapport', 'rapportlivraison', 'rapportlinge', 'rapportachat', 'achat', 'produit', 'categorie', 'combo', 'salle', 'cuisine', 'taxe', 'unite', 'depot', 'livreur'];
+const MODULES_POINT_VENTE = ['pos', 'vente', 'synchro', 'tableaulaverie', 'tableaurestaurant', 'stock', 'posrapport', 'rapportlivraison', 'rapportlinge', 'rapportachat', 'achat', 'produit', 'categorie', 'combo', 'salle', 'cuisine', 'taxe', 'unite', 'depot', 'livreur', 'imprimante'];
 
 /** La société courante a-t-elle le module Point de vente ? (toujours oui pour « toutes les sociétés »). */
 function module_pos_actif(): bool
@@ -269,7 +269,7 @@ function droits_catalogue(): array
         ],
         'Paramètres' => [
             'parametres' => ['Motifs et modes de paiement', 'Motifs des opérations, modes de paiement', ['c' => 'Voir', 'a' => 'Créer', 'm' => 'Modifier', 's' => 'Supprimer']],
-            'config_pdv' => ['Configuration du point de vente', 'Dépôts, livreurs, plans de salle', ['c' => 'Voir', 'a' => 'Créer', 'm' => 'Modifier, activer, plans de salle, frais de livraison', 's' => 'Supprimer']],
+            'config_pdv' => ['Configuration du point de vente', 'Dépôts, livreurs, plans de salle, imprimantes', ['c' => 'Voir', 'a' => 'Créer', 'm' => 'Modifier, activer, plans de salle, frais de livraison', 's' => 'Supprimer']],
         ],
         'Droits particuliers' => [
             'prix' => ['Modifier les prix', 'Changer le prix d\'un article à l\'écran de vente', ['c' => 'Autorisé']],
@@ -385,7 +385,7 @@ function droit_page(string $module, string $action): string
         'posrapport' => 'rapports_pdv', 'rapportlivraison' => 'rapports_pdv', 'rapportlinge' => 'rapports_pdv', 'rapportachat' => 'rapports_pdv',
         'produit' => 'catalogue', 'categorie' => 'catalogue', 'combo' => 'catalogue', 'taxe' => 'catalogue', 'unite' => 'catalogue',
         'synchro' => 'synchro', 'motif' => 'parametres', 'modepaiement' => 'parametres',
-        'depot' => 'config_pdv', 'livreur' => 'config_pdv', 'salle' => 'config_pdv',
+        'depot' => 'config_pdv', 'livreur' => 'config_pdv', 'salle' => 'config_pdv', 'imprimante' => 'config_pdv',
         'utilisateur' => 'admin', 'profil' => 'admin', 'societe' => 'admin',
     ];
     if ($module === 'synchro' && $action === 'rapport') {
@@ -432,7 +432,7 @@ function droits_page_js(): array
     $carte = [];
     foreach (['dashboard', 'tableaulaverie', 'tableaurestaurant', 'caisse', 'journee', 'client', 'rapport', 'rapporttiers', 'pos', 'vente', 'facture', 'cuisine',
               'stock', 'achat', 'posrapport', 'rapportlivraison', 'rapportlinge', 'rapportachat', 'produit', 'categorie', 'combo', 'taxe', 'unite',
-              'synchro', 'motif', 'modepaiement', 'depot', 'livreur', 'salle', 'utilisateur', 'profil', 'societe'] as $m) {
+              'synchro', 'motif', 'modepaiement', 'depot', 'livreur', 'imprimante', 'salle', 'utilisateur', 'profil', 'societe'] as $m) {
         $carte[$m] = droit_page($m, 'index');
     }
     $ops = [];

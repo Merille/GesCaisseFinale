@@ -129,6 +129,24 @@ namespace EasytransitCaisse.Data
             modelBuilder.Entity<MouvementStock>().Property(m => m.Reference).HasMaxLength(100);
             modelBuilder.Entity<MouvementStock>().Property(m => m.Commentaire).HasMaxLength(300);
 
+            // Imprimantes de préparation (cuisine, bar) en réseau et leurs catégories.
+            modelBuilder.Entity<ImprimantePreparation>()
+                .HasQueryFilter(e => _currentTenantId == 0 || e.TenantId == _currentTenantId);
+            modelBuilder.Entity<ImprimantePreparation>().ToTable("ImprimantesPreparation");
+            modelBuilder.Entity<ImprimantePreparation>().HasIndex(i => i.TenantId);
+            modelBuilder.Entity<ImprimantePreparation>().Property(i => i.Type).HasDefaultValue("Epson");
+            modelBuilder.Entity<ImprimantePreparation>().Property(i => i.Largeur).HasDefaultValue(80);
+            modelBuilder.Entity<ImprimantePreparation>().Property(i => i.Encodage).HasDefaultValue("PC850");
+            modelBuilder.Entity<ImprimantePreparation>().Property(i => i.Actif).HasDefaultValue(true);
+            modelBuilder.Entity<ImprimantePreparation>()
+                .HasOne<Caisse>().WithMany().HasForeignKey(i => i.CaisseId).OnDelete(DeleteBehavior.SetNull);
+            modelBuilder.Entity<ImprimantePreparationCategorie>().ToTable("ImprimantesPreparationCategories");
+            modelBuilder.Entity<ImprimantePreparationCategorie>().HasKey(c => new { c.ImprimantePreparationId, c.CategorieId });
+            modelBuilder.Entity<ImprimantePreparation>()
+                .HasMany(i => i.Categories).WithOne().HasForeignKey(c => c.ImprimantePreparationId).OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<ImprimantePreparationCategorie>()
+                .HasOne<Categorie>().WithMany().HasForeignKey(c => c.CategorieId).OnDelete(DeleteBehavior.Cascade);
+
             // Livraisons : livreurs, commandes en attente (partagées entre postes), livraison d'une vente.
             modelBuilder.Entity<Livreur>()
                 .HasQueryFilter(e => _currentTenantId == 0 || e.TenantId == _currentTenantId);
@@ -415,6 +433,8 @@ namespace EasytransitCaisse.Data
         public DbSet<StockDepot> StocksDepots { get; set; }
         public DbSet<CaisseDepot> CaissesDepots { get; set; }
         public DbSet<Livreur> Livreurs { get; set; }
+        public DbSet<ImprimantePreparation> ImprimantesPreparation { get; set; }
+        public DbSet<ImprimantePreparationCategorie> ImprimantesPreparationCategories { get; set; }
         public DbSet<CommandeAttente> CommandesAttente { get; set; }
         public DbSet<DepotLinge> DepotsLinge { get; set; }
         public DbSet<PosteHorsLigne> PostesHorsLigne { get; set; }

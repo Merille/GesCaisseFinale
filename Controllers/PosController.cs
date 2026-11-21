@@ -140,7 +140,7 @@ namespace EasytransitCaisse.Controllers
             var categories = await _context.Categories
                 .Where(c => c.TenantId == tenant)
                 .OrderBy(c => c.Ordre).ThenBy(c => c.Nom)
-                .Select(c => new { id = c.Id, nom = c.Nom, couleur = c.Couleur })
+                .Select(c => new { id = c.Id, nom = c.Nom, couleur = c.Couleur, preparation = c.Preparation })
                 .ToListAsync();
             // Clients en compte : solde dû et plafond de crédit (contrôle de la vente par compte).
             var soldes = await _context.SoldesComptesAsync(tenant);
@@ -242,6 +242,9 @@ namespace EasytransitCaisse.Controllers
                     urlTransferer = "/Pos/Transferer",
                     urlAddition = "/Pos/Addition/",
                     urlBons = "/Pos/Bon?ids=",
+                    // Imprimantes réseau de la cuisine / du bar : la caisse leur envoie les bons (wwwroot/js/imprimantes.js).
+                    imprimantes = await ImprimanteController.DeLaCaisseAsync(_context, j.TenantId, j.CaisseId),
+                    urlBonsJson = "/Pos/BonsJson?ids=",
                     urlCuisine = Peut("cuisine") ? $"/Cuisine/Index?caisse={j.CaisseId}" : null
                 } : null
             };
@@ -1054,6 +1057,22 @@ namespace EasytransitCaisse.Controllers
             ViewBag.Frais = t.Livraison == null ? 0m : Math.Max(0, Math.Round(t.Livraison.Frais, MidpointRounding.AwayFromZero));
             ViewBag.Contenu = new Restaurant.Contenu { Lignes = lignes, Remise = remise };
             return View("Addition", new CommandeOuverte { Couverts = 0 });
+        }
+
+        // Bons de préparation en JSON, pour les imprimantes réseau de la cuisine / du bar.
+        public async Task<IActionResult> BonsJson(string? ids)
+        {
+            var liste = (ids ?? "").Split(',').Select(x => int.TryParse(x, out var i) ? i : 0).Where(i => i > 0).ToList();
+            var bons = await _context.BonsPreparation.Include(b => b.Lignes).Where(b => liste.Contains(b.Id)).OrderBy(b => b.Id).ToListAsync();
+            return Json(new
+            {
+                bons = bons.Select(b => new
+                {
+                    id = b.Id, numero = b.Numero, poste = b.Poste, table = b.TableNom, couverts = b.Couverts, serveur = b.Serveur,
+                    date = b.DateEnvoi.ToString("yyyy-MM-dd HH:mm:ss"),
+                    lignes = b.Lignes.OrderBy(l => l.Id).Select(l => new { libelle = l.Libelle, qte = l.Quantite, note = l.Note, categorieId = l.CategorieId })
+                })
+            });
         }
 
         // Bons de préparation 80 mm (un par page), imprimés à l'envoi.

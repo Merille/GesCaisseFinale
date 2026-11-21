@@ -2,7 +2,7 @@
 -- Les noms de tables et de colonnes reprennent ceux de la version .NET
 -- (SQL Server) pour faciliter une éventuelle reprise des données.
 --
--- Base à jour : intègre toutes les migrations de sql/migrations (001 à 022),
+-- Base à jour : intègre toutes les migrations de sql/migrations (001 à 031),
 -- notées comme appliquées dans MigrationsAppliquees.
 --
 -- Utilisation (NOUVELLE installation uniquement) : créer une base VIDE (ex. gescaisse),
@@ -342,6 +342,37 @@ CREATE TABLE `Factures` (
 
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ImprimantesPreparation` (
+  `Id` int NOT NULL AUTO_INCREMENT,
+  `TenantId` int NOT NULL DEFAULT '0',
+  `Nom` varchar(100) NOT NULL,
+  `Type` varchar(20) NOT NULL DEFAULT 'Epson',
+  `AdresseIp` varchar(100) NOT NULL,
+  `Port` int DEFAULT NULL,
+  `Largeur` int NOT NULL DEFAULT '80',
+  `Encodage` varchar(20) NOT NULL DEFAULT 'PC850',
+  `Bip` tinyint(1) NOT NULL DEFAULT '0',
+  `CaisseId` int DEFAULT NULL,
+  `Actif` tinyint(1) NOT NULL DEFAULT '1',
+  PRIMARY KEY (`Id`),
+  KEY `IX_ImprimantesPreparation_Tenant` (`TenantId`),
+  KEY `FK_ImprimantesPreparation_Caisses` (`CaisseId`),
+  CONSTRAINT `FK_ImprimantesPreparation_Caisses` FOREIGN KEY (`CaisseId`) REFERENCES `Caisses` (`ID`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ImprimantesPreparationCategories` (
+  `ImprimantePreparationId` int NOT NULL,
+  `CategorieId` int NOT NULL,
+  PRIMARY KEY (`ImprimantePreparationId`,`CategorieId`),
+  KEY `FK_ImprimantesPreparationCategories_Categories` (`CategorieId`),
+  CONSTRAINT `FK_ImprimantesPreparationCategories_Categories` FOREIGN KEY (`CategorieId`) REFERENCES `Categories` (`Id`) ON DELETE CASCADE,
+  CONSTRAINT `FK_ImprimantesPreparationCategories_Imprimantes` FOREIGN KEY (`ImprimantePreparationId`) REFERENCES `ImprimantesPreparation` (`Id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `JourneesCaisses` (
   `Id` int NOT NULL AUTO_INCREMENT,
   `TenantId` int NOT NULL DEFAULT '0',
@@ -384,6 +415,7 @@ CREATE TABLE `LignesBonPreparation` (
   `Libelle` varchar(200) NOT NULL,
   `Quantite` decimal(18,2) NOT NULL DEFAULT '0.00',
   `Note` varchar(200) DEFAULT NULL,
+  `CategorieId` int DEFAULT NULL,
   PRIMARY KEY (`Id`),
   KEY `IX_LignesBonPreparation_Bon` (`BonPreparationId`),
   CONSTRAINT `FK_LignesBonPreparation_Bons` FOREIGN KEY (`BonPreparationId`) REFERENCES `BonsPreparation` (`Id`) ON DELETE CASCADE
@@ -500,6 +532,7 @@ INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('027_tenta
 INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('028_profils.sql','2026-11-14 00:00:00');
 INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('029_droits_detail.sql','2026-11-14 00:00:00');
 INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('030_droits_toutes_operations.sql','2026-11-14 00:00:00');
+INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('031_imprimantes_preparation.sql','2026-11-14 00:00:00');
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `ModesPaiement` (

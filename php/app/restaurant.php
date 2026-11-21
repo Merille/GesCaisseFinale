@@ -147,17 +147,17 @@ function restaurant_contenu_saisi(array $saisi, array $avant, bool $envoyeDuPost
     ], JSON_UNESCAPED_UNICODE);
 }
 
-/** Poste de préparation (Cuisine, Bar ou Aucun) de chaque produit. */
-function restaurant_postes(array $produitIds): array
+/** Poste de préparation (Cuisine, Bar ou Aucun) de chaque produit (avec sa catégorie : [poste, catégorie]). */
+function restaurant_postes(array $produitIds, bool $avecCategorie = false): array
 {
     if (!$produitIds) {
         return [];
     }
     $marques = implode(',', array_fill(0, count($produitIds), '?'));
     $postes = [];
-    foreach (q("SELECT p.Id, COALESCE(c.Preparation, 'Cuisine') AS Poste FROM Produits p LEFT JOIN Categories c ON c.Id = p.CategorieId
+    foreach (q("SELECT p.Id, COALESCE(c.Preparation, 'Cuisine') AS Poste, c.Id AS CategorieId FROM Produits p LEFT JOIN Categories c ON c.Id = p.CategorieId
                 WHERE p.Id IN ($marques)", array_values($produitIds)) as $r) {
-        $postes[(int) $r['Id']] = $r['Poste'];
+        $postes[(int) $r['Id']] = $avecCategorie ? [$r['Poste'], $r['CategorieId'] === null ? null : (int) $r['CategorieId']] : $r['Poste'];
     }
     return $postes;
 }
@@ -180,16 +180,16 @@ function restaurant_envoyer(array $co, array &$contenu, array $avant, string $ta
             $ids[] = (int) ($c['produitId'] ?? 0);
         }
     }
-    $postes = restaurant_postes(array_values(array_unique($ids)));
+    $postes = restaurant_postes(array_values(array_unique($ids)), true);
     // Un combo part en préparation article par article, chacun vers son poste.
     $ajouter = function (array $l, float $qte, ?string $note) use (&$parPoste, $postes): void {
         $articles = !empty($l['composants'])
             ? array_map(fn($c) => ['id' => (int) $c['produitId'], 'libelle' => $c['nom'] . ' (' . $l['nom'] . ')', 'qte' => $qte * (float) $c['qte']], $l['composants'])
             : [['id' => (int) $l['produitId'], 'libelle' => $l['nom'], 'qte' => $qte]];
         foreach ($articles as $a) {
-            $poste = $postes[$a['id']] ?? 'Cuisine';
+            [$poste, $categorie] = $postes[$a['id']] ?? ['Cuisine', null];
             if ($poste !== 'Aucun') {
-                $parPoste[$poste][] = ['libelle' => mb_substr($a['libelle'], 0, 200), 'qte' => $a['qte'], 'note' => $note];
+                $parPoste[$poste][] = ['libelle' => mb_substr($a['libelle'], 0, 200), 'qte' => $a['qte'], 'note' => $note, 'categorie' => $categorie];
             }
         }
     };
@@ -216,9 +216,28 @@ function restaurant_envoyer(array $co, array &$contenu, array $avant, string $ta
             [$co['TenantId'], $co['CaisseId'], $co['JourneeCaisseId'], $co['Id'] ?: null, $numero, $poste, $tableNom, $co['Couverts'] ?: null, $serveur]
         );
         foreach ($lignes as $l) {
-            run('INSERT INTO LignesBonPreparation (BonPreparationId, Libelle, Quantite, Note) VALUES (?, ?, ?, ?)', [$id, $l['libelle'], $l['qte'], $l['note']]);
+            run('INSERT INTO LignesBonPreparation (BonPreparationId, Libelle, Quantite, Note, CategorieId) VALUES (?, ?, ?, ?, ?)', [$id, $l['libelle'], $l['qte'], $l['note'], $l['categorie']]);
         }
         $ids[] = $id;
     }
     return $ids;
+}
+
+// Imprimantes de préparation en réseau (Paramètres › Imprimantes), utilisées par l'écran de vente.
+/** Imprimantes actives d'une caisse (ou de toutes les caisses), au format de l'écran de vente. */
+function imprimantes_caisse(int $tenant, int $caisseId): array
+{
+    $liste = q('SELECT * FROM ImprimantesPreparation WHERE TenantId = ? AND Actif = 1 AND (CaisseId IS NULL OR CaisseId = ?) ORDER BY Nom, Id', [$tenant, $caisseId]);
+    return array_map('imprimante_js', $liste);
+}
+
+/** Imprimante au format du module d'impression (assets/js/imprimantes.js). */
+function imprimante_js(array $i): array
+{
+    return [
+        'id' => (int) $i['Id'], 'nom' => $i['Nom'], 'type' => $i['Type'], 'ip' => $i['AdresseIp'],
+        'port' => $i['Port'] === null ? null : (int) $i['Port'], 'largeur' => (int) $i['Largeur'],
+        'encodage' => $i['Encodage'], 'bip' => (bool) $i['Bip'],
+        'categories' => array_map('intval', array_column(q('SELECT CategorieId FROM ImprimantesPreparationCategories WHERE ImprimantePreparationId = ?', [$i['Id']]), 'CategorieId')),
+    ];
 }

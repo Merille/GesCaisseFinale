@@ -337,3 +337,9 @@ body.pos-body { margin: 0; background: var(--pos-bg); color: #1d2a35; font-famil
 /* Message après l'envoi des opérations faites hors ligne (toutes les pages). */
 .gc-toast { position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%); z-index: 3100; max-width: min(560px, calc(100vw - 32px)); padding: 10px 16px; border-radius: 10px; background: #14532d; color: #fff; font-size: 14px; box-shadow: 0 6px 24px rgba(0, 0, 0, .25); }
 .gc-toast.erreur { background: #991b1b; }
+/* Imprimantes de préparation : bon non imprimé (alerte gardée à l'écran, « Réimprimer »). */
+.pos-alerte-impression { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 70; display: flex; flex-direction: column; gap: 8px; width: min(620px, calc(100vw - 32px)); }
+.pos-alerte-ligne { display: flex; align-items: center; gap: 12px; background: var(--pos-danger, #dc3545); color: #fff; padding: 10px 12px 10px 16px; border-radius: 10px; box-shadow: 0 8px 24px rgba(0, 0, 0, .25); font-size: 14px; }
+.pos-alerte-ligne > div { flex: 1; }
+.pos-alerte-ligne button { border: 0; border-radius: 8px; padding: 6px 12px; background: #fff; color: #b02a37; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.pos-alerte-ligne button.fermer { background: transparent; color: #fff; font-size: 20px; line-height: 1; padding: 2px 6px; }

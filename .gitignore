@@ -480,3 +480,6 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# Agent d'impression : paquet fabriqué par AgentImpression/publier.sh
+AgentImpression/publication/

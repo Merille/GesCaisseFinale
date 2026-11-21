@@ -63,7 +63,7 @@ const fiche = [
         ['Projet', 'GesCaisse — gestion de caisse et point de vente (POS)'],
         ['Éditeur', 'M-ITECH AFRICA'],
         ['Versions', 'ASP.NET Core (.NET 10) / SQL Server — PHP 8 / MySQL'],
-        ['Version du document', '4.7'],
+        ['Version du document', '4.8'],
         ['Date', 'Novembre 2026'],
         ['Statut', 'Document de référence (fonctionnalités réalisées)']
     ], [3000, 6638])
@@ -300,7 +300,17 @@ const contenu = [
     puce('Impression automatique du bon (option de la caisse) et affichage sur l\'écran cuisine / bar.'),
     puce('Écran cuisine / bar : actualisation toutes les 5 secondes, signal sonore, filtre par poste, couleur selon l\'attente (10 et 20 minutes), bouton « Prêt », rappel des bons prêts.'),
     puce('Écran cuisine / bar : bouton « Imprimer » sur chaque bon (impression ou réimpression sur l’imprimante du poste) ; option « Impression auto » propre au poste (gardée par son navigateur) : chaque nouveau bon du poste affiché s’imprime une seule fois (bons déjà imprimés mémorisés sur le poste, ceux affichés à l’activation tenus pour imprimés), par un cadre caché qui charge la page du bon ; impression sans fenêtre avec l’option --kiosk-printing du navigateur. Page d’impression soumise au droit « Écran cuisine / bar » (consulter).'),
-    h2('5.4 Addition et encaissement'),
+    h2('5.4 Imprimantes de préparation en réseau'),
+    p('Pour une cuisine ou un bar sans écran ni ordinateur, mais équipé d’une imprimante thermique réseau (comme les « imprimantes de préparation » d’Odoo). L’application étant hébergée sur Internet, le serveur ne peut pas joindre les imprimantes du réseau local du restaurant : c’est le poste de caisse, sur le même réseau, qui leur envoie les bons.'),
+    puce('Paramètres › Imprimantes (droit « Configuration du point de vente », module Point de vente) : nom, caisse (une caisse restaurant / bar ou toutes), type, adresse IP (ou nom d’hôte du réseau local) et port, largeur du papier (80 mm : 48 caractères, 58 mm : 32), caractères (page 850 avec accents, ou sans accents), signal sonore, active ; catégories de produits imprimées (boutons « Poste Cuisine », « Poste Bar », « Aucune » pour cocher selon le poste des catégories). Liste avec boutons Tester, Modifier, Activer / Désactiver, Supprimer ; bouton « Tester » aussi dans la fenêtre, avant d’enregistrer (page d’essai : imprimante, adresse, papier, accents).'),
+    puce('Type Epson (ePOS) : le navigateur envoie le bon au service ePOS-Print de l’imprimante (POST http(s)://IP[:port]/cgi-bin/epos/service.cgi?devid=local_printer, enveloppe SOAP / XML epos-print : alignement, double largeur et hauteur, gras, avance, coupe, son) ; protocole de la page (application en HTTPS : HTTPS activé sur l’imprimante et son certificat accepté une fois sur le poste) ; réponse success="true" attendue, sinon code d’erreur de l’imprimante affiché (capot ouvert, papier…). Rien à installer.'),
+    puce('Type Autre (ESC/POS réseau, port 9100 par défaut) : un navigateur ne peut pas ouvrir cette connexion ; l’agent d’impression GesCaisse, installé sur le poste de caisse, reçoit le bon déjà mis en forme (octets ESC/POS en base 64 : initialisation, page de codes 850, alignement, taille, gras, bip, avance et coupe) sur http://127.0.0.1:9101/imprimer et le transmet à IP:port. Adresse de l’agent modifiable par poste (clé gescaisse-agent-impression du navigateur).'),
+    puce('Répartition : à chaque envoi en préparation (bouton Envoyer d’une table, vente directe encaissée), le poste lit les bons créés (pos/bonsjson, /Pos/BonsJson : lignes avec leur catégorie, colonne LignesBonPreparation.CategorieId ; migration PHP 031 et migration EF ImprimantesPreparation) et envoie à chaque imprimante active de la caisse les lignes de ses catégories (un bon par poste, une coupe par bon ; une catégorie peut être cochée sur plusieurs imprimantes). Bon : poste en grand, table et couverts, numéro et heure, serveur, lignes en double hauteur (« ANNULÉ » pour une quantité négative), notes en retrait.'),
+    puce('Sans connexion au serveur, le réseau local restant disponible : bons fabriqués sur le poste depuis la commande (un par poste, catégorie de chaque article, mention « envoyé hors ligne ») et envoyés aux imprimantes.'),
+    puce('Échec (imprimante injoignable, agent absent, refus de l’imprimante) : alerte rouge gardée en haut de l’écran de vente, une ligne par imprimante, avec « Réimprimer » et fermeture ; le bon reste enregistré et affiché sur l’écran cuisine / bar.'),
+    puce('Quand la caisse a au moins une imprimante active, le bon n’est plus imprimé par la fenêtre d’impression du navigateur (option « Imprimer un bon de préparation » de la caisse sans effet) ; sans imprimante active, retour à l’impression par le navigateur.'),
+    puce('Agent d’impression (dossier AgentImpression, programme .NET à part) : exécutable Windows autonome d’un seul fichier (sans .NET à installer), installer.cmd (copie dans %LOCALAPPDATA%\\GesCaisse, lancement au démarrage de Windows, sans droits administrateur), desinstaller.cmd ; écoute sur 127.0.0.1 seulement ; n’envoie qu’aux adresses du réseau local (10/8, 172.16/12, 192.168/16, 169.254/16) et aux ports 9100 à 9109 ; option --origine pour n’accepter que l’adresse de GesCaisse ; en-têtes CORS et Access-Control-Allow-Private-Network ; journal agent-impression.log ; état sur http://127.0.0.1:9101/etat.'),
+    h2('5.5 Addition et encaissement'),
     puce('Addition (note provisoire) imprimée avec la mention « NON PAYÉ » en tête et en pied ; la table passe en « addition demandée ».'),
     puce('Partage de l\'addition : choix des articles payés maintenant, le reste demeure sur la table.'),
     puce('Transfert vers une table libre, ou regroupement avec la commande d\'une table occupée.'),
@@ -316,6 +326,7 @@ const contenu = [
         ['Modes de paiement', 'Code, libellé, actif, paiement par compte client', 'Suppression refusée s\'il est utilisé (opérations ou ventes) ; « Espèces » reconnu pour la monnaie ; mode « Compte client » créé pour chaque société (migration 017 / ClientsEnCompte, création d\'une société), exclu des opérations de caisse'],
         ['Taxes', 'Code, libellé, taux, cochée par défaut', 'TVA 18 % et CSS 1 % créées pour chaque société ; modifier un taux met à jour les produits'],
         ['Unités de vente', 'Nom court, libellé, active', '14 unités de départ ; renommer met à jour les produits ; suppression refusée si utilisée'],
+        ['Imprimantes', 'Imprimantes de préparation de la cuisine et du bar : nom, caisse, type (Epson ePOS ou ESC/POS par l\'agent), adresse IP, port, papier, caractères, bip, catégories imprimées', 'Bouton « Tester » ; voir 5.4'],
         ['Sociétés', 'Nom, code, logo, adresse, ville, pays, e-mail, téléphone, NIF, licence, module Point de vente', 'Réservé au super-administrateur ; module Point de vente activé ou non par société']
     ], [1900, 3900, 3838]),
 
@@ -388,7 +399,7 @@ const contenu = [
         ['Stock', 'Depots, StocksDepots, CaissesDepots (dépôts secondaires des caisses), MouvementsStock'],
         ['Laverie', 'DepotsLinge (dépôts de linge : client, retrait prévu, acompte, statut, vente du retrait)'],
         ['Achats', 'Achats (fournisseur, dépôt, référence, total, statut), LignesAchats (produit, quantité, prix d\'achat), ReglementsAchats (montant, mode, décaissement de caisse)'],
-        ['Restaurant', 'Salles, TablesRestaurant, CommandesOuvertes, BonsPreparation, LignesBonPreparation']
+        ['Restaurant', 'Salles, TablesRestaurant, CommandesOuvertes, BonsPreparation, LignesBonPreparation (catégorie de l\'article), ImprimantesPreparation (nom, type, adresse IP, port, largeur, caractères, bip, caisse, active), ImprimantesPreparationCategories']
     ], [2400, 7238]),
 
     // 10
@@ -397,6 +408,7 @@ const contenu = [
     puce('Code source des deux versions (dépôt Git), scripts de base de données et migrations.'),
     puce('Scripts de démonstration (catalogue, ventes, mouvements de stock) — à ne pas déployer en production. Le script demo_laverie crée une seconde société « Laverie Éclat Blanc » : caisse LAV1 de type Laverie, 6 catégories, 24 articles illustrés (prestations et produits en stock), 4 tiers, 20 ventes à ces tiers sur 5 journées clôturées , 3 dépôts de linge (un prêt et en retard, deux en cours dont un avec acompte ; ajoutés une seule fois, aussi en relançant le script sur une base existante), 5 produits d\'entretien consommables, 2 achats au fournisseur (un réglé, un à crédit) et une consommation dans le dépôt des achats ACH01 ; il est intégré à la base de démonstration complète.'),
     puce('Bases de démonstration complètes, prêtes à importer dans une base vide, avec les mêmes données dans les deux versions : gescaisse_demo_complet_mysql.sql (PHP / MySQL) et gescaisse_demo_complet_sqlserver.sql (.NET / SQL Server, généré par Scripts/generer_demo_complet_sqlserver.py).'),
+    puce('Agent d’impression pour les postes de caisse Windows (AgentImpression : sources, installer.cmd, desinstaller.cmd, LISEZMOI.md ; exécutable produit par publier.sh).'),
     puce('Le présent cahier des charges.'),
     h2('10.2 Procédure de mise à jour (version PHP sur Hostinger)'),
     puce('Sauvegarder la base MySQL (export phpMyAdmin).'),

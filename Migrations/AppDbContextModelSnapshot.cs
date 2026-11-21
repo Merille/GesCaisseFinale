@@ -870,6 +870,84 @@ namespace EasytransitCaisse.Migrations
                     b.ToTable("Factures");
                 });
 
+            modelBuilder.Entity("EasytransitCaisse.Models.ImprimantePreparation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Actif")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("AdresseIp")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<bool>("Bip")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("CaisseId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Encodage")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasDefaultValue("PC850");
+
+                    b.Property<int>("Largeur")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(80);
+
+                    b.Property<string>("Nom")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int?>("Port")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TenantId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasDefaultValue("Epson");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CaisseId");
+
+                    b.HasIndex("TenantId");
+
+                    b.ToTable("ImprimantesPreparation", (string)null);
+                });
+
+            modelBuilder.Entity("EasytransitCaisse.Models.ImprimantePreparationCategorie", b =>
+                {
+                    b.Property<int>("ImprimantePreparationId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("CategorieId")
+                        .HasColumnType("int");
+
+                    b.HasKey("ImprimantePreparationId", "CategorieId");
+
+                    b.HasIndex("CategorieId");
+
+                    b.ToTable("ImprimantesPreparationCategories", (string)null);
+                });
+
             modelBuilder.Entity("EasytransitCaisse.Models.JourneeCaisse", b =>
                 {
                     b.Property<int>("Id")
@@ -962,6 +1040,9 @@ namespace EasytransitCaisse.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<int>("BonPreparationId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("CategorieId")
                         .HasColumnType("int");
 
                     b.Property<string>("Libelle")
@@ -2158,6 +2239,29 @@ namespace EasytransitCaisse.Migrations
                     b.Navigation("Client");
                 });
 
+            modelBuilder.Entity("EasytransitCaisse.Models.ImprimantePreparation", b =>
+                {
+                    b.HasOne("EasytransitCaisse.Models.Caisse", null)
+                        .WithMany()
+                        .HasForeignKey("CaisseId")
+                        .OnDelete(DeleteBehavior.SetNull);
+                });
+
+            modelBuilder.Entity("EasytransitCaisse.Models.ImprimantePreparationCategorie", b =>
+                {
+                    b.HasOne("EasytransitCaisse.Models.Categorie", null)
+                        .WithMany()
+                        .HasForeignKey("CategorieId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("EasytransitCaisse.Models.ImprimantePreparation", null)
+                        .WithMany("Categories")
+                        .HasForeignKey("ImprimantePreparationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("EasytransitCaisse.Models.JourneeCaisse", b =>
                 {
                     b.HasOne("EasytransitCaisse.Models.Caisse", "Caisse")
@@ -2444,6 +2548,11 @@ namespace EasytransitCaisse.Migrations
                     b.Navigation("Lignes");
 
                     b.Navigation("Paiements");
+                });
+
+            modelBuilder.Entity("EasytransitCaisse.Models.ImprimantePreparation", b =>
+                {
+                    b.Navigation("Categories");
                 });
 
             modelBuilder.Entity("EasytransitCaisse.Models.LigneCommandePos", b =>

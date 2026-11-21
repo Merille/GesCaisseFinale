@@ -132,5 +132,8 @@ namespace EasytransitCaisse.Models
 
         [MaxLength(200)]
         public string? Note { get; set; }
+
+        // Catégorie de l'article : chaque imprimante de préparation n'imprime que ses catégories.
+        public int? CategorieId { get; set; }
     }
 }

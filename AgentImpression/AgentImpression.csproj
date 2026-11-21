@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Agent d'impression GesCaisse : reçoit les bons de la caisse (navigateur) sur http://127.0.0.1:9101
+       et les transmet aux imprimantes réseau ESC/POS (port 9100) de la cuisine et du bar. -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>GesCaisseAgentImpression</AssemblyName>
+    <RootNamespace>GesCaisse.AgentImpression</RootNamespace>
+    <Version>1.0.0</Version>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+</Project>

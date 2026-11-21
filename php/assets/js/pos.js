@@ -487,7 +487,8 @@
         cmd.retire = false;
         const bons = res.r.bons || [];
         if (bons.length) {
-            if (R.imprimerBons) imprimerDans(R.urlBons + bons.join(','));
+            if (reseau()) imprimerReseau(bons);
+            else if (R.imprimerBons) imprimerDans(R.urlBons + bons.join(','));
             message(bons.length > 1 ? 'Commande envoyée en cuisine et au bar.' : 'Commande envoyée en préparation.');
         } else if (!silencieux) {
             message('Rien à préparer : ces articles n\'ont pas de poste de préparation.');
@@ -500,7 +501,9 @@
     // ses bons) et articles notés « envoyés » ; à annoncer en cuisine ou au bar.
     function envoyerHorsLigne() {
         const nouveaux = cmd.lignes.map(l => ({ l: l, delta: Math.round((l.qte - (l.envoye || 0)) * 100) / 100 })).filter(x => Math.abs(x.delta) >= 0.01);
-        if (R.imprimerBons && nouveaux.length) {
+        if (reseau() && nouveaux.length) {
+            imprimerReseauLocal(nouveaux);
+        } else if (R.imprimerBons && nouveaux.length) {
             imprimerHtml(enteteTicket('Bon ' + cmd.table) + '<div class="ticket"><div class="c b grand">BON DE PRÉPARATION</div>'
                 + '<div class="c b">' + echap(cmd.table) + ' · ' + cmd.couverts + ' couvert(s)</div><div class="c petit">Hors ligne · ' + dateFr(new Date()) + ' · ' + echap(D.utilisateur.nom) + '</div><hr>'
                 + nouveaux.map(x => '<div class="b">' + (x.delta < 0 ? 'ANNULÉ ' : '') + qte(Math.abs(x.delta)) + ' x ' + echap(x.l.nom) + '</div>'
@@ -511,9 +514,78 @@
         cmd.lignes.forEach(l => { l.envoye = l.qte; });
         cmd.retire = false;
         garderTable();
-        message('Hors ligne : ' + (R.imprimerBons ? 'bon imprimé sur ce poste, ' : '') + 'annoncez la commande en cuisine ou au bar (l\'écran cuisine ne la reçoit pas).', true);
+        message('Hors ligne : ' + (reseau() ? 'bon envoyé aux imprimantes de cuisine et de bar (l\'écran cuisine ne le reçoit pas).'
+            : (R.imprimerBons ? 'bon imprimé sur ce poste, ' : '') + 'annoncez la commande en cuisine ou au bar (l\'écran cuisine ne la reçoit pas).'), true);
         afficher();
     }
+
+    // ------------------------------------------------------------------
+    // Imprimantes de préparation en réseau (Paramètres › Imprimantes) : les bons partent directement
+    // sur les imprimantes de la cuisine / du bar (assets/js/imprimantes.js), en ligne comme hors ligne.
+    // ------------------------------------------------------------------
+    function reseau() { return !!(R && R.imprimantes && R.imprimantes.length && window.GCImprimantes); }
+
+    async function imprimerReseau(ids) {
+        let bons;
+        try {
+            const res = await fetch(R.urlBonsJson + ids.join(','), { credentials: 'same-origin', cache: 'no-store', headers: { Accept: 'application/json' } });
+            bons = (await res.json()).bons;
+            if (!res.ok || !bons) throw new Error();
+        } catch (e) {
+            signalerImpression([{ ok: false, erreur: 'bons introuvables (connexion ?)', imprimante: { nom: 'Imprimantes de préparation' }, ids: ids }]);
+            return;
+        }
+        signalerImpression(await window.GCImprimantes.imprimerBons(bons, R.imprimantes));
+    }
+
+    // Hors ligne : bons fabriqués sur le poste (un par poste, comme le serveur), catégorie de chaque article.
+    async function imprimerReseauLocal(nouveaux) {
+        const parPoste = {};
+        nouveaux.forEach(x => {
+            const articles = (x.l.composants || []).length
+                ? x.l.composants.map(c => ({ produitId: c.produitId, libelle: c.nom + ' (' + x.l.nom + ')', qte: x.delta * c.qte }))
+                : [{ produitId: x.l.produitId, libelle: x.l.nom, qte: x.delta }];
+            articles.forEach(a => {
+                const p = produits.get(a.produitId), cat = p ? categories.get(p.categorieId) : null;
+                const poste = cat ? (cat.preparation || 'Cuisine') : 'Cuisine';
+                if (poste === 'Aucun') return;
+                (parPoste[poste] = parPoste[poste] || []).push({ libelle: a.libelle, qte: Math.round(a.qte * 100) / 100, note: x.l.note || null, categorieId: cat ? cat.id : null });
+            });
+        });
+        const bons = Object.keys(parPoste).map(poste => ({
+            numero: null, poste: poste, table: cmd.table, couverts: cmd.couverts, serveur: D.utilisateur.nom, date: new Date(), horsLigne: true, lignes: parPoste[poste]
+        }));
+        if (bons.length) signalerImpression(await window.GCImprimantes.imprimerBons(bons, R.imprimantes));
+    }
+
+    // Échec d'une imprimante : alerte gardée à l'écran, avec « Réimprimer ».
+    let echecsImpression = [];
+    function signalerImpression(resultats) {
+        const echecs = resultats.filter(r => !r.ok);
+        if (!echecs.length) return;
+        echecsImpression = echecsImpression.filter(a => !echecs.some(e => e.imprimante.id === a.imprimante.id)).concat(echecs);
+        afficherEchecsImpression();
+    }
+    function afficherEchecsImpression() {
+        let el = document.querySelector('.pos-alerte-impression');
+        if (!echecsImpression.length) { if (el) el.remove(); return; }
+        if (!el) { el = document.createElement('div'); el.className = 'pos-alerte-impression'; el.setAttribute('role', 'alert'); document.body.appendChild(el); }
+        el.innerHTML = echecsImpression.map((e, i) => '<div class="pos-alerte-ligne"><i class="fas fa-print"></i><div><b>' + echap(e.imprimante.nom) + '</b> : bon non imprimé, ' + echap(e.erreur) + '.</div>'
+            + '<button type="button" data-reimprimer="' + i + '">Réimprimer</button><button type="button" class="fermer" data-oublier="' + i + '" aria-label="Fermer">×</button></div>').join('');
+    }
+    document.addEventListener('click', async e => {
+        const b = e.target.closest('.pos-alerte-impression [data-reimprimer], .pos-alerte-impression [data-oublier]');
+        if (!b) return;
+        const i = Number(b.dataset.reimprimer ?? b.dataset.oublier), echec = echecsImpression[i];
+        if (!echec) return;
+        echecsImpression.splice(i, 1);
+        afficherEchecsImpression();
+        if (b.dataset.reimprimer === undefined) return;
+        if (echec.ids) { imprimerReseau(echec.ids); return; }
+        const r = await window.GCImprimantes.imprimerBons(echec.bons, [echec.imprimante]);
+        if (r.every(x => x.ok)) message('Bon réimprimé sur « ' + echec.imprimante.nom + ' ».');
+        signalerImpression(r);
+    });
 
     function tableDe(id) {
         for (const s of salles) for (const t of s.tables) if (t.id === id) return t;
@@ -1008,7 +1080,8 @@
         if (html && t.depot) depots = depots.filter(d => d.id !== t.depot.id);
         // Vente directe en restaurant / bar : les articles sont partis en préparation (bons créés par le serveur).
         const bonsDirects = !cmd && R ? (reponse.bons || []) : [];
-        if (bonsDirects.length && R.imprimerBons) imprimerDans(R.urlBons + bonsDirects.join(','));
+        if (bonsDirects.length && reseau()) imprimerReseau(bonsDirects);
+        else if (bonsDirects.length && R.imprimerBons) imprimerDans(R.urlBons + bonsDirects.join(','));
         if (cmd && html) {
             // Table encaissée hors ligne : libérée sur le plan du poste.
             const tbl = tableDe(cmd.tableId);

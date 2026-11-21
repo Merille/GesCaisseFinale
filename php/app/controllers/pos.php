@@ -57,8 +57,8 @@ function pos_index(): void
           WHERE p.Actif = 1 AND p.Consommable = 0 AND p.TenantId = ? AND (p.ParentId IS NULL OR m.Actif = 1) ORDER BY p.Nom', [$tenant]));
 
     $categories = array_map(fn($c) => [
-        'id' => (int) $c['Id'], 'nom' => $c['Nom'], 'couleur' => $c['Couleur'],
-    ], q('SELECT Id, Nom, Couleur FROM Categories WHERE TenantId = ? ORDER BY Ordre, Nom', [$tenant]));
+        'id' => (int) $c['Id'], 'nom' => $c['Nom'], 'couleur' => $c['Couleur'], 'preparation' => $c['Preparation'],
+    ], q('SELECT Id, Nom, Couleur, Preparation FROM Categories WHERE TenantId = ? ORDER BY Ordre, Nom', [$tenant]));
 
     // Clients en compte : solde dû et plafond de crédit (contrôle de la vente par compte).
     $soldes = compte_soldes($tenant);
@@ -139,6 +139,9 @@ function pos_index(): void
             'urlTransferer' => url('pos/transferer'),
             'urlAddition' => url('pos/addition') . '&id=',
             'urlBons' => url('pos/bon') . '&ids=',
+            // Imprimantes réseau de la cuisine / du bar : la caisse leur envoie les bons (assets/js/imprimantes.js).
+            'imprimantes' => imprimantes_caisse($tenant, (int) $journee['CaisseId']),
+            'urlBonsJson' => url('pos/bonsjson') . '&ids=',
             'urlCuisine' => peut('cuisine') ? url('cuisine/index', ['caisse' => $journee['CaisseId']]) : null,
         ] : null,
     ];
@@ -861,6 +864,25 @@ function pos_addition(): void
         'logo' => url_logo($societe),
         'coordonnees' => societe_coordonnees($societe),
     ], false);
+}
+
+/** Bons de préparation en JSON, pour les imprimantes réseau de la cuisine / du bar. */
+function pos_bonsjson(): void
+{
+    $ids = array_values(array_filter(array_map('intval', explode(',', (string) get('ids'))))) ?: [0];
+    $marques = implode(',', array_fill(0, count($ids), '?'));
+    $bons = [];
+    foreach (q("SELECT * FROM BonsPreparation WHERE Id IN ($marques) AND " . tf() . ' ORDER BY Id', $ids) as $b) {
+        $bons[] = [
+            'id' => (int) $b['Id'], 'numero' => (int) $b['Numero'], 'poste' => $b['Poste'], 'table' => $b['TableNom'],
+            'couverts' => $b['Couverts'] === null ? null : (int) $b['Couverts'], 'serveur' => $b['Serveur'], 'date' => $b['DateEnvoi'],
+            'lignes' => array_map(fn($l) => [
+                'libelle' => $l['Libelle'], 'qte' => (float) $l['Quantite'], 'note' => $l['Note'],
+                'categorieId' => $l['CategorieId'] === null ? null : (int) $l['CategorieId'],
+            ], q('SELECT * FROM LignesBonPreparation WHERE BonPreparationId = ? ORDER BY Id', [$b['Id']])),
+        ];
+    }
+    pos_json(['bons' => $bons]);
 }
 
 /** Bons de préparation 80 mm (un par page), imprimés à l'envoi. */

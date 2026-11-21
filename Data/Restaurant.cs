@@ -176,9 +176,9 @@ namespace EasytransitCaisse.Data
                                 join cat in context.Categories.IgnoreQueryFilters() on p.CategorieId equals cat.Id into cats
                                 from cat in cats.DefaultIfEmpty()
                                 where produitIds.Contains(p.Id)
-                                select new { p.Id, Poste = cat != null ? cat.Preparation : "Cuisine" })
-                .ToDictionaryAsync(x => x.Id, x => x.Poste);
-            string Poste(int id) => postes.TryGetValue(id, out var p) ? p : "Cuisine";
+                                select new { p.Id, Poste = cat != null ? cat.Preparation : "Cuisine", CategorieId = cat != null ? (int?)cat.Id : null })
+                .ToDictionaryAsync(x => x.Id, x => (x.Poste, x.CategorieId));
+            (string Poste, int? CategorieId) Poste(int id) => postes.TryGetValue(id, out var p) ? p : ("Cuisine", null);
 
             var parPoste = new Dictionary<string, List<LigneBonPreparation>>();
             // Un combo part en préparation article par article, chacun vers son poste.
@@ -189,10 +189,10 @@ namespace EasytransitCaisse.Data
                     : new[] { (ligne.ProduitId, Libelle: ligne.Nom, Qte: qte) };
                 foreach (var (id, libelle, q) in articles)
                 {
-                    var poste = Poste(id);
+                    var (poste, categorieId) = Poste(id);
                     if (poste == "Aucun") continue;
                     if (!parPoste.TryGetValue(poste, out var l)) parPoste[poste] = l = new();
-                    l.Add(new LigneBonPreparation { Libelle = libelle.Length > 200 ? libelle[..200] : libelle, Quantite = q, Note = string.IsNullOrEmpty(note) ? null : note });
+                    l.Add(new LigneBonPreparation { Libelle = libelle.Length > 200 ? libelle[..200] : libelle, Quantite = q, Note = string.IsNullOrEmpty(note) ? null : note, CategorieId = categorieId });
                 }
             }
             foreach (var l in contenu.Lignes)

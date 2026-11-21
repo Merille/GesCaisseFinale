@@ -16,6 +16,14 @@
     <PackageReference Include="Rotativa.AspNetCore" Version="1.4.0" />
   </ItemGroup>
 
+  <!-- Agent d'impression : programme à part, installé sur les postes de caisse (AgentImpression/LISEZMOI.md). -->
+  <ItemGroup>
+    <Compile Remove="AgentImpression\**" />
+    <Content Remove="AgentImpression\**" />
+    <None Remove="AgentImpression\**" />
+    <EmbeddedResource Remove="AgentImpression\**" />
+  </ItemGroup>
+
   <ItemGroup>
     <Folder Include="Migrations\" />
     <Folder Include="Views\Motif\" />

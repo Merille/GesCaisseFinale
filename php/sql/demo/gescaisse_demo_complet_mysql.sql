@@ -1,5 +1,5 @@
 -- GesCaisse (version PHP / MySQL) : base COMPLÈTE et à jour, avec données de démonstration.
--- Structure identique à sql/schema.sql (migrations 001 à 030 intégrées) et données fictives :
+-- Structure identique à sql/schema.sql (migrations 001 à 031 intégrées) et données fictives :
 --   société « Société de démonstration » (coordonnées), 4 utilisateurs, 2 caisses (Caisse principale,
 --   Restaurant Le Jardin avec 2 salles et 9 tables), 6 tiers (entreprises et particulier), 3 modes de paiement, 4 motifs,
 --   catégories et 39 produits avec leur image (dont un menu combo et 3 combos), 151 ventes réparties sur 14 journées
@@ -345,6 +345,37 @@ CREATE TABLE `Factures` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ImprimantesPreparation` (
+  `Id` int NOT NULL AUTO_INCREMENT,
+  `TenantId` int NOT NULL DEFAULT '0',
+  `Nom` varchar(100) NOT NULL,
+  `Type` varchar(20) NOT NULL DEFAULT 'Epson',
+  `AdresseIp` varchar(100) NOT NULL,
+  `Port` int DEFAULT NULL,
+  `Largeur` int NOT NULL DEFAULT '80',
+  `Encodage` varchar(20) NOT NULL DEFAULT 'PC850',
+  `Bip` tinyint(1) NOT NULL DEFAULT '0',
+  `CaisseId` int DEFAULT NULL,
+  `Actif` tinyint(1) NOT NULL DEFAULT '1',
+  PRIMARY KEY (`Id`),
+  KEY `IX_ImprimantesPreparation_Tenant` (`TenantId`),
+  KEY `FK_ImprimantesPreparation_Caisses` (`CaisseId`),
+  CONSTRAINT `FK_ImprimantesPreparation_Caisses` FOREIGN KEY (`CaisseId`) REFERENCES `Caisses` (`ID`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ImprimantesPreparationCategories` (
+  `ImprimantePreparationId` int NOT NULL,
+  `CategorieId` int NOT NULL,
+  PRIMARY KEY (`ImprimantePreparationId`,`CategorieId`),
+  KEY `FK_ImprimantesPreparationCategories_Categories` (`CategorieId`),
+  CONSTRAINT `FK_ImprimantesPreparationCategories_Categories` FOREIGN KEY (`CategorieId`) REFERENCES `Categories` (`Id`) ON DELETE CASCADE,
+  CONSTRAINT `FK_ImprimantesPreparationCategories_Imprimantes` FOREIGN KEY (`ImprimantePreparationId`) REFERENCES `ImprimantesPreparation` (`Id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `JourneesCaisses` (
   `Id` int NOT NULL AUTO_INCREMENT,
   `TenantId` int NOT NULL DEFAULT '0',
@@ -388,6 +419,7 @@ CREATE TABLE `LignesBonPreparation` (
   `Libelle` varchar(200) NOT NULL,
   `Quantite` decimal(18,2) NOT NULL DEFAULT '0.00',
   `Note` varchar(200) DEFAULT NULL,
+  `CategorieId` int DEFAULT NULL,
   PRIMARY KEY (`Id`),
   KEY `IX_LignesBonPreparation_Bon` (`BonPreparationId`),
   CONSTRAINT `FK_LignesBonPreparation_Bons` FOREIGN KEY (`BonPreparationId`) REFERENCES `BonsPreparation` (`Id`) ON DELETE CASCADE
@@ -472,7 +504,7 @@ CREATE TABLE `MigrationsAppliquees` (
   PRIMARY KEY (`Nom`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('001_pos_catalogue.sql','2026-11-02 00:15:19'),('002_pos_ventes.sql','2026-11-02 00:15:19'),('003_pos_apres_vente.sql','2026-11-02 00:15:19'),('004_pos_stock.sql','2026-11-02 00:15:19'),('005_pos_taxes.sql','2026-11-02 00:15:19'),('006_societe_produits.sql','2026-11-02 00:15:19'),('007_variantes_remise.sql','2026-11-02 00:15:20'),('008_unites.sql','2026-11-02 00:15:20'),('009_restaurant.sql','2026-11-02 00:15:20'),('010_combos.sql','2026-11-02 00:15:20'),('011_combos_odoo.sql','2026-11-02 00:15:20'),('012_module_point_vente.sql','2026-11-02 00:15:20'),('013_depots.sql','2026-11-02 00:15:20'),('014_livraisons.sql','2026-11-02 00:15:20'),('015_moyen_livraison.sql','2026-11-02 00:15:20'),('016_genre_tiers.sql','2026-11-02 00:15:20'),('017_clients_en_compte.sql','2026-11-02 00:15:20'),('018_frais_livraison.sql','2026-11-02 00:15:20'),('019_depots_secondaires.sql','2026-11-02 00:15:20'),('020_depots_linge.sql','2026-11-02 00:15:20'),('021_achats.sql','2026-11-12 00:00:00'),('022_depot_achats.sql','2026-11-12 00:00:00'),('023_hors_ligne.sql','2026-11-12 00:00:00'),('024_attente_hors_ligne.sql','2026-11-12 00:00:00'),('025_postes_hors_ligne.sql','2026-11-13 00:00:00'),('026_droit_remise.sql','2026-11-13 00:00:00'),('027_tentatives_connexion.sql','2026-11-14 00:00:00'),('028_profils.sql','2026-11-14 00:00:00'),('029_droits_detail.sql','2026-11-14 00:00:00'),('030_droits_toutes_operations.sql','2026-11-14 00:00:00');
+INSERT INTO `MigrationsAppliquees` (`Nom`, `DateApplication`) VALUES ('001_pos_catalogue.sql','2026-11-02 00:15:19'),('002_pos_ventes.sql','2026-11-02 00:15:19'),('003_pos_apres_vente.sql','2026-11-02 00:15:19'),('004_pos_stock.sql','2026-11-02 00:15:19'),('005_pos_taxes.sql','2026-11-02 00:15:19'),('006_societe_produits.sql','2026-11-02 00:15:19'),('007_variantes_remise.sql','2026-11-02 00:15:20'),('008_unites.sql','2026-11-02 00:15:20'),('009_restaurant.sql','2026-11-02 00:15:20'),('010_combos.sql','2026-11-02 00:15:20'),('011_combos_odoo.sql','2026-11-02 00:15:20'),('012_module_point_vente.sql','2026-11-02 00:15:20'),('013_depots.sql','2026-11-02 00:15:20'),('014_livraisons.sql','2026-11-02 00:15:20'),('015_moyen_livraison.sql','2026-11-02 00:15:20'),('016_genre_tiers.sql','2026-11-02 00:15:20'),('017_clients_en_compte.sql','2026-11-02 00:15:20'),('018_frais_livraison.sql','2026-11-02 00:15:20'),('019_depots_secondaires.sql','2026-11-02 00:15:20'),('020_depots_linge.sql','2026-11-02 00:15:20'),('021_achats.sql','2026-11-12 00:00:00'),('022_depot_achats.sql','2026-11-12 00:00:00'),('023_hors_ligne.sql','2026-11-12 00:00:00'),('024_attente_hors_ligne.sql','2026-11-12 00:00:00'),('025_postes_hors_ligne.sql','2026-11-13 00:00:00'),('026_droit_remise.sql','2026-11-13 00:00:00'),('027_tentatives_connexion.sql','2026-11-14 00:00:00'),('028_profils.sql','2026-11-14 00:00:00'),('029_droits_detail.sql','2026-11-14 00:00:00'),('030_droits_toutes_operations.sql','2026-11-14 00:00:00'),('031_imprimantes_preparation.sql','2026-11-14 00:00:00');
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `ModesPaiement` (

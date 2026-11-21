@@ -43,7 +43,7 @@
         "Pos" or "Vente" or "Stock" or "PosRapport" or "RapportLivraison" or "RapportLinge" or "RapportAchat" or "Achat" or "Cuisine" or "Synchro" => "Point de vente",
         "Salle" => "Activité",
         "Produit" or "Categorie" or "Combo" => "Configuration",
-        "Utilisateur" or "Profil" or "Motif" or "ModePaiement" or "Taxe" or "Unite" or "Depot" or "Livreur" or "Societe" => "Paramètres",
+        "Utilisateur" or "Profil" or "Motif" or "ModePaiement" or "Taxe" or "Unite" or "Depot" or "Livreur" or "Imprimante" or "Societe" => "Paramètres",
         "Tenant" => "Administration",
         _ => null
     };
@@ -61,6 +61,7 @@
             "Unite" => "Unités de vente",
             "Depot" => "Dépôts",
             "Livreur" => "Livreurs",
+            "Imprimante" => "Imprimantes de préparation",
             "Salle" => "Plan de salle",
             "Cuisine" => "Écran cuisine / bar",
             "Utilisateur" => "Utilisateurs",
@@ -362,7 +363,7 @@
             <div class="sb-section">
                 <div class="sb-section-title">Administration</div>
                 @{
-                    var parametresActif = controller is "Utilisateur" or "Profil" or "Motif" or "ModePaiement" or "Taxe" or "Unite" or "Depot" or "Livreur" or "Societe";
+                    var parametresActif = controller is "Utilisateur" or "Profil" or "Motif" or "ModePaiement" or "Taxe" or "Unite" or "Depot" or "Livreur" or "Imprimante" or "Societe";
                 }
                 <button type="button" class="sb-link sb-parent @(parametresActif ? "parent-actif" : "")" title="Paramètres"
                         aria-expanded="@(parametresActif ? "true" : "false")" aria-controls="sbParametres" onclick="basculerSousMenu(this)">
@@ -420,6 +421,10 @@
                     <a class="sb-link @(controller == "Livreur" ? "active" : "")" href="/Livreur/Index" title="Livreurs">
                         <i class="fas fa-motorcycle"></i>
                         <span class="sb-label">Livreurs</span>
+                    </a>
+                    <a class="sb-link @(controller == "Imprimante" ? "active" : "")" href="/Imprimante/Index" title="Imprimantes">
+                        <i class="fas fa-print"></i>
+                        <span class="sb-label">Imprimantes</span>
                     </a>
                     }
                 </div>

@@ -98,7 +98,7 @@ const fiche = [
         ['Application', 'GesCaisse — gestion de caisse et point de vente (POS)'],
         ['Éditeur', 'M-ITECH AFRICA'],
         ['Public', 'Administrateurs, caissiers, vendeurs et serveurs des sociétés clientes'],
-        ['Version du document', '4.5'],
+        ['Version du document', '4.6'],
         ['Date', 'Novembre 2026']
     ], [3000, 6638])
 ];
@@ -622,7 +622,8 @@ const contenu = [
     ...etapes([
         'Dans **Caisses**, choisissez le type **Restaurant** ou **Bar** pour la caisse (voir 3.1).',
         'Dans **Configuration** › **Catégories**, indiquez le **poste de préparation** de chaque catégorie : **Cuisine**, **Bar** ou **Aucun** (articles servis directement).',
-        'Dessinez le plan de salle (10.8).'
+        'Dessinez le plan de salle (10.8).',
+        'Si la cuisine ou le bar a une imprimante réseau (sans écran), paramétrez-la dans **Paramètres** › **Imprimantes** (10.9).'
     ]),
     h2('10.2 Le plan de salle'),
     p('À l’ouverture du point de vente, le plan de la salle s’affiche. Les onglets en haut permettent de passer d’une salle à l’autre (salle principale, terrasse…).'),
@@ -652,7 +653,7 @@ const contenu = [
     h2('10.5 Envoyer en cuisine et au bar'),
     p('Touchez **Envoyer** : un bon de préparation est créé pour chaque poste (cuisine, bar) avec les nouveaux articles seulement, leurs notes, la table et le nombre de couverts. Un article retiré après l’envoi part comme une ligne « ANNULÉ ». Selon le réglage de la caisse, le bon est imprimé automatiquement.'),
     astuce('Avant l’encaissement, les articles qui n’ont pas encore été envoyés le sont automatiquement.'),
-    p('**Vente directe** : il n’y a pas de bouton Envoyer ; les articles partent en préparation dès l’encaissement, un bon par poste, intitulé « Vente directe · ticket N » (N = numéro de la vente dans la journée, les 4 derniers chiffres du ticket). Le bon est imprimé si la caisse imprime les bons, et s’affiche sur l’écran cuisine / bar. Les articles dont la catégorie a le poste **Aucun** ne font pas de bon.'),
+    p('**Vente directe** : il n’y a pas de bouton Envoyer ; les articles partent en préparation dès l’encaissement, un bon par poste, intitulé « Vente directe · ticket N » (N = numéro de la vente dans la journée, les 4 derniers chiffres du ticket). Le bon est imprimé si la caisse imprime les bons (ou envoyé aux imprimantes de cuisine et de bar, voir 10.9), et s’affiche sur l’écran cuisine / bar. Les articles dont la catégorie a le poste **Aucun** ne font pas de bon.'),
     h2('10.6 Addition, partage, transfert et pourboire'),
     pt('Addition', 'imprime une note provisoire marquée **NON PAYÉ** (table, couverts, total et montant par couvert) ; la table passe en « addition demandée ». En vente directe, le bouton **Addition** du ticket fait de même (voir 6.4).'),
     pt('Partager', 'choisissez les articles payés maintenant ; le reste demeure sur la table.'),
@@ -679,6 +680,22 @@ const contenu = [
     puce('Sélectionnez une table pour changer son nom et son nombre de places, ou la retirer.'),
     puce('Cliquez sur **Enregistrer le plan** pour conserver toutes les salles.'),
     attention('Une table ne peut pas être retirée tant qu’une commande y est en cours.'),
+
+    h2('10.9 Imprimantes de cuisine et de bar (sans écran)'),
+    p('Si la cuisine ou le bar n’a ni écran ni ordinateur, mais une **imprimante thermique réseau** (branchée au réseau du restaurant par câble ou Wi-Fi), la caisse peut y envoyer directement les bons : chaque imprimante reçoit les articles des catégories qui lui sont attribuées. Menu **Paramètres › Imprimantes**.'),
+    ...figure('38b_imprimantes', 'Paramètres › Imprimantes de préparation'),
+    puce('Cliquez sur **Nouvelle imprimante**, donnez-lui un nom (ex. Cuisine) et choisissez la caisse (ou toutes les caisses restaurant / bar).'),
+    puce('**Type d’imprimante** : **Epson (ePOS)** pour les imprimantes Epson récentes (TM-m30, TM-T88VI / VII, TM-T20III / IV réseau…), rien à installer ; **Autre imprimante réseau ESC/POS** pour les autres marques (Xprinter, Rongta, HPRT, Bixolon…) et les anciennes Epson : l’**agent d’impression GesCaisse** doit être installé sur le poste de caisse (voir ci-dessous).'),
+    puce('**Adresse IP** de l’imprimante (elle s’imprime en général en maintenant le bouton d’avance papier à l’allumage) ; le **port** peut rester vide (9100 pour le type Autre). Donnez à l’imprimante une adresse fixe dans votre box ou routeur.'),
+    puce('**Papier** 80 ou 58 mm ; **Caractères** : « sans accents » si l’imprimante affiche des signes à la place des lettres accentuées ; **Signal sonore** pour les imprimantes équipées d’un bip.'),
+    puce('**Catégories de produits imprimées** : cochez-les, ou utilisez **Poste Cuisine** / **Poste Bar** pour cocher les catégories de ce poste. Une catégorie peut être imprimée sur plusieurs imprimantes.'),
+    puce('Cliquez sur **Tester** (dans la fenêtre ou dans la liste) : une page d’essai doit sortir. Faites ce test depuis le poste de caisse, qui doit être sur le même réseau que l’imprimante.'),
+    ...figure('38c_imprimante_fenetre', 'Fenêtre d’une imprimante de préparation'),
+    p('À chaque **Envoyer** d’une table et à chaque vente directe encaissée, les bons partent automatiquement sur les imprimantes, en plus de leur affichage sur l’écran cuisine / bar. Le bon indique le poste, la table et les couverts, le numéro et l’heure, le serveur, puis les articles (avec les notes) ; un article retiré après l’envoi est imprimé « ANNULÉ ». Si Internet est coupé, l’impression continue : les imprimantes sont sur le réseau local.'),
+    puce('Si une imprimante ne répond pas (éteinte, sans papier, capot ouvert, agent arrêté), une **alerte rouge** reste en haut de l’écran de vente : corrigez le problème puis touchez **Réimprimer**.'),
+    puce('Quand la caisse a des imprimantes actives, le bon n’est plus imprimé par la fenêtre d’impression du navigateur. Désactivez une imprimante pour arrêter de lui envoyer des bons.'),
+    attention('Application en HTTPS et imprimante Epson : activez le HTTPS de l’imprimante (page de configuration Epson) et, une seule fois sur chaque poste de caisse, ouvrez https://adresse-de-l’imprimante dans le navigateur pour accepter son certificat. Sinon le test échoue avec le message « imprimante injoignable ».'),
+    p('**Installer l’agent d’impression** (type Autre, une fois par poste de caisse Windows) : copiez le dossier de l’agent sur le poste, double-cliquez sur **installer.cmd** et indiquez l’adresse de GesCaisse telle qu’elle apparaît dans le navigateur. L’agent démarre aussitôt et se relance à chaque démarrage de Windows. Vérification : l’adresse http://127.0.0.1:9101/etat doit répondre « ok ». Pour le retirer : **desinstaller.cmd**.'),
 
     // 11 -----------------------------------------------------------------
     h1('11. Catalogue : catégories, produits et combos'),
