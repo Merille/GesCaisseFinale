@@ -122,7 +122,7 @@ h1{position:absolute;left:56px;top:176px;font-size:50px;line-height:1.06;font-we
 <div><i class="fas fa-xmark"></i>Cahiers de caisse et calculs à la main</div>
 <div><i class="fas fa-xmark"></i>Écarts de caisse inexpliqués</div>
 <div><i class="fas fa-xmark"></i>Ruptures de stock découvertes trop tard</div>
-<div><i class="fas fa-xmark"></i>Crédits clients notés dans un cahier</div>
+<div><i class="fas fa-xmark"></i>Clients et crédits notés dans un cahier</div>
 <div><i class="fas fa-xmark"></i>Internet coupé, caisse bloquée</div>
 <div><i class="fas fa-xmark"></i>Saisie comptable en double</div>
 <div><i class="fas fa-xmark"></i>Chaque employé voit et modifie tout</div></div>
@@ -130,7 +130,7 @@ h1{position:absolute;left:56px;top:176px;font-size:50px;line-height:1.06;font-we
 <div><i class="fas fa-check"></i>Ticket imprimé, monnaie calculée</div>
 <div><i class="fas fa-check"></i>Clôture avec comptage et écart justifié</div>
 <div><i class="fas fa-check"></i>Stock par dépôt, achats et alertes</div>
-<div><i class="fas fa-check"></i>Clients en compte, relevés et règlements</div>
+<div><i class="fas fa-check"></i>Client créé à la caisse, crédit et relevés</div>
 <div><i class="fas fa-check"></i>La vente continue sans internet</div>
 <div><i class="fas fa-check"></i>Export direct vers Sage</div>
 <div><i class="fas fa-check"></i>Profils et droits : chacun ses pages</div></div>
@@ -152,7 +152,7 @@ h2{position:absolute;left:56px;top:722px;font-size:22px;color:#2e1f63;font-weigh
 .etapes{position:absolute;left:56px;right:56px;top:762px;display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
 .e{background:#fff;border-radius:14px;padding:14px 14px;box-shadow:0 6px 18px rgba(46,31,99,.08);border-top:4px solid #5b3fa8}
 .e .n{font-size:13px;font-weight:800;color:#0f9b8e}.e b{display:block;font-size:15px;margin:4px 0 6px;color:#2e1f63}.e span{font-size:12.3px;color:#5b5873;line-height:1.42}
-.plus{position:absolute;left:56px;right:56px;top:934px;display:flex;flex-wrap:wrap;gap:7px}
+.plus{position:absolute;left:56px;right:56px;top:928px;display:flex;flex-wrap:wrap;gap:6px}
 .plus span{font-size:12.3px;background:#ece7f8;color:#2e1f63;padding:5px 11px;border-radius:16px;font-weight:600}</style>
 <div class="haut"><svg width="700" height="700">${arcs(350, 350, [300, 255, 210], ['rgba(255,255,255,.09)', 'rgba(255,255,255,.05)', 'rgba(255,255,255,.09)'], [28, 14, 28])}</svg></div>
 <img class="logo" src="${logo}"><div class="tag"><i class="fas fa-shirt"></i> LAVERIE & PRESSING</div>
@@ -168,7 +168,7 @@ ${rogne('02i_tableau_laverie', 1440, 270, 140, 1160, 420, 682, 'position:absolut
 <div class="e"><div class="n">03</div><b>Le client retire</b><span>Encaissement acompte déduit, ticket de retrait.</span></div>
 <div class="e"><div class="n">04</div><b>Je pilote</b><span>Tableau de bord, rapport des dépôts, achats de produits d’entretien.</span></div>
 </div>
-<div class="plus"><span><i class="fas fa-check"></i> Grille de prestations : lavage, express, repassage, enfants</span><span><i class="fas fa-check"></i> Linge au kilo</span><span><i class="fas fa-check"></i> Collecte et livraison</span><span><i class="fas fa-check"></i> Clients en compte</span><span><i class="fas fa-check"></i> Alertes produits d’entretien</span><span><i class="fas fa-check"></i> Fonctionne sans internet</span><span><i class="fas fa-check"></i> Rapports Excel / PDF</span></div>
+<div class="plus"><span><i class="fas fa-check"></i> Lavage, express, repassage, enfants</span><span><i class="fas fa-check"></i> Linge au kilo</span><span><i class="fas fa-check"></i> Collecte et livraison</span><span><i class="fas fa-check"></i> Clients créés au comptoir, en compte</span><span><i class="fas fa-check"></i> Alertes produits d’entretien</span><span><i class="fas fa-check"></i> Fonctionne sans internet</span></div>
 ${contact('#2e1f63', '#fff')}`
 };
 
