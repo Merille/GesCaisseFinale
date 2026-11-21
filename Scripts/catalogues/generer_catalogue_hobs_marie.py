@@ -26,8 +26,8 @@ ANCIENNES = ['Chemises et hauts', 'Vestes et blousons', 'Bas', 'Tenues et costum
 
 # Grille tarifaire complète (n° 1 à 84 ; le n° 67, doublon du 66, n'est pas repris) :
 # famille, n°, article, prix Lavage, Express, Repassage, Enfants (XAF ; None = case vide de la grille).
-# Prix repris tels qu'imprimés, y compris les express plus bas que le lavage (n° 25, 44, 47, 52, 75) :
-# à vérifier avec le pressing. Un article avec un seul prix (Teinture, Pull fantaisie) est un produit simple.
+# Prix repris tels qu'imprimés, sauf l'express des n° 25, 44, 47, 52 et 75 (imprimé plus bas que le lavage) :
+# fixé à 2 fois le lavage, à la demande du pressing. Un article avec un seul prix (Teinture, Pull fantaisie) est un produit simple.
 ARTICLES = [
     ('SHORTS', 1, 'Bermuda', 2000, 4000, 1000, 1000),
     ('BLOUSONS', 2, 'Blouson épais', 4000, 8000, 2000, 3000),
@@ -53,7 +53,7 @@ ARTICLES = [
     ('ACCESSOIRES', 22, 'Cravate', 2000, 4000, 1000, 1000),
     ('DRAPS', 23, 'Draps', 2500, 5000, 2000, 1500),
     ('ENSEMBLES', 24, 'Ensemble jupe', 5000, 10000, 3000, 2500),
-    ('ENSEMBLES', 25, 'Ensemble jupe fantaisiste', 7000, 3000, 4000, 3000),
+    ('ENSEMBLES', 25, 'Ensemble jupe fantaisiste', 7000, 14000, 4000, 3000),
     ('ENSEMBLES', 26, 'Ensemble jupe soie', 7000, 14000, 4000, 3000),
     ('ENSEMBLES ROBES', 27, 'Ensemble robe simple', 7000, 14000, 4000, 3000),
     ('ACCESSOIRES', 28, 'Foulard GM', 2000, 4000, 1500, None),
@@ -72,15 +72,15 @@ ARTICLES = [
     ('NAPPES', 41, 'Nappe salon 6', 8500, 17000, 4000, None),
     ('ACCESSOIRES', 42, 'Noeud papillon', 1000, 2000, 500, None),
     ('PANTALONS', 43, 'Pantalon', 2000, 5000, 1500, 2000),
-    ('ACCESSOIRES DE NUIT', 44, 'Peignoir de bain', 4000, 2000, 500, 2000),
+    ('ACCESSOIRES DE NUIT', 44, 'Peignoir de bain', 4000, 8000, 500, 2000),
     ('ENFANTS', 45, 'Peluche GM', 6000, 12000, 2500, 2000),
     ('ENFANTS', 46, 'Peluche PM', 3500, 7000, 2000, None),
-    ('TEE-SHIRTS', 47, 'Polo', 4000, 2000, 1000, 1500),
+    ('TEE-SHIRTS', 47, 'Polo', 4000, 8000, 1000, 1500),
     ('VESTES', 48, 'Pull épais', 3000, 5000, 1500, 1500),
     ('VESTES', 49, 'Pull fantaisie', 3000, None, None, None),
     ('VESTES', 50, 'Pull fin', 2500, 6000, 2000, 1500),
     ('ACCESSOIRES DE NUIT', 51, 'Pyjama', 3500, 7000, 2000, 2500),
-    ('RIDEAUX', 52, 'Rideaux panneaux', 15000, 14000, 4000, None),
+    ('RIDEAUX', 52, 'Rideaux panneaux', 15000, 30000, 4000, None),
     ('RIDEAUX', 53, 'Rideaux simple', 4000, 8000, 2500, None),
     ('ROBES', 54, 'Robe fantaisiste', 8000, 16000, 4000, 4000),
     ('ROBES DE MARIÉE', 55, 'Robe mariée luxueuse', 34000, 68000, 17000, 4000),
@@ -102,7 +102,7 @@ ARTICLES = [
     ('TAILLEURS', 72, 'Tailleur pantalon fantaisiste', 7000, 14000, 3500, 3000),
     ('TAILLEURS', 73, 'Tailleur pantalon soie', 7000, 14000, 3500, 3000),
     ('TEINTURE', 74, 'Teinture', 10000, None, None, None),
-    ('TENUES AFRICAINES', 75, 'Tenue AFB 2 pièces', 5000, 1000, 2500, 2500),
+    ('TENUES AFRICAINES', 75, 'Tenue AFB 2 pièces', 5000, 10000, 2500, 2500),
     ('TENUES AFRICAINES', 76, 'Tenue AFB 3 pièces', 7000, 14000, 4000, 3000),
     ('TENUES AFRICAINES', 77, 'Tenue AFB simple', 2500, 5000, 1500, 2000),
     ('TEE-SHIRTS', 78, 'T-shirt', 2000, 4000, 1500, 1500),
