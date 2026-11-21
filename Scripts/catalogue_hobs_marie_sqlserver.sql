@@ -3,7 +3,7 @@
 -- 20 articles, chacun avec l'attribut « Prestation » et 4 variantes : Lavage, Express, Repassage,
 -- Enfants (prix de la grille, en FCFA). À la caisse, une tuile par article, puis le choix de la
 -- prestation. Prestations sans suivi de stock, unité « Pièce », TVA de la société si elle existe.
--- Catégories : Chemises et hauts, Vestes et blousons, Bas, Tenues et costumes, Linge de maison, Accessoires et sous-vêtements.
+-- Catégories : les 26 familles d'articles du pressing (Accessoires, Jupes, Robes, Chemises, Pantalons, Jeans, Vestes, Tenues africaines, Draps, Costumes, Ensembles robes, Tailleurs, Blousons, Tee-shirts, Rideaux, Accessoires de nuit, Sports, Robes de mariée, Nappes, Serviettes, Ensembles, Enfants, Accessoires médicaux, Teinture, Shorts, Smokings).
 --
 -- 1. Indiquez ci-dessous le CODE de la société (Administration › Sociétés) à la place de LAVERIE, puis exécutez le script
 --    sur la base de l'application (SSMS : ouvrir le fichier, choisir la base, Exécuter).
@@ -25,9 +25,112 @@ ELSE
 BEGIN
 BEGIN TRANSACTION;
 
--- Chemises et hauts
-INSERT INTO Categories (TenantId, Nom, Couleur, Ordre, Preparation) SELECT @t, N'Chemises et hauts', N'#0369a1', 11, N'Aucun' WHERE NOT EXISTS (SELECT 1 FROM Categories WHERE TenantId = @t AND Nom = N'Chemises et hauts');
-SET @c = (SELECT MIN(Id) FROM Categories WHERE TenantId = @t AND Nom = N'Chemises et hauts');
+-- Accessoires
+INSERT INTO Categories (TenantId, Nom, Couleur, Ordre, Preparation) SELECT @t, N'Accessoires', N'#be185d', 1, N'Aucun' WHERE NOT EXISTS (SELECT 1 FROM Categories WHERE TenantId = @t AND Nom = N'Accessoires');
+UPDATE Categories SET Ordre = 1 WHERE TenantId = @t AND Nom = N'Accessoires';
+SET @c = (SELECT MIN(Id) FROM Categories WHERE TenantId = @t AND Nom = N'Accessoires');
+INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, EstModele, Supplement, EstCombo)
+    SELECT @t, 'HM08', N'Caleçon', @c, 10000, @taux, 0, 0, 1, N'Pièce', 1, 0, 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM08');
+UPDATE Produits SET Nom = N'Caleçon', CategorieId = @c, PrixVente = 10000, EstModele = 1 WHERE TenantId = @t AND Code = 'HM08';
+INSERT INTO ProduitAttributs (ProduitId, Nom, Ordre) SELECT Id, N'Prestation', 0 FROM Produits WHERE TenantId = @t AND Code = 'HM08'
+    AND NOT EXISTS (SELECT 1 FROM ProduitAttributs pa WHERE pa.ProduitId = Produits.Id AND pa.Nom = N'Prestation');
+INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM08') AND Nom = N'Prestation'), N'Lavage', 0 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM08') AND Nom = N'Prestation') AND Valeur = N'Lavage');
+INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
+    SELECT @t, 'HM08-01', N'Caleçon Lavage', @c, 10000, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM08'), 0, 0, N'Lavage', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM08-01');
+UPDATE Produits SET Nom = N'Caleçon Lavage', CategorieId = @c, PrixVente = 10000, Supplement = 0, LibelleVariante = N'Lavage' WHERE TenantId = @t AND Code = 'HM08-01';
+INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM08') AND Nom = N'Prestation') AND Valeur = N'Lavage')
+    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM08-01' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
+INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM08') AND Nom = N'Prestation'), N'Express', 1 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM08') AND Nom = N'Prestation') AND Valeur = N'Express');
+INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
+    SELECT @t, 'HM08-02', N'Caleçon Express', @c, 20000, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM08'), 0, 10000, N'Express', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM08-02');
+UPDATE Produits SET Nom = N'Caleçon Express', CategorieId = @c, PrixVente = 20000, Supplement = 10000, LibelleVariante = N'Express' WHERE TenantId = @t AND Code = 'HM08-02';
+INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM08') AND Nom = N'Prestation') AND Valeur = N'Express')
+    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM08-02' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
+INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM08') AND Nom = N'Prestation'), N'Repassage', 2 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM08') AND Nom = N'Prestation') AND Valeur = N'Repassage');
+INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
+    SELECT @t, 'HM08-03', N'Caleçon Repassage', @c, 5000, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM08'), 0, -5000, N'Repassage', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM08-03');
+UPDATE Produits SET Nom = N'Caleçon Repassage', CategorieId = @c, PrixVente = 5000, Supplement = -5000, LibelleVariante = N'Repassage' WHERE TenantId = @t AND Code = 'HM08-03';
+INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM08') AND Nom = N'Prestation') AND Valeur = N'Repassage')
+    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM08-03' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
+INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM08') AND Nom = N'Prestation'), N'Enfants', 3 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM08') AND Nom = N'Prestation') AND Valeur = N'Enfants');
+INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
+    SELECT @t, 'HM08-04', N'Caleçon Enfants', @c, 1000, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM08'), 0, -9000, N'Enfants', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM08-04');
+UPDATE Produits SET Nom = N'Caleçon Enfants', CategorieId = @c, PrixVente = 1000, Supplement = -9000, LibelleVariante = N'Enfants' WHERE TenantId = @t AND Code = 'HM08-04';
+INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM08') AND Nom = N'Prestation') AND Valeur = N'Enfants')
+    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM08-04' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
+INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, EstModele, Supplement, EstCombo)
+    SELECT @t, 'HM09', N'Châles', @c, 3000, @taux, 0, 0, 1, N'Pièce', 1, 0, 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM09');
+UPDATE Produits SET Nom = N'Châles', CategorieId = @c, PrixVente = 3000, EstModele = 1 WHERE TenantId = @t AND Code = 'HM09';
+INSERT INTO ProduitAttributs (ProduitId, Nom, Ordre) SELECT Id, N'Prestation', 0 FROM Produits WHERE TenantId = @t AND Code = 'HM09'
+    AND NOT EXISTS (SELECT 1 FROM ProduitAttributs pa WHERE pa.ProduitId = Produits.Id AND pa.Nom = N'Prestation');
+INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM09') AND Nom = N'Prestation'), N'Lavage', 0 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM09') AND Nom = N'Prestation') AND Valeur = N'Lavage');
+INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
+    SELECT @t, 'HM09-01', N'Châles Lavage', @c, 3000, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM09'), 0, 0, N'Lavage', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM09-01');
+UPDATE Produits SET Nom = N'Châles Lavage', CategorieId = @c, PrixVente = 3000, Supplement = 0, LibelleVariante = N'Lavage' WHERE TenantId = @t AND Code = 'HM09-01';
+INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM09') AND Nom = N'Prestation') AND Valeur = N'Lavage')
+    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM09-01' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
+INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM09') AND Nom = N'Prestation'), N'Express', 1 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM09') AND Nom = N'Prestation') AND Valeur = N'Express');
+INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
+    SELECT @t, 'HM09-02', N'Châles Express', @c, 6000, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM09'), 0, 3000, N'Express', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM09-02');
+UPDATE Produits SET Nom = N'Châles Express', CategorieId = @c, PrixVente = 6000, Supplement = 3000, LibelleVariante = N'Express' WHERE TenantId = @t AND Code = 'HM09-02';
+INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM09') AND Nom = N'Prestation') AND Valeur = N'Express')
+    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM09-02' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
+INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM09') AND Nom = N'Prestation'), N'Repassage', 2 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM09') AND Nom = N'Prestation') AND Valeur = N'Repassage');
+INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
+    SELECT @t, 'HM09-03', N'Châles Repassage', @c, 1500, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM09'), 0, -1500, N'Repassage', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM09-03');
+UPDATE Produits SET Nom = N'Châles Repassage', CategorieId = @c, PrixVente = 1500, Supplement = -1500, LibelleVariante = N'Repassage' WHERE TenantId = @t AND Code = 'HM09-03';
+INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM09') AND Nom = N'Prestation') AND Valeur = N'Repassage')
+    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM09-03' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
+INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM09') AND Nom = N'Prestation'), N'Enfants', 3 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM09') AND Nom = N'Prestation') AND Valeur = N'Enfants');
+INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
+    SELECT @t, 'HM09-04', N'Châles Enfants', @c, 2000, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM09'), 0, -1000, N'Enfants', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM09-04');
+UPDATE Produits SET Nom = N'Châles Enfants', CategorieId = @c, PrixVente = 2000, Supplement = -1000, LibelleVariante = N'Enfants' WHERE TenantId = @t AND Code = 'HM09-04';
+INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM09') AND Nom = N'Prestation') AND Valeur = N'Enfants')
+    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM09-04' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
+INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, EstModele, Supplement, EstCombo)
+    SELECT @t, 'HM10', N'Chaussettes', @c, 1500, @taux, 0, 0, 1, N'Pièce', 1, 0, 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM10');
+UPDATE Produits SET Nom = N'Chaussettes', CategorieId = @c, PrixVente = 1500, EstModele = 1 WHERE TenantId = @t AND Code = 'HM10';
+INSERT INTO ProduitAttributs (ProduitId, Nom, Ordre) SELECT Id, N'Prestation', 0 FROM Produits WHERE TenantId = @t AND Code = 'HM10'
+    AND NOT EXISTS (SELECT 1 FROM ProduitAttributs pa WHERE pa.ProduitId = Produits.Id AND pa.Nom = N'Prestation');
+INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM10') AND Nom = N'Prestation'), N'Lavage', 0 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM10') AND Nom = N'Prestation') AND Valeur = N'Lavage');
+INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
+    SELECT @t, 'HM10-01', N'Chaussettes Lavage', @c, 1500, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM10'), 0, 0, N'Lavage', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM10-01');
+UPDATE Produits SET Nom = N'Chaussettes Lavage', CategorieId = @c, PrixVente = 1500, Supplement = 0, LibelleVariante = N'Lavage' WHERE TenantId = @t AND Code = 'HM10-01';
+INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM10') AND Nom = N'Prestation') AND Valeur = N'Lavage')
+    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM10-01' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
+INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM10') AND Nom = N'Prestation'), N'Express', 1 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM10') AND Nom = N'Prestation') AND Valeur = N'Express');
+INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
+    SELECT @t, 'HM10-02', N'Chaussettes Express', @c, 3000, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM10'), 0, 1500, N'Express', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM10-02');
+UPDATE Produits SET Nom = N'Chaussettes Express', CategorieId = @c, PrixVente = 3000, Supplement = 1500, LibelleVariante = N'Express' WHERE TenantId = @t AND Code = 'HM10-02';
+INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM10') AND Nom = N'Prestation') AND Valeur = N'Express')
+    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM10-02' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
+INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM10') AND Nom = N'Prestation'), N'Repassage', 2 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM10') AND Nom = N'Prestation') AND Valeur = N'Repassage');
+INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
+    SELECT @t, 'HM10-03', N'Chaussettes Repassage', @c, 1500, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM10'), 0, 0, N'Repassage', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM10-03');
+UPDATE Produits SET Nom = N'Chaussettes Repassage', CategorieId = @c, PrixVente = 1500, Supplement = 0, LibelleVariante = N'Repassage' WHERE TenantId = @t AND Code = 'HM10-03';
+INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM10') AND Nom = N'Prestation') AND Valeur = N'Repassage')
+    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM10-03' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
+INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM10') AND Nom = N'Prestation'), N'Enfants', 3 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM10') AND Nom = N'Prestation') AND Valeur = N'Enfants');
+INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
+    SELECT @t, 'HM10-04', N'Chaussettes Enfants', @c, 1000, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM10'), 0, -500, N'Enfants', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM10-04');
+UPDATE Produits SET Nom = N'Chaussettes Enfants', CategorieId = @c, PrixVente = 1000, Supplement = -500, LibelleVariante = N'Enfants' WHERE TenantId = @t AND Code = 'HM10-04';
+INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM10') AND Nom = N'Prestation') AND Valeur = N'Enfants')
+    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM10-04' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
+
+-- Jupes
+INSERT INTO Categories (TenantId, Nom, Couleur, Ordre, Preparation) SELECT @t, N'Jupes', N'#7c3aed', 2, N'Aucun' WHERE NOT EXISTS (SELECT 1 FROM Categories WHERE TenantId = @t AND Nom = N'Jupes');
+UPDATE Categories SET Ordre = 2 WHERE TenantId = @t AND Nom = N'Jupes';
+SET @c = (SELECT MIN(Id) FROM Categories WHERE TenantId = @t AND Nom = N'Jupes');
+
+-- Robes
+INSERT INTO Categories (TenantId, Nom, Couleur, Ordre, Preparation) SELECT @t, N'Robes', N'#c026d3', 3, N'Aucun' WHERE NOT EXISTS (SELECT 1 FROM Categories WHERE TenantId = @t AND Nom = N'Robes');
+UPDATE Categories SET Ordre = 3 WHERE TenantId = @t AND Nom = N'Robes';
+SET @c = (SELECT MIN(Id) FROM Categories WHERE TenantId = @t AND Nom = N'Robes');
+
+-- Chemises
+INSERT INTO Categories (TenantId, Nom, Couleur, Ordre, Preparation) SELECT @t, N'Chemises', N'#0369a1', 4, N'Aucun' WHERE NOT EXISTS (SELECT 1 FROM Categories WHERE TenantId = @t AND Nom = N'Chemises');
+UPDATE Categories SET Ordre = 4 WHERE TenantId = @t AND Nom = N'Chemises';
+SET @c = (SELECT MIN(Id) FROM Categories WHERE TenantId = @t AND Nom = N'Chemises');
 INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, EstModele, Supplement, EstCombo)
     SELECT @t, 'HM06', N'Bustier simple', @c, 2500, @taux, 0, 0, 1, N'Pièce', 1, 0, 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM06');
 UPDATE Produits SET Nom = N'Bustier simple', CategorieId = @c, PrixVente = 2500, EstModele = 1 WHERE TenantId = @t AND Code = 'HM06';
@@ -261,9 +364,166 @@ UPDATE Produits SET Nom = N'Corsage Enfants', CategorieId = @c, PrixVente = 1000
 INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM17') AND Nom = N'Prestation') AND Valeur = N'Enfants')
     FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM17-04' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
 
--- Vestes et blousons
-INSERT INTO Categories (TenantId, Nom, Couleur, Ordre, Preparation) SELECT @t, N'Vestes et blousons', N'#7c3aed', 12, N'Aucun' WHERE NOT EXISTS (SELECT 1 FROM Categories WHERE TenantId = @t AND Nom = N'Vestes et blousons');
-SET @c = (SELECT MIN(Id) FROM Categories WHERE TenantId = @t AND Nom = N'Vestes et blousons');
+-- Pantalons
+INSERT INTO Categories (TenantId, Nom, Couleur, Ordre, Preparation) SELECT @t, N'Pantalons', N'#0f766e', 5, N'Aucun' WHERE NOT EXISTS (SELECT 1 FROM Categories WHERE TenantId = @t AND Nom = N'Pantalons');
+UPDATE Categories SET Ordre = 5 WHERE TenantId = @t AND Nom = N'Pantalons';
+SET @c = (SELECT MIN(Id) FROM Categories WHERE TenantId = @t AND Nom = N'Pantalons');
+
+-- Jeans
+INSERT INTO Categories (TenantId, Nom, Couleur, Ordre, Preparation) SELECT @t, N'Jeans', N'#1d4ed8', 6, N'Aucun' WHERE NOT EXISTS (SELECT 1 FROM Categories WHERE TenantId = @t AND Nom = N'Jeans');
+UPDATE Categories SET Ordre = 6 WHERE TenantId = @t AND Nom = N'Jeans';
+SET @c = (SELECT MIN(Id) FROM Categories WHERE TenantId = @t AND Nom = N'Jeans');
+
+-- Vestes
+INSERT INTO Categories (TenantId, Nom, Couleur, Ordre, Preparation) SELECT @t, N'Vestes', N'#4338ca', 7, N'Aucun' WHERE NOT EXISTS (SELECT 1 FROM Categories WHERE TenantId = @t AND Nom = N'Vestes');
+UPDATE Categories SET Ordre = 7 WHERE TenantId = @t AND Nom = N'Vestes';
+SET @c = (SELECT MIN(Id) FROM Categories WHERE TenantId = @t AND Nom = N'Vestes');
+
+-- Tenues africaines
+INSERT INTO Categories (TenantId, Nom, Couleur, Ordre, Preparation) SELECT @t, N'Tenues africaines', N'#b45309', 8, N'Aucun' WHERE NOT EXISTS (SELECT 1 FROM Categories WHERE TenantId = @t AND Nom = N'Tenues africaines');
+UPDATE Categories SET Ordre = 8 WHERE TenantId = @t AND Nom = N'Tenues africaines';
+SET @c = (SELECT MIN(Id) FROM Categories WHERE TenantId = @t AND Nom = N'Tenues africaines');
+INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, EstModele, Supplement, EstCombo)
+    SELECT @t, 'HM05', N'Boubou', @c, 3500, @taux, 0, 0, 1, N'Pièce', 1, 0, 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM05');
+UPDATE Produits SET Nom = N'Boubou', CategorieId = @c, PrixVente = 3500, EstModele = 1 WHERE TenantId = @t AND Code = 'HM05';
+INSERT INTO ProduitAttributs (ProduitId, Nom, Ordre) SELECT Id, N'Prestation', 0 FROM Produits WHERE TenantId = @t AND Code = 'HM05'
+    AND NOT EXISTS (SELECT 1 FROM ProduitAttributs pa WHERE pa.ProduitId = Produits.Id AND pa.Nom = N'Prestation');
+INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM05') AND Nom = N'Prestation'), N'Lavage', 0 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM05') AND Nom = N'Prestation') AND Valeur = N'Lavage');
+INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
+    SELECT @t, 'HM05-01', N'Boubou Lavage', @c, 3500, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM05'), 0, 0, N'Lavage', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM05-01');
+UPDATE Produits SET Nom = N'Boubou Lavage', CategorieId = @c, PrixVente = 3500, Supplement = 0, LibelleVariante = N'Lavage' WHERE TenantId = @t AND Code = 'HM05-01';
+INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM05') AND Nom = N'Prestation') AND Valeur = N'Lavage')
+    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM05-01' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
+INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM05') AND Nom = N'Prestation'), N'Express', 1 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM05') AND Nom = N'Prestation') AND Valeur = N'Express');
+INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
+    SELECT @t, 'HM05-02', N'Boubou Express', @c, 7000, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM05'), 0, 3500, N'Express', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM05-02');
+UPDATE Produits SET Nom = N'Boubou Express', CategorieId = @c, PrixVente = 7000, Supplement = 3500, LibelleVariante = N'Express' WHERE TenantId = @t AND Code = 'HM05-02';
+INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM05') AND Nom = N'Prestation') AND Valeur = N'Express')
+    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM05-02' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
+INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM05') AND Nom = N'Prestation'), N'Repassage', 2 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM05') AND Nom = N'Prestation') AND Valeur = N'Repassage');
+INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
+    SELECT @t, 'HM05-03', N'Boubou Repassage', @c, 2000, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM05'), 0, -1500, N'Repassage', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM05-03');
+UPDATE Produits SET Nom = N'Boubou Repassage', CategorieId = @c, PrixVente = 2000, Supplement = -1500, LibelleVariante = N'Repassage' WHERE TenantId = @t AND Code = 'HM05-03';
+INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM05') AND Nom = N'Prestation') AND Valeur = N'Repassage')
+    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM05-03' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
+INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM05') AND Nom = N'Prestation'), N'Enfants', 3 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM05') AND Nom = N'Prestation') AND Valeur = N'Enfants');
+INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
+    SELECT @t, 'HM05-04', N'Boubou Enfants', @c, 2000, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM05'), 0, -1500, N'Enfants', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM05-04');
+UPDATE Produits SET Nom = N'Boubou Enfants', CategorieId = @c, PrixVente = 2000, Supplement = -1500, LibelleVariante = N'Enfants' WHERE TenantId = @t AND Code = 'HM05-04';
+INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM05') AND Nom = N'Prestation') AND Valeur = N'Enfants')
+    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM05-04' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
+
+-- Draps
+INSERT INTO Categories (TenantId, Nom, Couleur, Ordre, Preparation) SELECT @t, N'Draps', N'#2563eb', 9, N'Aucun' WHERE NOT EXISTS (SELECT 1 FROM Categories WHERE TenantId = @t AND Nom = N'Draps');
+UPDATE Categories SET Ordre = 9 WHERE TenantId = @t AND Nom = N'Draps';
+SET @c = (SELECT MIN(Id) FROM Categories WHERE TenantId = @t AND Nom = N'Draps');
+INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, EstModele, Supplement, EstCombo)
+    SELECT @t, 'HM20', N'Couette', @c, 14000, @taux, 0, 0, 1, N'Pièce', 1, 0, 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM20');
+UPDATE Produits SET Nom = N'Couette', CategorieId = @c, PrixVente = 14000, EstModele = 1 WHERE TenantId = @t AND Code = 'HM20';
+INSERT INTO ProduitAttributs (ProduitId, Nom, Ordre) SELECT Id, N'Prestation', 0 FROM Produits WHERE TenantId = @t AND Code = 'HM20'
+    AND NOT EXISTS (SELECT 1 FROM ProduitAttributs pa WHERE pa.ProduitId = Produits.Id AND pa.Nom = N'Prestation');
+INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM20') AND Nom = N'Prestation'), N'Lavage', 0 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM20') AND Nom = N'Prestation') AND Valeur = N'Lavage');
+INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
+    SELECT @t, 'HM20-01', N'Couette Lavage', @c, 14000, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM20'), 0, 0, N'Lavage', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM20-01');
+UPDATE Produits SET Nom = N'Couette Lavage', CategorieId = @c, PrixVente = 14000, Supplement = 0, LibelleVariante = N'Lavage' WHERE TenantId = @t AND Code = 'HM20-01';
+INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM20') AND Nom = N'Prestation') AND Valeur = N'Lavage')
+    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM20-01' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
+INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM20') AND Nom = N'Prestation'), N'Express', 1 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM20') AND Nom = N'Prestation') AND Valeur = N'Express');
+INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
+    SELECT @t, 'HM20-02', N'Couette Express', @c, 28000, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM20'), 0, 14000, N'Express', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM20-02');
+UPDATE Produits SET Nom = N'Couette Express', CategorieId = @c, PrixVente = 28000, Supplement = 14000, LibelleVariante = N'Express' WHERE TenantId = @t AND Code = 'HM20-02';
+INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM20') AND Nom = N'Prestation') AND Valeur = N'Express')
+    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM20-02' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
+INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM20') AND Nom = N'Prestation'), N'Repassage', 2 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM20') AND Nom = N'Prestation') AND Valeur = N'Repassage');
+INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
+    SELECT @t, 'HM20-03', N'Couette Repassage', @c, 5000, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM20'), 0, -9000, N'Repassage', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM20-03');
+UPDATE Produits SET Nom = N'Couette Repassage', CategorieId = @c, PrixVente = 5000, Supplement = -9000, LibelleVariante = N'Repassage' WHERE TenantId = @t AND Code = 'HM20-03';
+INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM20') AND Nom = N'Prestation') AND Valeur = N'Repassage')
+    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM20-03' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
+INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM20') AND Nom = N'Prestation'), N'Enfants', 3 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM20') AND Nom = N'Prestation') AND Valeur = N'Enfants');
+INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
+    SELECT @t, 'HM20-04', N'Couette Enfants', @c, 5000, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM20'), 0, -9000, N'Enfants', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM20-04');
+UPDATE Produits SET Nom = N'Couette Enfants', CategorieId = @c, PrixVente = 5000, Supplement = -9000, LibelleVariante = N'Enfants' WHERE TenantId = @t AND Code = 'HM20-04';
+INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM20') AND Nom = N'Prestation') AND Valeur = N'Enfants')
+    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM20-04' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
+
+-- Costumes
+INSERT INTO Categories (TenantId, Nom, Couleur, Ordre, Preparation) SELECT @t, N'Costumes', N'#334155', 10, N'Aucun' WHERE NOT EXISTS (SELECT 1 FROM Categories WHERE TenantId = @t AND Nom = N'Costumes');
+UPDATE Categories SET Ordre = 10 WHERE TenantId = @t AND Nom = N'Costumes';
+SET @c = (SELECT MIN(Id) FROM Categories WHERE TenantId = @t AND Nom = N'Costumes');
+INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, EstModele, Supplement, EstCombo)
+    SELECT @t, 'HM18', N'Costume manche courte', @c, 5000, @taux, 0, 0, 1, N'Pièce', 1, 0, 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM18');
+UPDATE Produits SET Nom = N'Costume manche courte', CategorieId = @c, PrixVente = 5000, EstModele = 1 WHERE TenantId = @t AND Code = 'HM18';
+INSERT INTO ProduitAttributs (ProduitId, Nom, Ordre) SELECT Id, N'Prestation', 0 FROM Produits WHERE TenantId = @t AND Code = 'HM18'
+    AND NOT EXISTS (SELECT 1 FROM ProduitAttributs pa WHERE pa.ProduitId = Produits.Id AND pa.Nom = N'Prestation');
+INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM18') AND Nom = N'Prestation'), N'Lavage', 0 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM18') AND Nom = N'Prestation') AND Valeur = N'Lavage');
+INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
+    SELECT @t, 'HM18-01', N'Costume manche courte Lavage', @c, 5000, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM18'), 0, 0, N'Lavage', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM18-01');
+UPDATE Produits SET Nom = N'Costume manche courte Lavage', CategorieId = @c, PrixVente = 5000, Supplement = 0, LibelleVariante = N'Lavage' WHERE TenantId = @t AND Code = 'HM18-01';
+INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM18') AND Nom = N'Prestation') AND Valeur = N'Lavage')
+    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM18-01' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
+INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM18') AND Nom = N'Prestation'), N'Express', 1 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM18') AND Nom = N'Prestation') AND Valeur = N'Express');
+INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
+    SELECT @t, 'HM18-02', N'Costume manche courte Express', @c, 10000, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM18'), 0, 5000, N'Express', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM18-02');
+UPDATE Produits SET Nom = N'Costume manche courte Express', CategorieId = @c, PrixVente = 10000, Supplement = 5000, LibelleVariante = N'Express' WHERE TenantId = @t AND Code = 'HM18-02';
+INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM18') AND Nom = N'Prestation') AND Valeur = N'Express')
+    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM18-02' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
+INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM18') AND Nom = N'Prestation'), N'Repassage', 2 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM18') AND Nom = N'Prestation') AND Valeur = N'Repassage');
+INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
+    SELECT @t, 'HM18-03', N'Costume manche courte Repassage', @c, 2000, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM18'), 0, -3000, N'Repassage', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM18-03');
+UPDATE Produits SET Nom = N'Costume manche courte Repassage', CategorieId = @c, PrixVente = 2000, Supplement = -3000, LibelleVariante = N'Repassage' WHERE TenantId = @t AND Code = 'HM18-03';
+INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM18') AND Nom = N'Prestation') AND Valeur = N'Repassage')
+    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM18-03' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
+INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM18') AND Nom = N'Prestation'), N'Enfants', 3 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM18') AND Nom = N'Prestation') AND Valeur = N'Enfants');
+INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
+    SELECT @t, 'HM18-04', N'Costume manche courte Enfants', @c, 2500, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM18'), 0, -2500, N'Enfants', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM18-04');
+UPDATE Produits SET Nom = N'Costume manche courte Enfants', CategorieId = @c, PrixVente = 2500, Supplement = -2500, LibelleVariante = N'Enfants' WHERE TenantId = @t AND Code = 'HM18-04';
+INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM18') AND Nom = N'Prestation') AND Valeur = N'Enfants')
+    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM18-04' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
+INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, EstModele, Supplement, EstCombo)
+    SELECT @t, 'HM19', N'Costume simple', @c, 5500, @taux, 0, 0, 1, N'Pièce', 1, 0, 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM19');
+UPDATE Produits SET Nom = N'Costume simple', CategorieId = @c, PrixVente = 5500, EstModele = 1 WHERE TenantId = @t AND Code = 'HM19';
+INSERT INTO ProduitAttributs (ProduitId, Nom, Ordre) SELECT Id, N'Prestation', 0 FROM Produits WHERE TenantId = @t AND Code = 'HM19'
+    AND NOT EXISTS (SELECT 1 FROM ProduitAttributs pa WHERE pa.ProduitId = Produits.Id AND pa.Nom = N'Prestation');
+INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM19') AND Nom = N'Prestation'), N'Lavage', 0 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM19') AND Nom = N'Prestation') AND Valeur = N'Lavage');
+INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
+    SELECT @t, 'HM19-01', N'Costume simple Lavage', @c, 5500, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM19'), 0, 0, N'Lavage', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM19-01');
+UPDATE Produits SET Nom = N'Costume simple Lavage', CategorieId = @c, PrixVente = 5500, Supplement = 0, LibelleVariante = N'Lavage' WHERE TenantId = @t AND Code = 'HM19-01';
+INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM19') AND Nom = N'Prestation') AND Valeur = N'Lavage')
+    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM19-01' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
+INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM19') AND Nom = N'Prestation'), N'Express', 1 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM19') AND Nom = N'Prestation') AND Valeur = N'Express');
+INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
+    SELECT @t, 'HM19-02', N'Costume simple Express', @c, 11000, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM19'), 0, 5500, N'Express', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM19-02');
+UPDATE Produits SET Nom = N'Costume simple Express', CategorieId = @c, PrixVente = 11000, Supplement = 5500, LibelleVariante = N'Express' WHERE TenantId = @t AND Code = 'HM19-02';
+INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM19') AND Nom = N'Prestation') AND Valeur = N'Express')
+    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM19-02' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
+INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM19') AND Nom = N'Prestation'), N'Repassage', 2 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM19') AND Nom = N'Prestation') AND Valeur = N'Repassage');
+INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
+    SELECT @t, 'HM19-03', N'Costume simple Repassage', @c, 3000, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM19'), 0, -2500, N'Repassage', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM19-03');
+UPDATE Produits SET Nom = N'Costume simple Repassage', CategorieId = @c, PrixVente = 3000, Supplement = -2500, LibelleVariante = N'Repassage' WHERE TenantId = @t AND Code = 'HM19-03';
+INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM19') AND Nom = N'Prestation') AND Valeur = N'Repassage')
+    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM19-03' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
+INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM19') AND Nom = N'Prestation'), N'Enfants', 3 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM19') AND Nom = N'Prestation') AND Valeur = N'Enfants');
+INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
+    SELECT @t, 'HM19-04', N'Costume simple Enfants', @c, 2500, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM19'), 0, -3000, N'Enfants', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM19-04');
+UPDATE Produits SET Nom = N'Costume simple Enfants', CategorieId = @c, PrixVente = 2500, Supplement = -3000, LibelleVariante = N'Enfants' WHERE TenantId = @t AND Code = 'HM19-04';
+INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM19') AND Nom = N'Prestation') AND Valeur = N'Enfants')
+    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM19-04' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
+
+-- Ensembles robes
+INSERT INTO Categories (TenantId, Nom, Couleur, Ordre, Preparation) SELECT @t, N'Ensembles robes', N'#db2777', 11, N'Aucun' WHERE NOT EXISTS (SELECT 1 FROM Categories WHERE TenantId = @t AND Nom = N'Ensembles robes');
+UPDATE Categories SET Ordre = 11 WHERE TenantId = @t AND Nom = N'Ensembles robes';
+SET @c = (SELECT MIN(Id) FROM Categories WHERE TenantId = @t AND Nom = N'Ensembles robes');
+
+-- Tailleurs
+INSERT INTO Categories (TenantId, Nom, Couleur, Ordre, Preparation) SELECT @t, N'Tailleurs', N'#9333ea', 12, N'Aucun' WHERE NOT EXISTS (SELECT 1 FROM Categories WHERE TenantId = @t AND Nom = N'Tailleurs');
+UPDATE Categories SET Ordre = 12 WHERE TenantId = @t AND Nom = N'Tailleurs';
+SET @c = (SELECT MIN(Id) FROM Categories WHERE TenantId = @t AND Nom = N'Tailleurs');
+
+-- Blousons
+INSERT INTO Categories (TenantId, Nom, Couleur, Ordre, Preparation) SELECT @t, N'Blousons', N'#6d28d9', 13, N'Aucun' WHERE NOT EXISTS (SELECT 1 FROM Categories WHERE TenantId = @t AND Nom = N'Blousons');
+UPDATE Categories SET Ordre = 13 WHERE TenantId = @t AND Nom = N'Blousons';
+SET @c = (SELECT MIN(Id) FROM Categories WHERE TenantId = @t AND Nom = N'Blousons');
 INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, EstModele, Supplement, EstCombo)
     SELECT @t, 'HM02', N'Blouson épais', @c, 4000, @taux, 0, 0, 1, N'Pièce', 1, 0, 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM02');
 UPDATE Produits SET Nom = N'Blouson épais', CategorieId = @c, PrixVente = 4000, EstModele = 1 WHERE TenantId = @t AND Code = 'HM02';
@@ -352,9 +612,94 @@ UPDATE Produits SET Nom = N'Blouson simple Enfants', CategorieId = @c, PrixVente
 INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM04') AND Nom = N'Prestation') AND Valeur = N'Enfants')
     FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM04-04' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
 
--- Bas
-INSERT INTO Categories (TenantId, Nom, Couleur, Ordre, Preparation) SELECT @t, N'Bas', N'#0f766e', 13, N'Aucun' WHERE NOT EXISTS (SELECT 1 FROM Categories WHERE TenantId = @t AND Nom = N'Bas');
-SET @c = (SELECT MIN(Id) FROM Categories WHERE TenantId = @t AND Nom = N'Bas');
+-- Tee-shirts
+INSERT INTO Categories (TenantId, Nom, Couleur, Ordre, Preparation) SELECT @t, N'Tee-shirts', N'#0891b2', 14, N'Aucun' WHERE NOT EXISTS (SELECT 1 FROM Categories WHERE TenantId = @t AND Nom = N'Tee-shirts');
+UPDATE Categories SET Ordre = 14 WHERE TenantId = @t AND Nom = N'Tee-shirts';
+SET @c = (SELECT MIN(Id) FROM Categories WHERE TenantId = @t AND Nom = N'Tee-shirts');
+
+-- Rideaux
+INSERT INTO Categories (TenantId, Nom, Couleur, Ordre, Preparation) SELECT @t, N'Rideaux', N'#15803d', 15, N'Aucun' WHERE NOT EXISTS (SELECT 1 FROM Categories WHERE TenantId = @t AND Nom = N'Rideaux');
+UPDATE Categories SET Ordre = 15 WHERE TenantId = @t AND Nom = N'Rideaux';
+SET @c = (SELECT MIN(Id) FROM Categories WHERE TenantId = @t AND Nom = N'Rideaux');
+
+-- Accessoires de nuit
+INSERT INTO Categories (TenantId, Nom, Couleur, Ordre, Preparation) SELECT @t, N'Accessoires de nuit', N'#831843', 16, N'Aucun' WHERE NOT EXISTS (SELECT 1 FROM Categories WHERE TenantId = @t AND Nom = N'Accessoires de nuit');
+UPDATE Categories SET Ordre = 16 WHERE TenantId = @t AND Nom = N'Accessoires de nuit';
+SET @c = (SELECT MIN(Id) FROM Categories WHERE TenantId = @t AND Nom = N'Accessoires de nuit');
+
+-- Sports
+INSERT INTO Categories (TenantId, Nom, Couleur, Ordre, Preparation) SELECT @t, N'Sports', N'#16a34a', 17, N'Aucun' WHERE NOT EXISTS (SELECT 1 FROM Categories WHERE TenantId = @t AND Nom = N'Sports');
+UPDATE Categories SET Ordre = 17 WHERE TenantId = @t AND Nom = N'Sports';
+SET @c = (SELECT MIN(Id) FROM Categories WHERE TenantId = @t AND Nom = N'Sports');
+
+-- Robes de mariée
+INSERT INTO Categories (TenantId, Nom, Couleur, Ordre, Preparation) SELECT @t, N'Robes de mariée', N'#a21caf', 18, N'Aucun' WHERE NOT EXISTS (SELECT 1 FROM Categories WHERE TenantId = @t AND Nom = N'Robes de mariée');
+UPDATE Categories SET Ordre = 18 WHERE TenantId = @t AND Nom = N'Robes de mariée';
+SET @c = (SELECT MIN(Id) FROM Categories WHERE TenantId = @t AND Nom = N'Robes de mariée');
+
+-- Nappes
+INSERT INTO Categories (TenantId, Nom, Couleur, Ordre, Preparation) SELECT @t, N'Nappes', N'#0e7490', 19, N'Aucun' WHERE NOT EXISTS (SELECT 1 FROM Categories WHERE TenantId = @t AND Nom = N'Nappes');
+UPDATE Categories SET Ordre = 19 WHERE TenantId = @t AND Nom = N'Nappes';
+SET @c = (SELECT MIN(Id) FROM Categories WHERE TenantId = @t AND Nom = N'Nappes');
+
+-- Serviettes
+INSERT INTO Categories (TenantId, Nom, Couleur, Ordre, Preparation) SELECT @t, N'Serviettes', N'#0284c7', 20, N'Aucun' WHERE NOT EXISTS (SELECT 1 FROM Categories WHERE TenantId = @t AND Nom = N'Serviettes');
+UPDATE Categories SET Ordre = 20 WHERE TenantId = @t AND Nom = N'Serviettes';
+SET @c = (SELECT MIN(Id) FROM Categories WHERE TenantId = @t AND Nom = N'Serviettes');
+
+-- Ensembles
+INSERT INTO Categories (TenantId, Nom, Couleur, Ordre, Preparation) SELECT @t, N'Ensembles', N'#c2410c', 21, N'Aucun' WHERE NOT EXISTS (SELECT 1 FROM Categories WHERE TenantId = @t AND Nom = N'Ensembles');
+UPDATE Categories SET Ordre = 21 WHERE TenantId = @t AND Nom = N'Ensembles';
+SET @c = (SELECT MIN(Id) FROM Categories WHERE TenantId = @t AND Nom = N'Ensembles');
+INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, EstModele, Supplement, EstCombo)
+    SELECT @t, 'HM16', N'Combinaison', @c, 4000, @taux, 0, 0, 1, N'Pièce', 1, 0, 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM16');
+UPDATE Produits SET Nom = N'Combinaison', CategorieId = @c, PrixVente = 4000, EstModele = 1 WHERE TenantId = @t AND Code = 'HM16';
+INSERT INTO ProduitAttributs (ProduitId, Nom, Ordre) SELECT Id, N'Prestation', 0 FROM Produits WHERE TenantId = @t AND Code = 'HM16'
+    AND NOT EXISTS (SELECT 1 FROM ProduitAttributs pa WHERE pa.ProduitId = Produits.Id AND pa.Nom = N'Prestation');
+INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM16') AND Nom = N'Prestation'), N'Lavage', 0 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM16') AND Nom = N'Prestation') AND Valeur = N'Lavage');
+INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
+    SELECT @t, 'HM16-01', N'Combinaison Lavage', @c, 4000, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM16'), 0, 0, N'Lavage', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM16-01');
+UPDATE Produits SET Nom = N'Combinaison Lavage', CategorieId = @c, PrixVente = 4000, Supplement = 0, LibelleVariante = N'Lavage' WHERE TenantId = @t AND Code = 'HM16-01';
+INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM16') AND Nom = N'Prestation') AND Valeur = N'Lavage')
+    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM16-01' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
+INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM16') AND Nom = N'Prestation'), N'Express', 1 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM16') AND Nom = N'Prestation') AND Valeur = N'Express');
+INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
+    SELECT @t, 'HM16-02', N'Combinaison Express', @c, 8000, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM16'), 0, 4000, N'Express', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM16-02');
+UPDATE Produits SET Nom = N'Combinaison Express', CategorieId = @c, PrixVente = 8000, Supplement = 4000, LibelleVariante = N'Express' WHERE TenantId = @t AND Code = 'HM16-02';
+INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM16') AND Nom = N'Prestation') AND Valeur = N'Express')
+    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM16-02' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
+INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM16') AND Nom = N'Prestation'), N'Repassage', 2 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM16') AND Nom = N'Prestation') AND Valeur = N'Repassage');
+INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
+    SELECT @t, 'HM16-03', N'Combinaison Repassage', @c, 2500, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM16'), 0, -1500, N'Repassage', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM16-03');
+UPDATE Produits SET Nom = N'Combinaison Repassage', CategorieId = @c, PrixVente = 2500, Supplement = -1500, LibelleVariante = N'Repassage' WHERE TenantId = @t AND Code = 'HM16-03';
+INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM16') AND Nom = N'Prestation') AND Valeur = N'Repassage')
+    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM16-03' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
+INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM16') AND Nom = N'Prestation'), N'Enfants', 3 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM16') AND Nom = N'Prestation') AND Valeur = N'Enfants');
+INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
+    SELECT @t, 'HM16-04', N'Combinaison Enfants', @c, 2000, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM16'), 0, -2000, N'Enfants', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM16-04');
+UPDATE Produits SET Nom = N'Combinaison Enfants', CategorieId = @c, PrixVente = 2000, Supplement = -2000, LibelleVariante = N'Enfants' WHERE TenantId = @t AND Code = 'HM16-04';
+INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM16') AND Nom = N'Prestation') AND Valeur = N'Enfants')
+    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM16-04' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
+
+-- Enfants
+INSERT INTO Categories (TenantId, Nom, Couleur, Ordre, Preparation) SELECT @t, N'Enfants', N'#ea580c', 22, N'Aucun' WHERE NOT EXISTS (SELECT 1 FROM Categories WHERE TenantId = @t AND Nom = N'Enfants');
+UPDATE Categories SET Ordre = 22 WHERE TenantId = @t AND Nom = N'Enfants';
+SET @c = (SELECT MIN(Id) FROM Categories WHERE TenantId = @t AND Nom = N'Enfants');
+
+-- Accessoires médicaux
+INSERT INTO Categories (TenantId, Nom, Couleur, Ordre, Preparation) SELECT @t, N'Accessoires médicaux', N'#dc2626', 23, N'Aucun' WHERE NOT EXISTS (SELECT 1 FROM Categories WHERE TenantId = @t AND Nom = N'Accessoires médicaux');
+UPDATE Categories SET Ordre = 23 WHERE TenantId = @t AND Nom = N'Accessoires médicaux';
+SET @c = (SELECT MIN(Id) FROM Categories WHERE TenantId = @t AND Nom = N'Accessoires médicaux');
+
+-- Teinture
+INSERT INTO Categories (TenantId, Nom, Couleur, Ordre, Preparation) SELECT @t, N'Teinture', N'#a16207', 24, N'Aucun' WHERE NOT EXISTS (SELECT 1 FROM Categories WHERE TenantId = @t AND Nom = N'Teinture');
+UPDATE Categories SET Ordre = 24 WHERE TenantId = @t AND Nom = N'Teinture';
+SET @c = (SELECT MIN(Id) FROM Categories WHERE TenantId = @t AND Nom = N'Teinture');
+
+-- Shorts
+INSERT INTO Categories (TenantId, Nom, Couleur, Ordre, Preparation) SELECT @t, N'Shorts', N'#047857', 25, N'Aucun' WHERE NOT EXISTS (SELECT 1 FROM Categories WHERE TenantId = @t AND Nom = N'Shorts');
+UPDATE Categories SET Ordre = 25 WHERE TenantId = @t AND Nom = N'Shorts';
+SET @c = (SELECT MIN(Id) FROM Categories WHERE TenantId = @t AND Nom = N'Shorts');
 INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, EstModele, Supplement, EstCombo)
     SELECT @t, 'HM01', N'Bermuda', @c, 2000, @taux, 0, 0, 1, N'Pièce', 1, 0, 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM01');
 UPDATE Produits SET Nom = N'Bermuda', CategorieId = @c, PrixVente = 2000, EstModele = 1 WHERE TenantId = @t AND Code = 'HM01';
@@ -385,253 +730,17 @@ UPDATE Produits SET Nom = N'Bermuda Enfants', CategorieId = @c, PrixVente = 1000
 INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM01') AND Nom = N'Prestation') AND Valeur = N'Enfants')
     FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM01-04' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
 
--- Tenues et costumes
-INSERT INTO Categories (TenantId, Nom, Couleur, Ordre, Preparation) SELECT @t, N'Tenues et costumes', N'#b45309', 14, N'Aucun' WHERE NOT EXISTS (SELECT 1 FROM Categories WHERE TenantId = @t AND Nom = N'Tenues et costumes');
-SET @c = (SELECT MIN(Id) FROM Categories WHERE TenantId = @t AND Nom = N'Tenues et costumes');
-INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, EstModele, Supplement, EstCombo)
-    SELECT @t, 'HM05', N'Boubou', @c, 3500, @taux, 0, 0, 1, N'Pièce', 1, 0, 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM05');
-UPDATE Produits SET Nom = N'Boubou', CategorieId = @c, PrixVente = 3500, EstModele = 1 WHERE TenantId = @t AND Code = 'HM05';
-INSERT INTO ProduitAttributs (ProduitId, Nom, Ordre) SELECT Id, N'Prestation', 0 FROM Produits WHERE TenantId = @t AND Code = 'HM05'
-    AND NOT EXISTS (SELECT 1 FROM ProduitAttributs pa WHERE pa.ProduitId = Produits.Id AND pa.Nom = N'Prestation');
-INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM05') AND Nom = N'Prestation'), N'Lavage', 0 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM05') AND Nom = N'Prestation') AND Valeur = N'Lavage');
-INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
-    SELECT @t, 'HM05-01', N'Boubou Lavage', @c, 3500, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM05'), 0, 0, N'Lavage', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM05-01');
-UPDATE Produits SET Nom = N'Boubou Lavage', CategorieId = @c, PrixVente = 3500, Supplement = 0, LibelleVariante = N'Lavage' WHERE TenantId = @t AND Code = 'HM05-01';
-INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM05') AND Nom = N'Prestation') AND Valeur = N'Lavage')
-    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM05-01' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
-INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM05') AND Nom = N'Prestation'), N'Express', 1 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM05') AND Nom = N'Prestation') AND Valeur = N'Express');
-INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
-    SELECT @t, 'HM05-02', N'Boubou Express', @c, 7000, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM05'), 0, 3500, N'Express', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM05-02');
-UPDATE Produits SET Nom = N'Boubou Express', CategorieId = @c, PrixVente = 7000, Supplement = 3500, LibelleVariante = N'Express' WHERE TenantId = @t AND Code = 'HM05-02';
-INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM05') AND Nom = N'Prestation') AND Valeur = N'Express')
-    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM05-02' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
-INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM05') AND Nom = N'Prestation'), N'Repassage', 2 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM05') AND Nom = N'Prestation') AND Valeur = N'Repassage');
-INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
-    SELECT @t, 'HM05-03', N'Boubou Repassage', @c, 2000, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM05'), 0, -1500, N'Repassage', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM05-03');
-UPDATE Produits SET Nom = N'Boubou Repassage', CategorieId = @c, PrixVente = 2000, Supplement = -1500, LibelleVariante = N'Repassage' WHERE TenantId = @t AND Code = 'HM05-03';
-INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM05') AND Nom = N'Prestation') AND Valeur = N'Repassage')
-    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM05-03' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
-INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM05') AND Nom = N'Prestation'), N'Enfants', 3 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM05') AND Nom = N'Prestation') AND Valeur = N'Enfants');
-INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
-    SELECT @t, 'HM05-04', N'Boubou Enfants', @c, 2000, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM05'), 0, -1500, N'Enfants', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM05-04');
-UPDATE Produits SET Nom = N'Boubou Enfants', CategorieId = @c, PrixVente = 2000, Supplement = -1500, LibelleVariante = N'Enfants' WHERE TenantId = @t AND Code = 'HM05-04';
-INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM05') AND Nom = N'Prestation') AND Valeur = N'Enfants')
-    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM05-04' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
-INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, EstModele, Supplement, EstCombo)
-    SELECT @t, 'HM16', N'Combinaison', @c, 4000, @taux, 0, 0, 1, N'Pièce', 1, 0, 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM16');
-UPDATE Produits SET Nom = N'Combinaison', CategorieId = @c, PrixVente = 4000, EstModele = 1 WHERE TenantId = @t AND Code = 'HM16';
-INSERT INTO ProduitAttributs (ProduitId, Nom, Ordre) SELECT Id, N'Prestation', 0 FROM Produits WHERE TenantId = @t AND Code = 'HM16'
-    AND NOT EXISTS (SELECT 1 FROM ProduitAttributs pa WHERE pa.ProduitId = Produits.Id AND pa.Nom = N'Prestation');
-INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM16') AND Nom = N'Prestation'), N'Lavage', 0 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM16') AND Nom = N'Prestation') AND Valeur = N'Lavage');
-INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
-    SELECT @t, 'HM16-01', N'Combinaison Lavage', @c, 4000, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM16'), 0, 0, N'Lavage', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM16-01');
-UPDATE Produits SET Nom = N'Combinaison Lavage', CategorieId = @c, PrixVente = 4000, Supplement = 0, LibelleVariante = N'Lavage' WHERE TenantId = @t AND Code = 'HM16-01';
-INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM16') AND Nom = N'Prestation') AND Valeur = N'Lavage')
-    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM16-01' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
-INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM16') AND Nom = N'Prestation'), N'Express', 1 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM16') AND Nom = N'Prestation') AND Valeur = N'Express');
-INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
-    SELECT @t, 'HM16-02', N'Combinaison Express', @c, 8000, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM16'), 0, 4000, N'Express', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM16-02');
-UPDATE Produits SET Nom = N'Combinaison Express', CategorieId = @c, PrixVente = 8000, Supplement = 4000, LibelleVariante = N'Express' WHERE TenantId = @t AND Code = 'HM16-02';
-INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM16') AND Nom = N'Prestation') AND Valeur = N'Express')
-    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM16-02' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
-INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM16') AND Nom = N'Prestation'), N'Repassage', 2 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM16') AND Nom = N'Prestation') AND Valeur = N'Repassage');
-INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
-    SELECT @t, 'HM16-03', N'Combinaison Repassage', @c, 2500, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM16'), 0, -1500, N'Repassage', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM16-03');
-UPDATE Produits SET Nom = N'Combinaison Repassage', CategorieId = @c, PrixVente = 2500, Supplement = -1500, LibelleVariante = N'Repassage' WHERE TenantId = @t AND Code = 'HM16-03';
-INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM16') AND Nom = N'Prestation') AND Valeur = N'Repassage')
-    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM16-03' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
-INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM16') AND Nom = N'Prestation'), N'Enfants', 3 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM16') AND Nom = N'Prestation') AND Valeur = N'Enfants');
-INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
-    SELECT @t, 'HM16-04', N'Combinaison Enfants', @c, 2000, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM16'), 0, -2000, N'Enfants', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM16-04');
-UPDATE Produits SET Nom = N'Combinaison Enfants', CategorieId = @c, PrixVente = 2000, Supplement = -2000, LibelleVariante = N'Enfants' WHERE TenantId = @t AND Code = 'HM16-04';
-INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM16') AND Nom = N'Prestation') AND Valeur = N'Enfants')
-    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM16-04' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
-INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, EstModele, Supplement, EstCombo)
-    SELECT @t, 'HM18', N'Costume manche courte', @c, 5000, @taux, 0, 0, 1, N'Pièce', 1, 0, 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM18');
-UPDATE Produits SET Nom = N'Costume manche courte', CategorieId = @c, PrixVente = 5000, EstModele = 1 WHERE TenantId = @t AND Code = 'HM18';
-INSERT INTO ProduitAttributs (ProduitId, Nom, Ordre) SELECT Id, N'Prestation', 0 FROM Produits WHERE TenantId = @t AND Code = 'HM18'
-    AND NOT EXISTS (SELECT 1 FROM ProduitAttributs pa WHERE pa.ProduitId = Produits.Id AND pa.Nom = N'Prestation');
-INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM18') AND Nom = N'Prestation'), N'Lavage', 0 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM18') AND Nom = N'Prestation') AND Valeur = N'Lavage');
-INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
-    SELECT @t, 'HM18-01', N'Costume manche courte Lavage', @c, 5000, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM18'), 0, 0, N'Lavage', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM18-01');
-UPDATE Produits SET Nom = N'Costume manche courte Lavage', CategorieId = @c, PrixVente = 5000, Supplement = 0, LibelleVariante = N'Lavage' WHERE TenantId = @t AND Code = 'HM18-01';
-INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM18') AND Nom = N'Prestation') AND Valeur = N'Lavage')
-    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM18-01' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
-INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM18') AND Nom = N'Prestation'), N'Express', 1 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM18') AND Nom = N'Prestation') AND Valeur = N'Express');
-INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
-    SELECT @t, 'HM18-02', N'Costume manche courte Express', @c, 10000, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM18'), 0, 5000, N'Express', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM18-02');
-UPDATE Produits SET Nom = N'Costume manche courte Express', CategorieId = @c, PrixVente = 10000, Supplement = 5000, LibelleVariante = N'Express' WHERE TenantId = @t AND Code = 'HM18-02';
-INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM18') AND Nom = N'Prestation') AND Valeur = N'Express')
-    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM18-02' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
-INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM18') AND Nom = N'Prestation'), N'Repassage', 2 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM18') AND Nom = N'Prestation') AND Valeur = N'Repassage');
-INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
-    SELECT @t, 'HM18-03', N'Costume manche courte Repassage', @c, 2000, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM18'), 0, -3000, N'Repassage', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM18-03');
-UPDATE Produits SET Nom = N'Costume manche courte Repassage', CategorieId = @c, PrixVente = 2000, Supplement = -3000, LibelleVariante = N'Repassage' WHERE TenantId = @t AND Code = 'HM18-03';
-INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM18') AND Nom = N'Prestation') AND Valeur = N'Repassage')
-    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM18-03' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
-INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM18') AND Nom = N'Prestation'), N'Enfants', 3 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM18') AND Nom = N'Prestation') AND Valeur = N'Enfants');
-INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
-    SELECT @t, 'HM18-04', N'Costume manche courte Enfants', @c, 2500, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM18'), 0, -2500, N'Enfants', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM18-04');
-UPDATE Produits SET Nom = N'Costume manche courte Enfants', CategorieId = @c, PrixVente = 2500, Supplement = -2500, LibelleVariante = N'Enfants' WHERE TenantId = @t AND Code = 'HM18-04';
-INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM18') AND Nom = N'Prestation') AND Valeur = N'Enfants')
-    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM18-04' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
-INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, EstModele, Supplement, EstCombo)
-    SELECT @t, 'HM19', N'Costume simple', @c, 5500, @taux, 0, 0, 1, N'Pièce', 1, 0, 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM19');
-UPDATE Produits SET Nom = N'Costume simple', CategorieId = @c, PrixVente = 5500, EstModele = 1 WHERE TenantId = @t AND Code = 'HM19';
-INSERT INTO ProduitAttributs (ProduitId, Nom, Ordre) SELECT Id, N'Prestation', 0 FROM Produits WHERE TenantId = @t AND Code = 'HM19'
-    AND NOT EXISTS (SELECT 1 FROM ProduitAttributs pa WHERE pa.ProduitId = Produits.Id AND pa.Nom = N'Prestation');
-INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM19') AND Nom = N'Prestation'), N'Lavage', 0 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM19') AND Nom = N'Prestation') AND Valeur = N'Lavage');
-INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
-    SELECT @t, 'HM19-01', N'Costume simple Lavage', @c, 5500, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM19'), 0, 0, N'Lavage', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM19-01');
-UPDATE Produits SET Nom = N'Costume simple Lavage', CategorieId = @c, PrixVente = 5500, Supplement = 0, LibelleVariante = N'Lavage' WHERE TenantId = @t AND Code = 'HM19-01';
-INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM19') AND Nom = N'Prestation') AND Valeur = N'Lavage')
-    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM19-01' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
-INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM19') AND Nom = N'Prestation'), N'Express', 1 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM19') AND Nom = N'Prestation') AND Valeur = N'Express');
-INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
-    SELECT @t, 'HM19-02', N'Costume simple Express', @c, 11000, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM19'), 0, 5500, N'Express', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM19-02');
-UPDATE Produits SET Nom = N'Costume simple Express', CategorieId = @c, PrixVente = 11000, Supplement = 5500, LibelleVariante = N'Express' WHERE TenantId = @t AND Code = 'HM19-02';
-INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM19') AND Nom = N'Prestation') AND Valeur = N'Express')
-    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM19-02' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
-INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM19') AND Nom = N'Prestation'), N'Repassage', 2 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM19') AND Nom = N'Prestation') AND Valeur = N'Repassage');
-INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
-    SELECT @t, 'HM19-03', N'Costume simple Repassage', @c, 3000, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM19'), 0, -2500, N'Repassage', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM19-03');
-UPDATE Produits SET Nom = N'Costume simple Repassage', CategorieId = @c, PrixVente = 3000, Supplement = -2500, LibelleVariante = N'Repassage' WHERE TenantId = @t AND Code = 'HM19-03';
-INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM19') AND Nom = N'Prestation') AND Valeur = N'Repassage')
-    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM19-03' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
-INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM19') AND Nom = N'Prestation'), N'Enfants', 3 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM19') AND Nom = N'Prestation') AND Valeur = N'Enfants');
-INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
-    SELECT @t, 'HM19-04', N'Costume simple Enfants', @c, 2500, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM19'), 0, -3000, N'Enfants', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM19-04');
-UPDATE Produits SET Nom = N'Costume simple Enfants', CategorieId = @c, PrixVente = 2500, Supplement = -3000, LibelleVariante = N'Enfants' WHERE TenantId = @t AND Code = 'HM19-04';
-INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM19') AND Nom = N'Prestation') AND Valeur = N'Enfants')
-    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM19-04' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
+-- Smokings
+INSERT INTO Categories (TenantId, Nom, Couleur, Ordre, Preparation) SELECT @t, N'Smokings', N'#1e293b', 26, N'Aucun' WHERE NOT EXISTS (SELECT 1 FROM Categories WHERE TenantId = @t AND Nom = N'Smokings');
+UPDATE Categories SET Ordre = 26 WHERE TenantId = @t AND Nom = N'Smokings';
+SET @c = (SELECT MIN(Id) FROM Categories WHERE TenantId = @t AND Nom = N'Smokings');
 
--- Linge de maison
-INSERT INTO Categories (TenantId, Nom, Couleur, Ordre, Preparation) SELECT @t, N'Linge de maison', N'#2563eb', 15, N'Aucun' WHERE NOT EXISTS (SELECT 1 FROM Categories WHERE TenantId = @t AND Nom = N'Linge de maison');
-SET @c = (SELECT MIN(Id) FROM Categories WHERE TenantId = @t AND Nom = N'Linge de maison');
-INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, EstModele, Supplement, EstCombo)
-    SELECT @t, 'HM20', N'Couette', @c, 14000, @taux, 0, 0, 1, N'Pièce', 1, 0, 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM20');
-UPDATE Produits SET Nom = N'Couette', CategorieId = @c, PrixVente = 14000, EstModele = 1 WHERE TenantId = @t AND Code = 'HM20';
-INSERT INTO ProduitAttributs (ProduitId, Nom, Ordre) SELECT Id, N'Prestation', 0 FROM Produits WHERE TenantId = @t AND Code = 'HM20'
-    AND NOT EXISTS (SELECT 1 FROM ProduitAttributs pa WHERE pa.ProduitId = Produits.Id AND pa.Nom = N'Prestation');
-INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM20') AND Nom = N'Prestation'), N'Lavage', 0 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM20') AND Nom = N'Prestation') AND Valeur = N'Lavage');
-INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
-    SELECT @t, 'HM20-01', N'Couette Lavage', @c, 14000, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM20'), 0, 0, N'Lavage', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM20-01');
-UPDATE Produits SET Nom = N'Couette Lavage', CategorieId = @c, PrixVente = 14000, Supplement = 0, LibelleVariante = N'Lavage' WHERE TenantId = @t AND Code = 'HM20-01';
-INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM20') AND Nom = N'Prestation') AND Valeur = N'Lavage')
-    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM20-01' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
-INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM20') AND Nom = N'Prestation'), N'Express', 1 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM20') AND Nom = N'Prestation') AND Valeur = N'Express');
-INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
-    SELECT @t, 'HM20-02', N'Couette Express', @c, 28000, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM20'), 0, 14000, N'Express', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM20-02');
-UPDATE Produits SET Nom = N'Couette Express', CategorieId = @c, PrixVente = 28000, Supplement = 14000, LibelleVariante = N'Express' WHERE TenantId = @t AND Code = 'HM20-02';
-INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM20') AND Nom = N'Prestation') AND Valeur = N'Express')
-    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM20-02' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
-INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM20') AND Nom = N'Prestation'), N'Repassage', 2 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM20') AND Nom = N'Prestation') AND Valeur = N'Repassage');
-INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
-    SELECT @t, 'HM20-03', N'Couette Repassage', @c, 5000, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM20'), 0, -9000, N'Repassage', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM20-03');
-UPDATE Produits SET Nom = N'Couette Repassage', CategorieId = @c, PrixVente = 5000, Supplement = -9000, LibelleVariante = N'Repassage' WHERE TenantId = @t AND Code = 'HM20-03';
-INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM20') AND Nom = N'Prestation') AND Valeur = N'Repassage')
-    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM20-03' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
-INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM20') AND Nom = N'Prestation'), N'Enfants', 3 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM20') AND Nom = N'Prestation') AND Valeur = N'Enfants');
-INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
-    SELECT @t, 'HM20-04', N'Couette Enfants', @c, 5000, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM20'), 0, -9000, N'Enfants', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM20-04');
-UPDATE Produits SET Nom = N'Couette Enfants', CategorieId = @c, PrixVente = 5000, Supplement = -9000, LibelleVariante = N'Enfants' WHERE TenantId = @t AND Code = 'HM20-04';
-INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM20') AND Nom = N'Prestation') AND Valeur = N'Enfants')
-    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM20-04' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
-
--- Accessoires et sous-vêtements
-INSERT INTO Categories (TenantId, Nom, Couleur, Ordre, Preparation) SELECT @t, N'Accessoires et sous-vêtements', N'#be185d', 16, N'Aucun' WHERE NOT EXISTS (SELECT 1 FROM Categories WHERE TenantId = @t AND Nom = N'Accessoires et sous-vêtements');
-SET @c = (SELECT MIN(Id) FROM Categories WHERE TenantId = @t AND Nom = N'Accessoires et sous-vêtements');
-INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, EstModele, Supplement, EstCombo)
-    SELECT @t, 'HM08', N'Caleçon', @c, 10000, @taux, 0, 0, 1, N'Pièce', 1, 0, 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM08');
-UPDATE Produits SET Nom = N'Caleçon', CategorieId = @c, PrixVente = 10000, EstModele = 1 WHERE TenantId = @t AND Code = 'HM08';
-INSERT INTO ProduitAttributs (ProduitId, Nom, Ordre) SELECT Id, N'Prestation', 0 FROM Produits WHERE TenantId = @t AND Code = 'HM08'
-    AND NOT EXISTS (SELECT 1 FROM ProduitAttributs pa WHERE pa.ProduitId = Produits.Id AND pa.Nom = N'Prestation');
-INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM08') AND Nom = N'Prestation'), N'Lavage', 0 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM08') AND Nom = N'Prestation') AND Valeur = N'Lavage');
-INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
-    SELECT @t, 'HM08-01', N'Caleçon Lavage', @c, 10000, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM08'), 0, 0, N'Lavage', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM08-01');
-UPDATE Produits SET Nom = N'Caleçon Lavage', CategorieId = @c, PrixVente = 10000, Supplement = 0, LibelleVariante = N'Lavage' WHERE TenantId = @t AND Code = 'HM08-01';
-INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM08') AND Nom = N'Prestation') AND Valeur = N'Lavage')
-    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM08-01' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
-INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM08') AND Nom = N'Prestation'), N'Express', 1 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM08') AND Nom = N'Prestation') AND Valeur = N'Express');
-INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
-    SELECT @t, 'HM08-02', N'Caleçon Express', @c, 20000, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM08'), 0, 10000, N'Express', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM08-02');
-UPDATE Produits SET Nom = N'Caleçon Express', CategorieId = @c, PrixVente = 20000, Supplement = 10000, LibelleVariante = N'Express' WHERE TenantId = @t AND Code = 'HM08-02';
-INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM08') AND Nom = N'Prestation') AND Valeur = N'Express')
-    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM08-02' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
-INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM08') AND Nom = N'Prestation'), N'Repassage', 2 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM08') AND Nom = N'Prestation') AND Valeur = N'Repassage');
-INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
-    SELECT @t, 'HM08-03', N'Caleçon Repassage', @c, 5000, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM08'), 0, -5000, N'Repassage', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM08-03');
-UPDATE Produits SET Nom = N'Caleçon Repassage', CategorieId = @c, PrixVente = 5000, Supplement = -5000, LibelleVariante = N'Repassage' WHERE TenantId = @t AND Code = 'HM08-03';
-INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM08') AND Nom = N'Prestation') AND Valeur = N'Repassage')
-    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM08-03' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
-INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM08') AND Nom = N'Prestation'), N'Enfants', 3 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM08') AND Nom = N'Prestation') AND Valeur = N'Enfants');
-INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
-    SELECT @t, 'HM08-04', N'Caleçon Enfants', @c, 1000, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM08'), 0, -9000, N'Enfants', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM08-04');
-UPDATE Produits SET Nom = N'Caleçon Enfants', CategorieId = @c, PrixVente = 1000, Supplement = -9000, LibelleVariante = N'Enfants' WHERE TenantId = @t AND Code = 'HM08-04';
-INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM08') AND Nom = N'Prestation') AND Valeur = N'Enfants')
-    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM08-04' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
-INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, EstModele, Supplement, EstCombo)
-    SELECT @t, 'HM09', N'Châles', @c, 3000, @taux, 0, 0, 1, N'Pièce', 1, 0, 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM09');
-UPDATE Produits SET Nom = N'Châles', CategorieId = @c, PrixVente = 3000, EstModele = 1 WHERE TenantId = @t AND Code = 'HM09';
-INSERT INTO ProduitAttributs (ProduitId, Nom, Ordre) SELECT Id, N'Prestation', 0 FROM Produits WHERE TenantId = @t AND Code = 'HM09'
-    AND NOT EXISTS (SELECT 1 FROM ProduitAttributs pa WHERE pa.ProduitId = Produits.Id AND pa.Nom = N'Prestation');
-INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM09') AND Nom = N'Prestation'), N'Lavage', 0 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM09') AND Nom = N'Prestation') AND Valeur = N'Lavage');
-INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
-    SELECT @t, 'HM09-01', N'Châles Lavage', @c, 3000, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM09'), 0, 0, N'Lavage', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM09-01');
-UPDATE Produits SET Nom = N'Châles Lavage', CategorieId = @c, PrixVente = 3000, Supplement = 0, LibelleVariante = N'Lavage' WHERE TenantId = @t AND Code = 'HM09-01';
-INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM09') AND Nom = N'Prestation') AND Valeur = N'Lavage')
-    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM09-01' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
-INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM09') AND Nom = N'Prestation'), N'Express', 1 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM09') AND Nom = N'Prestation') AND Valeur = N'Express');
-INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
-    SELECT @t, 'HM09-02', N'Châles Express', @c, 6000, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM09'), 0, 3000, N'Express', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM09-02');
-UPDATE Produits SET Nom = N'Châles Express', CategorieId = @c, PrixVente = 6000, Supplement = 3000, LibelleVariante = N'Express' WHERE TenantId = @t AND Code = 'HM09-02';
-INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM09') AND Nom = N'Prestation') AND Valeur = N'Express')
-    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM09-02' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
-INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM09') AND Nom = N'Prestation'), N'Repassage', 2 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM09') AND Nom = N'Prestation') AND Valeur = N'Repassage');
-INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
-    SELECT @t, 'HM09-03', N'Châles Repassage', @c, 1500, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM09'), 0, -1500, N'Repassage', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM09-03');
-UPDATE Produits SET Nom = N'Châles Repassage', CategorieId = @c, PrixVente = 1500, Supplement = -1500, LibelleVariante = N'Repassage' WHERE TenantId = @t AND Code = 'HM09-03';
-INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM09') AND Nom = N'Prestation') AND Valeur = N'Repassage')
-    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM09-03' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
-INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM09') AND Nom = N'Prestation'), N'Enfants', 3 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM09') AND Nom = N'Prestation') AND Valeur = N'Enfants');
-INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
-    SELECT @t, 'HM09-04', N'Châles Enfants', @c, 2000, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM09'), 0, -1000, N'Enfants', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM09-04');
-UPDATE Produits SET Nom = N'Châles Enfants', CategorieId = @c, PrixVente = 2000, Supplement = -1000, LibelleVariante = N'Enfants' WHERE TenantId = @t AND Code = 'HM09-04';
-INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM09') AND Nom = N'Prestation') AND Valeur = N'Enfants')
-    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM09-04' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
-INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, EstModele, Supplement, EstCombo)
-    SELECT @t, 'HM10', N'Chaussettes', @c, 1500, @taux, 0, 0, 1, N'Pièce', 1, 0, 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM10');
-UPDATE Produits SET Nom = N'Chaussettes', CategorieId = @c, PrixVente = 1500, EstModele = 1 WHERE TenantId = @t AND Code = 'HM10';
-INSERT INTO ProduitAttributs (ProduitId, Nom, Ordre) SELECT Id, N'Prestation', 0 FROM Produits WHERE TenantId = @t AND Code = 'HM10'
-    AND NOT EXISTS (SELECT 1 FROM ProduitAttributs pa WHERE pa.ProduitId = Produits.Id AND pa.Nom = N'Prestation');
-INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM10') AND Nom = N'Prestation'), N'Lavage', 0 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM10') AND Nom = N'Prestation') AND Valeur = N'Lavage');
-INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
-    SELECT @t, 'HM10-01', N'Chaussettes Lavage', @c, 1500, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM10'), 0, 0, N'Lavage', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM10-01');
-UPDATE Produits SET Nom = N'Chaussettes Lavage', CategorieId = @c, PrixVente = 1500, Supplement = 0, LibelleVariante = N'Lavage' WHERE TenantId = @t AND Code = 'HM10-01';
-INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM10') AND Nom = N'Prestation') AND Valeur = N'Lavage')
-    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM10-01' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
-INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM10') AND Nom = N'Prestation'), N'Express', 1 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM10') AND Nom = N'Prestation') AND Valeur = N'Express');
-INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
-    SELECT @t, 'HM10-02', N'Chaussettes Express', @c, 3000, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM10'), 0, 1500, N'Express', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM10-02');
-UPDATE Produits SET Nom = N'Chaussettes Express', CategorieId = @c, PrixVente = 3000, Supplement = 1500, LibelleVariante = N'Express' WHERE TenantId = @t AND Code = 'HM10-02';
-INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM10') AND Nom = N'Prestation') AND Valeur = N'Express')
-    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM10-02' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
-INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM10') AND Nom = N'Prestation'), N'Repassage', 2 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM10') AND Nom = N'Prestation') AND Valeur = N'Repassage');
-INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
-    SELECT @t, 'HM10-03', N'Chaussettes Repassage', @c, 1500, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM10'), 0, 0, N'Repassage', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM10-03');
-UPDATE Produits SET Nom = N'Chaussettes Repassage', CategorieId = @c, PrixVente = 1500, Supplement = 0, LibelleVariante = N'Repassage' WHERE TenantId = @t AND Code = 'HM10-03';
-INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM10') AND Nom = N'Prestation') AND Valeur = N'Repassage')
-    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM10-03' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
-INSERT INTO ProduitAttributValeurs (ProduitAttributId, Valeur, Ordre) SELECT (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM10') AND Nom = N'Prestation'), N'Enfants', 3 WHERE NOT EXISTS (SELECT 1 FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM10') AND Nom = N'Prestation') AND Valeur = N'Enfants');
-INSERT INTO Produits (TenantId, Code, Nom, CategorieId, PrixVente, TauxTVA, SuiviStock, StockActuel, Actif, Unite, ParentId, EstModele, Supplement, LibelleVariante, EstCombo)
-    SELECT @t, 'HM10-04', N'Chaussettes Enfants', @c, 1000, @taux, 0, 0, 1, N'Pièce', (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM10'), 0, -500, N'Enfants', 0 WHERE NOT EXISTS (SELECT 1 FROM Produits WHERE TenantId = @t AND Code = 'HM10-04');
-UPDATE Produits SET Nom = N'Chaussettes Enfants', CategorieId = @c, PrixVente = 1000, Supplement = -500, LibelleVariante = N'Enfants' WHERE TenantId = @t AND Code = 'HM10-04';
-INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = (SELECT MIN(Id) FROM ProduitAttributs WHERE ProduitId = (SELECT Id FROM Produits WHERE TenantId = @t AND Code = 'HM10') AND Nom = N'Prestation') AND Valeur = N'Enfants')
-    FROM Produits v WHERE v.TenantId = @t AND v.Code = 'HM10-04' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);
+-- Catégories de la première version du catalogue, devenues vides
+DELETE FROM Categories WHERE TenantId = @t AND Nom IN (N'Chemises et hauts', N'Vestes et blousons', N'Bas', N'Tenues et costumes', N'Linge de maison', N'Accessoires et sous-vêtements') AND NOT EXISTS (SELECT 1 FROM Produits p WHERE p.CategorieId = Categories.Id);
 
 -- TVA de la société (si elle existe) sur les modèles et leurs variantes
 INSERT INTO ProduitTaxes (ProduitId, TaxeId) SELECT p.Id, @tva FROM Produits p WHERE p.TenantId = @t AND @tva IS NOT NULL
-    AND (p.Code IN ('HM06', 'HM07', 'HM11', 'HM12', 'HM13', 'HM14', 'HM15', 'HM17', 'HM02', 'HM03', 'HM04', 'HM01', 'HM05', 'HM16', 'HM18', 'HM19', 'HM20', 'HM08', 'HM09', 'HM10') OR p.ParentId IN (SELECT Id FROM Produits WHERE TenantId = @t AND Code IN ('HM06', 'HM07', 'HM11', 'HM12', 'HM13', 'HM14', 'HM15', 'HM17', 'HM02', 'HM03', 'HM04', 'HM01', 'HM05', 'HM16', 'HM18', 'HM19', 'HM20', 'HM08', 'HM09', 'HM10')))
+    AND (p.Code IN ('HM08', 'HM09', 'HM10', 'HM06', 'HM07', 'HM11', 'HM12', 'HM13', 'HM14', 'HM15', 'HM17', 'HM05', 'HM20', 'HM18', 'HM19', 'HM02', 'HM03', 'HM04', 'HM16', 'HM01') OR p.ParentId IN (SELECT Id FROM Produits WHERE TenantId = @t AND Code IN ('HM08', 'HM09', 'HM10', 'HM06', 'HM07', 'HM11', 'HM12', 'HM13', 'HM14', 'HM15', 'HM17', 'HM05', 'HM20', 'HM18', 'HM19', 'HM02', 'HM03', 'HM04', 'HM16', 'HM01')))
     AND NOT EXISTS (SELECT 1 FROM ProduitTaxes x WHERE x.ProduitId = p.Id);
 COMMIT TRANSACTION;
 SELECT N'Catalogue Hob''s-Marie installé : ' + CAST((SELECT COUNT(*) FROM Produits WHERE TenantId = @t AND Code LIKE 'HM%' AND EstModele = 1) AS nvarchar(10))

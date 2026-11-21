@@ -12,35 +12,43 @@ RACINE = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file_
 PREFIXE = 'HM'
 PRESTATIONS = ['Lavage', 'Express', 'Repassage', 'Enfants']
 
-# Catégorie (couleur des tuiles) et articles : n° de la grille, nom, prix Lavage, Express, Repassage, Enfants (XAF).
-CATEGORIES = [
-    ('Chemises et hauts', '#0369a1', [
-        (6, 'Bustier simple', 2500, 5000, 1500, 2000),
-        (7, 'Bustier soie', 3000, 6000, 2000, 2000),
-        (11, 'Chemise cintrée', 2100, 4200, 1500, 1500),
-        (12, 'Chemise pliée', 2300, 4600, 1500, 1500),
-        (13, 'Chemisier fantaisiste', 2500, 5000, 1500, 2000),
-        (14, 'Chemisier lin', 2500, 5000, 1500, 2000),
-        (15, 'Chemisier simple', 2000, 4000, 1000, 1000),
-        (17, 'Corsage', 2000, 4000, 1000, 1000)]),
-    ('Vestes et blousons', '#7c3aed', [
-        (2, 'Blouson épais', 4000, 8000, 2000, 3000),
-        (3, 'Blouson fantaisiste', 5000, 10000, 3000, 3000),
-        (4, 'Blouson simple', 4000, 8000, 2000, 3000)]),
-    ('Bas', '#0f766e', [
-        (1, 'Bermuda', 2000, 4000, 1000, 1000)]),
-    ('Tenues et costumes', '#b45309', [
-        (5, 'Boubou', 3500, 7000, 2000, 2000),
-        (16, 'Combinaison', 4000, 8000, 2500, 2000),
-        (18, 'Costume manche courte', 5000, 10000, 2000, 2500),
-        (19, 'Costume simple', 5500, 11000, 3000, 2500)]),
-    ('Linge de maison', '#2563eb', [
-        (20, 'Couette', 14000, 28000, 5000, 5000)]),
-    ('Accessoires et sous-vêtements', '#be185d', [
-        (8, 'Caleçon', 10000, 20000, 5000, 1000),
-        (9, 'Châles', 3000, 6000, 1500, 2000),
-        (10, 'Chaussettes', 1500, 3000, 1500, 1000)]),
+# Familles d'articles du pressing (logiciel utilisé jusqu'ici, codes FA00001 à FA00031), dans leur ordre :
+# elles deviennent les catégories de GesCaisse (onglets de l'écran de vente). Doublons de ce logiciel
+# regroupés : « Costume » avec Costumes, « chemise » avec Chemises, « tee short » avec Tee-shirts.
+FAMILLES = ['Accessoires', 'Jupes', 'Robes', 'Chemises', 'Pantalons', 'Jeans', 'Vestes', 'Tenues africaines', 'Draps',
+            'Costumes', 'Ensembles robes', 'Tailleurs', 'Blousons', 'Tee-shirts', 'Rideaux', 'Accessoires de nuit', 'Sports',
+            'Robes de mariée', 'Nappes', 'Serviettes', 'Ensembles', 'Enfants', 'Accessoires médicaux', 'Teinture', 'Shorts', 'Smokings']
+COULEURS = ['#be185d', '#7c3aed', '#c026d3', '#0369a1', '#0f766e', '#1d4ed8', '#4338ca', '#b45309', '#2563eb', '#334155',
+            '#db2777', '#9333ea', '#6d28d9', '#0891b2', '#15803d', '#831843', '#16a34a', '#a21caf', '#0e7490', '#0284c7',
+            '#c2410c', '#ea580c', '#dc2626', '#a16207', '#047857', '#1e293b']
+# Catégories de la première version du catalogue : retirées si elles ne contiennent plus aucun produit.
+ANCIENNES = ['Chemises et hauts', 'Vestes et blousons', 'Bas', 'Tenues et costumes', 'Linge de maison', 'Accessoires et sous-vêtements']
+
+# Articles de la grille : famille, n° de la grille, nom, prix Lavage, Express, Repassage, Enfants (XAF).
+ARTICLES = [
+    ('Shorts', 1, 'Bermuda', 2000, 4000, 1000, 1000),
+    ('Blousons', 2, 'Blouson épais', 4000, 8000, 2000, 3000),
+    ('Blousons', 3, 'Blouson fantaisiste', 5000, 10000, 3000, 3000),
+    ('Blousons', 4, 'Blouson simple', 4000, 8000, 2000, 3000),
+    ('Tenues africaines', 5, 'Boubou', 3500, 7000, 2000, 2000),
+    ('Chemises', 6, 'Bustier simple', 2500, 5000, 1500, 2000),
+    ('Chemises', 7, 'Bustier soie', 3000, 6000, 2000, 2000),
+    ('Accessoires', 8, 'Caleçon', 10000, 20000, 5000, 1000),
+    ('Accessoires', 9, 'Châles', 3000, 6000, 1500, 2000),
+    ('Accessoires', 10, 'Chaussettes', 1500, 3000, 1500, 1000),
+    ('Chemises', 11, 'Chemise cintrée', 2100, 4200, 1500, 1500),
+    ('Chemises', 12, 'Chemise pliée', 2300, 4600, 1500, 1500),
+    ('Chemises', 13, 'Chemisier fantaisiste', 2500, 5000, 1500, 2000),
+    ('Chemises', 14, 'Chemisier lin', 2500, 5000, 1500, 2000),
+    ('Chemises', 15, 'Chemisier simple', 2000, 4000, 1000, 1000),
+    ('Ensembles', 16, 'Combinaison', 4000, 8000, 2500, 2000),
+    ('Chemises', 17, 'Corsage', 2000, 4000, 1000, 1000),
+    ('Costumes', 18, 'Costume manche courte', 5000, 10000, 2000, 2500),
+    ('Costumes', 19, 'Costume simple', 5500, 11000, 3000, 2500),
+    ('Draps', 20, 'Couette', 14000, 28000, 5000, 5000),
 ]
+CATEGORIES = [(f, COULEURS[k % len(COULEURS)], [a[1:] for a in ARTICLES if a[0] == f]) for k, f in enumerate(FAMILLES)]
+assert all(a[0] in FAMILLES for a in ARTICLES)
 
 
 def ecrire(sqlserver):
@@ -57,7 +65,7 @@ def ecrire(sqlserver):
     a('-- %d articles, chacun avec l\'attribut « Prestation » et 4 variantes : Lavage, Express, Repassage,' % nb)
     a('-- Enfants (prix de la grille, en FCFA). À la caisse, une tuile par article, puis le choix de la')
     a('-- prestation. Prestations sans suivi de stock, unité « Pièce », TVA de la société si elle existe.')
-    a('-- Catégories : %s.' % ', '.join(c for c, _, _ in CATEGORIES))
+    a('-- Catégories : les %d familles d\'articles du pressing (%s).' % (len(FAMILLES), ', '.join(FAMILLES)))
     a('--')
     a('-- 1. Indiquez ci-dessous le CODE de la société (Administration › Sociétés) à la place de LAVERIE, puis exécutez le script')
     a('--    sur la base de l\'application (' + ('SSMS : ouvrir le fichier, choisir la base, Exécuter' if sqlserver else 'phpMyAdmin › Importer, ou onglet SQL') + ').')
@@ -93,7 +101,8 @@ def ecrire(sqlserver):
         a('')
         a('-- %s' % cat)
         a('INSERT INTO Categories (TenantId, Nom, Couleur, Ordre, Preparation) SELECT @t, %s, %s, %d, %s%s WHERE NOT EXISTS (SELECT 1 FROM Categories WHERE TenantId = @t AND Nom = %s)%s;'
-          % (s(cat), s(couleur), 10 + ordre, s('Aucun'), dual, s(cat), garde))
+          % (s(cat), s(couleur), ordre, s('Aucun'), dual, s(cat), garde))
+        a("UPDATE Categories SET Ordre = %d WHERE TenantId = @t AND Nom = %s;" % (ordre, s(cat)))
         a('SET @c = (SELECT MIN(Id) FROM Categories WHERE TenantId = @t AND Nom = %s);' % s(cat))
         for num, nom, *prix in articles:
             n += 1
@@ -120,6 +129,13 @@ def ecrire(sqlserver):
                 a("INSERT INTO VarianteValeurs (VarianteId, ValeurId) SELECT v.Id, (SELECT MIN(Id) FROM ProduitAttributValeurs WHERE ProduitAttributId = %s AND Valeur = %s)" % (attribut, s(prestation)))
                 a("    FROM Produits v WHERE v.TenantId = @t AND v.Code = '%s' AND NOT EXISTS (SELECT 1 FROM VarianteValeurs x WHERE x.VarianteId = v.Id);" % vcode)
     codes = ', '.join("'%s%02d'" % (PREFIXE, num) for _, _, arts in CATEGORIES for num, *_ in arts)
+    a('')
+    a('-- Catégories de la première version du catalogue, devenues vides')
+    vides = ', '.join(s(c) for c in ANCIENNES)
+    if sqlserver:
+        a('DELETE FROM Categories WHERE TenantId = @t AND Nom IN (%s) AND NOT EXISTS (SELECT 1 FROM Produits p WHERE p.CategorieId = Categories.Id);' % vides)
+    else:
+        a('DELETE c FROM Categories c LEFT JOIN Produits p ON p.CategorieId = c.Id WHERE c.TenantId = @t AND c.Nom IN (%s) AND p.Id IS NULL;' % vides)
     a('')
     a('-- TVA de la société (si elle existe) sur les modèles et leurs variantes')
     a("INSERT INTO ProduitTaxes (ProduitId, TaxeId) SELECT p.Id, @tva FROM Produits p WHERE p.TenantId = @t AND @tva IS NOT NULL")
