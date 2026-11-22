@@ -83,7 +83,10 @@ try {
     error_log('[GesCaisse] ' . $e->getMessage());
     http_response_code(500);
     // Cause la plus probable, sans dévoiler le détail technique (affiché seulement en mode debug).
-    $message = match ((string) $e->getCode()) {
+    $message = $e->getMessage() === 'GC_TABLES_MINUSCULES'
+        ? "Les noms des tables de la base sont en minuscules (base exportée depuis Windows : produits au lieu de Produits). "
+            . "Sauvegardez la base, puis exécutez sql/outils/renommer_tables_majuscules.sql dans phpMyAdmin (onglet SQL) et rechargez la page."
+        : match ((string) $e->getCode()) {
         '1045' => "Connexion à MySQL refusée : vérifiez db_user et db_pass dans config.php.",
         '1044', '1049' => "La base indiquée dans config.php (db_name) n'existe pas ou n'est pas accessible à cet utilisateur.",
         '2002', '2005', '2006' => "Serveur MySQL injoignable : vérifiez db_host et db_port dans config.php (chez un hébergeur, souvent « localhost »).",
@@ -91,7 +94,7 @@ try {
             . "Sur un serveur Linux, les noms de tables doivent garder leurs majuscules (Utilisateurs, et non utilisateurs).",
         default => "Une erreur de base de données est survenue. Vérifiez la configuration (config.php) et que le fichier sql/schema.sql a bien été importé.",
     };
-    if (!empty($CONFIG['debug'])) {
+    if (!empty($CONFIG['debug']) && $e->getMessage() !== 'GC_TABLES_MINUSCULES') {
         $message .= "\n\nDétail : " . $e->getMessage();
     }
     render('erreur', ['titre' => 'Erreur', 'message' => $message], user() !== null);

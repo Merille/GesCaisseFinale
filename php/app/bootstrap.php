@@ -94,6 +94,14 @@ function schema_a_jour(): void
         if ((string) $e->getCode() !== '42S02') {
             throw $e;
         }
+        // Base exportée depuis Windows : tables en minuscules (produits…), que MySQL sous Linux ne confond
+        // pas avec Produits. Rejouer les migrations échouerait (« errno 121 ») : arrêt avec la marche à suivre.
+        $minuscules = (int) qv("SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE()
+            AND LOWER(TABLE_NAME) IN ('migrationsappliquees', 'utilisateurs', 'produits', 'tenants', 'caisses')
+            AND BINARY TABLE_NAME NOT IN ('MigrationsAppliquees', 'Utilisateurs', 'Produits', 'Tenants', 'Caisses')");
+        if ($minuscules > 0) {
+            throw new PDOException('GC_TABLES_MINUSCULES');
+        }
         db()->exec('CREATE TABLE IF NOT EXISTS MigrationsAppliquees (
             Nom VARCHAR(100) NOT NULL PRIMARY KEY,
             DateApplication DATETIME NOT NULL
